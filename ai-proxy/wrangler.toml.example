@@ -1,0 +1,17 @@
+name = "admission-hub-ai-proxy"
+main = "worker.js"
+compatibility_date = "2026-08-27"
+
+[vars]
+ALLOWED_ORIGIN = "https://sheikhrashel47-stack.github.io"
+BROWSER_USE_MODEL = "gpt-5.6-luna"
+
+# Create a KV namespace and replace the IDs before deploying.
+# The KV namespace is used for a lightweight per-IP daily request limit.
+[[kv_namespaces]]
+binding = "AI_ANALYSIS_KV"
+id = "REPLACE_WITH_PRODUCTION_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_PREVIEW_KV_NAMESPACE_ID"
+
+# Set the API key with Wrangler/Cloudflare Secret Store; never add it here:
+# wrangler secret put BROWSER_USE_API_KEY
