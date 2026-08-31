@@ -9,12 +9,79 @@ const SYS = ai => `তুমি "স্টাডি বন্ধু" — বা�
 নিয়ম: সহজ-উষ্ণ বাংলায় তুমি-ফর্ম, ২-৬ লাইন, হালকা emoji। ${ai ? 'নিচের [লাইভ-মেমোরি] সাইলেন্টলি ব্যবহার করো, raw ডাম্প নয়।' : ''}`;
 const bn = n => String(n).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
 
+const stripHeavyRow = x => {
+  if (!x || typeof x !== 'object') return x;
+  const o = Object.assign({}, x);
+  ['imageDataUrl', 'image', 'thumbnail'].forEach(k => {
+    if (typeof o[k] === 'string' && o[k].startsWith('data:') && o[k].length > 60000) delete o[k];
+  });
+  return o;
+};
+const onlyRows = arr => (Array.isArray(arr) ? arr : []).filter(x => x && x.id).map(stripHeavyRow);
+const fingerprintGlobal = doc => {
+  const q = doc.questions || [];
+  return [
+    (doc.subjects || []).length,
+    (doc.topics || []).length,
+    q.length,
+    (doc.vocabulary || []).length,
+    (doc.vocabularyMaster || []).length,
+    q.reduce((n, x) => n + String(x.question || x.q || '').length, 0)
+  ].join(':');
+};
+const countsOf = doc => ({
+  subjects: (doc.subjects || []).length,
+  topics: (doc.topics || []).length,
+  questions: (doc.questions || []).length,
+  vocabulary: (doc.vocabulary || []).length,
+  vocabularyMaster: (doc.vocabularyMaster || []).length
+});
+
+export const publishGlobal = async (env, full) => {
+  if (!env || !env.PUB_KV) return { error: 'no-pub-kv' };
+  const src = full && typeof full === 'object' ? full : {};
+  const subjects = onlyRows(src.subjects);
+  const topics = onlyRows(src.topics);
+  const questions = onlyRows(src.questions);
+  const vocabulary = onlyRows(src.vocabulary);
+  const vocabularyMaster = onlyRows(src.vocabularyMaster);
+  if (!questions.length && !vocabularyMaster.length) return { error: 'empty' };
+  const sig = fingerprintGlobal({ subjects, topics, questions, vocabulary, vocabularyMaster });
+  let prevMeta = { v: 0 };
+  try { prevMeta = JSON.parse((await env.PUB_KV.get('pubContentMeta')) || '{"v":0}'); } catch (_) {}
+  if (prevMeta.sig === sig && prevMeta.v) {
+    return { published: false, unchanged: true, v: prevMeta.v, counts: prevMeta.counts || countsOf({ subjects, topics, questions, vocabulary, vocabularyMaster }) };
+  }
+  let exams = [{ id: 'mock1', title: 'মক পরীক্ষা ১', mins: 15, n: Math.min(15, questions.length || 1), published: true, desc: 'সব বিষয় মিশিয়ে' }];
+  try {
+    const prev = JSON.parse((await env.PUB_KV.get('pubContent')) || '{}');
+    if (Array.isArray(prev.exams) && prev.exams.length) exams = prev.exams;
+  } catch (_) {}
+  const doc = { v: (Number(prevMeta.v) || 0) + 1, at: Date.now(), sig, subjects, topics, questions, vocabulary, vocabularyMaster, exams };
+  let raw = JSON.stringify(doc);
+  if (raw.length > 24 * 1024 * 1024) {
+    doc.vocabularyMaster = (doc.vocabularyMaster || []).map(x => { const o = Object.assign({}, x); delete o.imageDataUrl; delete o.image; return o; });
+    raw = JSON.stringify(doc);
+  }
+  await env.PUB_KV.put('pubContent', raw.slice(0, 24 * 1024 * 1024));
+  const meta = { v: doc.v, at: doc.at, sig: doc.sig, counts: countsOf(doc) };
+  await env.PUB_KV.put('pubContentMeta', JSON.stringify(meta));
+  return { published: true, v: doc.v, counts: meta.counts };
+};
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: JSONH });
     const url = new URL(request.url), p = url.pathname;
     try {
       if (p === '/api/health') return json({ ok: true, at: Date.now() });
+      if (p === '/api/content/meta' && request.method === 'GET') {
+        const raw = await env.PUB_KV.get('pubContentMeta');
+        if (raw) return json(JSON.parse(raw));
+        const full = await env.PUB_KV.get('pubContent');
+        const d = full ? JSON.parse(full) : { v: 0, at: 0, questions: [] };
+        return json({ v: d.v || 0, at: d.at || 0, sig: d.sig || '', counts: countsOf(d) });
+      }
       if (p === '/api/content' && request.method === 'GET') {
         const raw = await env.PUB_KV.get('pubContent');
         return json(raw ? JSON.parse(raw) : { v: 0, at: 0, questions: [], vocabulary: [], exams: [] });
@@ -137,21 +204,21 @@ const admin = async (request, env, p) => {
   }
   if (p === '/api/admin/publish' && request.method === 'POST') {
     const b = await request.json().catch(() => ({}));
-    let qs = Array.isArray(b.questions) ? b.questions : null, voc = Array.isArray(b.vocabulary) ? b.vocabulary : null, exs = Array.isArray(b.exams) ? b.exams : null, full = null;
+    let full = (b.full && typeof b.full === 'object') ? b.full : null;
     if (b.pull) {
-      // একই অ্যাকাউন্টের KV-binding — worker→worker HTTP লুপ (CF 1042) বাইপাস
       const raw = env.OLD_KV ? await env.OLD_KV.get('userBank') : null;
       const bank = raw ? JSON.parse(raw) : {};
-      qs = (bank.qs || []).map(q => ({ s: q.s || '', t: q.t || '', q: q.q || '', o: q.o || [], a: Number(q.a) || 0, e: q.e || '' }));
-      voc = (bank.vocabulary || []).map(v => ({ w: v.w || v.word || '', m: v.m || v.meaning || '' })).filter(v => v.w);
-      if (bank.full && typeof bank.full === 'object') full = bank.full; // v133f: পূর্ণাঙ্গ-ব্লক পাসথ্রু (hierarchy-সহ)
+      if (bank.full && typeof bank.full === 'object') full = bank.full;
     }
-    if (!qs || !qs.length) return json({ error: 'প্রশ্ন খালি' }, 400);
-    const prev = JSON.parse((await env.PUB_KV.get('pubContent')) || '{"v":0}');
-    const doc = { v: (prev.v || 0) + 1, at: Date.now(), questions: qs.slice(0, 12000), vocabulary: (voc || prev.vocabulary || []).slice(0, 8000), exams: exs || prev.exams || [{ id: 'mock1', title: 'মক পরীক্ষা ১', mins: 15, n: Math.min(15, qs.length), published: true, desc: 'সব বিষয় মিশিয়ে' }] };
-    if (full) doc.full = full; // v133f
-    await env.PUB_KV.put('pubContent', JSON.stringify(doc).slice(0, 24 * 1024 * 1024));
-    return json({ published: true, v: doc.v, questions: doc.questions.length, vocabulary: doc.vocabulary.length, exams: doc.exams.length });
+    if (!full && Array.isArray(b.subjects) && Array.isArray(b.questions)) {
+      full = { subjects: b.subjects, topics: b.topics, questions: b.questions, vocabulary: b.vocabulary, vocabularyMaster: b.vocabularyMaster };
+    }
+    if (full && Array.isArray(full.questions) && full.questions.some(q => q && q.id)) {
+      const result = await publishGlobal(env, full);
+      if (result.error === 'empty') return json({ error: 'প্রশ্ন খালি' }, 400);
+      return json(result);
+    }
+    return json({ error: 'প্রশ্ন খালি' }, 400);
   }
   return json({ error: 'not-found' }, 404);
 };
