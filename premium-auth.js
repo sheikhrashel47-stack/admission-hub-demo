@@ -85,13 +85,7 @@
   };
 
   const gateEl = () => document.getElementById('ahAuthGate');
-  const IMG = {
-    welcome: './auth-art/welcome-hero.jpg',
-    crest: './auth-art/login-crest.jpg',
-    book: './auth-art/signup-book.jpg',
-    shield: './auth-art/otp-shield.jpg',
-    medal: './auth-art/success-medal.jpg'
-  };
+  const svg = (name) => (window.AHAuthSVG && AHAuthSVG[name] ? AHAuthSVG[name]() : '');
   const gSvg = `<svg class="ah-g" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.5-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.2-3.5 5.7-6.7 7.1l.1.1 6.3 5.3C36.9 41.5 44 36 44 24c0-1.3-.1-2.5-.4-3.5z"/></svg>`;
 
   const paint = html => {
@@ -105,18 +99,20 @@
   const textField = (id, ph, ic, extra='') => `<div class="ah-field"><span class="ic">${ic}</span><input class="ah-inp" id="${id}" placeholder="${ph}" ${extra}></div>`;
 
   const welcome = () => paint(`<section class="ah-screen welcome">
-    <div class="ah-hero"><img src="${IMG.welcome}" alt=""></div>
-    <h1 class="ah-title center" style="letter-spacing:.12em;font-size:26px;margin-top:8px">ADMISSION HUB</h1>
-    <p class="ah-sub center">Learn Smart, Achieve More</p>
-    <button class="ah-cta" type="button" data-go="login">Get Started <span>→</span></button>
-    <p class="ah-quote">“The beautiful thing about learning is nobody can take it away from you.”</p>
+    <div class="ah-stage-svg">${svg("welcome")}</div>
+    <div class="ah-dock">
+      <h1 class="ah-title center" style="letter-spacing:.14em;font-size:26px;margin-top:4px">ADMISSION HUB</h1>
+      <p class="ah-sub center">Learn Smart, Achieve More</p>
+      <button class="ah-cta" type="button" data-go="login">Get Started <span>→</span></button>
+      <p class="ah-quote">“The beautiful thing about learning is nobody can take it away from you.”</p>
+    </div>
   </section>`);
 
   const login = (tab) => {
     tab = tab || 'pass';
     paint(`<section class="ah-screen login">
       <button class="ah-back" type="button" data-go="welcome">←</button>
-      <img class="ah-mini" src="${IMG.crest}" alt="">
+      <div class="ah-stage-svg mini">${svg("crest")}</div>
       <div class="ah-brand-sm">ADMISSION HUB</div>
       <div class="ah-tag-sm">Learn Smart, Achieve More</div>
       <h2 class="ah-title">Welcome Back,<br><span class="hi">Scholar!</span></h2>
@@ -142,7 +138,7 @@
 
   const signup = () => paint(`<section class="ah-screen signup">
     <button class="ah-back" type="button" data-go="login">←</button>
-    <div class="ah-hero"><img src="${IMG.book}" alt=""></div>
+    <div class="ah-stage-svg">${svg("book")}</div>
     <h2 class="ah-title center">Create Your<br><span class="hi">Account</span></h2>
     <p class="ah-sub center">Join thousands of learners<br>on Admission Hub</p>
     <div class="ah-card">
@@ -161,7 +157,7 @@
 
   const otpScreen = () => paint(`<section class="ah-screen otp">
     <button class="ah-back" type="button" data-go="${draft.purpose==='reset'?'forgot':(draft.purpose==='signup'?'signup':'login')}">←</button>
-    <div class="ah-hero"><img src="${IMG.shield}" alt=""></div>
+    <div class="ah-stage-svg">${svg("shield")}</div>
     <h2 class="ah-title center">Verify Your Email</h2>
     <p class="ah-sub center">We've sent a 6-digit verification code to<br><b style="color:#3ee08f">${esc(draft.masked||draft.id)}</b></p>
     <div class="ah-otp" id="ahOtp">${[0,1,2,3,4,5].map(i=>`<input maxlength="1" inputmode="numeric" data-otp="${i}" autocomplete="${i?'off':'one-time-code'}">`).join('')}</div>
@@ -173,7 +169,7 @@
   </section>`);
 
   const success = (title, sub, goTxt) => paint(`<section class="ah-screen ok">
-    <div class="ah-hero"><img src="${IMG.medal}" alt=""></div>
+    <div class="ah-stage-svg">${svg("medal")}</div>
     <h2 class="ah-title center">${title}</h2>
     <p class="ah-sub center">${sub}</p>
     <button class="ah-btn" type="button" id="ahEnter">${goTxt} <span>→</span></button>
@@ -181,7 +177,7 @@
 
   const forgot = () => paint(`<section class="ah-screen login">
     <button class="ah-back" type="button" data-go="login">←</button>
-    <div class="ah-hero"><img src="${IMG.shield}" alt=""></div>
+    <div class="ah-stage-svg">${svg("shield")}</div>
     <h2 class="ah-title center">Forgot<br><span class="hi">Password</span></h2>
     <p class="ah-sub center">ইমেইল বা মোবাইলে ভেরিফিকেশন কোড যাবে</p>
     <div class="ah-card">

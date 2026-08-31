@@ -1,15 +1,20 @@
 html[data-ah="out"] #app,html[data-ah="out"] #navRoot{display:none!important;visibility:hidden!important}
 html[data-ah="in"] #ahAuthGate{display:none!important}
 #ahAuthGate{position:fixed;inset:0;z-index:6000;background:#03160f;color:#eef7f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif;overflow:auto;-webkit-overflow-scrolling:touch}
-.ah-screen{max-width:430px;margin:0 auto;min-height:100%;min-height:100dvh;position:relative;padding:calc(14px + env(safe-area-inset-top,0px)) 22px calc(18px + env(safe-area-inset-bottom,0px));background:
+.ah-screen{max-width:430px;margin:0 auto;min-height:100%;min-height:100dvh;position:relative;display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top,0px)) 22px calc(18px + env(safe-area-inset-bottom,0px));background:
+  radial-gradient(1.5px 1.5px at 12% 18%, rgba(255,255,255,.35) 50%, transparent 51%),
+  radial-gradient(1px 1px at 80% 22%, rgba(255,255,255,.28) 50%, transparent 51%),
+  radial-gradient(1.5px 1.5px at 30% 70%, rgba(62,224,143,.35) 50%, transparent 51%),
   radial-gradient(120% 70% at 50% 8%, rgba(18,110,72,.45) 0%, rgba(3,22,15,0) 55%),
   #03160f}
-.ah-screen.welcome{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:calc(8px + env(safe-area-inset-top,0px))}
-.ah-hero{width:100%;display:flex;justify-content:center;pointer-events:none}
-.ah-hero img{width:100%;max-width:340px;height:auto;display:block}
-.ah-screen.welcome .ah-hero img{max-width:360px;margin-top:4px}
-.ah-screen.login .ah-hero img,.ah-mini{width:52px;height:52px;object-fit:contain;margin:0 auto 6px;display:block}
-.ah-screen.signup .ah-hero img,.ah-screen.otp .ah-hero img,.ah-screen.ok .ah-hero img{max-width:280px;margin:-8px auto 4px}
+.ah-screen.welcome{text-align:center;padding-top:calc(8px + env(safe-area-inset-top,0px))}
+.ah-stage-svg{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.ah-stage-svg.mini{flex:0 0 auto;height:58px;margin:4px 0 6px}
+.ah-svg{width:min(88%,340px);max-height:48dvh;height:auto;display:block;animation:ahfloat 5.5s ease-in-out infinite}
+.ah-svg.sm{width:56px;height:56px;max-height:56px;animation:none}
+.ah-dock{flex-shrink:0;width:100%}
+@keyframes ahfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@media (prefers-reduced-motion:reduce){.ah-svg{animation:none}}
 .ah-back{position:absolute;left:16px;top:calc(10px + env(safe-area-inset-top,0px));width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#fff;font-size:18px;z-index:2}
 .ah-brand-sm{text-align:center;font-size:11px;letter-spacing:.18em;font-weight:800;margin:0}
 .ah-tag-sm{text-align:center;font-size:11px;color:#8aa396;margin:4px 0 14px}
