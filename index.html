@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Admission Hub — Demo</title>
+<meta name="theme-color" content="#0e7a58">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<style>
+:root{--em:#0e7a58;--em-d:#0f6b4f;--bg:#f4faf7;--card:#fff;--line:#e3ede7;--ink:#1d2e26;--mut:#5f7a6e;--soft:#e9f5ef}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI','Noto Sans Bengali','Hind Siliguri',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+button{font-family:inherit}
+.hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(244,250,247,.9);backdrop-filter:blur(8px)}
+.hdr .brand{font-weight:800;font-size:16.5px;color:var(--em-d);flex:1;display:flex;align-items:center;gap:7px}
+.hdr .brand .logo{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#12a06f,#0e7a58);color:#fff;display:grid;place-items:center;font-size:13px}
+.hdr .streak{font-size:12.5px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 10px;color:#b3541e;font-weight:700}
+.hdr .aibtn{background:var(--em);color:#fff;border:0;border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer}
+.nav{position:fixed;bottom:0;left:0;right:0;z-index:30;display:flex;background:#fff;border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+.nav button{flex:1;background:none;border:0;font-size:10.5px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 0;cursor:pointer;border-radius:12px}
+.nav button .ic{font-size:19px;line-height:1}
+.nav button.on{color:var(--em-d);font-weight:800;background:var(--soft)}
+main{max-width:560px;margin:0 auto;padding:14px 14px 90px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0;box-shadow:0 1px 6px rgba(16,40,30,.05);animation:rise .22s ease}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h2{font-size:15.5px;margin:14px 2px 4px}
+.mut{color:var(--mut);font-size:12px}
+.goal{background:linear-gradient(135deg,#0f7a57,#0b5f45);color:#fff;border:0}
+.goal .big{font-size:16.5px;font-weight:800}
+.goal .go{background:#fff;color:var(--em-d);border:0;border-radius:10px;padding:9px 16px;font-weight:800;font-size:13px;cursor:pointer;margin-top:10px}
+.bar{height:7px;background:#e8f0ec;border-radius:6px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#12a06f,#0e7a58);border-radius:6px;transition:width .6s ease}
+.chip{display:inline-block;background:var(--soft);color:var(--em-d);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;margin:4px 4px 0 0;cursor:pointer;border:1px solid transparent}
+.chip:active{transform:scale(.97)}
+.opt{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px;margin:8px 0;font-size:14px;cursor:pointer;color:var(--ink)}
+.opt .k{width:24px;height:24px;border-radius:8px;background:var(--soft);display:grid;place-items:center;font-weight:800;font-size:12px;color:var(--em-d);flex:none}
+.opt.sel{border-color:var(--em);background:#f2faf6}
+.opt.right{border-color:#12a06f;background:#eefaf4}
+.opt.wrong{border-color:#d05656;background:#fdf3f2}
+.opt .mark{margin-left:auto;font-weight:800}
+.btn{background:var(--em);color:#fff;border:0;border-radius:11px;padding:11px 18px;font-weight:800;font-size:13.5px;cursor:pointer}
+.btn.sec{background:#fff;color:var(--em-d);border:1.5px solid var(--line)}
+.btn:disabled{opacity:.45}
+.timer{font-variant-numeric:tabular-nums;font-weight:800;color:#b3541e;background:#fdf1e7;border-radius:999px;padding:6px 12px;font-size:13px;display:inline-block}
+.ring{display:block;margin:6px auto}
+.ring .val{font-size:30px;font-weight:800;fill:var(--em-d)}
+.exq{font-size:15.5px;font-weight:700;line-height:1.55;margin:8px 0}
+.explain{background:var(--soft);border-radius:12px;padding:11px;font-size:13px;line-height:1.6;margin-top:8px}
+.rec{background:#fff8ec;border:1px solid #f2e3c4;border-radius:12px;padding:11px;font-size:13px;margin-top:10px}
+.at{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px dashed var(--line);font-size:13px}
+.at b{flex:1}
+input[type=text],input[type=password],textarea{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:11px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink)}
+.demo-note{font-size:11px;color:var(--mut);text-align:center;margin:14px 0 4px}
+.sheet{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;animation:rise .2s ease}
+.sheet .shead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);background:#fff}
+.sheet .shead b{flex:1}
+.sheet .sbody{flex:1;overflow-y:auto;padding:14px 14px 90px;max-width:560px;margin:0 auto;width:100%}
+.row{display:flex;gap:8px;align-items:center}
+.msgs{display:flex;flex-direction:column;gap:8px}
+.mb{max-width:86%;padding:10px 13px;border-radius:15px;font-size:13.5px;line-height:1.6;white-space:pre-wrap}
+.mb.me{align-self:flex-end;background:var(--em);color:#fff;border-bottom-right-radius:5px}
+.mb.ai{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:5px}
+.comp{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:9px 10px calc(9px + env(safe-area-inset-bottom));display:flex;gap:8px}
+.comp input{flex:1}
+.aiexp{background:#f2faf6;border:1px solid #d7ece2;border-radius:12px;padding:10px;font-size:12.5px;line-height:1.6;margin:8px 0 0}
+.trend{display:flex;align-items:flex-end;gap:6px;height:64px;padding:6px 2px}
+.trend i{flex:1;background:linear-gradient(180deg,#22b57f,#0e7a58);border-radius:6px 6px 2px 2px;min-height:6px;position:relative}
+.trend i span{position:absolute;top:-17px;left:0;right:0;text-align:center;font-size:9.5px;color:var(--mut)}
+.pal{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
+.pal button{width:30px;height:30px;border-radius:9px;border:1.5px solid var(--line);background:#fff;font-size:11.5px;font-weight:700;cursor:pointer;color:var(--mut)}
+.pal button.done{background:var(--soft);color:var(--em-d);border-color:#bfe3d2}
+.pal button.cur{border-color:var(--em);color:var(--em-d)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function(){
+'use strict';
+const LS = {
+  get(k, d){ try { const v = localStorage.getItem('ahd:' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v){ try { localStorage.setItem('ahd:' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const bn = n => String(n).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+const esc = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today = () => new Date().toISOString().slice(0, 10);
+const dateBn = ts => { try { return new Date(ts).toLocaleDateString('bn-BD', { day: 'numeric', month: 'long' }); } catch (e) { return ''; } };
+
+/* ── ডেমো প্রশ্নব্যাংক (৩০টি — যাচাইকৃত সাধারণ প্রশ্ন) ── */
+const QBANK = [
+ {s:'পদার্থ',t:'আলো',q:'আলোর বেগ শূন্য মাধ্যমে প্রায় কত?',o:['৩ লাখ কিমি/সেকেন্ড','৩ হাজার কিমি/সেকেন্ড','৩০০ কিমি/সেকেন্ড','৩ কোটি কিমি/সেকেন্ড'],a:0,e:'শূন্য মাধ্যমে আলোর বেগ প্রায় ৩ লাখ কিমি/সেকেন্ড (৩×১০⁸ মি/সে) — প্রকৃতির সর্বোচ্চ দ্রুতি।'},
+ {s:'পদার্থ',t:'শব্দ',q:'শব্দের বেগ কোন মাধ্যমে সবচেয়ে বেশি?',o:['বাতাস','পানি','লোহা','শূন্য মাধ্যম'],a:2,e:'কঠিন পদার্থে শব্দের বেগ সবচেয়ে বেশি — লোহায় প্রায় ৫,১০০ মি/সে। শূন্য মাধ্যমে শব্দ যায় না।'},
+ {s:'পদার্থ',t:'মহাকর্ষ',q:'মহাকর্ষ সূত্র কে আবিষ্কার করেন?',o:['আইনস্টাইন','স্যার আইজ্যাক নিউটন','গ্যালিলিও','কেপলার'],a:1,e:'নিউটন ১৬৮৭ সালে সর্বজনীন মহাকর্ষ সূত্র প্রকাশ করেন।'},
+ {s:'পদার্থ',t:'ভূমিকম্প',q:'ভূমিকম্পের তীব্রতা মাপা হয় কোন স্কেলে?',o:['রিখটার স্কেল','প্যাসকেল স্কেল','ডেসিবেল স্কেল','কেলভিন স্কেল'],a:0,e:'রিখটার স্কেলে ভূমিকম্পের মাত্রা মাপা হয়; ডেসিবেল শব্দের জন্য।'},
+ {s:'পদার্থ',t:'পরমাণু',q:'রাসায়নিক বিক্রিয়ায় অংশ নেওয়া মৌলের ক্ষুদ্রতম কণা কোনটি?',o:['অণু','ইলেকট্রন','পরমাণু','প্রোটন'],a:2,e:'মৌলের ক্ষুদ্রতম কণা যা রাসায়নিক বিক্রিয়ায় অংশ নেয় — পরমাণু।'},
+ {s:'পদার্থ',t:'গতি',q:'নিচের কোনটি ভেক্টর রাশি?',o:['ভর','দ্রুতি','বেগ','সময়'],a:2,e:'বেগের দিক আছে, তাই ভেক্টর। দ্রুতি বেগের মান মাত্র — স্কেলার।'},
+ {s:'রসায়ন',t:'সংকেত',q:'পানির রাসায়নিক সংকেত কোনটি?',o:['CO₂','H₂O','O₂','NaCl'],a:1,e:'দুইটি হাইড্রোজেন ও একটি অক্সিজেন পরমাণু = H₂O।'},
+ {s:'রসায়ন',t:'লবণ',q:'খাবার লবণের রাসায়নিক নাম কী?',o:['সোডিয়াম ক্লোরাইড','ক্যালসিয়াম কার্বোনেট','সোডিয়াম বাইকার্বোনেট','পটাশিয়াম নাইট্রেট'],a:0,e:'খাবার লবণ = NaCl = সোডিয়াম ক্লোরাইড।'},
+ {s:'রসায়ন',t:'প্রতীক',q:'সোনার রাসায়নিক প্রতীক কোনটি?',o:['Ag','Au','Fe','Cu'],a:1,e:'সোনা = Au (লাতিন Aurum); Ag রুপো (Argentum)।'},
+ {s:'রসায়ন',t:'গ্যাস',q:'সবচেয়ে হালকা গ্যাস কোনটি?',o:['হিলিয়াম','নাইট্রোজেন','হাইড্রোজেন','অক্সিজেন'],a:2,e:'হাইড্রোজেন সবচেয়ে হালকা গ্যাস — ঘনত্ব বাতাসের চেয়ে প্রায় ১৪ গুণ কম।'},
+ {s:'রসায়ন',t:'CO₂',q:'আগুন নেভানোর যন্ত্রে প্রধানত কোন গ্যাস ব্যবহৃত হয়?',o:['অক্সিজেন','কার্বন ডাই-অক্সাইড','নাইট্রোজেন','হিলিয়াম'],a:1,e:'CO₂ ভারী ও দহনে সাহায্য করে না — আগুনের চারপাশ ঘিরে অক্সিজেন আটকে দেয়।'},
+ {s:'জীববিজ্ঞান',t:'সালোকসংশ্লেষণ',q:'সালোকসংশ্লেষণে কোন গ্যাস নির্গত হয়?',o:['কার্বন ডাই-অক্সাইড','নাইট্রোজেন','অক্সিজেন','হাইড্রোজেন'],a:2,e:'উদ্ভিদ পানি ভেঙে অক্সিজেন ছাড়ে — আমাদের শ্বাসের প্রধান উৎস।'},
+ {s:'জীববিজ্ঞান',t:'কোষ',q:'কোষের "পাওয়ার হাউস" কোনটি?',o:['রাইবোজোম','মাইটোকন্ড্রিয়া','নিউক্লিয়াস','গলজি বডি'],a:1,e:'মাইটোকন্ড্রিয়ায় খাদ্য ভেঙে শক্তি (ATP) তৈরি হয়।'},
+ {s:'জীববিজ্ঞান',t:'রক্ত',q:'রক্ত লাল দেখায় মূলত কোনটির কারণে?',o:['প্লাজমা','হিমোগ্লোবিন','শ্বেত কণিকা','অণুচক্রিকা'],a:1,e:'লোহা-সমৃদ্ধ হিমোগ্লোবিন অক্সিজেন বহন করে এবং রক্তকে লাল করে।'},
+ {s:'জীববিজ্ঞান',t:'সালোকসংশ্লেষণ',q:'সালোকসংশ্লেষণ ঘটে কোন অঙ্গাণুতে?',o:['ক্লোরোপ্লাস্ট','মাইটোকন্ড্রিয়া','রাইবোজোম','নিউক্লিয়াস'],a:0,e:'ক্লোরোপ্লাস্টের ক্লোরোফিল সূর্যালোক শোষণ করে।'},
+ {s:'গণিত',t:'শতকরা',q:'২০০-এর ১৫% কত?',o:['২০','৩০','৪৫','১৫'],a:1,e:'২০০ × ১৫/১০০ = ৩০।'},
+ {s:'গণিত',t:'জ্যামিতি',q:'ত্রিভুজের তিন কোণের সমষ্টি কত?',o:['৯০°','১৮০°','২৭০°','৩৬০°'],a:1,e:'যেকোনো ত্রিভুজের কোণত্রয়ের সমষ্টি সর্বদা ১৮০°।'},
+ {s:'গণিত',t:'মৌলিক সংখ্যা',q:'ধারার পরের মৌলিক সংখ্যা: ২, ৩, ৫, ৭, ১১, __?',o:['১২','১৩','১৪','১৫'],a:1,e:'১৩-এর শুধু ১ ও ১৩ দিয়ে বিভাজ্য — পরের মৌলিক সংখ্যা এটাই।'},
+ {s:'গণিত',t:'সমীকরণ',q:'x² = ১৬ হলে x-এর মান কোনটি হতে পারে?',o:['শুধু ৪','±৪','±৮','শুধু ২'],a:1,e:'(±৪)² = ১৬, তাই x = ৪ বা −৪ — দুই-ই সমাধান।'},
+ {s:'গণিত',t:'ঘনক',q:'একটি ঘনকের (cube) কতগুলি তল আছে?',o:['৪','৫','৬','৮'],a:2,e:'ঘনকের ৬টি বর্গাকার তল থাকে।'},
+ {s:'ইংরেজি',t:'Synonym',q:"'Rapid'-এর সবচেয়ে কাছের অর্থ কোনটি?",o:['Slow','Quick','Lazy','Weak'],a:1,e:'Rapid = Quick (দ্রুত); Slow এর বিপরীত।'},
+ {s:'ইংরেজি',t:'Meaning',q:"'Serene' শব্দের অর্থ কী?",o:['রাগী','শান্ত','দ্রুত','অন্ধকার'],a:1,e:'Serene = calm, peaceful = প্রশান্ত/শান্ত।'},
+ {s:'ইংরেজি',t:'Antonym',q:"'Ancient'-এর বিপরীত শব্দ কোনটি?",o:['Old','Modern','Antique','Historic'],a:1,e:'Ancient = প্রাচীন; বিপরীত = Modern (আধুনিক)।'},
+ {s:'ইংরেজি',t:'Grammar',q:'শূন্যস্থানে সঠিক শব্দ: He ___ to school every day.',o:['go','goes','going','gone'],a:1,e:'Third person singular (He) + present simple → goes।'},
+ {s:'ইংরেজি',t:'Meaning',q:"'Deceased' শব্দের অর্থ কী?",o:['মৃত','অসুস্থ','সুস্থ','ক্লান্ত'],a:0,e:'Deceased = the dead person (মৃতব্যক্তি) — deceased আর diseased গুলিয়ে ফেলো না।'},
+ {s:'GK',t:'মুক্তিযুদ্ধ',q:'বাংলাদেশের মহান মুক্তিযুদ্ধ শুরু হয় কোন বছরে?',o:['১৯৭০','১৯৭১','১৯৫২','১৯৭২'],a:1,e:'১৯৭১ সালের ২৬ মার্চ মুক্তিযুদ্ধ শুরু, ১৬ ডিসেম্বর বিজয়।'},
+ {s:'GK',t:'জাতীয়',q:"'আমার সোনার বাংলা' জাতীয় সংগীতের রচয়িতা কে?",o:['কাজী নজরুল ইসলাম','রবীন্দ্রনাথ ঠাকুর','দ্বিজেন্দ্রলাল রায়','অতুলপ্রসাদ সেন'],a:1,e:'রবীন্দ্রনাথ ঠাকুরের গীতিমালা থেকে নেওয়া — ১৯০৫ সালে লেখা।'},
+ {s:'GK',t:'ঢাকা',q:'ঢাকা শহর কোন নদীর তীরে অবস্থিত?',o:['পদ্মা','বুড়িগঙ্গা','যমুনা','মেঘনা'],a:1,e:'ঢাকা বুড়িগঙ্গার তীরে; পদ্মা মূলত দক্ষিণ-পশ্চিমে।'},
+ {s:'বাংলা',t:'সাহিত্য',q:"'অগ্নিবীণা' কাব্যগ্রন্থটি কার লেখা?",o:['রবীন্দ্রনাথ ঠাকুর','কাজী নজরুল ইসলাম','জীবনানন্দ দাশ','শামসুর রাহমান'],a:1,e:'নজরুলের প্রথম কাব্যগ্রন্থ অগ্নিবীণা (১৯২২) — বিদ্রোহী কবির উন্মাদনা।'},
+ {s:'GK',t:'বিশ্ব',q:'পৃথিবীর সবচেয়ে বড় মহাসাগর কোনটি?',o:['আটলান্টিক','ভারত মহাসাগর','প্রশান্ত','উত্তর মহাসাগর'],a:2,e:'প্রশান্ত মহাসাগর — পৃথিবীর পৃষ্ঠের প্রায় এক-তৃতীয়াংশ জুড়ে।'}
+];
+const SUBJECTS = [...new Set(QBANK.map(q => q.s))];
+const EXAMS = [
+ {id:'demo1', title:'ডেমো মক পরীক্ষা ১', mins:10, n:10, published:true, desc:'সব বিষয় মিশিয়ে ১০টি প্রশ্ন · ঋণাত্মক মার্কিং নেই'},
+ {id:'full1', title:'পূর্ণ মক সেট — ১০০ প্রশ্ন', mins:60, n:100, published:false, desc:'শীঘ্রই আসছে — Admin publish করলে খুলবে'}
+];
+const shuffle = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]);
+
+/* ── state ── */
+const S = {
+  name: LS.get('name', ''),
+  streak: LS.get('streak', { n: 0, last: '' }),
+  attempts: LS.get('attempts', []),
+  ai: LS.get('ai', { engine: 'gemini', keys: { gemini: '', openrouter: '', hf: '' } }),
+  tab: 'home', session: null, exam: null, chat: [], busy: false
+};
+
+/* ── শেল ── */
+const app = () => document.getElementById('app');
+const boot = () => {
+  try { if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {}); } catch (e) {}
+  const t = today();
+  if (S.streak.last !== t) { const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10); S.streak = { n: S.streak.last === y ? S.streak.n + 1 : 1, last: t }; LS.set('streak', S.streak); }
+  if (!S.name) { renderOnboard(); return; }
+  render();
+};
+const renderOnboard = () => {
+  app().innerHTML = '<main style="max-width:420px;margin:0 auto;padding:40px 20px"><div class="card" style="text-align:center;padding:26px"><div style="font-size:40px">🎓</div><h2 style="margin:8px 0 2px">Admission Hub</h2><div class="mut">তোমার ভর্তি-প্রস্তুতির বন্ধু — ডেমো ভার্সন</div><input type="text" id="nm" placeholder="তোমার নাম লেখো…" style="margin-top:14px" maxlength="24"><button class="btn" style="width:100%;margin-top:10px" onclick="AHD.start()">শুরু করি 🚀</button></div></main>';
+};
+const start = () => {
+  const v = (document.getElementById('nm') || {}).value || '';
+  S.name = String(v).trim() || 'বন্ধু'; LS.set('name', S.name); render();
+};
+
+const hdr = () => '<div class="hdr"><div class="brand"><span class="logo">🎓</span> Admission Hub <span class="mut" style="font-weight:600">· ডেমো</span></div><span class="streak">🔥 ' + bn(S.streak.n) + '</span><button class="aibtn" onclick="AHD.openAI()">🤖 AI</button></div>';
+const nav = () => {
+  const t = [['home','🏠','হোম'],['practice','📚','প্র্যাকটিস'],['exams','📝','পরীক্ষা'],['history','📈','হিস্টোরি'],['profile','👤','প্রোফাইল']];
+  return '<nav class="nav">' + t.map(([id, ic, lb]) => '<button class="' + (S.tab === id ? 'on' : '') + '" onclick="AHD.go(\'' + id + '\')"><span class="ic">' + ic + '</span>' + lb + '</button>').join('') + '</nav>';
+};
+const render = () => { app().innerHTML = hdr() + '<main id="view">' + ({ home: vHome, practice: vPractice, exams: vExams, history: vHistory, profile: vProfile }[S.tab] || vHome)() + '</main><div class="demo-note">ডেমো বিল্ড v1 · প্রশ্নব্যাংক ' + bn(QBANK.length) + 'টি · Admission Hub Blueprint</div>' + nav(); };
+const go = t => { S.tab = t; render(); };
+
+/* ── হোম ── */
+const subjProg = () => SUBJECTS.map(sn => { const n = QBANK.filter(q => q.s === sn).length; const done = new Set(S.attempts.flatMap(a => a.log || []).filter(x => x.s === sn).map(x => x.q)).size; return { sn, pct: Math.min(100, Math.round(done * 100 / Math.max(1, n))) }; });
+const nextUp = () => { try { const e = EXAMS.filter(x => x.published)[0]; return e ? e.title + ' · ' + bn(e.mins) + ' মিনিট' : ''; } catch (e) { return ''; } };
+const vHome = () => {
+  const todayN = S.attempts.filter(a => a.day === today()).reduce((s, a) => s + a.total, 0);
+  const goalLeft = Math.max(0, 10 - todayN);
+  const rec = recommend();
+  return '<div class="card goal"><div class="big">' + (goalLeft ? 'আজকের লক্ষ্য: ' + bn(goalLeft) + 'টি প্রশ্ন বাকি' : 'আজকের লক্ষ্য পূরণ! 🎉') + '</div><div style="font-size:12px;opacity:.85;margin-top:4px">স্বাগতম, ' + esc(S.name) + ' · মোট উত্তর ' + bn(S.attempts.reduce((s, a) => s + a.total, 0)) + 'টি</div><button class="go" onclick="AHD.quickPractice()">' + (goalLeft ? '▶ চালিয়ে যাও' : '▶ আরেক রাউন্ড') + '</button></div>'
+  + '<h2>বিষয়ভিত্তিক অগ্রগতি</h2><div class="card">' + subjProg().map(p => '<div style="margin:9px 0"><div class="row" style="justify-content:space-between;font-size:13px;font-weight:700"><span>' + esc(p.sn) + '</span><span class="mut">' + bn(p.pct) + '%</span></div><div class="bar"><i style="width:' + p.pct + '%"></i></div></div>').join('') + '</div>'
+  + (rec ? '<div class="rec">🎯 <b>পরবর্তী কী করবে:</b> ' + esc(rec) + '</div>' : '')
+  + '<h2>আসন্ন পরীক্ষা</h2><div class="card"><b style="font-size:13.5px">' + esc(nextUp()) + '</b><div class="mut" style="margin-top:3px">পরীক্ষা ট্যাব থেকে শুরু করো</div></div>';
+};
+const recommend = () => {
+  const wrongs = S.attempts.flatMap(a => a.log || []).filter(x => x.ok === false);
+  if (!wrongs.length) return S.attempts.length ? 'দুর্দান্ত চলছে — এবার একটা মক পরীক্ষা দিয়ে নিজেকে যাচাই করো!' : 'আজ প্রথম প্র্যাকটিস সেশন শুরু করো — ১০ প্রশ্ন, মাত্র ৫ মিনিট!';
+  const byS = {}; wrongs.forEach(w => byS[w.s] = (byS[w.s] || 0) + 1);
+  const top = Object.entries(byS).sort((a, b) => b[1] - a[1])[0][0];
+  return top + ' বিষয়ে ভুল বেশি — আজ ওই বিষয়ের প্র্যাকটিস দাও, তারপর AI টিউটরকে জিজ্ঞেস করো!';
+};
+
+/* ── প্র্যাকটিস ── */
+const vPractice = () => '<h2>বিষয় বেছে নাও</h2>' + SUBJECTS.map(sn => '<div class="card" style="display:flex;align-items:center;gap:10px"><div style="flex:1"><b>' + esc(sn) + '</b><div class="mut">' + bn(QBANK.filter(q => q.s === sn).length) + 'টি প্রশ্ন</div></div><button class="btn sec" onclick="AHD.startPractice(\'' + esc(sn) + '\')">শুরু</button></div>').join('') + '<button class="btn" style="width:100%;margin-top:6px" onclick="AHD.startPractice(\'\')">🎲 সব মিশিয়ে ১০ প্রশ্ন</button>';
+const startPractice = sub => {
+  let pool = QBANK.map((q, i) => ({ q, i }));
+  if (sub) pool = pool.filter(x => x.q.s === sub);
+  const qs = shuffle(pool).slice(0, Math.min(10, pool.length));
+  S.session = { qs, i: 0, picks: {}, sub: sub || 'মিশ্র' };
+  renderSession();
+};
+const quickPractice = () => { S.tab = 'practice'; startPractice(''); };
+const renderSession = () => {
+  const ss = S.session; if (!ss) { render(); return; }
+  const step = ss.qs[ss.i];
+  const pick = ss.picks[ss.i];
+  const answered = Object.keys(ss.picks).length;
+  app().innerHTML = hdr() + '<main><div class="card">'
+    + '<div class="row" style="justify-content:space-between"><span class="mut">📚 ' + esc(ss.sub) + ' · প্রশ্ন ' + bn(ss.i + 1) + '/' + bn(ss.qs.length) + ' · উত্তর ' + bn(answered) + '</span><button class="btn sec" style="padding:6px 12px" onclick="AHD.endSession()">শেষ</button></div>'
+    + '<div class="exq">' + esc(step.q.q) + '</div>'
+    + step.q.o.map((o, oi) => {
+        let cls = 'opt', mark = '';
+        if (pick != null) { if (oi === step.q.a) { cls += ' right'; mark = '<span class="mark">✓</span>'; } else if (oi === pick) { cls += ' wrong'; mark = '<span class="mark">✗</span>'; } }
+        return '<button class="' + cls + '" ' + (pick != null ? 'disabled' : '') + ' onclick="AHD.pick(' + oi + ')"><span class="k">' + 'কখগঘ'[oi] + '</span>' + esc(o) + mark + '</button>';
+      }).join('')
+    + (pick != null ? '<div class="explain">' + (pick === step.q.a ? '✅ <b>ঠিক!</b> ' : '❌ <b>ভুল — সঠিক: ' + esc(step.q.o[step.q.a]) + '</b> ') + esc(step.q.e) + '<div style="margin-top:8px"><button class="btn sec" style="padding:7px 12px;font-size:12px" onclick="AHD.explainQ()">🤖 AI আরও বোঝাও</button></div><div id="aiexp"></div></div><button class="btn" style="width:100%;margin-top:10px" onclick="AHD.nextQ()">' + (ss.i >= ss.qs.length - 1 ? 'সেশন শেষ করো' : 'পরের প্রশ্ন →') + '</button>' : '')
+    + '</div><div class="demo-note">প্রশ্ন নয়, বোঝাটাই আসল — ব্যাখ্যা পড়ে যাও 🌱</div></main>' + nav();
+};
+const pick = oi => { const ss = S.session; if (!ss || ss.picks[ss.i] != null) return; ss.picks[ss.i] = oi; renderSession(); };
+const nextQ = () => { const ss = S.session; if (ss.i >= ss.qs.length - 1) { endSession(); return; } ss.i++; renderSession(); };
+const endSession = () => {
+  const ss = S.session; if (!ss) { render(); return; }
+  const log = ss.qs.map((x, i) => ({ q: x.i, s: x.q.s, t: x.q.t, ok: ss.picks[i] === x.q.a }));
+  const right = log.filter(x => x.ok).length;
+  S.attempts.unshift({ day: today(), at: Date.now(), mode: 'practice', sub: ss.sub, total: ss.qs.length, right, log });
+  LS.set('attempts', S.attempts); S.session = null; S.tab = 'history'; render();
+};
+
+/* ── পরীক্ষা ── */
+const vExams = () => '<h2>প্রকাশিত পরীক্ষা</h2>' + EXAMS.map(e =>
+  '<div class="card" style="display:flex;gap:10px;align-items:center"><div style="flex:1"><b>' + esc(e.title) + '</b><div class="mut">' + esc(e.desc) + '</div></div>'
+  + (e.published ? '<button class="btn" onclick="AHD.startExam(\'' + e.id + '\')">শুরু</button>' : '<span class="mut" style="font-size:12px">🔒 শীঘ্রই</span>') + '</div>').join('')
+  + '<div class="rec">🛡️ নিয়ম: সময় শেষ হলে অটো-জমা হবে। উত্তর জমা না দিলেও রেজাল্ট হিসাব হবে — তাই শেষ পর্যন্ত থেকো!</div>';
+let examT = null;
+const startExam = id => {
+  const e = EXAMS.find(x => x.id === id); if (!e || !e.published) return;
+  const qs = shuffle(QBANK.map((q, i) => ({ q, i }))).slice(0, e.n);
+  S.exam = { def: e, qs, i: 0, picks: {}, left: e.mins * 60 };
+  S.tab = '_exam';
+  renderExam();
+  clearInterval(examT);
+  examT = setInterval(() => {
+    if (!S.exam) { clearInterval(examT); return; }
+    S.exam.left--;
+    const t = document.getElementById('tmt'); if (t) t.textContent = fmtT(S.exam.left);
+    if (S.exam.left <= 0) { clearInterval(examT); submitExam(true); }
+  }, 1000);
+};
+const fmtT = s => bn(Math.floor(s / 60)) + ':' + bn(String(s % 60).padStart(2, '0'));
+const renderExam = () => {
+  const ex = S.exam; if (!ex) { S.tab = 'exams'; render(); return; }
+  const q = ex.qs[ex.i].q, pick = ex.picks[ex.i];
+  app().innerHTML = hdr() + '<main><div class="card">'
+    + '<div class="row" style="justify-content:space-between"><span class="mut">📝 ' + esc(ex.def.title) + ' · ' + bn(ex.i + 1) + '/' + bn(ex.qs.length) + '</span><span class="timer" id="tmt">' + fmtT(ex.left) + '</span></div>'
+    + '<div class="pal">' + ex.qs.map((_, di) => '<button class="' + (di === ex.i ? 'cur' : (ex.picks[di] != null ? 'done' : '')) + '" onclick="AHD.examGo(' + di + ')">' + bn(di + 1) + '</button>').join('') + '</div>'
+    + '<div class="exq">' + esc(q.q) + '</div>'
+    + q.o.map((o, oi) => '<button class="opt' + (pick === oi ? ' sel' : '') + '" onclick="AHD.examPick(' + oi + ')"><span class="k">' + 'কখগঘ'[oi] + '</span>' + esc(o) + (pick === oi ? '<span class="mark">●</span>' : '') + '</button>').join('')
+    + '<div class="row" style="margin-top:10px"><button class="btn sec" style="flex:1" ' + (ex.i === 0 ? 'disabled' : '') + ' onclick="AHD.examGo(' + (ex.i - 1) + ')">← আগের</button>'
+    + (ex.i < ex.qs.length - 1 ? '<button class="btn" style="flex:1" onclick="AHD.examGo(' + (ex.i + 1) + ')">পরের →</button>' : '<button class="btn" style="flex:1" onclick="AHD.confirmSubmit()">✅ জমা দাও</button>') + '</div>'
+    + (ex.i >= ex.qs.length - 1 ? '' : '<button class="btn" style="width:100%;margin-top:8px;background:#b3541e" onclick="AHD.confirmSubmit()">✅ এখনই জমা দাও</button>')
+    + '</div></main>' + nav();
+};
+const examGo = di => { if (!S.exam) return; S.exam.i = Math.max(0, Math.min(S.exam.qs.length - 1, di)); renderExam(); };
+const examPick = oi => { if (!S.exam) return; S.exam.picks[S.exam.i] = oi; renderExam(); };
+const confirmSubmit = () => {
+  const ex = S.exam; if (!ex) return;
+  const answered = Object.keys(ex.picks).length;
+  const bar = document.createElement('div');
+  bar.style.cssText = 'position:fixed;inset:0;background:rgba(8,28,22,.5);z-index:70;display:grid;place-items:center';
+  bar.innerHTML = '<div class="card" style="max-width:330px;margin:14px"><b>জমা দেবে?</b><div class="mut" style="margin:6px 0">উত্তর দিয়েছ: ' + bn(answered) + '/' + bn(ex.qs.length) + 'টি · বাকি সময় ' + fmtT(ex.left) + '</div><div class="row"><button class="btn sec" style="flex:1" onclick="this.closest(\'div[style*=fixed]\').remove()">না, ফিরে যাও</button><button class="btn" style="flex:1" onclick="AHD.submitExam(false)">হ্যাঁ, জমা দাও</button></div></div>';
+  document.body.appendChild(bar);
+};
+const submitExam = auto => {
+  const ex = S.exam; if (!ex) return; clearInterval(examT);
+  const log = ex.qs.map((x, i) => ({ q: x.i, s: x.q.s, t: x.q.t, ok: ex.picks[i] === x.q.a }));
+  const right = log.filter(x => x.ok).length;
+  S.attempts.unshift({ day: today(), at: Date.now(), mode: 'exam', sub: ex.def.title, total: ex.qs.length, right, log });
+  LS.set('attempts', S.attempts); S.exam = null; S.tab = 'history'; S.lastResult = { right, total: ex.qs.length, log }; render();
+};
+
+/* ── হিস্টোরি + রেজাল্ট-রিং ── */
+const vHistory = () => {
+  const last = S.lastResult;
+  let ring = '';
+  if (last) {
+    const pct = Math.round(last.right * 100 / last.total);
+    const C = 2 * Math.PI * 52;
+    ring = '<div class="card" style="text-align:center"><b>🏁 শেষ রেজাল্ট</b>'
+      + '<svg class="ring" width="140" height="140" viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="#e6efe9" stroke-width="11"/><circle id="ringArc" cx="60" cy="60" r="52" fill="none" stroke="#0e7a58" stroke-width="11" stroke-linecap="round" stroke-dasharray="' + C + '" stroke-dashoffset="' + C + '" transform="rotate(-90 60 60)"/></svg>'
+      + '<div id="ringVal" class="mut" style="font-size:13px">হিসাব হচ্ছে…</div>'
+      + '<div class="mut" style="margin-top:6px">সঠিক ' + bn(last.right) + ' · ভুল ' + bn(last.total - last.right) + ' · মোট ' + bn(last.total) + '</div>'
+      + (last.log.some(x => !x.ok) ? '<button class="btn sec" style="margin-top:10px" onclick="AHD.reviewWrong()">📋 ভুলগুলো রিভিউ + AI ব্যাখ্যা</button>' : '<div class="aiexp">সব ঠিক — পারফেক্ট! ✨</div>')
+      + '<div class="rec">🎯 <b>পরবর্তী কী করবে:</b> ' + esc(recommend()) + '</div></div>';
+    setTimeout(() => { try { const a = document.getElementById('ringArc'), v = document.getElementById('ringVal'); if (a) { a.style.transition = 'stroke-dashoffset 1s ease'; requestAnimationFrame(() => { a.style.strokeDashoffset = String(C * (1 - pct / 100)); }); } if (v) v.innerHTML = '<b style="font-size:22px;color:#0f6b4f">' + bn(pct) + '%</b>'; } catch (e) {} }, 350);
+    S.lastResult = null;
+  }
+  const recent = S.attempts.slice(0, 5).reverse();
+  const trend = recent.length >= 2 ? '<div class="trend">' + recent.map(a => { const p = Math.round(a.right * 100 / Math.max(1, a.total)); return '<i style="height:' + Math.max(8, p) + '%" title="' + p + '%"><span>' + bn(p) + '</span></i>'; }).join('') + '</div>' : '';
+  return ring + '<h2>প্র্যাকটিস ইতিহাস</h2>' + (S.attempts.length ? '<div class="card">' + (trend ? '<div class="mut" style="margin-bottom:2px">সাম্প্রতিক ধারা (৫টি)</div>' + trend : '') + S.attempts.slice(0, 12).map(a => '<div class="at"><b>' + (a.mode === 'exam' ? '📝 ' : '📚 ') + esc(a.sub) + '</b><span class="mut">' + dateBn(a.at) + '</span><b style="color:' + (a.right * 2 >= a.total ? '#0e7a58' : '#b3541e') + '">' + bn(a.right) + '/' + bn(a.total) + '</b></div>').join('') + '</div>' : '<div class="card mut">এখনো কোনো সেশন হয়নি — প্র্যাকটিস দিয়ে শুরু করো! 🌱</div>');
+};
+const reviewWrong = () => {
+  const last = S.attempts[0]; if (!last) return;
+  const wrongs = (last.log || []).filter(x => x.ok === false).slice(0, 8);
+  const rows = wrongs.map(w => { const q = QBANK[w.q]; if (!q) return ''; return '<div class="card" style="margin:8px 0"><div class="exq" style="font-size:14px">' + esc(q.q) + '</div><div class="mut">✓ সঠিক: <b>' + esc(q.o[q.a]) + '</b></div><div class="explain">' + esc(q.e) + '</div><button class="btn sec" style="margin-top:8px;padding:7px 12px;font-size:12px" onclick="AHD.explainWrong(\'' + w.q + '\')">🤖 AI ব্যাখ্যা</button><div id="aiexp-' + w.q + '"></div></div>'; }).join('');
+  openSheet('📋 ভুল-রিভিউ — ' + bn(wrongs.length) + 'টি', rows);
+};
+
+/* ── প্রোফাইল ── */
+const vProfile = () => '<h2>প্রোফাইল</h2><div class="card"><div class="mut">নাম</div><input type="text" id="pnm" value="' + esc(S.name) + '" maxlength="24"><button class="btn sec" style="margin-top:8px" onclick="AHD.saveName()">সেভ</button></div>'
+  + '<h2>🤖 AI টিউটর</h2><div class="card"><div class="mut">ইঞ্জিন বাছো (নিজের ফ্রি key লাগবে)</div><div style="margin:8px 0">'
+  + [['gemini', '✨ Gemini'], ['openrouter', '🌐 OpenRouter'], ['hf', '🤗 Hugging Face']].map(([k, lb]) => '<button class="chip" style="' + (S.ai.engine === k ? 'border-color:#0e7a58;background:#e7f5ee' : '') + '" onclick="AHD.setEngine(\'' + k + '\')">' + (S.ai.engine === k ? '✓ ' : '') + lb + '</button>').join('') + '</div>'
+  + '<div class="mut">' + ({ gemini: 'aistudio.google.com → Get API key (ফ্রি)', openrouter: 'openrouter.ai/keys', hf: 'hf.co/settings/tokens' }[S.ai.engine]) + '</div>'
+  + '<input type="password" id="aikey" placeholder="key বসাও (শুধু তোমার ফোনে থাকবে)" value="' + esc(S.ai.keys[S.ai.engine] || '') + '" style="margin-top:8px"><div class="row" style="margin-top:8px"><button class="btn" onclick="AHD.saveKey()">সেভ</button><button class="btn sec" onclick="AHD.testKey()">🔗 key টেস্ট</button></div><div id="kt" class="mut" style="margin-top:6px"></div></div>'
+  + '<h2>সম্পর্কে</h2><div class="card"><div class="mut">Admission Hub — ডেমো প্রোটোটাইপ (Blueprint v1)। শেখার উদ্দেশ্যে তৈরি; প্রশ্ন-উত্তর যত্নে যাচাই করা, তবু ভুল পেলে AI টিউটরকে বলো 😄</div><div class="row" style="margin-top:10px"><button class="btn sec" onclick="AHD.wipe()">🗑️ সব ডেটা মুছি</button></div></div>';
+const saveName = () => { S.name = (document.getElementById('pnm').value || '').trim() || S.name; LS.set('name', S.name); render(); };
+const setEngine = e => { S.ai.engine = e; LS.set('ai', S.ai); render(); };
+const saveKey = () => { S.ai.keys[S.ai.engine] = (document.getElementById('aikey').value || '').trim(); LS.set('ai', S.ai); render(); };
+const testKey = async () => {
+  const el = document.getElementById('kt'); el.textContent = 'যাচাই হচ্ছে…';
+  try { await aiRaw('হ্যালো — এক লাইনে বলো তুমি প্রস্তুত কি না।'); el.textContent = '✅ key কাজ করছে — AI টিউটর প্রস্তুত!'; }
+  catch (e) { el.textContent = '⚠️ ' + String(e.message || e).slice(0, 90); }
+};
+
+/* ── AI ── */
+const aiRaw = async prompt => {
+  const k = S.ai.keys, e2 = S.ai.engine;
+  const sys = 'তুমি "স্টাডি বন্ধু" — বাংলাদেশি ভর্তি-প্রস্তুতির বন্ধুসুলভ AI টিউটর। সহজ-উষ্ণ বাংলায় তুমি-ফর্মে, ২-৫ লাইনে উত্তর দাও, হালকা emoji ঠিক আছে। ব্যাখ্যায় উদাহরণ ও মনে-রাখার টিপস দাও।';
+  if (e2 === 'gemini' && k.gemini) {
+    const models = ['gemini-3.1-flash-lite', 'gemini-3-flash-preview', 'gemini-2.5-flash'];
+    let last = '';
+    for (const m of models) {
+      try {
+        const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k.gemini }, body: JSON.stringify({ system_instruction: { parts: [{ text: sys }] }, contents: [{ role: 'user', parts: [{ text: prompt }] }] }) });
+        const d = await r.json().catch(() => ({}));
+        const t = String(d?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '').trim();
+        if (r.ok && t) return t; last = 'HTTP ' + r.status;
+      } catch (er) { last = er.message; }
+    }
+    throw new Error('Gemini: ' + last);
+  }
+  if (e2 === 'openrouter' && k.openrouter) {
+    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + k.openrouter, 'HTTP-Referer': location.origin, 'X-Title': 'Admission Hub Demo' }, body: JSON.stringify({ model: 'openrouter/auto', models: ['deepseek/deepseek-chat', 'meta-llama/llama-3.3-70b-instruct:free'], messages: [{ role: 'system', content: sys }, { role: 'user', content: prompt }], max_tokens: 500 }) });
+    const d = await r.json().catch(() => ({}));
+    const t = String(d?.choices?.[0]?.message?.content || '').trim();
+    if (r.ok && t) return t; throw new Error('OpenRouter: ' + (d?.error?.message || r.status));
+  }
+  if (e2 === 'hf' && k.hf) {
+    const r = await fetch('https://router.huggingface.co/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + k.hf }, body: JSON.stringify({ model: 'meta-llama/Llama-3.1-8B-Instruct', messages: [{ role: 'system', content: sys }, { role: 'user', content: prompt }], max_tokens: 500 }) });
+    const d = await r.json().catch(() => ({}));
+    const t = String(d?.choices?.[0]?.message?.content || '').trim();
+    if (r.ok && t) return t; throw new Error('HF: ' + (d?.error?.message || r.status));
+  }
+  throw new Error('প্রথমে প্রোফাইলে AI ইঞ্জিন + key দাও 🙏');
+};
+const explainQ = async () => {
+  const ss = S.session, el = document.getElementById('aiexp'); if (!ss || !el) return;
+  const step = ss.qs[ss.i], my = ss.picks[ss.i];
+  el.innerHTML = '<div class="mut">🤖 ভাবছি…</div>';
+  try { el.innerHTML = '<div class="aiexp">🤖 ' + esc(await aiRaw('প্রশ্ন: ' + step.q.q + '\nসঠিক উত্তর: ' + step.q.o[step.q.a] + '\nআমি বেছেছি: ' + (my != null ? step.q.o[my] : 'উত্তর দাইনি') + '\nএক-দুই লাইনে কেন সঠিকটা সঠিক, সহজ উদাহরণসহ বোঝাও আর মনে রাখার টিপস দাও।')) + '</div>'; }
+  catch (e) { el.innerHTML = '<div class="aiexp">⚠️ ' + esc(String(e.message || e)) + '</div>'; }
+};
+const explainWrong = async id => {
+  const q = QBANK[Number(id)], el = document.getElementById('aiexp-' + id); if (!q || !el) return;
+  el.innerHTML = '<div class="mut">🤖 ভাবছি…</div>';
+  try { el.innerHTML = '<div class="aiexp">🤖 ' + esc(await aiRaw('প্রশ্ন: ' + q.q + '\nসঠিক উত্তর: ' + q.o[q.a] + '\nএই প্রশ্নটা সহজ করে বোঝাও — কেন উত্তরটা সঠিক, ছোট উদাহরণ + মনে রাখার টিপস।')) + '</div>'; }
+  catch (e) { el.innerHTML = '<div class="aiexp">⚠️ ' + esc(String(e.message || e)) + '</div>'; }
+};
+const openAI = () => openSheet('🤖 AI টিউটর', '<div class="msgs" id="cmsgs">' + (S.chat.length ? '' : '<div class="mb ai">স্বাগতম! যেকোনো প্রশ্ন করো — পড়ার ব্যাখ্যা, টিপস, প্ল্যান — সব বলবো 😊</div>') + S.chat.map(m => '<div class="mb ' + (m.w === 'me' ? 'me' : 'ai') + '">' + esc(m.t) + '</div>').join('') + '</div><div class="comp"><input type="text" id="cin" placeholder="প্রশ্ন লেখো…"><button class="btn" onclick="AHD.chatSend()">➤</button></div>', true);
+const chatSend = async () => {
+  const inp = document.getElementById('cin'), t = (inp.value || '').trim(); if (!t || S.busy) return;
+  S.chat.push({ w: 'me', t }); inp.value = '';
+  const box = document.getElementById('cmsgs'); box.insertAdjacentHTML('beforeend', '<div class="mb me">' + esc(t) + '</div><div class="mb ai" id="think">🤖 ভাবছি…</div>'); box.scrollTop = box.scrollHeight;
+  S.busy = true;
+  try { const a = await aiRaw(S.chat.slice(-6).map(m => (m.w === 'me' ? 'শিক্ষার্থী: ' : 'তুমি: ') + m.t).join('\n') + '\nশিক্ষার্থীর শেষ কথার উত্তর দাও।'); S.chat.push({ w: 'ai', t: a }); const th = document.getElementById('think'); if (th) th.outerHTML = '<div class="mb ai">' + esc(a) + '</div>'; }
+  catch (e) { const th = document.getElementById('think'); if (th) th.textContent = '⚠️ ' + String(e.message || e); }
+  S.busy = false; const b = document.getElementById('cmsgs'); if (b) b.scrollTop = b.scrollHeight;
+};
+const openSheet = (title, html, tall) => {
+  const sh = document.createElement('div'); sh.className = 'sheet'; sh.id = 'asheet';
+  sh.innerHTML = '<div class="shead"><b>' + esc(title) + '</b><button class="btn sec" style="padding:6px 12px" onclick="document.getElementById(\'asheet\').remove()">✕</button></div><div class="sbody">' + html + '</div>';
+  document.body.appendChild(sh);
+};
+const wipe = () => { if (!confirm('সব অগ্রগতি, ইতিহাস আর key মুছে যাবে — নিশ্চিত?')) return; ['name', 'streak', 'attempts', 'ai'].forEach(k => localStorage.removeItem('ahd:' + k)); location.reload(); };
+
+window.AHD = { start, go, quickPractice, startPractice, pick, nextQ, endSession, startExam, examGo, examPick, confirmSubmit, submitExam, reviewWrong, openAI, chatSend, saveName, setEngine, saveKey, testKey, explainQ, explainWrong, wipe };
+boot();
+})();
+</script>
+</body>
+</html>
