@@ -1036,7 +1036,7 @@ function render(){
   if(p==='mistakes') return renderMistakes();
   if(p==='ai-chat') return renderAIChat();
   if(p==='progress') return renderProgress();
-  if(p==='settings') return renderSettings();
+  if(p==='settings') return renderDashboard();
   if(p==='web-chat'||p==='dictionary'||p==='question-bank/settings') return renderLazyToolFallback(p);
   renderDashboard();
 }
@@ -3025,7 +3025,7 @@ function renderMockRunning(){
   <div class="topbar" style="position:fixed; top:0; left:0; right:0; max-width:560px; margin:0 auto; z-index:100; background:var(--card); border-bottom:1px solid var(--line); padding:10px 16px;">
     <div class="row between" style="width:100%;">
       <div style="flex:1;">
-        <div class="row between"><b style="font-size:14px;">${e.mode.toUpperCase()} TEST</b><span class="live-score-chip" id="liveScoreChip">${liveScoreChipHtml(e)}</span><div class="timerbox ${timerCls}" id="examTimer" style="font-size:16px;">${e.duration?fmtTime(remaining):'∞'}</div></div>
+        <div class="row between"><b style="font-size:14px;">${e.mode.toUpperCase()} TEST</b><div class="timerbox ${timerCls}" id="examTimer" style="font-size:16px;">${e.duration?fmtTime(remaining):'∞'}</div></div>
         <div class="exam-answer-meta"><span id="examAnsweredCount">${answeredCount}</span> answered · <span>${e.questions.length}</span> questions</div>
         <div class="progbar" style="margin-top:6px;height:4px;"><div id="examProgressBar" style="width:${progress}%"></div></div>
       </div>
@@ -3052,7 +3052,7 @@ function renderMockPagedRunning(){
   const start=MockPage*MOCK_PAGE_SIZE,end=Math.min(total,start+MOCK_PAGE_SIZE),remaining=computeRemaining(e),timerCls=timerVisualClass(remaining),answeredCount=Object.keys(e.selectedAnswers).length,progress=total?Math.round(answeredCount/total*100):0;
   const html=`
   <div class="topbar" style="position:fixed;top:0;left:0;right:0;max-width:560px;margin:0 auto;z-index:100;background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px;">
-    <div class="row between" style="width:100%;"><div style="flex:1;min-width:0;"><div class="row between"><b style="font-size:14px;">${e.mode.toUpperCase()} TEST</b><span class="live-score-chip" id="liveScoreChip">${liveScoreChipHtml(e)}</span><div class="timerbox ${timerCls}" id="examTimer" style="font-size:16px;">${e.duration?fmtTime(remaining):'∞'}</div></div><div class="exam-answer-meta"><span id="examAnsweredCount">${answeredCount}</span> answered · ${start+1}–${end} / ${total}</div><div class="progbar" style="margin-top:6px;height:4px;"><div id="examProgressBar" style="width:${progress}%"></div></div></div><div class="row" style="gap:6px;margin-left:10px;flex-shrink:0;"><button class="btn sm secondary" style="width:auto;padding:7px 8px;font-size:11px;" onclick="scrollToQuestion(ActiveExam.questions.length-1)">শেষে যান</button><button class="btn sm danger" style="width:auto;padding:7px 8px;font-size:11px;" onclick="confirmSubmitExam()">Submit</button></div></div>
+    <div class="row between" style="width:100%;"><div style="flex:1;min-width:0;"><div class="row between"><b style="font-size:14px;">${e.mode.toUpperCase()} TEST</b><div class="timerbox ${timerCls}" id="examTimer" style="font-size:16px;">${e.duration?fmtTime(remaining):'∞'}</div></div><div class="exam-answer-meta"><span id="examAnsweredCount">${answeredCount}</span> answered · ${start+1}–${end} / ${total}</div><div class="progbar" style="margin-top:6px;height:4px;"><div id="examProgressBar" style="width:${progress}%"></div></div></div><div class="row" style="gap:6px;margin-left:10px;flex-shrink:0;"><button class="btn sm secondary" style="width:auto;padding:7px 8px;font-size:11px;" onclick="scrollToQuestion(ActiveExam.questions.length-1)">শেষে যান</button><button class="btn sm danger" style="width:auto;padding:7px 8px;font-size:11px;" onclick="confirmSubmitExam()">Submit</button></div></div>
   </div>
   <div id="examScrollContainer" style="padding-top:75px;padding-bottom:140px;">
     ${e.questions.slice(start,end).map((q,i)=>mockQuestionMarkup(q,start+i,e)).join('')}
@@ -4562,7 +4562,7 @@ async function executeAIAction(act){
     const greeting=(new Date().getHours()<12?'সুপ্রভাত':new Date().getHours()<18?'শুভ দুপুর':new Date().getHours()<21?'শুভ সন্ধ্যা':'শুভ রাত্রি');
     const cards=CACHE.settings.dashboardCards||{};
     const html=`<div class="fade-in">
-      <div class="row between" style="margin-bottom:14px"><div><div class="explorer-kicker">Emerald Academic</div><div class="muted">${localDate()}</div><h1 style="font-size:24px;margin:4px 0">${greeting}, Scholar</h1></div><button class="iconbtn" onclick="navigate('settings')" aria-label="Settings">⚙️</button></div>
+      <div class="row between" style="margin-bottom:14px"><div><div class="explorer-kicker">Emerald Academic</div><div class="muted">${localDate()}</div><h1 style="font-size:24px;margin:4px 0">${greeting}, Scholar</h1></div></div>
       ${cards.goal!==false?`<section class="premium-hero fade-in"><div class="row between"><div><div style="font-size:11px;letter-spacing:.08em;font-weight:800;opacity:.8">TODAY COMMAND CENTER</div><div style="font-size:20px;font-weight:800;margin-top:4px">${target} MCQ Goal</div></div><button class="iconbtn" style="color:#fff" onclick="openTargetModal()">✎</button></div><div class="row between" style="align-items:flex-end;margin-top:18px"><div style="font-size:28px;font-weight:800">${today.questions}<span style="font-size:14px;font-weight:500;opacity:.75"> / ${target}</span></div><b>${pct}%</b></div><div class="progbar" style="height:9px;margin-top:8px"><div style="width:${pct}%"></div></div><div class="grid2" style="margin-top:16px"><div><b>${today.correct}</b><div class="muted">Correct</div></div><div><b>${today.wrong}</b><div class="muted">Wrong</div></div><div><b>${accuracyOf(today)}%</b><div class="muted">Accuracy</div></div><div><b>${fmtTime(today.time)}</b><div class="muted">Study time</div></div></div></section>`:''}
       <div class="h2">Your command center</div><div class="command-grid">${dashboardTool('bank','📚','Bank','question-bank')}${dashboardTool('mock','📝','Mock','exam/setup')}${dashboardTool('quick','⚡','Quick','smart-practice')}${dashboardTool('mistakes','❌','Mistakes','mistakes')}${dashboardTool('progress','📊','Progress','progress')}${dashboardTool('goals','🎯','Goals','progress/plan')}${dashboardTool('revision','🔁','Revision',null)}${dashboardTool('history','🕘','History','history')}${dashboardTool('search','🔍','Search','question-bank')}${dashboardTool('settings','⚙️','Settings','settings')}${dashboardTool('more','⋯','More','ai-chat')}</div>
       ${cards.streak!==false?`<div class="metric-grid" style="margin-top:12px"><div class="metric-card"><div class="metric-value">🔥 ${streak} days</div><div class="metric-label">Current streak</div></div><div class="metric-card"><div class="metric-value">🏆 ${bestStreak()} days</div><div class="metric-label">Best streak</div></div></div>`:''}

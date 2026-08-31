@@ -147,9 +147,7 @@
       ['🔁', 'Revision', 'স্মার্ট রিভিশন', 'smart-revision'],
       ['🕐', 'History', 'পরীক্ষার ইতিহাস', 'history'],
       ['🔍', 'Search', 'প্রশ্ন খুঁজুন', 'question-bank'],
-      ['⚙️', 'Settings', 'অ্যাপ সেটিংস', 'settings'],
       ['📥', 'Inbox', 'নোটিফিকেশন', 'notifications'],
-      ['⋯', 'More', 'আরও ফিচার', 'settings']
     ];
 
     const commandPages = Array.from({length:Math.ceil(commandTools.length/6)},(_,pageIndex) => commandTools.slice(pageIndex*6,pageIndex*6+6).map(tool => tool ? (() => { const [icon,title,subtitle,route] = tool; return `
@@ -302,14 +300,6 @@
           <span class="p3-dashboard-only-v3">Review & analysis</span>
         </div>
         <div class="p3-special-grid-v3" data-unified-study-tools-list>
-          <button class="p3-special-card-v3 p3-unified-tool-row-v3 p3-trash-card-v3" data-deleted-questions-card onclick="navigate('deleted-questions')" type="button">
-            <span class="p3-special-icon-v3">🗑️</span>
-            <div class="p3-special-info-v3">
-              <strong>Recently Deleted Questions</strong>
-              <small>মুছে ফেলা প্রশ্ন স্থায়ীভাবে ডিলিট করুন</small>
-            </div>
-            <span class="p3-special-arrow-v3">${ICONS.arrow}</span>
-          </button>
           <button class="p3-special-card-v3 p3-unified-tool-row-v3 p3-notes-card-v3" data-notes-tool-card onclick="navigate('notes')" type="button">
             <span class="p3-special-icon-v3">📝</span>
             <div class="p3-special-info-v3">
