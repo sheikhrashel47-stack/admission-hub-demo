@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex,nofollow">
+<title>Admission Hub — Admin Control</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--em:#0e7a58;--line:#e3ede7;--bg:#f6f9f7;--ink:#1d2e26;--mut:#5f7a6e}
+*{box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI','Noto Sans Bengali',sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:20px}
+main{max-width:760px;margin:0 auto}
+h1{font-size:20px;color:var(--em)}
+h3{margin:18px 0 6px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+.mut{color:var(--mut);font-size:12px}
+input,textarea,select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px;font-size:13.5px;font-family:inherit;margin:6px 0}
+textarea{min-height:110px}
+.btn{background:var(--em);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:800;font-size:13px;cursor:pointer}
+.btn.sec{background:#fff;color:var(--em);border:1.5px solid var(--line)}
+.btn.red{background:#c04444}
+.btn:disabled{opacity:.5}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr.blk td{opacity:.45}
+.tag{background:#e9f5ef;color:var(--em);border-radius:999px;padding:3px 9px;font-size:11px;font-weight:800}
+.stat{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:4px;text-align:center}
+.stat b{font-size:18px;display:block;color:var(--em)}
+</style>
+</head>
+<body>
+<main>
+<h1>🛡️ Admission Hub — Admin Control</h1>
+<div id="gate" class="card"><div class="mut">Admin টোকেন দাও (শুধু তোমার জন্য)</div><input type="password" id="tok" placeholder="ahpub_…"><button class="btn" onclick="A.enter()">ঢোকো</button></div>
+<div id="panel" style="display:none">
+  <div id="stats"></div>
+  <h3>📤 কন্টেন্ট প্রকাশ</h3>
+  <div class="card">
+    <div class="mut">তোমার PWA-তে নতুন প্রশ্ন/শব্দ ঢুকলে সেটা এই বাটনেই পাবলিক-অ্যাপে চলে যাবে (PWA-তে Study AI খুলে সিঙ্ক হওয়া থাকতে হবে)। প্রকাশের সাথে সাথেই সব ইউজারের অ্যাপে আপডেট হয়ে যাবে (~৬০ সেকেন্ডে)।</div>
+    <div class="row" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn" id="pull" onclick="A.pull()">📥 আমার PWA-সিঙ্ক থেকে প্রকাশ করো</button></div>
+    <div class="mut" style="margin-top:10px">অথবা হাতে-JSON দাও: <b>questions</b> [{s,t,q,o[4],a,e}] · <b>vocabulary</b> [{w,m,c}] · <b>exams</b> [{id,title,mins,n,published,desc}]</div>
+    <textarea id="js" placeholder='{"questions":[…],"vocabulary":[…],"exams":[…]}'></textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sec" onclick="A.publishRaw()">JSON প্রকাশ করো</button><button class="btn sec" onclick="A.loadPub()">বর্তমান প্রকাশিত দেখো</button></div>
+    <div id="pubinfo" class="mut" style="margin-top:8px"></div>
+  </div>
+  <h3>👥 ইউজার (লগইন/নিয়ন্ত্রণ)</h3>
+  <div class="card"><button class="btn sec" onclick="A.users()">তালিকা রিফ্রেশ</button><div id="users"></div><div id="udetail"></div></div>
+</div>
+</main>
+<script>
+(function(){
+'use strict';
+const BASE = location.origin === 'https://sheikhrashel47-stack.github.io' ? 'https://admission-gk.rashelzayan213.workers.dev/pub' : '/pub';
+let TOK = sessionStorage.getItem('ahadm') || '';
+const bn = n => String(n).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+const esc = s => String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hdr = () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + TOK });
+const call = async (path, opts) => { const r = await fetch(BASE + path, Object.assign({ headers: hdr() }, opts || {})); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status); return d; };
+const A = {
+  async enter() { TOK = (document.getElementById('tok').value || '').trim(); try { await call('/admin/content'); sessionStorage.setItem('ahadm', TOK); document.getElementById('gate').style.display = 'none'; document.getElementById('panel').style.display = ''; A.loadPub(); A.users(); } catch (e) { alert('টোকেন ভুল: ' + e.message); } },
+  async loadPub() { try { const d = await call('/admin/content'); document.getElementById('pubinfo').innerHTML = 'প্রকাশিত: <span class="tag">v' + bn(d.v || 0) + '</span> প্রশ্ন ' + bn((d.questions || []).length) + ' · শব্দ ' + bn((d.vocabulary || []).length) + ' · পরীক্ষা ' + bn((d.exams || []).length) + ' · ' + new Date(d.at || 0).toLocaleString('bn-BD'); } catch (e) { document.getElementById('pubinfo').textContent = '⚠️ ' + e.message; } },
+  async pull() { const b = document.getElementById('pull'); b.disabled = true; b.textContent = '⏳ টানা হচ্ছে…'; try { const d = await call('/admin/publish', { method: 'POST', body: JSON.stringify({ pull: true }) }); alert('✅ প্রকাশিত v' + bn(d.v) + ' — প্রশ্ন ' + bn(d.questions) + ' · শব্দ ' + bn(d.vocabulary)); A.loadPub(); } catch (e) { alert('⚠️ ' + e.message); } b.disabled = false; b.textContent = '📥 আমার PWA-সিঙ্ক থেকে প্রকাশ করো'; },
+  async publishRaw() { try { const d = await call('/admin/publish', { method: 'POST', body: document.getElementById('js').value }); alert('✅ প্রকাশিত v' + bn(d.v) + ' — প্রশ্ন ' + bn(d.questions) + ' · শব্দ ' + bn(d.vocabulary)); A.loadPub(); } catch (e) { alert('⚠️ ' + e.message + ' — JSON দেখো'); } },
+  async users() { try { const d = await call('/admin/users'); const u = d.users || []; const tot = { exams: u.reduce((s, x) => s + x.exams, 0), prac: u.reduce((s, x) => s + x.practices, 0) }; document.getElementById('users').innerHTML = '<div style="margin:8px 0"><span class="stat"><b>' + bn(u.length) + '</b><span class="mut">মোট ইউজার</span></span><span class="stat"><b>' + bn(tot.exams) + '</b><span class="mut">মোট পরীক্ষা</span></span><span class="stat"><b>' + bn(tot.prac) + '</b><span class="mut">প্র্যাকটিস</span></span></div>'
+    + (u.length ? '<table><tr><th>নাম</th><th>যোগাযোগ</th><th>শেষ দেখা</th><th>পরীক্ষা</th><th>প্র্যাকটিস</th><th>শব্দ</th><th></th><th></th></tr>' + u.map(x => '<tr class="' + (x.blocked ? 'blk' : '') + '"><td>' + esc(x.name) + '</td><td>' + esc(x.contact) + '</td><td>' + (x.lastSeen ? new Date(x.lastSeen).toLocaleString('bn-BD', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '—') + '</td><td>' + bn(x.exams) + '</td><td>' + bn(x.practices) + '</td><td>' + bn(x.vocab) + '</td><td><button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="A.view(\'' + esc(x.id) + '\')">ডেটা</button></td><td><button class="btn ' + (x.blocked ? 'sec' : 'red') + '" style="padding:4px 9px;font-size:11px" onclick="A.block(\'' + esc(x.id) + '\',' + (!x.blocked) + ')">' + (x.blocked ? 'আনব্লক' : 'ব্লক') + '</button></td></tr>').join('') + '</table>' : '<div class="mut" style="margin-top:8px">এখনো কেউ লগইন করেনি।</div>'); } catch (e) { document.getElementById('users').innerHTML = '⚠️ ' + e.message; } },
+  async view(id) { try { const d = await call('/admin/user?id=' + encodeURIComponent(id)); const a = d.attempts || []; document.getElementById('udetail').innerHTML = '<div class="card" style="margin-top:10px"><b>শেষ ' + bn(Math.min(10, a.length)) + 'টি সেশন</b>' + (a.length ? '<table><tr><th>ধরন</th><th>বিষয়</th><th>তারিখ</th><th>স্কোর</th></tr>' + a.slice(0, 10).map(x => '<tr><td>' + (x.mode === 'exam' ? '📝 পরীক্ষা' : '📚 প্র্যাকটিস') + '</td><td>' + esc(x.sub || '') + '</td><td>' + new Date(x.at).toLocaleDateString('bn-BD') + '</td><td>' + bn(x.right) + '/' + bn(x.total) + '</td></tr>').join('') + '</table>' : '<div class="mut">এখনো কিছু নেই</div>') + '<div class="mut" style="margin-top:6px">ভুল: ' + bn((d.mistakes || []).length) + ' · শব্দ: ' + bn((d.vocab || []).length) + '</div></div>'; } catch (e) { alert(e.message); } },
+  async block(id, b) { try { await call('/admin/block', { method: 'POST', body: JSON.stringify({ id, blocked: b }) }); A.users(); } catch (e) { alert(e.message); } }
+};
+window.A = A;
+if (TOK) { document.getElementById('tok').value = TOK; A.enter(); }
+})();
+</script>
+</body>
+</html>
