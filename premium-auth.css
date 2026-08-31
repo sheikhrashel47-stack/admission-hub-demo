@@ -1,117 +1,56 @@
 html[data-ah="out"] #app,html[data-ah="out"] #navRoot{display:none!important;visibility:hidden!important}
 html[data-ah="in"] #ahAuthGate{display:none!important}
-#ahAuthGate{position:fixed;inset:0;z-index:6000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif;color:#14241c;background:#041910}
-.ah-stage{position:absolute;inset:0;display:flex;flex-direction:column;max-width:430px;margin:0 auto;width:100%}
-.ah-fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
-.ah-world{position:absolute;inset:0;z-index:2;perspective:900px;transform-style:preserve-3d;pointer-events:none}
-.ah-rig{position:absolute;left:50%;top:38%;width:280px;height:280px;margin:-140px 0 0 -140px;transform-style:preserve-3d;transform:rotateX(12deg) rotateY(-18deg);transition:transform .45s cubic-bezier(.22,1,.36,1)}
-.ah-stage.ah-light .ah-rig{top:22%;transform:rotateX(8deg) rotateY(-12deg) scale(.78)}
-.ah-ui{position:relative;z-index:3;flex:1;display:flex;flex-direction:column;padding:calc(18px + env(safe-area-inset-top,0px)) 22px calc(22px + env(safe-area-inset-bottom,0px));min-height:100%;min-height:100dvh}
-.ah-stage.ah-dark{background:radial-gradient(120% 90% at 50% 28%,#0e7a56 0%,#064332 42%,#031910 100%)}
-.ah-stage.ah-light{background:linear-gradient(180deg,#f4f7f5 0%,#eef3f0 40%,#f7f8f7 100%);color:#12231c}
-.ah-stage.ah-light .ah-fx{opacity:.35}
-
-/* orbs */
-.ah-orb{position:absolute;border-radius:50%;transform-style:preserve-3d;background:radial-gradient(circle at 32% 28%,#1d9a6c,#073b2b 62%,#02150f);box-shadow:inset -12px -16px 24px rgba(0,0,0,.35),0 18px 30px rgba(0,0,0,.25)}
-.ah-orb-a{width:54px;height:54px;left:8%;top:12%;animation:ahfloat 7s ease-in-out infinite}
-.ah-orb-b{width:28px;height:28px;right:10%;top:22%;animation:ahfloat 5.5s ease-in-out infinite reverse}
-.ah-orb-c{width:16px;height:16px;left:18%;bottom:28%;animation:ahfloat 6s ease-in-out infinite}
-
-/* CSS 3D book */
-.ah-book{position:absolute;left:50%;top:50%;width:92px;height:124px;margin:-62px 0 0 -46px;transform-style:preserve-3d;animation:ahspin 14s linear infinite}
-.ah-book i{position:absolute;inset:0;border-radius:3px 8px 8px 3px}
-.ah-book .f{background:linear-gradient(160deg,#149266,#0a4e38 55%,#083728);box-shadow:0 20px 32px rgba(0,20,12,.28);transform:translateZ(14px);border:1px solid rgba(212,175,80,.35)}
-.ah-book .f:after{content:"";position:absolute;left:50%;top:28%;width:28px;height:36px;margin-left:-14px;border:2px solid rgba(232,201,92,.85);border-radius:4px}
-.ah-book .b{background:#06291e;transform:rotateY(180deg) translateZ(14px)}
-.ah-book .s{width:28px;left:auto;right:0;background:linear-gradient(#0b5a40,#083728);transform:rotateY(90deg) translateZ(46px)}
-.ah-book .p{inset:6px 8px 6px 10px;background:linear-gradient(#f7f3e8,#efe6d2);transform:translateZ(4px)}
-
-/* crest */
-.ah-crest{position:absolute;left:50%;top:46%;width:168px;height:168px;margin:-84px 0 0 -84px;transform-style:preserve-3d;animation:ahfloat 6.5s ease-in-out infinite}
-.ah-crest .disc{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 35% 30%,#1aa06f,#0b4d38 58%,#06281d);box-shadow:0 24px 40px rgba(0,0,0,.32),inset 0 0 0 3px rgba(212,175,80,.55),inset 0 0 0 10px rgba(8,50,36,.55);transform:translateZ(20px)}
-.ah-crest .wreath{position:absolute;inset:8px;border-radius:50%;border:8px solid transparent;border-top-color:rgba(214,176,80,.7);border-bottom-color:rgba(214,176,80,.55);transform:translateZ(28px) rotateZ(-18deg)}
-.ah-crest .book{position:absolute;left:50%;top:50%;width:54px;height:40px;margin:-14px 0 0 -27px;background:linear-gradient(#f3efe2,#e7dcc0);border-radius:3px;transform:translateZ(34px) rotateX(12deg);box-shadow:0 8px 16px rgba(0,0,0,.25)}
-.ah-crest .book:before,.ah-crest .book:after{content:"";position:absolute;top:6px;bottom:6px;width:46%;background:rgba(15,80,55,.12)}
-.ah-crest .book:before{left:4px;border-right:1px solid rgba(15,80,55,.2)}
-.ah-crest .book:after{right:4px}
-
-/* mortarboard */
-.ah-cap{position:absolute;left:50%;top:18%;width:120px;height:70px;margin-left:-60px;transform-style:preserve-3d;animation:ahfloat 5.8s ease-in-out infinite}
-.ah-cap .top{position:absolute;left:10px;top:0;width:100px;height:100px;background:linear-gradient(135deg,#0a3d2c,#06261c);transform:rotateX(72deg) rotateZ(45deg) translateZ(18px);box-shadow:0 10px 18px rgba(0,0,0,.3)}
-.ah-cap .tassel{position:absolute;right:8px;top:18px;width:3px;height:42px;background:#d4af50;transform:translateZ(30px);border-radius:2px}
-.ah-cap .tassel:after{content:"";position:absolute;bottom:-8px;left:-5px;width:14px;height:10px;background:#c9a227;border-radius:50%}
-
-/* open book */
-.ah-open{position:absolute;left:12%;bottom:8%;width:86px;height:52px;transform-style:preserve-3d;animation:ahfloat 7.2s ease-in-out infinite}
-.ah-open b{position:absolute;top:8px;width:42px;height:40px;background:linear-gradient(#f6f1e4,#e8dcc4);box-shadow:0 10px 16px rgba(0,0,0,.2)}
-.ah-open b:first-child{left:0;transform:rotateY(28deg) translateZ(6px);border-radius:2px 0 0 2px}
-.ah-open b:last-child{right:0;transform:rotateY(-28deg) translateZ(6px);border-radius:0 2px 2px 0}
-
-/* shield */
-.ah-shield{position:absolute;left:50%;top:50%;width:130px;height:150px;margin:-80px 0 0 -65px;transform-style:preserve-3d;animation:ahfloat 6s ease-in-out infinite}
-.ah-shield .body{position:absolute;inset:0;background:radial-gradient(circle at 35% 28%,#27a56f,#0c5a40 60%,#083728);clip-path:polygon(50% 0,94% 16%,94% 58%,50% 100%,6% 58%,6% 16%);box-shadow:0 22px 36px rgba(8,40,28,.28);transform:translateZ(16px)}
-.ah-shield .lock{position:absolute;left:50%;top:38%;width:36px;height:42px;margin-left:-18px;background:#d4af50;border-radius:6px;transform:translateZ(28px)}
-.ah-shield .lock:before{content:"";position:absolute;left:7px;top:-14px;width:22px;height:20px;border:4px solid #d4af50;border-bottom:0;border-radius:12px 12px 0 0}
-.ah-shield .ok{position:absolute;left:50%;top:42%;width:22px;height:12px;margin-left:-11px;border-left:4px solid #fff;border-bottom:4px solid #fff;transform:translateZ(30px) rotate(-45deg)}
-.ah-ped{position:absolute;left:50%;top:78%;width:88px;height:14px;margin-left:-44px;border-radius:50%;background:radial-gradient(ellipse,#e8ece9,#cfd6d2);transform:rotateX(70deg);box-shadow:0 10px 16px rgba(0,0,0,.12)}
-
-/* people blobs (signup) */
-.ah-folk{position:absolute;left:50%;top:48%;width:200px;margin-left:-100px;height:140px;transform-style:preserve-3d}
-.ah-folk .p{position:absolute;bottom:18px;width:54px;height:88px;border-radius:22px 22px 10px 10px;transform:translateZ(20px);box-shadow:0 16px 22px rgba(0,0,0,.16)}
-.ah-folk .p1{left:18px;background:linear-gradient(#f4f6f5,#dfe5e1)}
-.ah-folk .p2{right:18px;background:linear-gradient(#1a8f66,#0c5a40)}
-.ah-folk .p:before{content:"";position:absolute;left:50%;top:-22px;width:28px;height:28px;margin-left:-14px;border-radius:50%;background:inherit;filter:brightness(1.08)}
-
-@keyframes ahfloat{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-14px,12px)}}
-@keyframes ahspin{to{transform:rotateY(360deg)}}
-@keyframes ahenter{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
-.ah-ui > *{animation:ahenter .55s cubic-bezier(.22,1,.36,1) both}
-.ah-stage.ah-dark .ah-ui{justify-content:flex-end;text-align:center;color:#fff}
-.ah-brand{margin:0;font-size:26px;letter-spacing:.16em;font-weight:800}
-.ah-tag{margin:8px 0 26px;opacity:.82;font-size:14px}
-.ah-cta{width:100%;height:52px;border:0;border-radius:28px;background:#fff;color:#0b3d2e;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 12px 28px rgba(0,0,0,.22)}
-.ah-cta:active{transform:scale(.98)}
-.ah-back{width:36px;height:36px;border:0;background:transparent;font-size:22px;color:#1a1d1b}
-.ah-kicker{margin:4px 0 0;font-size:28px;font-weight:800;letter-spacing:-.035em;line-height:1.15;color:#12231c}
-.ah-sub{margin:8px 0 16px;color:#6b7370;font-size:13px;line-height:1.45}
-.ah-card{background:rgba(255,255,255,.78);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.7);border-radius:22px;padding:16px 16px 18px;box-shadow:0 18px 40px rgba(20,50,36,.08)}
-.ah-tabs{display:flex;gap:26px;border-bottom:1px solid #ececec;margin-bottom:14px}
-.ah-tabs button{border:0;background:none;padding:8px 0;font-weight:700;color:#9aa39d;font-size:14px;position:relative}
-.ah-tabs button.on{color:#0f6b4f}
-.ah-tabs button.on:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#0f6b4f;border-radius:2px}
-.ah-lab{display:block;font-size:12px;color:#6b7370;margin:12px 0 6px}
-.ah-inp{width:100%;height:48px;border:1px solid #e4e8e5;border-radius:14px;padding:0 14px;font-size:16px;background:#fff;color:#12231c;transition:border .2s,box-shadow .2s}
-.ah-inp:focus{outline:none;border-color:#0f6b4f;box-shadow:0 0 0 4px rgba(15,107,79,.14)}
-.ah-eye{position:relative}
-.ah-eye button{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:none;color:#6b7370;font-size:15px}
-.ah-link{border:0;background:none;color:#0f6b4f;font-weight:700;font-size:13px;padding:0}
-.ah-btn{width:100%;height:50px;border:0;border-radius:14px;background:#0f6b4f;color:#fff;font-weight:800;font-size:15px;margin-top:14px;box-shadow:0 10px 18px rgba(15,107,79,.22);transition:transform .15s,filter .15s}
-.ah-btn:active{transform:scale(.98)}
-.ah-btn[disabled]{opacity:.55}
-.ah-btn.sec{background:#fff;color:#1a1d1b;border:1.5px solid #e2e6e3;box-shadow:none;display:flex;align-items:center;justify-content:center;gap:10px}
-.ah-or{display:flex;align-items:center;gap:10px;margin:14px 0;color:#9aa39d;font-size:12px}
-.ah-or:before,.ah-or:after{content:"";flex:1;height:1px;background:#ececec}
-.ah-err{color:#c0392b;font-size:12px;min-height:16px;margin-top:8px}
-.ah-foot{text-align:center;margin-top:14px;font-size:13px;color:#6b7370}
+#ahAuthGate{position:fixed;inset:0;z-index:6000;background:#03160f;color:#eef7f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif;overflow:auto;-webkit-overflow-scrolling:touch}
+.ah-screen{max-width:430px;margin:0 auto;min-height:100%;min-height:100dvh;position:relative;padding:calc(14px + env(safe-area-inset-top,0px)) 22px calc(18px + env(safe-area-inset-bottom,0px));background:
+  radial-gradient(120% 70% at 50% 8%, rgba(18,110,72,.45) 0%, rgba(3,22,15,0) 55%),
+  #03160f}
+.ah-screen.welcome{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:calc(8px + env(safe-area-inset-top,0px))}
+.ah-hero{width:100%;display:flex;justify-content:center;pointer-events:none}
+.ah-hero img{width:100%;max-width:340px;height:auto;display:block}
+.ah-screen.welcome .ah-hero img{max-width:360px;margin-top:4px}
+.ah-screen.login .ah-hero img,.ah-mini{width:52px;height:52px;object-fit:contain;margin:0 auto 6px;display:block}
+.ah-screen.signup .ah-hero img,.ah-screen.otp .ah-hero img,.ah-screen.ok .ah-hero img{max-width:280px;margin:-8px auto 4px}
+.ah-back{position:absolute;left:16px;top:calc(10px + env(safe-area-inset-top,0px));width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#fff;font-size:18px;z-index:2}
+.ah-brand-sm{text-align:center;font-size:11px;letter-spacing:.18em;font-weight:800;margin:0}
+.ah-tag-sm{text-align:center;font-size:11px;color:#8aa396;margin:4px 0 14px}
+.ah-title{margin:6px 0 0;font-size:32px;line-height:1.15;font-weight:800;letter-spacing:-.03em;color:#fff;text-align:left}
+.ah-title .hi{color:#3ee08f}
+.ah-title.center{text-align:center}
+.ah-sub{margin:8px 0 16px;color:#8aa396;font-size:13px;line-height:1.45}
+.ah-sub.center{text-align:center}
+.ah-quote{margin-top:auto;padding-top:16px;font-size:12px;color:#7f9c90;font-style:italic;max-width:280px}
+.ah-cta{width:100%;height:52px;border:0;border-radius:26px;background:#f4f7f5;color:#123126;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px}
+.ah-btn{width:100%;height:50px;border:0;border-radius:16px;background:linear-gradient(90deg,#62e7a6 0%,#1db36f 48%,#0e8a55 100%);color:#042015;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;box-shadow:0 10px 22px rgba(30,179,111,.28)}
+.ah-btn.ghost{background:rgba(255,255,255,.04);color:#eef7f2;border:1px solid rgba(255,255,255,.14);box-shadow:none}
+.ah-card{border:1px solid rgba(255,255,255,.1);background:rgba(8,32,24,.45);border-radius:20px;padding:14px 14px 16px}
+.ah-tabs{display:flex;gap:18px;margin-bottom:12px}
+.ah-tabs button{border:0;background:none;color:#7f9c90;font-weight:700;font-size:13px;padding:6px 0}
+.ah-tabs button.on{color:#fff}
+.ah-lab{display:block;font-size:12px;color:#9bb5aa;margin:10px 0 6px}
+.ah-field{position:relative}
+.ah-field .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.55;font-size:14px}
+.ah-inp{width:100%;height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#eef7f2;padding:0 42px 0 38px;font-size:15px}
+.ah-inp::placeholder{color:#6f877c}
+.ah-inp:focus{outline:none;border-color:#3ee08f;box-shadow:0 0 0 3px rgba(62,224,143,.15)}
+.ah-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:none;color:#8aa396;font-size:13px}
+.ah-link{border:0;background:none;color:#3ee08f;font-weight:700;font-size:13px;padding:0}
+.ah-or{display:flex;align-items:center;gap:10px;margin:14px 0;color:#6f877c;font-size:12px}
+.ah-or:before,.ah-or:after{content:"";flex:1;height:1px;background:rgba(255,255,255,.1)}
+.ah-err{color:#ff8b8b;font-size:12px;min-height:16px;margin-top:8px}
+.ah-foot{text-align:center;margin-top:14px;font-size:13px;color:#8aa396}
 .ah-otp{display:flex;gap:8px;justify-content:center;margin:16px 0}
-.ah-otp input{width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border:1px solid #e6e8e6;border-radius:12px;background:#fafafa}
-.ah-otp input:focus{border-color:#0f6b4f;background:#fff;outline:none;box-shadow:0 0 0 4px rgba(15,107,79,.12)}
-.ah-check{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:#6b7370;margin-top:12px}
-.ah-success-copy{text-align:center;margin-top:auto}
-.ah-g{width:18px;height:18px;display:inline-block}
+.ah-otp input{width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff}
+.ah-otp input:focus{outline:none;border-color:#3ee08f}
+.ah-check{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:#8aa396;margin-top:12px}
+.ah-check a,.ah-check .ah-link{color:#3ee08f}
+.ah-g{width:18px;height:18px}
 .ah-av{width:38px;height:38px;border-radius:50%;object-fit:cover;background:#0f6b4f}
 .ah-avbtn{display:none!important}
 .ah-sheet{position:fixed;inset:0;background:rgba(8,20,16,.46);z-index:7000;display:flex;align-items:flex-end;justify-content:center}
-.ah-sheet .box{width:100%;max-width:430px;background:#fff;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px))}
-.ah-sheet button.row{width:100%;text-align:left;padding:14px 8px;border:0;background:none;font-size:15px;border-bottom:1px solid #f1f1f1}
+.ah-sheet .box{width:100%;max-width:430px;background:#0c241c;color:#eef7f2;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px))}
+.ah-sheet button.row{width:100%;text-align:left;padding:14px 8px;border:0;background:none;font-size:15px;color:#eef7f2;border-bottom:1px solid rgba(255,255,255,.08)}
 .ah-prof .stat{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px}
-.ah-prof .stat div{background:#f6f7f6;border-radius:14px;padding:12px 8px;text-align:center}
-.ah-prof .stat b{display:block;font-size:18px}
+.ah-prof .stat div{background:#f6f7f6;border-radius:14px;padding:12px 8px;text-align:center;color:#12231c}
 .ah-bar{height:8px;background:#e9eeeb;border-radius:99px;overflow:hidden}
 .ah-bar i{display:block;height:100%;background:#0f6b4f;border-radius:99px}
-.ah-busy{position:relative;pointer-events:none}
-.ah-busy:after{content:"";position:absolute;right:16px;top:50%;width:16px;height:16px;margin-top:-8px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:ahspin .7s linear infinite}
-@media (prefers-reduced-motion:reduce){
-  .ah-world *,.ah-fx{animation:none!important}
-  .ah-ui > *{animation:none}
-}
+.ah-busy{opacity:.7;pointer-events:none}

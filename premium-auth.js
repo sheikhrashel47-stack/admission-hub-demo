@@ -85,191 +85,124 @@
   };
 
   const gateEl = () => document.getElementById('ahAuthGate');
-  const reduced = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let fxRaf = 0, fx = null, particles = [];
+  const IMG = {
+    welcome: './auth-art/welcome-hero.jpg',
+    crest: './auth-art/login-crest.jpg',
+    book: './auth-art/signup-book.jpg',
+    shield: './auth-art/otp-shield.jpg',
+    medal: './auth-art/success-medal.jpg'
+  };
+  const gSvg = `<svg class="ah-g" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.5-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.2-3.5 5.7-6.7 7.1l.1.1 6.3 5.3C36.9 41.5 44 36 44 24c0-1.3-.1-2.5-.4-3.5z"/></svg>`;
 
-  function sceneHTML(kind) {
-    if (kind === 'welcome') return `<div class="ah-orb ah-orb-a"></div><div class="ah-orb ah-orb-b"></div><div class="ah-orb ah-orb-c"></div>
-      <div class="ah-cap"><i class="top"></i><i class="tassel"></i></div>
-      <div class="ah-crest"><i class="disc"></i><i class="wreath"></i><i class="book"></i></div>
-      <div class="ah-open"><b></b><b></b></div>`;
-    if (kind === 'book') return `<div class="ah-rig"><div class="ah-book"><i class="f"></i><i class="p"></i><i class="s"></i><i class="b"></i></div><div class="ah-ped"></div></div>`;
-    if (kind === 'folk') return `<div class="ah-rig"><div class="ah-folk"><div class="p p1"></div><div class="ah-book" style="left:58%;top:58%;margin:0;transform:scale(.7)"><i class="f"></i><i class="p"></i><i class="s"></i><i class="b"></i></div><div class="p p2"></div></div><div class="ah-ped"></div></div>`;
-    if (kind === 'lock') return `<div class="ah-rig"><div class="ah-shield"><div class="body"></div><div class="lock"></div></div><div class="ah-ped"></div></div>`;
-    if (kind === 'ok') return `<div class="ah-rig"><div class="ah-shield"><div class="body"></div><div class="ok"></div></div><div class="ah-ped"></div></div>`;
-    return '';
-  }
-
-  function ensureStage() {
-    const el = gateEl(); if (!el) return null;
-    let stage = el.querySelector('.ah-stage');
-    if (!stage) {
-      el.innerHTML = `<div class="ah-stage ah-dark"><canvas class="ah-fx"></canvas><div class="ah-world" id="ahWorld"></div><div class="ah-ui" id="ahAuthUI"></div></div>`;
-      stage = el.querySelector('.ah-stage');
-    }
-    if (stage && !stage.__wired) {
-      stage.__wired = true;
-      bindParallax(stage);
-      startFx(stage);
-    }
-    return stage;
-  }
-  function setScene(kind, dark) {
-    const stage = ensureStage(); if (!stage) return;
-    stage.classList.toggle('ah-dark', !!dark);
-    stage.classList.toggle('ah-light', !dark);
-    const world = stage.querySelector('.ah-world');
-    if (world) world.innerHTML = sceneHTML(kind);
-  }
-  function bindParallax(stage) {
-    if (reduced() || stage.__par) return;
-    stage.__par = true;
-    const tilt = (x, y) => {
-      const world = stage.querySelector('.ah-world');
-      if (!world) return;
-      world.style.transform = `rotateY(${x * 10}deg) rotateX(${-y * 8}deg)`;
-    };
-    stage.addEventListener('pointermove', e => {
-      const r = stage.getBoundingClientRect();
-      tilt((e.clientX - r.left) / r.width - .5, (e.clientY - r.top) / r.height - .5);
-    }, { passive: true });
-    stage.addEventListener('pointerleave', () => tilt(0, 0));
-  }
-  function startFx(stage) {
-    const c = stage.querySelector('.ah-fx'); if (!c || reduced()) return;
-    const ctx = c.getContext('2d');
-    const low = (navigator.hardwareConcurrency || 4) < 4 || navigator.connection && navigator.connection.saveData;
-    const n = low ? 18 : 36;
-    const resize = () => { c.width = stage.clientWidth; c.height = stage.clientHeight; };
-    resize();
-    particles = Array.from({ length: n }, () => ({
-      x: Math.random(), y: Math.random(), z: Math.random(),
-      s: 0.6 + Math.random() * 1.6, v: 0.0004 + Math.random() * 0.0008
-    }));
-    cancelAnimationFrame(fxRaf);
-    const tick = () => {
-      if (document.documentElement.dataset.ah !== 'out') { fxRaf = requestAnimationFrame(tick); return; }
-      const w = c.width, h = c.height;
-      ctx.clearRect(0, 0, w, h);
-      const dark = stage.classList.contains('ah-dark');
-      ctx.fillStyle = dark ? 'rgba(180,255,220,.28)' : 'rgba(15,107,79,.16)';
-      for (const p of particles) {
-        p.y -= p.v; if (p.y < -0.02) p.y = 1.02;
-        ctx.beginPath();
-        ctx.arc(p.x * w, p.y * h, p.s, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      fxRaf = requestAnimationFrame(tick);
-    };
-    fxRaf = requestAnimationFrame(tick);
-    window.addEventListener('resize', resize, { passive: true });
-  }
-
-  const paint = (html, scene, dark) => {
-    ensureStage();
-    setScene(scene, dark);
-    const ui = document.getElementById('ahAuthUI');
-    if (ui) ui.innerHTML = html;
+  const paint = html => {
+    const el = gateEl(); if (!el) return;
+    el.innerHTML = html;
     bind();
   };
-
   const errBox = id => `<div class="ah-err" id="${id}"></div>`;
   const showErr = (id, m) => { const n = document.getElementById(id); if (n) n.textContent = m || ''; };
-  const gSvg = `<svg class="ah-g" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.5-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.2-3.5 5.7-6.7 7.1l.1.1 6.3 5.3C36.9 41.5 44 36 44 24c0-1.3-.1-2.5-.4-3.5z"/></svg>`;
-  const passField = (id, ph) => `<div class="ah-eye"><input class="ah-inp" id="${id}" type="password" placeholder="${ph}" autocomplete="new-password"><button type="button" data-eye="${id}" aria-label="Show password">Show</button></div>`;
+  const passField = (id, ph) => `<div class="ah-field"><span class="ic">🔒</span><input class="ah-inp" id="${id}" type="password" placeholder="${ph}" autocomplete="new-password"><button type="button" class="ah-eye" data-eye="${id}" aria-label="Show">Show</button></div>`;
+  const textField = (id, ph, ic, extra='') => `<div class="ah-field"><span class="ic">${ic}</span><input class="ah-inp" id="${id}" placeholder="${ph}" ${extra}></div>`;
 
-  const welcome = () => paint(`
-    <div style="flex:1"></div>
-    <h1 class="ah-brand">ADMISSION HUB</h1>
-    <p class="ah-tag">Learn Smart, Achieve More</p>
+  const welcome = () => paint(`<section class="ah-screen welcome">
+    <div class="ah-hero"><img src="${IMG.welcome}" alt=""></div>
+    <h1 class="ah-title center" style="letter-spacing:.12em;font-size:26px;margin-top:8px">ADMISSION HUB</h1>
+    <p class="ah-sub center">Learn Smart, Achieve More</p>
     <button class="ah-cta" type="button" data-go="login">Get Started <span>→</span></button>
-  `, 'welcome', true);
+    <p class="ah-quote">“The beautiful thing about learning is nobody can take it away from you.”</p>
+  </section>`);
 
   const login = (tab) => {
     tab = tab || 'pass';
-    paint(`<button class="ah-back" type="button" data-go="welcome" aria-label="Back">←</button>
-      <div style="height:150px"></div>
-      <div class="ah-kicker">Welcome Back,<br>Scholar!</div>
+    paint(`<section class="ah-screen login">
+      <button class="ah-back" type="button" data-go="welcome">←</button>
+      <img class="ah-mini" src="${IMG.crest}" alt="">
+      <div class="ah-brand-sm">ADMISSION HUB</div>
+      <div class="ah-tag-sm">Learn Smart, Achieve More</div>
+      <h2 class="ah-title">Welcome Back,<br><span class="hi">Scholar!</span></h2>
       <p class="ah-sub">Login to continue your learning journey</p>
       <div class="ah-card">
         <div class="ah-tabs">
-          <button type="button" class="${tab === 'pass' ? 'on' : ''}" data-go="login">Login</button>
-          <button type="button" class="${tab === 'otp' ? 'on' : ''}" data-go="loginOtp">Login with OTP</button>
+          <button type="button" class="${tab==='pass'?'on':''}" data-go="login">Login</button>
+          <button type="button" class="${tab==='otp'?'on':''}" data-go="loginOtp">Login with OTP</button>
         </div>
         <label class="ah-lab">Email or Mobile Number</label>
-        <input class="ah-inp" id="ahId" type="text" inputmode="email" placeholder="Email or Mobile Number" value="${esc(draft.id)}">
-        ${tab === 'pass' ? `<label class="ah-lab">Password</label>${passField('ahPass', 'Password')}
-          <div style="text-align:right;margin-top:8px"><button class="ah-link" type="button" data-go="forgot">Forgot Password?</button></div>
+        ${textField('ahId','Email or Mobile Number','✉️', 'value="'+esc(draft.id)+'" inputmode="email"')}
+        ${tab==='pass' ? `<label class="ah-lab">Password</label>${passField('ahPass','Password')}
+          <div style="text-align:right;margin-top:10px"><button class="ah-link" type="button" data-go="forgot">Forgot Password?</button></div>
           ${errBox('ahErr')}
-          <button class="ah-btn" type="button" id="ahDoLogin">Login</button>` : `${errBox('ahErr')}<button class="ah-btn" type="button" id="ahDoLoginOtp">Send OTP</button>`}
-        <div class="ah-or">or continue with</div>
-        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${gSvg} Continue with Google</button></div>
+          <button class="ah-btn" type="button" id="ahDoLogin">Login <span>→</span></button>` : `${errBox('ahErr')}<button class="ah-btn" type="button" id="ahDoLoginOtp">Send OTP <span>→</span></button>`}
       </div>
+      <div class="ah-or">or continue with</div>
+      <div id="ahGoogleSlot"><button class="ah-btn ghost" type="button" id="ahGoogle">${gSvg} Continue with Google</button></div>
       <div class="ah-foot">Don't have an account? <button class="ah-link" type="button" data-go="signup">Sign Up</button></div>
-    `, 'book', false);
+    </section>`);
     mountGoogle();
   };
 
-  const signup = () => paint(`<button class="ah-back" type="button" data-go="login">←</button>
-    <div style="height:132px"></div>
-    <div class="ah-kicker">Create Your<br>Account</div>
-    <p class="ah-sub">Join thousands of learners on Admission Hub</p>
+  const signup = () => paint(`<section class="ah-screen signup">
+    <button class="ah-back" type="button" data-go="login">←</button>
+    <div class="ah-hero"><img src="${IMG.book}" alt=""></div>
+    <h2 class="ah-title center">Create Your<br><span class="hi">Account</span></h2>
+    <p class="ah-sub center">Join thousands of learners<br>on Admission Hub</p>
     <div class="ah-card">
       <label class="ah-lab">Full Name</label>
-      <input class="ah-inp" id="ahName" placeholder="তোমার পূর্ণ নাম" value="${esc(draft.name)}">
+      ${textField('ahName','Enter your full name','👤', 'value="'+esc(draft.name)+'"')}
       <label class="ah-lab">Email or Mobile Number</label>
-      <input class="ah-inp" id="ahId" placeholder="name@gmail.com অথবা 01XXXXXXXXX" value="${esc(draft.id)}">
-      <label class="ah-lab">Password</label>${passField('ahPass', 'কমপক্ষে ৮ অক্ষর, অক্ষর+সংখ্যা')}
-      <label class="ah-lab">Confirm Password</label>${passField('ahPass2', 'Confirm Password')}
-      <label class="ah-check"><input id="ahTerms" type="checkbox"> I agree to the Terms & Conditions and Privacy Policy</label>
+      ${textField('ahId','Enter email or mobile number','✉️', 'value="'+esc(draft.id)+'"')}
+      <label class="ah-lab">Password</label>${passField('ahPass','Create a strong password')}
+      <label class="ah-lab">Confirm Password</label>${passField('ahPass2','Confirm your password')}
+      <label class="ah-check"><input id="ahTerms" type="checkbox"> I agree to the Terms &amp; Conditions and Privacy Policy</label>
       ${errBox('ahErr')}
-      <button class="ah-btn" type="button" id="ahDoSignup">Sign Up</button>
+      <button class="ah-btn" type="button" id="ahDoSignup">Sign Up <span>→</span></button>
     </div>
     <div class="ah-foot">Already have an account? <button class="ah-link" type="button" data-go="login">Login</button></div>
-  `, 'folk', false);
+  </section>`);
 
-  const otpScreen = () => paint(`<button class="ah-back" type="button" data-go="${draft.purpose === 'reset' ? 'forgot' : (draft.purpose === 'signup' ? 'signup' : 'login')}">←</button>
-    <div style="height:150px"></div>
-    <div class="ah-kicker">Verify Your<br>Number</div>
-    <p class="ah-sub">We sent a 6-digit code to<br><b>${esc(draft.masked || draft.id)}</b><br><button class="ah-link" type="button" data-go="${draft.purpose === 'signup' ? 'signup' : 'login'}">Change Number</button></p>
-    <div class="ah-card">
-      <div class="ah-otp" id="ahOtp">${[0,1,2,3,4,5].map(i => `<input maxlength="1" inputmode="numeric" pattern="[0-9]*" data-otp="${i}" autocomplete="${i ? 'off' : 'one-time-code'}">`).join('')}</div>
-      <div class="ah-foot" id="ahOtpWait">Resend code in 00:<b id="ahSec">${draft.wait || 45}</b></div>
-      <button class="ah-link" type="button" id="ahResend" style="display:none;width:100%;margin-top:8px">Resend Code</button>
-      ${errBox('ahErr')}
-      <button class="ah-btn" type="button" id="ahDoVerify">Verify & Continue</button>
-    </div>
-  `, 'lock', false);
+  const otpScreen = () => paint(`<section class="ah-screen otp">
+    <button class="ah-back" type="button" data-go="${draft.purpose==='reset'?'forgot':(draft.purpose==='signup'?'signup':'login')}">←</button>
+    <div class="ah-hero"><img src="${IMG.shield}" alt=""></div>
+    <h2 class="ah-title center">Verify Your Email</h2>
+    <p class="ah-sub center">We've sent a 6-digit verification code to<br><b style="color:#3ee08f">${esc(draft.masked||draft.id)}</b></p>
+    <div class="ah-otp" id="ahOtp">${[0,1,2,3,4,5].map(i=>`<input maxlength="1" inputmode="numeric" data-otp="${i}" autocomplete="${i?'off':'one-time-code'}">`).join('')}</div>
+    <p class="ah-sub center" id="ahOtpWait">Code will expire in 00:<b id="ahSec">${draft.wait||45}</b></p>
+    ${errBox('ahErr')}
+    <button class="ah-btn" type="button" id="ahDoVerify">Verify &amp; Continue <span>→</span></button>
+    <div class="ah-foot"><button class="ah-link" type="button" id="ahResend" style="display:none">Resend Code</button></div>
+    <div class="ah-foot">Didn't receive code? <button class="ah-link" type="button" data-go="${draft.purpose==='signup'?'signup':'login'}">Change Email</button></div>
+  </section>`);
 
-  const success = (title, sub, goTxt) => paint(`<div class="ah-success-copy">
-    <div style="height:168px"></div>
-    <div class="ah-kicker">${title}</div>
-    <p class="ah-sub">${sub}</p>
-    <button class="ah-btn" type="button" id="ahEnter">${goTxt}</button>
-  </div>`, 'ok', false);
+  const success = (title, sub, goTxt) => paint(`<section class="ah-screen ok">
+    <div class="ah-hero"><img src="${IMG.medal}" alt=""></div>
+    <h2 class="ah-title center">${title}</h2>
+    <p class="ah-sub center">${sub}</p>
+    <button class="ah-btn" type="button" id="ahEnter">${goTxt} <span>→</span></button>
+  </section>`);
 
-  const forgot = () => paint(`<button class="ah-back" type="button" data-go="login">←</button>
-    <div style="height:132px"></div>
-    <div class="ah-kicker">Forgot<br>Password</div>
-    <p class="ah-sub">ইমেইল বা মোবাইলে ভেরিফিকেশন কোড যাবে</p>
+  const forgot = () => paint(`<section class="ah-screen login">
+    <button class="ah-back" type="button" data-go="login">←</button>
+    <div class="ah-hero"><img src="${IMG.shield}" alt=""></div>
+    <h2 class="ah-title center">Forgot<br><span class="hi">Password</span></h2>
+    <p class="ah-sub center">ইমেইল বা মোবাইলে ভেরিফিকেশন কোড যাবে</p>
     <div class="ah-card">
       <label class="ah-lab">Email or Mobile Number</label>
-      <input class="ah-inp" id="ahId" value="${esc(draft.id)}" placeholder="Email or Mobile Number">
+      ${textField('ahId','Email or Mobile Number','✉️', 'value="'+esc(draft.id)+'"')}
       ${errBox('ahErr')}
-      <button class="ah-btn" type="button" id="ahDoForgot">Send Code</button>
+      <button class="ah-btn" type="button" id="ahDoForgot">Send Code <span>→</span></button>
     </div>
-  `, 'lock', false);
+  </section>`);
 
-  const reset = () => paint(`<button class="ah-back" type="button" data-go="forgot">←</button>
-    <div class="ah-kicker">New Password</div>
+  const reset = () => paint(`<section class="ah-screen login">
+    <button class="ah-back" type="button" data-go="forgot">←</button>
+    <h2 class="ah-title">New Password</h2>
     <p class="ah-sub">নতুন পাসওয়ার্ড সেট করো</p>
     <div class="ah-card">
-      <label class="ah-lab">New Password</label>${passField('ahPass', 'কমপক্ষে ৮ অক্ষর')}
-      <label class="ah-lab">Confirm Password</label>${passField('ahPass2', 'Confirm Password')}
+      <label class="ah-lab">New Password</label>${passField('ahPass','কমপক্ষে ৮ অক্ষর')}
+      <label class="ah-lab">Confirm Password</label>${passField('ahPass2','Confirm Password')}
       ${errBox('ahErr')}
-      <button class="ah-btn" type="button" id="ahDoReset">Update Password</button>
+      <button class="ah-btn" type="button" id="ahDoReset">Update Password <span>→</span></button>
     </div>
-  `, 'book', false);
+  </section>`);
 
   function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -282,7 +215,7 @@
     if (name === 'otp') return otpScreen();
     if (name === 'forgot') return forgot();
     if (name === 'reset') return reset();
-    if (name === 'ok') return success('Welcome Aboard! 🎉', 'Your account has been verified successfully.', 'Go to Dashboard');
+    if (name === 'ok') return success('Email Verified!', 'Your account has been successfully verified. You can now access all features of Admission Hub.', 'Continue to Login');
     if (name === 'resetOk') return success('All Set! 🎉', 'Your password has been updated successfully.', 'Login');
   }
 

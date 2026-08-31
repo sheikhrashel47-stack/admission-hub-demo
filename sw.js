@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v138-auth3d-20260901';
+const BUILD_ID = 'v139-authclone-20260901';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -72,15 +72,20 @@ const APP_SHELL = [
   './smart-revision-tool.js?v=smart-revision-v2-safe-session',
   './source-course-tool.js?v=bangla-only-courses-v23-freshfetch',
   './cloud-content-sync.js?v=p2-cloud-v2',
-  './premium-auth.js?v=p3-auth-ui-v4',
+  './premium-auth.js?v=p3-auth-ui-v5',
   './android-runtime-fix.js?v=and-scroll-v1',
-  './auth-art/success-shield.jpg',
-  './auth-art/otp-lock.jpg',
-  './auth-art/signup-people.jpg',
-  './auth-art/login-book.jpg',
-  './auth-art/welcome-crest.jpg',
-  './premium-auth.css?v=p3-auth-ui-v4',
-  './premium-auth.js?v=p3-auth-ui-v4',
+  '',
+  '',
+  '',
+  '',
+  '',
+  './premium-auth.css?v=p3-auth-ui-v5',
+  './auth-art/success-medal.jpg',
+  './auth-art/otp-shield.jpg',
+  './auth-art/signup-book.jpg',
+  './auth-art/login-crest.jpg',
+  './auth-art/welcome-hero.jpg',
+  './premium-auth.js?v=p3-auth-ui-v5',
   './app-seed.js?v=p1',
   './',
   './index.html',
