@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>My Admission Hub</title>
 <script>(function(){try{document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')||sessionStorage.getItem('ahPubToken'))?'in':'out';}catch(e){document.documentElement.dataset.ah='out';}})();</script>
-<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-ui-v3">
+<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-ui-v4">
 
 <link rel="manifest" href="manifest.json">
 <link rel="alternate" type="application/manifest+json" href="manifest.webmanifest">
@@ -573,12 +573,21 @@ textarea{min-height:96px}
 </head>
 <body class="app-booting">
 <div id="ahAuthGate" aria-label="Authentication">
-<section class="ah-welcome">
-<img src="./auth-art/welcome-crest.jpg" alt="Admission Hub">
-<h1>ADMISSION HUB</h1>
-<p>Learn Smart, Achieve More</p>
+<div class="ah-stage ah-dark">
+<canvas class="ah-fx"></canvas>
+<div class="ah-world">
+<div class="ah-orb ah-orb-a"></div><div class="ah-orb ah-orb-b"></div>
+<div class="ah-cap"><i class="top"></i><i class="tassel"></i></div>
+<div class="ah-crest"><i class="disc"></i><i class="wreath"></i><i class="book"></i></div>
+<div class="ah-open"><b></b><b></b></div>
+</div>
+<div class="ah-ui">
+<div style="flex:1"></div>
+<h1 class="ah-brand">ADMISSION HUB</h1>
+<p class="ah-tag">Learn Smart, Achieve More</p>
 <button class="ah-cta" type="button" onclick="document.dispatchEvent(new Event('ah-get-started'))">Get Started <span>→</span></button>
-</section>
+</div>
+</div>
 </div>
 
 <div id="app"><main class="app-loading" role="status"><div class="app-loading-mark">✦</div><b>Preparing your study space…</b><span>Loading your saved data safely.</span></main></div>
@@ -5630,7 +5639,7 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script src="./android-runtime-fix.js?v=and-scroll-v1"></script>
 <script>window.AH_CLOUD_ROLE='public';</script>
 <script src="./cloud-content-sync.js?v=p2-cloud-v2"></script>
-<script src="./premium-auth.js?v=p3-auth-ui-v3"></script>
+<script src="./premium-auth.js?v=p3-auth-ui-v4"></script>
 <script src="./app-seed.js?v=p1"></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */
