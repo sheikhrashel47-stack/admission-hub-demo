@@ -13,7 +13,7 @@ const stripHeavyRow = x => {
   if (!x || typeof x !== 'object') return x;
   const o = Object.assign({}, x);
   ['imageDataUrl', 'image', 'thumbnail'].forEach(k => {
-    if (typeof o[k] === 'string' && o[k].startsWith('data:') && o[k].length > 60000) delete o[k];
+    if (typeof o[k] === 'string' && o[k].startsWith('data:') && o[k].length > 900000) delete o[k];
   });
   return o;
 };
@@ -36,6 +36,48 @@ const countsOf = doc => ({
   vocabulary: (doc.vocabulary || []).length,
   vocabularyMaster: (doc.vocabularyMaster || []).length
 });
+
+
+const PERSONAL_KEYS = ['examResults', 'mistakes', 'settings', 'dailyStats', 'activityLogs', 'notes', 'v', 'at'];
+function sanitizeState(b) {
+  const out = { v: 1, at: Date.now() };
+  if (!b || typeof b !== 'object') return out;
+  for (const k of PERSONAL_KEYS) {
+    if (k === 'v' || k === 'at') continue;
+    if (Array.isArray(b[k])) out[k] = b[k];
+    else if (k === 'settings' && b[k] && typeof b[k] === 'object') out[k] = Array.isArray(b[k]) ? b[k] : [b[k]];
+  }
+  out.v = Number(b.v) || 1;
+  out.at = Number(b.at) || Date.now();
+  return out;
+};
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function hashPassword(password, saltB64) {
+  const enc = new TextEncoder();
+  const salt = saltB64 ? unb64(saltB64) : crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey('raw', enc.encode(String(password)), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 100000 }, key, 256);
+  return { hash: b64(bits), salt: b64(salt) };
+};
+function publicUser(u) { return u ? ({
+  id: u.id, uid: u.uid || u.id, name: u.name, contact: u.contact,
+  verified: !!u.verified, status: u.status || (u.blocked ? 'disabled' : 'active'),
+  created: u.created, lastSeen: u.lastSeen
+}) : null; }
+async function issueToken(env, rec) {
+  const token = crypto.randomUUID().replace(/-/g, '');
+  await env.PUB_KV.put('tok:' + token, JSON.stringify({ id: rec.id, at: Date.now() }), { expirationTtl: 31536000 });
+  rec.lastSeen = Date.now();
+  await env.PUB_KV.put('user:' + rec.id, JSON.stringify(rec));
+  return { token, user: publicUser(rec) };
+};
+async function rateLimit(env, key, max, ttl) {
+  const k = 'rl:' + key;
+  const n = Number((await env.PUB_KV.get(k)) || 0) + 1;
+  await env.PUB_KV.put(k, String(n), { expirationTtl: ttl });
+  return n <= max;
+};
 
 export const publishGlobal = async (env, full) => {
   if (!env || !env.PUB_KV) return { error: 'no-pub-kv' };
@@ -86,14 +128,24 @@ export default {
         const raw = await env.PUB_KV.get('pubContent');
         return json(raw ? JSON.parse(raw) : { v: 0, at: 0, questions: [], vocabulary: [], exams: [] });
       }
+      if (p === '/api/auth/config' && request.method === 'GET') return json({ google: !!env.GOOGLE_CLIENT_ID, googleClientId: env.GOOGLE_CLIENT_ID || '' });
       if (p === '/api/auth/request' && request.method === 'POST') return await authReq(request, env);
       if (p === '/api/auth/verify' && request.method === 'POST') return await authVerify(request, env);
+      if (p === '/api/auth/register' && request.method === 'POST') return await authRegister(request, env);
+      if (p === '/api/auth/login' && request.method === 'POST') return await authLogin(request, env);
+      if (p === '/api/auth/google' && request.method === 'POST') return await authGoogle(request, env);
+      if (p === '/api/auth/logout' && request.method === 'POST') return await authLogout(request, env);
+      if (p === '/api/auth/me' && request.method === 'GET') {
+        const uid = await authUser(request, env);
+        const u = JSON.parse((await env.PUB_KV.get('user:' + uid)) || 'null');
+        return json({ user: publicUser(u) });
+      }
       if (p.startsWith('/api/admin/')) return await admin(request, env, p);
       const uid = await authUser(request, env);
       if (p === '/api/state' && request.method === 'GET') return json(JSON.parse((await env.PUB_KV.get('ustate:' + uid)) || 'null'));
       if (p === '/api/state' && request.method === 'POST') {
         const b = await request.json();
-        await env.PUB_KV.put('ustate:' + uid, JSON.stringify(b).slice(0, 480000));
+        await env.PUB_KV.put('ustate:' + uid, JSON.stringify(sanitizeState(b)).slice(0, 1800000));
         await touchUser(env, uid);
         return json({ saved: true, at: Date.now() });
       }
@@ -106,6 +158,8 @@ export default {
 /* ── লগইন: ইউজারনেম / মোবাইল / জিমেইল + OTP ── */
 const normId = s => { s = String(s || '').trim(); if (/^\+?\d[\d\s-]{8,14}$/.test(s)) return 'ph:' + s.replace(/\D/g, ''); if (s.includes('@')) return 'em:' + s.toLowerCase(); return 'un:' + s.toLowerCase().slice(0, 40); };
 const authReq = async (request, env) => {
+  const ip = request.headers.get('CF-Connecting-IP') || 'ip';
+  if (!(await rateLimit(env, 'otp:' + ip, 8, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id); if (id.length < 4) return json({ error: 'সঠিক নাম/মোবাইল/জিমেইল লেখো' }, 400);
   const code = String(Math.floor(100000 + Math.random() * 900000));
@@ -130,17 +184,79 @@ const authVerify = async (request, env) => {
   const u = JSON.parse((await env.PUB_KV.get('user:' + id)) || '{}');
   if (u.blocked) return json({ error: 'অ্যাকাউন্ট বন্ধ' }, 403);
   const token = crypto.randomUUID().replace(/-/g, '');
-  const rec = { id, name: String(b.name || u.name || 'শিক্ষার্থী').slice(0, 30), contact: id.startsWith('ph:') ? '+৮৮' + id.slice(3) : id.slice(3), created: u.created || Date.now(), lastSeen: Date.now(), blocked: false };
-  await env.PUB_KV.put('user:' + id, JSON.stringify(rec));
-  await env.PUB_KV.put('tok:' + token, JSON.stringify({ id, at: Date.now() }), { expirationTtl: 31536000 });
-  return json({ token, user: { name: rec.name, contact: rec.contact, created: rec.created } });
+  if (u.status === 'disabled' || u.status === 'suspended' || u.blocked) return json({ error: 'অ্যাকাউন্ট বন্ধ' }, 403);
+  const rec = { id, uid: u.uid || crypto.randomUUID(), name: String(b.name || u.name || 'শিক্ষার্থী').slice(0, 30), contact: id.startsWith('ph:') ? '+৮৮' + id.slice(3) : id.slice(3), created: u.created || Date.now(), lastSeen: Date.now(), blocked: false, verified: true, status: 'active', providers: Array.from(new Set([...(u.providers || []), 'otp'])) };
+  const issued = await issueToken(env, rec);
+  return json(issued);
 };
+
+const authRegister = async (request, env) => {
+  const ip = request.headers.get('CF-Connecting-IP') || 'ip';
+  if (!(await rateLimit(env, 'reg:' + ip, 10, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
+  const b = await request.json().catch(() => ({}));
+  const id = normId(b.id);
+  const password = String(b.password || '');
+  if (id.length < 4) return json({ error: 'সঠিক ইমেইল বা মোবাইল লেখো' }, 400);
+  if (password.length < 6) return json({ error: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষর' }, 400);
+  const existing = JSON.parse((await env.PUB_KV.get('user:' + id)) || 'null');
+  if (existing && existing.passHash) return json({ error: 'এই অ্যাকাউন্ট আগেই আছে — লগইন করো' }, 409);
+  const hp = await hashPassword(password);
+  const rec = {
+    id, uid: (existing && existing.uid) || crypto.randomUUID(),
+    name: String(b.name || (existing && existing.name) || 'শিক্ষার্থী').slice(0, 30),
+    contact: id.startsWith('ph:') ? '+৮৮' + id.slice(3) : id.slice(3),
+    created: (existing && existing.created) || Date.now(), lastSeen: Date.now(),
+    blocked: false, verified: !!existing?.verified, status: 'active',
+    passHash: hp.hash, passSalt: hp.salt, providers: Array.from(new Set([...(existing && existing.providers || []), 'password']))
+  };
+  const issued = await issueToken(env, rec);
+  return json(issued);
+};
+const authLogin = async (request, env) => {
+  const ip = request.headers.get('CF-Connecting-IP') || 'ip';
+  if (!(await rateLimit(env, 'login:' + ip, 20, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
+  const b = await request.json().catch(() => ({}));
+  const id = normId(b.id);
+  const u = JSON.parse((await env.PUB_KV.get('user:' + id)) || 'null');
+  if (!u || !u.passHash) return json({ error: 'ইমেইল/মোবাইল বা পাসওয়ার্ড ভুল' }, 401);
+  if (u.blocked || u.status === 'disabled' || u.status === 'suspended') return json({ error: 'অ্যাকাউন্ট বন্ধ' }, 403);
+  const hp = await hashPassword(String(b.password || ''), u.passSalt);
+  if (hp.hash !== u.passHash) return json({ error: 'ইমেইল/মোবাইল বা পাসওয়ার্ড ভুল' }, 401);
+  return json(await issueToken(env, u));
+};
+const authLogout = async (request, env) => {
+  const t = String(request.headers.get('Authorization') || '').replace('Bearer ', '').trim();
+  if (t) await env.PUB_KV.delete('tok:' + t);
+  return json({ ok: true });
+};
+const authGoogle = async (request, env) => {
+  const b = await request.json().catch(() => ({}));
+  const idToken = String(b.idToken || '');
+  if (!idToken) return json({ error: 'Google টোকেন নেই' }, 400);
+  const r = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken));
+  const g = await r.json().catch(() => ({}));
+  if (!r.ok || !g.email) return json({ error: 'Google লগইন ব্যর্থ' }, 401);
+  if (env.GOOGLE_CLIENT_ID && g.aud !== env.GOOGLE_CLIENT_ID) return json({ error: 'Google ক্লায়েন্ট মিলছে না' }, 401);
+  const id = normId(g.email);
+  const existing = JSON.parse((await env.PUB_KV.get('user:' + id)) || '{}');
+  if (existing.blocked || existing.status === 'disabled' || existing.status === 'suspended') return json({ error: 'অ্যাকাউন্ট বন্ধ' }, 403);
+  const rec = {
+    id, uid: existing.uid || crypto.randomUUID(),
+    name: String(b.name || g.name || existing.name || 'শিক্ষার্থী').slice(0, 30),
+    contact: g.email, created: existing.created || Date.now(), lastSeen: Date.now(),
+    blocked: false, verified: true, status: 'active',
+    passHash: existing.passHash, passSalt: existing.passSalt,
+    providers: Array.from(new Set([...(existing.providers || []), 'google']))
+  };
+  return json(await issueToken(env, rec));
+};
+
 const authUser = async (request, env) => {
   const t = String(request.headers.get('Authorization') || '').replace('Bearer ', '').trim();
   const tr = JSON.parse((await env.PUB_KV.get('tok:' + t)) || 'null');
   if (!tr) throw Object.assign(new Error('আগে লগইন করো'), { status: 401 });
   const u = JSON.parse((await env.PUB_KV.get('user:' + tr.id)) || '{}');
-  if (u.blocked) throw Object.assign(new Error('অ্যাকাউন্ট বন্ধ করা হয়েছে'), { status: 403 });
+  if (u.blocked || u.status === 'disabled' || u.status === 'suspended') throw Object.assign(new Error('অ্যাকাউন্ট বন্ধ করা হয়েছে'), { status: 403 });
   return tr.id;
 };
 const touchUser = async (env, id) => { const u = JSON.parse((await env.PUB_KV.get('user:' + id)) || '{}'); if (u.id) { u.lastSeen = Date.now(); await env.PUB_KV.put('user:' + id, JSON.stringify(u)); } };
@@ -190,7 +306,7 @@ const admin = async (request, env, p) => {
   if (p === '/api/admin/users' && request.method === 'GET') {
     const out = [];
     const lst = await env.PUB_KV.list({ prefix: 'user:' });
-    for (const k of lst.keys) { const u = JSON.parse((await env.PUB_KV.get(k.name)) || '{}'); const st = JSON.parse((await env.PUB_KV.get('ustate:' + u.id)) || '{}'); out.push({ id: u.id, name: u.name, contact: u.contact, created: u.created, lastSeen: u.lastSeen, blocked: !!u.blocked, exams: (st.attempts || []).filter(a => a.mode === 'exam').length, practices: (st.attempts || []).filter(a => a.mode !== 'exam').length, vocab: (st.vocab || []).length, mistakes: (st.mistakes || []).length }); }
+    for (const k of lst.keys) { const u = JSON.parse((await env.PUB_KV.get(k.name)) || '{}'); const st = JSON.parse((await env.PUB_KV.get('ustate:' + u.id)) || '{}'); out.push({ id: u.id, uid: u.uid || u.id, name: u.name, contact: u.contact, created: u.created, lastSeen: u.lastSeen, blocked: !!u.blocked, verified: !!u.verified, status: u.status || (u.blocked ? 'disabled' : 'active'), exams: (st.examResults || st.attempts || []).length, mistakes: (st.mistakes || []).length }); }
     out.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
     return json({ users: out });
   }
@@ -201,6 +317,17 @@ const admin = async (request, env, p) => {
     if (!u) return json({ error: 'user-not-found' }, 404);
     u.blocked = !!b.blocked; await env.PUB_KV.put('user:' + id, JSON.stringify(u));
     return json({ ok: true, blocked: u.blocked });
+  }
+  if (p === '/api/admin/status' && request.method === 'POST') {
+    const b = await request.json().catch(() => ({}));
+    const id = String(b.id || '');
+    const u = JSON.parse((await env.PUB_KV.get('user:' + id)) || 'null');
+    if (!u) return json({ error: 'user-not-found' }, 404);
+    const status = String(b.status || 'active');
+    if (!['active', 'disabled', 'suspended'].includes(status)) return json({ error: 'bad-status' }, 400);
+    u.status = status; u.blocked = status !== 'active';
+    await env.PUB_KV.put('user:' + id, JSON.stringify(u));
+    return json({ ok: true, status: u.status });
   }
   if (p === '/api/admin/publish' && request.method === 'POST') {
     const b = await request.json().catch(() => ({}));

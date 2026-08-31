@@ -5613,33 +5613,13 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script src="./mistakes-bank-tool.js?v=mistakes-bank-v1"></script>
 <script src="./smart-revision-tool.js?v=smart-revision-v2-safe-session"></script>
 <script src="./source-course-tool.js?v=bangla-only-courses-v23-freshfetch"></script>
+<script src="./android-runtime-fix.js?v=and-scroll-v1"></script>
 <script>window.AH_CLOUD_ROLE='public';</script>
-<script src="./cloud-content-sync.js?v=p2-cloud-v1"></script>
+<script src="./cloud-content-sync.js?v=p2-cloud-v2"></script>
+<script src="./user-account.js?v=p3-auth-v1"></script>
 <script src="./app-seed.js?v=p1"></script>
 <script>
-/* Phase-1 public clone: first-run content seed (uses the app's own restore path). */
-(function(){'use strict';
-  const go = async () => {
-    try{
-      if(!window.AH_SEED) return;
-      if(typeof dbPutMany!=='function'||typeof dbGetAll!=='function'||typeof loadCache!=='function') return;
-      if(window.__admissionBootPromise) { try{ await window.__admissionBootPromise; }catch(_){ return; } }
-      const qs = await dbGetAll('questions');
-      if((qs||[]).length) return;
-      for(const st of ['subjects','topics','questions','vocabulary']){ if(window.AH_SEED[st]) await dbPutMany(st, window.AH_SEED[st]); }
-      try{
-        const seedSubs=new Set((window.AH_SEED.subjects||[]).map(x=>x.id)), seedTops=new Set((window.AH_SEED.topics||[]).map(x=>x.id));
-        const allSubs=await dbGetAll('subjects'), allTops=await dbGetAll('topics'), allQs=await dbGetAll('questions');
-        for(const sb of allSubs){ if(!seedSubs.has(sb.id) && !allTops.some(t=>t.subjectId===sb.id) && !allQs.some(q=>q.subjectId===sb.id)) await dbDel('subjects', sb.id); }
-        const leftSubs=new Set((await dbGetAll('subjects')).map(x=>x.id));
-        for(const tp of allTops){ if(!seedTops.has(tp.id) && !leftSubs.has(tp.subjectId)) await dbDel('topics', tp.id); }
-      }catch(_){}
-      await loadCache();
-      if(typeof render==='function') render();
-    }catch(_){}
-  };
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', go); else go();
-})();
+/* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */
 </script>
 </body>
 </html>
