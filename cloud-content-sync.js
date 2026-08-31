@@ -172,17 +172,23 @@
     return ok;
   };
 
+  const authHeaders = () => {
+    const h = {};
+    try { const t = localStorage.getItem('ahPubToken'); if (t) h.Authorization = 'Bearer ' + t; } catch (_) {}
+    return h;
+  };
   const pull = async () => {
     if (ROLE !== 'public') return;
+    if (window.AHAuth && typeof window.AHAuth.isAuthed === 'function' && !window.AHAuth.isAuthed()) return;
     if (!(await bootReady())) return;
     const localQs = await dbGetAll('questions').catch(() => []);
     if (!(localQs || []).length) await applySeedIfEmpty();
     let meta = null;
-    try { meta = await fetch(WORKER + '/pub/content/meta').then(r => r.ok ? r.json() : null); } catch (_) { meta = null; }
+    try { meta = await fetch(WORKER + '/pub/content/meta', { headers: authHeaders() }).then(r => r.ok ? r.json() : null); } catch (_) { meta = null; }
     const local = appliedMeta();
     if (meta && Number(meta.v || 0) > 0 && Number(meta.v) === Number(local.v) && meta.sig && meta.sig === local.sig) return;
     let doc = null;
-    try { doc = await fetch(WORKER + '/pub/content').then(r => r.ok ? r.json() : null); } catch (_) { doc = null; }
+    try { doc = await fetch(WORKER + '/pub/content', { headers: authHeaders() }).then(r => r.ok ? r.json() : null); } catch (_) { doc = null; }
     if (!doc || Number(doc.v || 0) <= 0) return;
     if (Number(doc.v) === Number(local.v) && doc.sig && doc.sig === local.sig) return;
     const ok = await applyDoc(doc);
