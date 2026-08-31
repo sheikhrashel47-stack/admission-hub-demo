@@ -37,7 +37,7 @@ Set on `admission-gk` and `ah-public` (secret_text):
 - `GOOGLE_CLIENT_ID` — real Google login (authorized JS origin = GitHub Pages URL)
 - `ADMIN_TOKEN` — control user list
 
-Without those, signup/OTP/Google return a service-not-configured error. No fake codes.
+RESEND_KEY + MAIL_FROM + GOOGLE_CLIENT_ID are set on workers (2026-09-01). SMS still unset. No fake codes.
 
 ## Files
 Public: `premium-auth.js`, `premium-auth.css`, `auth-art/`, `public-worker.js`, `cloud-content-sync.js`, `index.html`, `sw.js` (`v135-p3-realauth-20260901`)
