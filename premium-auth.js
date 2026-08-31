@@ -441,35 +441,13 @@
       if (p === 'profile') return renderProfile();
       if (p === 'profile/edit') return renderEdit();
       if (p === 'profile/security') return renderSecurity();
-      const r = cur.apply(this, arguments);
-      setTimeout(injectAvatar, 0);
-      return r;
+      return cur.apply(this, arguments);
     };
     wrapped.__ahAuthWrap = true;
     window.render = wrapped;
   }
 
-  function injectAvatar() {
-    if (document.documentElement.dataset.ah === 'out') return;
-    if (!token()) return;
-    const path = routePath();
-    document.querySelectorAll('.ah-avbtn').forEach(n => n.remove());
-    if (path.startsWith('exam/running')) return;
-    const u = user() || {};
-    const btn = document.createElement('button');
-    btn.className = 'ah-avbtn';
-    btn.type = 'button';
-    btn.setAttribute('aria-label', 'Profile');
-    const photo = u.photo;
-    btn.innerHTML = photo ? `<img class="ah-av" src="${photo}" alt="">` : `<span class="ah-av" style="display:grid;place-items:center;color:#fff;font-weight:800">${esc((u.displayName || u.name || 'S').slice(0, 1))}</span>`;
-    btn.onclick = () => { if (typeof navigate === 'function') navigate('profile'); else location.hash = 'profile'; };
-    document.body.appendChild(btn);
-    const page = document.querySelector('#app .page');
-    const h1 = page && page.querySelector('h1');
-    if (h1 && /Scholar/.test(h1.textContent) && (u.displayName || u.name)) {
-      h1.innerHTML = h1.innerHTML.replace('Scholar', esc((u.displayName || u.name).split(' ')[0]));
-    }
-  }
+  function injectAvatar() {}
 
   function completion(u) {
     const keys = ['name', 'email', 'mobile', 'photo', 'institution', 'targetUniversity', 'targetUnit', 'admissionYear', 'bio', 'dob'];
@@ -687,7 +665,7 @@
       setGate(true);
       if (view === 'welcome') welcome();
     }
-    document.addEventListener('admission:route-rendered', injectAvatar);
+    
     setInterval(() => { if (token()) pushState().catch(() => {}); }, 90000);
     let n = 0;
     setInterval(wrapRender, 800);
