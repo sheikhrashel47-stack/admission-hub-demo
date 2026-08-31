@@ -137,17 +137,19 @@ const admin = async (request, env, p) => {
   }
   if (p === '/api/admin/publish' && request.method === 'POST') {
     const b = await request.json().catch(() => ({}));
-    let qs = Array.isArray(b.questions) ? b.questions : null, voc = Array.isArray(b.vocabulary) ? b.vocabulary : null, exs = Array.isArray(b.exams) ? b.exams : null;
+    let qs = Array.isArray(b.questions) ? b.questions : null, voc = Array.isArray(b.vocabulary) ? b.vocabulary : null, exs = Array.isArray(b.exams) ? b.exams : null, full = null;
     if (b.pull) {
       // একই অ্যাকাউন্টের KV-binding — worker→worker HTTP লুপ (CF 1042) বাইপাস
       const raw = env.OLD_KV ? await env.OLD_KV.get('userBank') : null;
       const bank = raw ? JSON.parse(raw) : {};
       qs = (bank.qs || []).map(q => ({ s: q.s || '', t: q.t || '', q: q.q || '', o: q.o || [], a: Number(q.a) || 0, e: q.e || '' }));
       voc = (bank.vocabulary || []).map(v => ({ w: v.w || v.word || '', m: v.m || v.meaning || '' })).filter(v => v.w);
+      if (bank.full && typeof bank.full === 'object') full = bank.full; // v133f: পূর্ণাঙ্গ-ব্লক পাসথ্রু (hierarchy-সহ)
     }
     if (!qs || !qs.length) return json({ error: 'প্রশ্ন খালি' }, 400);
     const prev = JSON.parse((await env.PUB_KV.get('pubContent')) || '{"v":0}');
     const doc = { v: (prev.v || 0) + 1, at: Date.now(), questions: qs.slice(0, 12000), vocabulary: (voc || prev.vocabulary || []).slice(0, 8000), exams: exs || prev.exams || [{ id: 'mock1', title: 'মক পরীক্ষা ১', mins: 15, n: Math.min(15, qs.length), published: true, desc: 'সব বিষয় মিশিয়ে' }] };
+    if (full) doc.full = full; // v133f
     await env.PUB_KV.put('pubContent', JSON.stringify(doc).slice(0, 24 * 1024 * 1024));
     return json({ published: true, v: doc.v, questions: doc.questions.length, vocabulary: doc.vocabulary.length, exams: doc.exams.length });
   }
