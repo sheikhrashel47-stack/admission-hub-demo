@@ -146,7 +146,7 @@ export default {
         return json({
           google: !!env.GOOGLE_CLIENT_ID,
           googleClientId: env.GOOGLE_CLIENT_ID || '',
-          email: !!(env.RESEND_KEY && env.MAIL_FROM),
+          email: !!((env.RESEND_KEY || env.RESEND_KEY_2) && env.MAIL_FROM),
           sms: !!(env.TWILIO_SID && env.TWILIO_TOKEN && env.TWILIO_FROM) || !!(env.SMS_API_URL && env.SMS_API_KEY)
         });
       }
@@ -222,24 +222,30 @@ async function sendOtpMessage(env, destId, code) {
   const text = 'Admission Hub verification code: ' + code + ' (valid 5 minutes). Do not share.';
   if (destId.startsWith('em:')) {
     if (!env.RESEND_KEY || !env.MAIL_FROM) return { ok: false, error: 'ইমেইল সার্ভিস এখন সেটআপ নেই' };
-    const from = env.MAIL_FROM || 'onboarding@resend.dev';
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + env.RESEND_KEY },
-      body: JSON.stringify({
-        from,
-        to: [destId.slice(3)],
-        subject: 'Admission Hub verification code',
-        text,
-        html: '<p>Admission Hub verification code: <b>' + code + '</b></p><p>Valid 5 minutes. Do not share.</p>'
-      })
-    });
-    if (!r.ok) {
+    const from = env.MAIL_FROM || 'Admission Hub <onboarding@resend.dev>';
+    const keys = [env.RESEND_KEY, env.RESEND_KEY_2].filter(Boolean);
+    if (!keys.length) return { ok: false, error: 'ইমেইল সার্ভিস এখন সেটআপ নেই' };
+    let last = 'ইমেইল পাঠানো যায়নি';
+    for (const key of keys) {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+        body: JSON.stringify({
+          from,
+          to: [destId.slice(3)],
+          subject: 'Your Admission Hub code: ' + code,
+          text,
+          html: '<div style="font-family:sans-serif;padding:16px"><p>Admission Hub</p><p style="font-size:28px;letter-spacing:6px;font-weight:800">' + code + '</p><p>Valid 5 minutes. Do not share this code.</p></div>'
+        })
+      });
+      if (r.ok) return { ok: true, channel: 'email' };
       const err = await r.json().catch(() => ({}));
-      const msg = String(err.message || err.error || 'ইমেইল পাঠানো যায়নি').slice(0, 180);
-      return { ok: false, error: msg };
+      last = String(err.message || err.error || last).slice(0, 180);
     }
-    return { ok: true, channel: 'email' };
+    if (/only send testing emails|own email/i.test(last)) {
+      return { ok: false, error: 'এখন শুধু Resend অ্যাকাউন্টের নিজের Gmail-এ OTP যায়। অন্য ইমেইলে পাঠাতে Resend-এ ডোমেইন ভেরিফাই করতে হবে।' };
+    }
+    return { ok: false, error: last };
   }
   if (destId.startsWith('ph:')) {
     let num = destId.slice(3).replace(/\D/g, '');

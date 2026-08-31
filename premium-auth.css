@@ -10,8 +10,8 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
 .ah-screen.welcome{text-align:center;padding-top:calc(8px + env(safe-area-inset-top,0px))}
 .ah-stage-svg{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
 .ah-stage-svg.mini{flex:0 0 auto;height:58px;margin:4px 0 6px}
-.ah-svg{width:min(88%,340px);max-height:48dvh;height:auto;display:block;animation:ahfloat 5.5s ease-in-out infinite}
-.ah-svg.sm{width:56px;height:56px;max-height:56px;animation:none}
+.ah-hero-img{width:auto;max-width:92%;max-height:42dvh;height:auto;display:block;object-fit:contain;filter:drop-shadow(0 18px 36px rgba(0,0,0,.35))}
+.ah-crest-img{width:56px;height:56px;object-fit:cover;border-radius:50%;display:block;margin:0 auto}
 .ah-dock{flex-shrink:0;width:100%}
 @keyframes ahfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @media (prefers-reduced-motion:reduce){.ah-svg{animation:none}}
