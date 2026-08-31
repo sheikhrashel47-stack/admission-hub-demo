@@ -222,12 +222,23 @@ async function sendOtpMessage(env, destId, code) {
   const text = 'Admission Hub verification code: ' + code + ' (valid 5 minutes). Do not share.';
   if (destId.startsWith('em:')) {
     if (!env.RESEND_KEY || !env.MAIL_FROM) return { ok: false, error: 'ইমেইল সার্ভিস এখন সেটআপ নেই' };
+    const from = env.MAIL_FROM || 'onboarding@resend.dev';
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + env.RESEND_KEY },
-      body: JSON.stringify({ from: env.MAIL_FROM, to: [destId.slice(3)], subject: 'Admission Hub verification code', text })
+      body: JSON.stringify({
+        from,
+        to: [destId.slice(3)],
+        subject: 'Admission Hub verification code',
+        text,
+        html: '<p>Admission Hub verification code: <b>' + code + '</b></p><p>Valid 5 minutes. Do not share.</p>'
+      })
     });
-    if (!r.ok) return { ok: false, error: 'ইমেইল পাঠানো যায়নি' };
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      const msg = String(err.message || err.error || 'ইমেইল পাঠানো যায়নি').slice(0, 180);
+      return { ok: false, error: msg };
+    }
     return { ok: true, channel: 'email' };
   }
   if (destId.startsWith('ph:')) {
@@ -329,6 +340,12 @@ const otpSend = async (request, env) => {
     if (!pending) return json({ error: 'আগে সাইন আপ ফর্ম পূরণ করো' }, 400);
   } else if (purpose === 'login' || purpose === 'reset') {
     const u = await getUserById(env, id);
+    const pending = JSON.parse((await env.PUB_KV.get('pending:' + id)) || 'null');
+    if (!u && pending) {
+      const otp = await issueOtp(env, id, 'signup', ip);
+      if (otp.error) return json({ error: otp.error, wait: otp.wait }, otp.status || 503);
+      return json({ sent: true, channel: otp.channel, masked: otp.masked, wait: otp.wait, purpose: 'signup' });
+    }
     if (!u) return json({ error: 'এই অ্যাকাউন্ট পাওয়া যায়নি' }, 404);
     if (u.blocked || u.status === 'disabled' || u.status === 'suspended') return json({ error: 'অ্যাকাউন্ট বন্ধ' }, 403);
   }

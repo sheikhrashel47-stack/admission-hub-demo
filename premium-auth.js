@@ -22,13 +22,20 @@
   let syncing = false;
   let otpTimer = 0;
 
-  const token = () => { try { return localStorage.getItem(LS_TOKEN) || ''; } catch (_) { return ''; } };
-  const user = () => { try { return JSON.parse(localStorage.getItem(LS_USER) || 'null'); } catch (_) { return null; } };
+  const readStore = (k) => {
+    try { return localStorage.getItem(k) || sessionStorage.getItem(k) || ''; } catch (_) { return ''; }
+  };
+  const token = () => readStore(LS_TOKEN);
+  const user = () => { try { return JSON.parse(readStore(LS_USER) || 'null'); } catch (_) { return null; } };
   const setSession = (tok, u) => {
-    try {
-      if (tok) localStorage.setItem(LS_TOKEN, tok); else localStorage.removeItem(LS_TOKEN);
-      if (u) localStorage.setItem(LS_USER, JSON.stringify(u)); else localStorage.removeItem(LS_USER);
-    } catch (_) {}
+    const write = (k, v) => {
+      try {
+        if (v) { localStorage.setItem(k, v); sessionStorage.setItem(k, v); }
+        else { localStorage.removeItem(k); sessionStorage.removeItem(k); }
+      } catch (_) {}
+    };
+    write(LS_TOKEN, tok || '');
+    write(LS_USER, u ? JSON.stringify(u) : '');
   };
   const authed = () => !!token();
   const authH = () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() });
@@ -402,7 +409,7 @@
 
   async function afterAuth(data) {
     setSession(data.token, data.user);
-    go('ok');
+    await enterApp();
   }
 
   async function enterApp() {
@@ -422,16 +429,21 @@
     go('welcome');
   }
 
+  function routePath() {
+    return String((window.Router && Router.path) || location.hash.replace(/^#\/?/, '').split('?')[0] || 'dashboard');
+  }
   function wrapRender() {
-    if (!window.render || window.render.__ahAuthWrap) return;
-    const prev = window.render;
+    const cur = window.render;
+    if (!cur || cur.__ahAuthWrap) return;
     const wrapped = function () {
       if (document.documentElement.dataset.ah === 'out') return;
-      const p = String((window.Router && Router.path) || '').split('?')[0];
+      const p = routePath();
       if (p === 'profile') return renderProfile();
       if (p === 'profile/edit') return renderEdit();
       if (p === 'profile/security') return renderSecurity();
-      return prev.apply(this, arguments);
+      const r = cur.apply(this, arguments);
+      setTimeout(injectAvatar, 0);
+      return r;
     };
     wrapped.__ahAuthWrap = true;
     window.render = wrapped;
@@ -439,23 +451,21 @@
 
   function injectAvatar() {
     if (document.documentElement.dataset.ah === 'out') return;
-    const path = String((window.Router && Router.path) || '');
+    if (!token()) return;
+    const path = routePath();
     document.querySelectorAll('.ah-avbtn').forEach(n => n.remove());
-    if (path !== 'dashboard' && path !== '') return;
+    if (path.startsWith('exam/running')) return;
     const u = user() || {};
-    const app = document.getElementById('app'); if (!app) return;
-    const page = app.querySelector('.page') || app;
-    if (page.querySelector('.ah-avbtn')) return;
     const btn = document.createElement('button');
     btn.className = 'ah-avbtn';
     btn.type = 'button';
     btn.setAttribute('aria-label', 'Profile');
     const photo = u.photo;
     btn.innerHTML = photo ? `<img class="ah-av" src="${photo}" alt="">` : `<span class="ah-av" style="display:grid;place-items:center;color:#fff;font-weight:800">${esc((u.displayName || u.name || 'S').slice(0, 1))}</span>`;
-    btn.onclick = () => { if (typeof navigate === 'function') navigate('profile'); };
-    page.style.position = page.style.position || 'relative';
-    page.appendChild(btn);
-    const h1 = page.querySelector('h1');
+    btn.onclick = () => { if (typeof navigate === 'function') navigate('profile'); else location.hash = 'profile'; };
+    document.body.appendChild(btn);
+    const page = document.querySelector('#app .page');
+    const h1 = page && page.querySelector('h1');
     if (h1 && /Scholar/.test(h1.textContent) && (u.displayName || u.name)) {
       h1.innerHTML = h1.innerHTML.replace('Scholar', esc((u.displayName || u.name).split(' ')[0]));
     }
@@ -665,8 +675,13 @@
         setGate(false);
         await pullState();
         if (window.AdmissionCloudContent) AdmissionCloudContent.pull().catch(() => {});
-      } catch (_) {
-        setSession('', null); setGate(true); go('welcome');
+      } catch (e) {
+        const msg = String(e && e.message || e);
+        if (/আগে লগইন|http-401|http-403|অ্যাকাউন্ট বন্ধ/.test(msg)) {
+          setSession('', null); setGate(true); go('welcome');
+        } else {
+          setGate(false);
+        }
       }
     } else {
       setGate(true);
@@ -675,7 +690,7 @@
     document.addEventListener('admission:route-rendered', injectAvatar);
     setInterval(() => { if (token()) pushState().catch(() => {}); }, 90000);
     let n = 0;
-    const iv = setInterval(() => { wrapRender(); if (++n > 40) clearInterval(iv); }, 200);
+    setInterval(wrapRender, 800);
   }
 
   document.addEventListener('ah-get-started', () => { setGate(true); go('login'); });
