@@ -10,7 +10,7 @@
   const PERSONAL = ['examResults', 'mistakes', 'settings', 'dailyStats', 'activityLogs', 'notes'];
   let cfg = { google: false, googleClientId: '', email: false, sms: false };
   let view = 'welcome';
-  let draft = { name: '', id: '', password: '', purpose: 'signup', masked: '', wait: 45 };
+  let draft = { name: '', dob: '', school: '', college: '', id: '', password: '', purpose: 'signup', masked: '', wait: 45 };
   let syncing = false;
   let otpTimer = 0;
 
@@ -101,7 +101,7 @@
     <div class="ah-dock">
       <h1>ADMISSION HUB</h1>
       <p class="ah-tag">Learn Smart, Achieve More</p>
-      <button class="ah-getstarted" type="button" data-go="login">Get Started</button>
+      <button class="ah-getstarted" type="button" data-go="signup">Get Started</button>
     </div>
   </section>`);
 
@@ -128,18 +128,55 @@
 
   const signup = () => {
     paint(`<section class="ah-screen ah-light">
-    <button class="ah-back" type="button" data-go="login" aria-label="Back">${ico('back')}</button>
+    <button class="ah-back" type="button" data-go="welcome" aria-label="Back">${ico('back')}</button>
     <div class="ah-hero-slot">${S().signupHero ? S().signupHero() : ''}</div>
     <h1 class="ah-h">Create Your Account</h1>
-    <p class="ah-p">Face ID / Touch ID, অথবা Google</p>
+    <p class="ah-p">Tell us a little about you</p>
     <div class="ah-form">
-      <button class="ah-btn" type="button" id="ahPasskey">Continue with Passkey</button>
+      <label class="ah-lab">Full Name</label>
+      <input class="ah-inp" id="ahName" placeholder="Full Name" value="${esc(draft.name)}" autocomplete="name">
+      <label class="ah-lab">Date of Birth</label>
+      <input class="ah-inp" id="ahDob" type="date" value="${esc(draft.dob)}" autocomplete="bday">
+      <label class="ah-lab">School name <span class="ah-opt">(optional)</span></label>
+      <input class="ah-inp" id="ahSchool" placeholder="School name" value="${esc(draft.school)}">
+      <label class="ah-lab">College name <span class="ah-opt">(optional)</span></label>
+      <input class="ah-inp" id="ahCollege" placeholder="College name" value="${esc(draft.college)}">
+      <button class="ah-btn" type="button" id="ahContinue">Continue</button>
+      <div class="ah-or">or</div>
       <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
       ${errBox('ahErr')}
       <div class="ah-foot">Already have an account? <button type="button" data-go="login">Login</button></div>
     </div>
   </section>`);
     mountGoogle();
+  };
+
+  const signupVerify = () => {
+    paint(`<section class="ah-screen ah-light">
+    <button class="ah-back" type="button" data-go="signup" aria-label="Back">${ico('back')}</button>
+    <h1 class="ah-h">Verify your account</h1>
+    <p class="ah-p">One last step to secure your account</p>
+    <div class="ah-form">
+      <button class="ah-btn sec" type="button" id="ahEmailWay">Continue with Email Verification</button>
+      <button class="ah-btn" type="button" id="ahPasskey">Continue with Passkey</button>
+      <p class="ah-hint">Choose whichever is more convenient for you.</p>
+      ${errBox('ahErr')}
+    </div>
+  </section>`);
+  };
+
+  const emailVerify = () => {
+    paint(`<section class="ah-screen ah-light">
+    <button class="ah-back" type="button" data-go="verify" aria-label="Back">${ico('back')}</button>
+    <h1 class="ah-h">Verify your email</h1>
+    <p class="ah-p">We'll send a verification link</p>
+    <div class="ah-form">
+      <label class="ah-lab">Email</label>
+      <input class="ah-inp" id="ahId" placeholder="Email" value="${esc(draft.id)}" autocomplete="email" inputmode="email">
+      <button class="ah-btn" type="button" id="ahDoSignup">Send verification link</button>
+      ${errBox('ahErr')}
+    </div>
+  </section>`);
   };
 
   const otpScreen = () => paint(`<section class="ah-screen ah-light ah-center">
@@ -190,6 +227,8 @@
     if (name === 'welcome') return welcome();
     if (name === 'login' || name === 'loginOtp' || name === 'forgot' || name === 'otp' || name === 'reset') return login();
     if (name === 'signup') return signup();
+    if (name === 'verify') return signupVerify();
+    if (name === 'emailv') return emailVerify();
     if (name === 'otp') return otpScreen();
     if (name === 'forgot') return forgot();
     if (name === 'reset') return reset();
@@ -224,7 +263,17 @@
     const gbtn = document.getElementById('ahGoogle');
     if (gbtn) gbtn.onclick = doGoogle;
     const pk = document.getElementById('ahPasskey');
-    if (pk) pk.onclick = () => (view === 'signup' ? doPasskeyRegister() : doPasskeyLogin());
+    if (pk) pk.onclick = () => (view === 'login' ? doPasskeyLogin() : doPasskeyRegister());
+    const cont = document.getElementById('ahContinue');
+    if (cont) cont.onclick = doContinueProfile;
+    const ew = document.getElementById('ahEmailWay');
+    if (ew) ew.onclick = () => go('emailv');
+    ['ahName','ahDob','ahSchool','ahCollege'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', grabProfile);
+      el.addEventListener('change', grabProfile);
+    });
     const enter = document.getElementById('ahEnter');
     if (enter) enter.onclick = () => { if (view === 'resetOk') go('login'); else enterApp(); };
     const resend = document.getElementById('ahResend');
@@ -309,16 +358,27 @@
       go('otp');
     } catch (e) { showErr('ahErr', e.message); }
   }
+  function grabProfile() {
+    const n = document.getElementById('ahName');
+    const d = document.getElementById('ahDob');
+    const s = document.getElementById('ahSchool');
+    const c = document.getElementById('ahCollege');
+    if (n) draft.name = n.value.trim();
+    if (d) draft.dob = d.value;
+    if (s) draft.school = s.value.trim();
+    if (c) draft.college = c.value.trim();
+  }
+  function doContinueProfile() {
+    grabProfile();
+    if (!draft.name || draft.name.length < 2) return showErr('ahErr', 'পূর্ণ নাম লেখো');
+    if (!draft.dob) return showErr('ahErr', 'জন্ম তারিখ দাও');
+    go('verify');
+  }
   async function doSignup() {
     try {
-      draft.name = document.getElementById('ahName').value.trim();
-      draft.id = document.getElementById('ahId').value.trim();
-      const password = document.getElementById('ahPass') ? document.getElementById('ahPass').value : '';
-      const confirm = document.getElementById('ahPass2') ? document.getElementById('ahPass2').value : '';
-      if (password && password !== confirm) return showErr('ahErr', 'পাসওয়ার্ড দুটো মিলছে না');
-      draft.password = password;
-      draft.purpose = 'signup';
-      const data = await api('/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, password, confirm }) });
+      draft.id = (document.getElementById('ahId') && document.getElementById('ahId').value.trim()) || draft.id;
+      if (!draft.id) return showErr('ahErr', 'ইমেইল লেখো');
+      const data = await api('/auth/register-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, dob: draft.dob, school: draft.school, college: draft.college }) });
       draft.masked = data.masked;
       paint(`<section class="ah-screen ah-light ah-center">
         <button class="ah-back" type="button" data-go="signup" aria-label="Back">${ico('back')}</button>
@@ -402,7 +462,8 @@
           clientDataJSON: bufToB64url(att.clientDataJSON),
           attestationObject: bufToB64url(att.attestationObject),
           publicKey: att.getPublicKey ? bufToB64url(att.getPublicKey()) : '',
-          publicKeyAlgorithm: att.getPublicKeyAlgorithm ? att.getPublicKeyAlgorithm() : -7
+          publicKeyAlgorithm: att.getPublicKeyAlgorithm ? att.getPublicKeyAlgorithm() : -7,
+          name: draft.name, dob: draft.dob, school: draft.school, college: draft.college
         })
       });
       await afterAuth(data);
@@ -445,7 +506,7 @@
           client_id: cfg.googleClientId,
           callback: async (resp) => {
             try {
-              const data = await api('/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: resp.credential }) });
+              const data = await api('/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: resp.credential, name: draft.name, dob: draft.dob, school: draft.school, college: draft.college }) });
               await afterAuth(data);
             } catch (e) { showErr('ahErr', e.message); }
           },
@@ -473,7 +534,7 @@
         client_id: cfg.googleClientId,
         callback: async (resp) => {
           try {
-            const data = await api('/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: resp.credential }) });
+            const data = await api('/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: resp.credential, name: draft.name, dob: draft.dob, school: draft.school, college: draft.college }) });
             await afterAuth(data);
           } catch (e) { showErr('ahErr', e.message); }
         }

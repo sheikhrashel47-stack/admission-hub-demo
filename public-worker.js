@@ -152,6 +152,7 @@ export default {
         });
       }
       if (p === '/api/auth/register' && request.method === 'POST') return await authRegister(request, env);
+      if (p === '/api/auth/register-email' && request.method === 'POST') return await authRegisterEmail(request, env);
       if (p === '/api/auth/login' && request.method === 'POST') return await authLogin(request, env);
       if (p === '/api/auth/google' && request.method === 'POST') return await authGoogle(request, env);
       if (p === '/api/auth/passkey/register/begin' && request.method === 'POST') return await pkRegBegin(request, env);
@@ -460,7 +461,8 @@ const pkRegFinish = async (request, env) => {
   if (!b.publicKey || !b.rawId) return json({ error: 'Passkey পাবলিক কী নেই' }, 400);
   const id = 'pk:' + ch.uid;
   const rec = {
-    id, uid: ch.uid, name: 'Scholar', email: '', mobile: '', contact: '',
+    id, uid: ch.uid, name: String(b.name || 'Scholar').slice(0, 40), email: '', mobile: '', contact: '',
+    dob: String(b.dob || '').slice(0, 12), school: String(b.school || '').slice(0, 80), college: String(b.college || '').slice(0, 80),
     created: Date.now(), lastSeen: Date.now(), blocked: false, verified: true, emailVerified: false,
     status: 'active', providers: ['passkey'], credId: b.rawId, pubKey: b.publicKey, pubAlg: b.publicKeyAlgorithm || -7
   };
@@ -524,6 +526,30 @@ const pkLoginFinish = async (request, env) => {
   return json(issued);
 };
 
+
+const authRegisterEmail = async (request, env) => {
+  const ip = request.headers.get('CF-Connecting-IP') || 'ip';
+  if (!(await rateLimit(env, 'reg:' + ip, 10, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
+  const b = await request.json().catch(() => ({}));
+  const id = normId(b.id || b.email);
+  const name = String(b.name || '').trim().slice(0, 40);
+  if (!name || name.length < 2) return json({ error: 'পূর্ণ নাম লেখো' }, 400);
+  if (!id.startsWith('em:')) return json({ error: 'সঠিক ইমেইল লেখো' }, 400);
+  const existing = await getUserById(env, id);
+  if (existing && existing.status === 'active') return json({ error: 'এই ইমেইল আগেই আছে — লগইন করো' }, 409);
+  const pending = {
+    id, uid: (existing && existing.uid) || crypto.randomUUID(),
+    name, email: id.slice(3), mobile: '', contact: id.slice(3),
+    dob: String(b.dob || '').slice(0, 12),
+    school: String(b.school || '').slice(0, 80),
+    college: String(b.college || '').slice(0, 80),
+    created: Date.now(), providers: ['email'], verified: false, emailVerified: false, status: 'pending'
+  };
+  await env.PUB_KV.put('pending:' + id, JSON.stringify(pending), { expirationTtl: 1800 });
+  const sent = await issueVerifyLink(env, id, 'signup', ip);
+  if (sent.error) return json({ error: sent.error }, sent.status || 503);
+  return json({ pending: true, sent: true, channel: 'link', masked: sent.masked, purpose: 'signup' });
+};
 const authRegister = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';
   if (!(await rateLimit(env, 'reg:' + ip, 10, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
@@ -654,6 +680,9 @@ const authGoogle = async (request, env) => {
     id, uid: existing.uid || crypto.randomUUID(),
     name: String(b.name || g.name || existing.name || 'Scholar').slice(0, 40),
     email: g.email, mobile: existing.mobile || '', contact: g.email,
+    dob: String(b.dob || existing.dob || '').slice(0, 12),
+    school: String(b.school || existing.school || '').slice(0, 80),
+    college: String(b.college || existing.college || '').slice(0, 80),
     created: existing.created || Date.now(), lastSeen: Date.now(),
     blocked: false, verified: true, emailVerified: true, mobileVerified: !!existing.mobileVerified,
     status: 'active', passHash: existing.passHash, passSalt: existing.passSalt,

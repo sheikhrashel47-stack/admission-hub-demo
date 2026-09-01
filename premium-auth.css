@@ -61,6 +61,9 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
 .ah-tabs button{border:0;background:none;color:var(--ah-muted);font-weight:700;font-size:14px;padding:6px 0}
 .ah-tabs button.on{color:var(--ah-em);box-shadow:inset 0 -2px 0 var(--ah-em)}
 .ah-lab{display:block;font-size:12px;color:#8b948e;margin:10px 0 6px;font-weight:600}
+.ah-opt{font-weight:500;color:#9aa39d;text-transform:none}
+.ah-hint{text-align:center;color:#8b948e;font-size:13px;margin:16px 0 0;line-height:1.4}
+.ah-inp[type=date]{color:var(--ah-text)}
 .ah-field{position:relative}
 .ah-inp{width:100%;height:50px;border-radius:14px;border:1px solid var(--ah-border);background:#fff;color:var(--ah-text);padding:0 44px 0 16px;font-size:15px}
 .ah-inp::placeholder{color:#b0b8b3}
