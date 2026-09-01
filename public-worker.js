@@ -409,7 +409,8 @@ async function issueVerifyLink(env, destId, purpose, ip) {
   await env.PUB_KV.put('vlink:' + hash, JSON.stringify({ id: destId, purpose, at: Date.now() }), { expirationTtl: 1800 });
   const link = APP_URL + '?verify=' + raw;
   const to = destId.slice(3);
-  const sent = await sendEmail(env, to, 'Verify your Admission Hub email', 'Open this link to verify: ' + link, '<div style="font-family:sans-serif;padding:20px"><p>Admission Hub</p><p><a href="' + link + '" style="display:inline-block;padding:12px 20px;background:#1e7a4c;color:#fff;border-radius:12px;text-decoration:none">Verify your email</a></p><p>Link expires in 30 minutes.</p></div>');
+  const text = 'Assalamu alaikum,\n\nAdmission Hub অ্যাপে এই ইমেইল দিয়ে অ্যাকাউন্ট খোলার রিকোয়েস্ট এসেছে।\n৩০ মিনিটের মধ্যে এই লিংক খুলো:\n\n' + link + '\n\nতুমি না খুললে এই মেইল ইগনোর করো।\n\nAdmission Hub';
+  const sent = await sendEmail(env, to, 'Admission Hub', text, text);
   if (!sent.ok) return { error: sent.error, status: 503 };
   return { sent: true, masked: maskDest(destId) };
 }
@@ -460,11 +461,20 @@ const pkRegFinish = async (request, env) => {
   if (!String(cdata.origin || '').startsWith(RP_ORIGIN)) return json({ error: 'Origin মিলছে না' }, 401);
   if (!b.publicKey || !b.rawId) return json({ error: 'Passkey পাবলিক কী নেই' }, 400);
   const id = 'pk:' + ch.uid;
+  let passHash, passSalt;
+  if (b.password) {
+    const weak = strongPass(String(b.password));
+    if (weak) return json({ error: weak }, 400);
+    if (String(b.confirm || '') !== String(b.password)) return json({ error: 'পাসওয়ার্ড দুটো মিলছে না' }, 400);
+    const hp = await hashPassword(String(b.password));
+    passHash = hp.hash; passSalt = hp.salt;
+  }
   const rec = {
     id, uid: ch.uid, name: String(b.name || 'Scholar').slice(0, 40), email: '', mobile: '', contact: '',
     dob: String(b.dob || '').slice(0, 12), school: String(b.school || '').slice(0, 80), college: String(b.college || '').slice(0, 80),
     created: Date.now(), lastSeen: Date.now(), blocked: false, verified: true, emailVerified: false,
-    status: 'active', providers: ['passkey'], credId: b.rawId, pubKey: b.publicKey, pubAlg: b.publicKeyAlgorithm || -7
+    status: 'active', providers: passHash ? ['passkey', 'password'] : ['passkey'], credId: b.rawId, pubKey: b.publicKey, pubAlg: b.publicKeyAlgorithm || -7,
+    passHash, passSalt
   };
   await env.PUB_KV.put('pkid:' + b.rawId, JSON.stringify({ id, pubKey: rec.pubKey, alg: rec.pubAlg }));
   await env.PUB_KV.delete('pkch:' + b.chalId);
@@ -537,13 +547,20 @@ const authRegisterEmail = async (request, env) => {
   if (!id.startsWith('em:')) return json({ error: 'সঠিক ইমেইল লেখো' }, 400);
   const existing = await getUserById(env, id);
   if (existing && existing.status === 'active') return json({ error: 'এই ইমেইল আগেই আছে — লগইন করো' }, 409);
+  const password = String(b.password || '');
+  const confirm = String(b.confirm || b.password2 || '');
+  const weak = strongPass(password);
+  if (weak) return json({ error: weak }, 400);
+  if (password !== confirm) return json({ error: 'পাসওয়ার্ড দুটো মিলছে না' }, 400);
+  const hp = await hashPassword(password);
   const pending = {
     id, uid: (existing && existing.uid) || crypto.randomUUID(),
     name, email: id.slice(3), mobile: '', contact: id.slice(3),
     dob: String(b.dob || '').slice(0, 12),
     school: String(b.school || '').slice(0, 80),
     college: String(b.college || '').slice(0, 80),
-    created: Date.now(), providers: ['email'], verified: false, emailVerified: false, status: 'pending'
+    passHash: hp.hash, passSalt: hp.salt,
+    created: Date.now(), providers: ['email', 'password'], verified: false, emailVerified: false, status: 'pending'
   };
   await env.PUB_KV.put('pending:' + id, JSON.stringify(pending), { expirationTtl: 1800 });
   const sent = await issueVerifyLink(env, id, 'signup', ip);

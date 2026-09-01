@@ -22,7 +22,7 @@
       tag: 'Learn Smart, Achieve More', start: 'Get Started',
       create: 'Create Your Account', tell: 'Tell us a little about you',
       fullName: 'Full Name', dob: 'Date of Birth', school: 'School name', college: 'College name',
-      optional: '(optional)', cont: 'Continue', or: 'or', google: 'Continue with Google',
+      optional: '(optional)', cont: 'Continue', or: 'or', google: 'Continue with Google', confirm: 'Confirm Password',
       haveAcc: 'Already have an account?', login: 'Login',
       welcomeBack: 'Welcome Back,<br>Scholar! 👋', loginSub: 'Passkey, Google, or email',
       passkey: 'Continue with Passkey', orPass: 'or password', email: 'Email', password: 'Password',
@@ -37,7 +37,7 @@
       tag: 'জ্ঞান অর্জন করুন, লক্ষ্যে পৌঁছান', start: 'শুরু করুন',
       create: 'অ্যাকাউন্ট তৈরি করুন', tell: 'আপনার তথ্য প্রদান করুন',
       fullName: 'পূর্ণ নাম', dob: 'জন্ম তারিখ', school: 'বিদ্যালয়ের নাম', college: 'কলেজের নাম',
-      optional: '(ঐচ্ছিক)', cont: 'এগিয়ে যান', or: 'অথবা', google: 'গুগল দিয়ে এগিয়ে যান',
+      optional: '(ঐচ্ছিক)', cont: 'এগিয়ে যান', or: 'অথবা', google: 'গুগল দিয়ে এগিয়ে যান', confirm: 'পাসওয়ার্ড নিশ্চিত করুন',
       haveAcc: 'পূর্বে অ্যাকাউন্ট রয়েছে?', login: 'প্রবেশ করুন',
       welcomeBack: 'স্বাগতম,<br>শিক্ষার্থী', loginSub: 'পাসকি, গুগল অথবা ইমেইল',
       passkey: 'পাসকি দিয়ে এগিয়ে যান', orPass: 'অথবা পাসওয়ার্ড', email: 'ইমেইল', password: 'পাসওয়ার্ড',
@@ -194,6 +194,8 @@
       <input class="ah-inp" id="ahSchool" placeholder="${t('school')}" value="${esc(draft.school)}">
       <label class="ah-lab">${t('college')} <span class="ah-opt">${t('optional')}</span></label>
       <input class="ah-inp" id="ahCollege" placeholder="${t('college')}" value="${esc(draft.college)}">
+      <label class="ah-lab">${t('password')}</label>${passRow('ahPass', t('password'), 'new-password')}
+      <label class="ah-lab">${t('confirm')}</label>${passRow('ahPass2', t('confirm'), 'new-password')}
       <button class="ah-btn" type="button" id="ahContinue">${t('cont')}</button>
       <div class="ah-or">${t('or')}</div>
       <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button></div>
@@ -476,22 +478,31 @@
     const d = document.getElementById('ahDob');
     const s = document.getElementById('ahSchool');
     const c = document.getElementById('ahCollege');
+    const p = document.getElementById('ahPass');
+    const p2 = document.getElementById('ahPass2');
     if (n) draft.name = n.value.trim();
     if (d) draft.dob = d.value;
     if (s) draft.school = s.value.trim();
     if (c) draft.college = c.value.trim();
+    if (p) draft.password = p.value;
+    if (p2) draft.confirm = p2.value;
   }
   function doContinueProfile() {
     grabProfile();
     if (!draft.name || draft.name.length < 2) return showErr('ahErr', lang==='bn'?'পূর্ণ নাম লিখুন':'Enter your full name');
     if (!draft.dob) return showErr('ahErr', lang==='bn'?'জন্ম তারিখ দিন':'Enter date of birth');
+    const pass = String(draft.password || '');
+    const conf = String(draft.confirm || '');
+    if (pass.length < 8) return showErr('ahErr', lang==='bn'?'পাসওয়ার্ড কমপক্ষে ৮ অক্ষর':'Password must be at least 8 characters');
+    if (!/[A-Za-z]/.test(pass) || !/\d/.test(pass)) return showErr('ahErr', lang==='bn'?'পাসওয়ার্ডে অক্ষর ও সংখ্যা উভয়ই থাকতে হবে':'Password needs letters and numbers');
+    if (pass !== conf) return showErr('ahErr', lang==='bn'?'পাসওয়ার্ড দুটি মিলছে না':'Passwords do not match');
     go('verify');
   }
   async function doSignup() {
     try {
       draft.id = (document.getElementById('ahId') && document.getElementById('ahId').value.trim()) || draft.id;
       if (!draft.id) return showErr('ahErr', lang==='bn'?'ইমেইল লিখুন':'Enter your email');
-      const data = await api('/auth/register-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, dob: draft.dob, school: draft.school, college: draft.college }) });
+      const data = await api('/auth/register-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, dob: draft.dob, school: draft.school, college: draft.college, password: draft.password, confirm: draft.confirm }) });
       draft.masked = data.masked;
       paint(`<section class="ah-screen ah-light ah-center">
         <button class="ah-back" type="button" data-go="signup" aria-label="Back">${ico('back')}</button>
@@ -576,7 +587,7 @@
           attestationObject: bufToB64url(att.attestationObject),
           publicKey: att.getPublicKey ? bufToB64url(att.getPublicKey()) : '',
           publicKeyAlgorithm: att.getPublicKeyAlgorithm ? att.getPublicKeyAlgorithm() : -7,
-          name: draft.name, dob: draft.dob, school: draft.school, college: draft.college
+          name: draft.name, dob: draft.dob, school: draft.school, college: draft.college, password: draft.password, confirm: draft.confirm
         })
       });
       await afterAuth(data);
