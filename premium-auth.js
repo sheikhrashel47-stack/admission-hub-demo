@@ -97,7 +97,7 @@
 
   const welcome = () => paint(`<section class="ah-screen ah-welcome">
     ${S().welcomeScene ? S().welcomeScene() : ''}
-    <div class="ah-brand"><h1>ADMISSION HUB</h1><p>Learn Smart, Achieve More</p></div>
+    <div class="ah-brand"><h1>ADMISSION<br>HUB</h1><p>Learn Smart, Achieve More</p></div>
     <button class="ah-getstarted" type="button" data-go="login"><span>Get Started</span><i>→</i></button>
   </section>`);
 
@@ -106,22 +106,20 @@
     paint(`<section class="ah-screen ah-light">
       <button class="ah-back" type="button" data-go="welcome" aria-label="Back">${ico('back')}</button>
       <div class="ah-hero-slot">${S().loginHero ? S().loginHero() : ''}</div>
-      <h1 class="ah-h">Welcome Back,<br><em>Scholar!</em> 👋</h1>
-      <p class="ah-p">Login to continue your learning journey</p>
+      <h1 class="ah-h">Welcome<br>Back,<br><em>Scholar!</em> 👋</h1>
       <div class="ah-form">
         <div class="ah-tabs">
           <button type="button" class="${tab==='pass'?'on':''}" data-go="login">Login</button>
+          <span class="ah-slash">/</span>
           <button type="button" class="${tab==='otp'?'on':''}" data-go="loginOtp">Login with OTP</button>
         </div>
-        <label class="ah-lab">Email or Mobile Number</label>
-        <input class="ah-inp" id="ahId" placeholder="Email or Mobile Number" value="${esc(draft.id)}" autocomplete="username">
-        ${tab==='pass' ? `<label class="ah-lab">Password</label>${passRow('ahPass','Password','current-password')}
+        <input class="ah-inp" id="ahId" placeholder="Email" value="${esc(draft.id)}" autocomplete="username">
+        ${tab==='pass' ? `${passRow('ahPass','Password','current-password')}
         <button class="ah-forgot" type="button" data-go="forgot">Forgot Password?</button>
         <button class="ah-btn" type="button" id="ahDoLogin">Login</button>` : `<button class="ah-btn" type="button" id="ahDoLoginOtp">Send OTP</button>`}
-        <div class="ah-or">or continue with</div>
         <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
         ${errBox('ahErr')}
-        <div class="ah-foot">Don't have an account? <button type="button" data-go="signup">Sign Up</button></div>
+        <div class="ah-foot"><button type="button" data-go="signup">Sign Up</button></div>
       </div>
     </section>`);
     mountGoogle();
@@ -131,14 +129,11 @@
     <button class="ah-back" type="button" data-go="login" aria-label="Back">${ico('back')}</button>
     <div class="ah-hero-slot">${S().signupHero ? S().signupHero() : ''}</div>
     <h1 class="ah-h">Create Your Account</h1>
-    <p class="ah-p">Join thousands of learners on Admission Hub</p>
     <div class="ah-form">
-      <label class="ah-lab">Full Name</label>
       <input class="ah-inp" id="ahName" placeholder="Full Name" value="${esc(draft.name)}" autocomplete="name">
-      <label class="ah-lab">Email or Mobile Number</label>
-      <input class="ah-inp" id="ahId" placeholder="Email or Mobile Number" value="${esc(draft.id)}" autocomplete="username">
-      <label class="ah-lab">Password</label>${passRow('ahPass','Password','new-password')}
-      <label class="ah-lab">Confirm Password</label>${passRow('ahPass2','Confirm Password','new-password')}
+      <input class="ah-inp" id="ahId" placeholder="Email" value="${esc(draft.id)}" autocomplete="username">
+      ${passRow('ahPass','Password','new-password')}
+      ${passRow('ahPass2','Confirm Password','new-password')}
       <label class="ah-check"><input id="ahTerms" type="checkbox" checked> I agree to the Terms &amp; Conditions and Privacy Policy</label>
       <button class="ah-btn" type="button" id="ahDoSignup">Sign Up</button>
       ${errBox('ahErr')}
@@ -150,8 +145,7 @@
     <button class="ah-back" type="button" data-go="${draft.purpose==='reset'?'forgot':(draft.purpose==='signup'?'signup':'login')}" aria-label="Back">${ico('back')}</button>
     <div class="ah-hero-slot">${S().otpHero ? S().otpHero() : ''}</div>
     <h1 class="ah-h">Verify Your Number</h1>
-    <p class="ah-p">We sent a 6-digit code to<br><b>${esc(draft.masked || draft.id)}</b></p>
-    <button class="ah-change" type="button" data-go="${draft.purpose==='signup'?'signup':'login'}">Change Number</button>
+    <p class="ah-p">Enter the 6-digit code sent to <b>${esc(draft.masked || draft.id)}</b></p>
     <div class="ah-otp" id="ahOtp">${[0,1,2,3,4,5].map(i=>`<input maxlength="1" inputmode="numeric" data-otp="${i}" autocomplete="${i?'off':'one-time-code'}">`).join('')}</div>
     <div class="ah-resend" id="ahOtpWait">Resend code in 00:<span id="ahSec">${esc(String(draft.wait||45))}</span></div>
     <button class="ah-resend ah-link" type="button" id="ahResend">Resend code</button>
@@ -162,7 +156,7 @@
   const success = (title, sub, goTxt) => paint(`<section class="ah-screen ah-light ah-center ah-ok">
     <div class="ah-hero-slot">${S().successHero ? S().successHero() : ''}</div>
     <h1 class="ah-h">${title}</h1>
-    <p class="ah-p">${sub}</p>
+    ${sub ? `<p class="ah-p">${sub}</p>` : ''}
     <button class="ah-btn" type="button" id="ahEnter">${goTxt}</button>
   </section>`);
 
@@ -198,7 +192,7 @@
     if (name === 'otp') return otpScreen();
     if (name === 'forgot') return forgot();
     if (name === 'reset') return reset();
-    if (name === 'ok') return success('Welcome Aboard! 🎉', 'Your account has been verified successfully.', 'Go to Dashboard');
+    if (name === 'ok') return success('Welcome Aboard', '', 'Go to Dashboard');
     if (name === 'resetOk') return success('All Set! 🎉', 'Your password has been updated successfully.', 'Login');
   }
 

@@ -1,68 +1,56 @@
-/* Phase 3 auth 3D scenes — CSS/SVG/procedural only. No raster assets. */
+/* Option 1 — Emerald Academic 3D. CSS/SVG only. */
 (() => {
   'use strict';
-  const leafG = (id) => `
-    <linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#c8ffd8"/><stop offset="45%" stop-color="#4ad68a"/>
-      <stop offset="100%" stop-color="#0e6b42"/>
-    </linearGradient>`;
 
   function wreath(cx, cy, r, n, gap, gid) {
     let s = '';
     for (let i = 0; i < n; i++) {
       const t = i / (n - 1);
-      const ang = -130 + t * 260;
+      const ang = -128 + t * 256;
       if (Math.abs(ang) < gap) continue;
       const rad = (ang * Math.PI) / 180;
       const x = cx + Math.cos(rad - Math.PI / 2) * r;
       const y = cy + Math.sin(rad - Math.PI / 2) * r;
       const flip = i % 2 ? 1 : -1;
       s += `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${ang.toFixed(1)})">
-        <ellipse cx="0" cy="${-10 * flip}" rx="5.2" ry="12" fill="url(#${gid})" opacity=".95"/>
-        <ellipse cx="${1.6 * flip}" cy="${-9 * flip}" rx="2.1" ry="8" fill="#eafff2" opacity=".28"/>
+        <ellipse cx="0" cy="${-10 * flip}" rx="5.4" ry="12.2" fill="url(#${gid})"/>
+        <ellipse cx="${1.4 * flip}" cy="${-8 * flip}" rx="2" ry="7" fill="#eafff2" opacity=".3"/>
       </g>`;
     }
     return s;
   }
 
   function backpack(opts = {}) {
-    const extra = opts.person
-      ? `<g transform="translate(132 78)">
-           <ellipse cx="22" cy="58" rx="22" ry="7" fill="rgba(20,40,30,.1)"/>
-           <rect x="8" y="18" width="28" height="36" rx="12" fill="url(#bust)"/>
-           <circle cx="22" cy="10" r="12" fill="#f4f7f5"/>
-           <circle cx="22" cy="9" r="9.5" fill="#e8eeea"/>
-           <path d="M13 12c2-6 16-6 18 0" fill="#d7e0da"/>
-         </g>`
+    const person = opts.person
+      ? `<div class="ah-bust" aria-hidden="true">
+           <i class="hd"></i><i class="bd"></i>
+         </div>
+         <div class="ah-plinth p3"></div>`
       : '';
     return `<div class="ah-comp ah-comp-bag" data-tilt>
-      <div class="ah-ped"><i class="t"></i><i class="s"></i><i class="b"></i></div>
+      <div class="ah-plinth p1"></div>
+      <div class="ah-plinth p2"></div>
+      ${person}
       <div class="ah-globe" aria-hidden="true"><span></span></div>
       <div class="ah-cube c1"><i class="ft"></i><i class="bk"></i><i class="rt"></i><i class="lt"></i><i class="tp"></i><i class="bt"></i></div>
       <div class="ah-cube c2"><i class="ft"></i><i class="bk"></i><i class="rt"></i><i class="lt"></i><i class="tp"></i><i class="bt"></i></div>
-      <svg class="ah-bag" viewBox="0 0 200 240" aria-hidden="true">
+      <svg class="ah-bag" viewBox="0 0 160 200" aria-hidden="true">
         <defs>
           <linearGradient id="bagB" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#6fd59a"/><stop offset="38%" stop-color="#2f9a5f"/>
-            <stop offset="78%" stop-color="#157046"/><stop offset="100%" stop-color="#0b4a2e"/>
+            <stop offset="0%" stop-color="#7fe0a8"/><stop offset="32%" stop-color="#2f9a5a"/>
+            <stop offset="72%" stop-color="#146b3d"/><stop offset="100%" stop-color="#0b4a2a"/>
           </linearGradient>
           <linearGradient id="bagH" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#fff" stop-opacity=".5"/><stop offset="45%" stop-color="#fff" stop-opacity="0"/>
-          </linearGradient>
-          <linearGradient id="bust" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#d5ddd8"/>
+            <stop offset="0%" stop-color="#fff" stop-opacity=".5"/><stop offset="50%" stop-color="#fff" stop-opacity="0"/>
           </linearGradient>
         </defs>
-        <ellipse cx="96" cy="222" rx="62" ry="9" fill="rgba(20,40,30,.12)"/>
-        <path d="M72 58c0-22 52-22 52 0" stroke="#1a5c3c" stroke-width="9" fill="none" stroke-linecap="round"/>
-        <rect x="42" y="56" width="110" height="142" rx="30" fill="url(#bagB)"/>
-        <path d="M54 70c18-10 50-12 84 4v40c-28-16-62-14-84 2z" fill="url(#bagH)"/>
-        <circle cx="97" cy="122" r="26" fill="#eef7f1"/>
-        <circle cx="97" cy="122" r="22" fill="#1f7a4d"/>
-        <path d="M86 128v-10c0-6 22-6 22 0v10" fill="#eef7f1"/>
-        <path d="M86 118h22" stroke="#cfe8d8" stroke-width="1.4"/>
-        <rect x="48" y="168" width="98" height="18" rx="8" fill="#0e5a38" opacity=".35"/>
-        ${extra}
+        <path d="M58 58c0-18 44-18 44 0" stroke="#0e5a38" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <path d="M38 70c0-22 84-22 84 0l6 96c0 18-96 18-96 0z" fill="url(#bagB)"/>
+        <path d="M50 78c16-12 52-12 70 2v36c-20-14-52-12-70 4z" fill="url(#bagH)"/>
+        <rect x="52" y="108" width="56" height="48" rx="12" fill="#0e5a38" opacity=".28"/>
+        <path d="M56 118h48" stroke="#c9a227" stroke-width="2.2" stroke-linecap="round" opacity=".85"/>
+        <circle cx="80" cy="96" r="14" fill="#eaf7ef"/>
+        <path d="M74 100v-7c0-4 12-4 12 0v7" fill="#1e7a4c"/>
       </svg>
     </div>`;
   }
@@ -70,68 +58,65 @@
   function emblem() {
     return `<svg class="ah-emblem" viewBox="0 0 200 200" aria-hidden="true">
       <defs>
-        ${leafG('wL')}
+        <linearGradient id="wL" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#d4ffe4"/><stop offset="45%" stop-color="#4ad68a"/>
+          <stop offset="100%" stop-color="#0e6b42"/>
+        </linearGradient>
         <filter id="wGlow" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="4" result="b"/>
+          <feGaussianBlur stdDeviation="5" result="b"/>
           <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
         <linearGradient id="bookPg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#f4fff8"/><stop offset="100%" stop-color="#cfe8d6"/>
+          <stop offset="0%" stop-color="#f7fff9"/><stop offset="100%" stop-color="#bfe8cc"/>
         </linearGradient>
       </defs>
-      <circle cx="100" cy="108" r="78" fill="none" stroke="rgba(120,255,180,.18)" stroke-width="2" filter="url(#wGlow)"/>
-      ${wreath(100, 112, 64, 26, 16, 'wL')}
-      <path d="M88 42 l12-16 12 16 h-8 v10 h-8 v-10z" fill="#e8f8ee" opacity=".95"/>
-      <path d="M100 58 l-22 8 v28 c0 16 22 24 22 24s22-8 22-24 v-28z" fill="url(#bookPg)" stroke="#b7e0c6" stroke-width="1"/>
-      <path d="M100 66 v46" stroke="#7cbc94" stroke-width="1.6"/>
-      <path d="M86 78h10M86 88h10M86 98h8M104 78h10M104 88h10M104 98h8" stroke="#2f7a52" stroke-width="1.3" opacity=".55"/>
+      <circle cx="100" cy="110" r="80" fill="none" stroke="rgba(140,255,190,.22)" stroke-width="2" filter="url(#wGlow)"/>
+      ${wreath(100, 114, 66, 28, 15, 'wL')}
+      <path d="M88 40 l12-16 12 16 h-7 v11 h-10 v-11z" fill="#eefbf3"/>
+      <path d="M100 58 l-24 8 v30 c0 18 24 26 24 26s24-8 24-26 v-30z" fill="url(#bookPg)"/>
+      <path d="M100 66 v48" stroke="#2f7a52" stroke-width="1.8"/>
+      <path d="M84 80h12M84 90h12M84 100h10M104 80h12M104 90h12M104 100h10" stroke="#1e7a4c" stroke-width="1.4" opacity=".55"/>
     </svg>`;
   }
 
   function openBook() {
-    return `<svg class="ah-openbook" viewBox="0 0 140 80" aria-hidden="true">
+    return `<svg class="ah-openbook" viewBox="0 0 160 90" aria-hidden="true">
       <defs>
         <linearGradient id="pgL" x1="1" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#f6fff9"/><stop offset="100%" stop-color="#c5ddce"/>
+          <stop offset="0%" stop-color="#f6fff9"/><stop offset="100%" stop-color="#b7d4c2"/>
         </linearGradient>
         <linearGradient id="pgR" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#d5e8dc"/>
+          <stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#cfe6d8"/>
+        </linearGradient>
+        <linearGradient id="spine" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1a6b40"/><stop offset="100%" stop-color="#0b3d26"/>
         </linearGradient>
       </defs>
-      <ellipse cx="70" cy="72" rx="48" ry="6" fill="rgba(0,0,0,.28)"/>
-      <path d="M70 16 C28 20 16 28 12 62 c22-10 42-8 58-2z" fill="url(#pgL)"/>
-      <path d="M70 16 C112 20 124 28 128 62 c-22-10-42-8-58-2z" fill="url(#pgR)"/>
-      <path d="M70 16 v48" stroke="#8aa896" stroke-width="2"/>
-      <path d="M28 36h28M26 46h30M30 54h24M84 36h28M84 46h30M86 54h24" stroke="#6f8c7c" stroke-width="1.2" opacity=".45"/>
+      <ellipse cx="80" cy="82" rx="54" ry="7" fill="rgba(0,0,0,.3)"/>
+      <path d="M18 70c8-40 50-52 62-54v58c-18-8-44-6-62-4z" fill="url(#pgL)"/>
+      <path d="M142 70c-8-40-50-52-62-54v58c18-8 44-6 62-4z" fill="url(#pgR)"/>
+      <path d="M80 16 v56" stroke="url(#spine)" stroke-width="6" stroke-linecap="round"/>
     </svg>`;
   }
 
-  function hexShield() {
+  function otpShield() {
     return `<div class="ah-comp ah-comp-otp" data-tilt>
       <svg class="ah-hex" viewBox="0 0 220 220" aria-hidden="true">
         <defs>
           <linearGradient id="hx" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#d9ffe8"/><stop offset="28%" stop-color="#7fe0b0"/>
-            <stop offset="62%" stop-color="#2f9a5f"/><stop offset="100%" stop-color="#0e5a38"/>
-          </linearGradient>
-          <linearGradient id="hxHi" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#fff" stop-opacity=".55"/><stop offset="50%" stop-color="#fff" stop-opacity="0"/>
+            <stop offset="0%" stop-color="#c6ffd9"/><stop offset="30%" stop-color="#4ecf86"/>
+            <stop offset="70%" stop-color="#1b8a50"/><stop offset="100%" stop-color="#0b4a2c"/>
           </linearGradient>
           <linearGradient id="lockM" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#f3e7b0"/><stop offset="50%" stop-color="#c9a227"/><stop offset="100%" stop-color="#8a6a18"/>
+            <stop offset="0%" stop-color="#ffe9a8"/><stop offset="45%" stop-color="#e0b84a"/><stop offset="100%" stop-color="#8a6a18"/>
           </linearGradient>
-          <filter id="hxSh"><feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#0b3a28" flood-opacity=".28"/></filter>
+          <filter id="hxSh"><feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#0b3a28" flood-opacity=".26"/></filter>
         </defs>
-        <path d="M110 18 L186 58 V132 L110 186 L34 132 V58 Z" fill="url(#hx)" filter="url(#hxSh)"/>
-        <path d="M110 28 L174 62 V124 L110 170 L46 124 V62 Z" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2"/>
-        <path d="M110 18 L186 58 L174 62 L110 28 Z" fill="url(#hxHi)"/>
-        <rect x="84" y="108" width="52" height="40" rx="8" fill="url(#lockM)"/>
-        <path d="M94 112 v-16 c0-16 32-16 32 0 v16" fill="none" stroke="url(#lockM)" stroke-width="7" stroke-linecap="round"/>
-        <circle cx="110" cy="128" r="5" fill="#5a4310"/>
-        <g transform="translate(8 150)">
-          <rect x="0" y="8" width="36" height="26" rx="4" fill="#1f7a4d"/>
-          <rect x="14" y="0" width="22" height="28" rx="3" fill="#2f9a5f"/>
-        </g>
+        <path d="M110 16 L186 48 L176 132 C170 176 110 204 110 204 C110 204 50 176 44 132 L34 48 Z" fill="url(#hx)" filter="url(#hxSh)"/>
+        <path d="M110 28 L170 54 L162 128 C158 164 110 188 110 188 C110 188 62 164 58 128 L50 54 Z" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/>
+        <rect x="82" y="108" width="56" height="42" rx="8" fill="url(#lockM)"/>
+        <path d="M94 112 v-18 c0-16 32-16 32 0 v18" fill="none" stroke="url(#lockM)" stroke-width="8" stroke-linecap="round"/>
+        <circle cx="110" cy="128" r="5.5" fill="#5a4310"/>
       </svg>
       <div class="ah-checkbadge" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 17 l6 6 10-12" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>`;
@@ -139,12 +124,12 @@
 
   function successShield() {
     const bits = [];
-    const cols = ['#3dcf7a', '#f2a3a0', '#f2d36b', '#7fd3f0', '#c9a0f0', '#8be0b0', '#f0b27a'];
-    for (let i = 0; i < 22; i++) {
-      const x = 8 + (i * 17) % 90;
-      const y = 4 + (i * 13) % 70;
-      const r = 4 + (i % 5);
-      bits.push(`<i class="ah-bit b${i % 7}" style="left:${x}%;top:${y}%;width:${r}px;height:${r + (i % 3)}px;background:${cols[i % cols.length]};animation-delay:${(i % 8) * 0.18}s"></i>`);
+    const cols = ['#2f9a5f', '#7fe0a8', '#e0b84a', '#c6ffd9', '#1b8a50', '#f2d36b'];
+    for (let i = 0; i < 26; i++) {
+      const x = 6 + (i * 19) % 88;
+      const y = 2 + (i * 11) % 72;
+      const r = 3 + (i % 6);
+      bits.push(`<i class="ah-bit b${i % 6}" style="left:${x}%;top:${y}%;width:${r}px;height:${r + (i % 4) + 4}px;background:${cols[i % cols.length]};animation-delay:${(i % 8) * 0.16}s"></i>`);
     }
     return `<div class="ah-comp ah-comp-ok" data-tilt>
       <div class="ah-confetti">${bits.join('')}</div>
@@ -190,7 +175,7 @@
     },
     loginHero() { return backpack({}); },
     signupHero() { return backpack({ person: true }); },
-    otpHero() { return hexShield(); },
+    otpHero() { return otpShield(); },
     successHero() { return successShield(); },
     ico: {
       back: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',

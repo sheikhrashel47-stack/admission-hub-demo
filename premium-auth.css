@@ -2,8 +2,8 @@
 html[data-ah="out"] #app,html[data-ah="out"] #navRoot{display:none!important;visibility:hidden!important}
 html[data-ah="in"] #ahAuthGate{display:none!important}
 #ahAuthGate{
-  --ah-em:#1e7a4c;--ah-em-deep:#062418;--ah-em-mid:#0b3d2c;--ah-soft:#dcefe4;
-  --ah-mint:#e8f4ec;--ah-off:#f3f6f4;--ah-text:#161e1a;--ah-muted:#7a847e;
+  --ah-em:#155c3a;--ah-em-deep:#062418;--ah-em-mid:#0b3d2c;--ah-soft:#dcefe4;
+  --ah-mint:#e8f4ec;--ah-off:#eaf6ee;--ah-text:#121816;--ah-muted:#7a847e;
   --ah-border:#e3ebe6;--ah-shadow:0 14px 30px rgba(16,64,40,.14);
   --ah-glow:0 0 48px rgba(80,220,140,.32);
   position:fixed;inset:0;z-index:6000;background:#03160f;color:var(--ah-text);
@@ -46,19 +46,19 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
 }
 .ah-cap{position:absolute;left:50%;top:6%;width:150px;height:118px;margin-left:-75px;transform-style:preserve-3d;transform:perspective(600px) rotateX(14deg) rotateY(-20deg);animation:ah-bob 4.8s ease-in-out infinite;z-index:3}
 .ah-cap-board{position:absolute;left:6px;top:2px;width:138px;height:138px;border-radius:5px;
-  background:linear-gradient(145deg,#5a5a5a 0%,#1c1c1c 38%,#070707 100%);
+  background:linear-gradient(145deg,#5dce8a 0%,#1f7a4c 38%,#0b3d26 100%);
   transform:rotateX(76deg) rotateZ(45deg);
-  box-shadow:0 28px 36px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.22), inset -8px -8px 16px rgba(0,0,0,.35)}
-.ah-cap-edge{position:absolute;left:10px;top:18px;width:130px;height:10px;border-radius:2px;background:linear-gradient(#2a2a2a,#050505);transform:rotateX(76deg) rotateZ(45deg);opacity:.8}
+  box-shadow:0 28px 36px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.28), inset -8px -8px 16px rgba(0,30,16,.35)}
+.ah-cap-edge{position:absolute;left:10px;top:18px;width:130px;height:10px;border-radius:2px;background:linear-gradient(#1a5c38,#0b3d26);transform:rotateX(76deg) rotateZ(45deg);opacity:.8}
 .ah-cap-head{position:absolute;left:46px;top:40px;width:58px;height:34px;border-radius:46% 46% 50% 50%;
-  background:radial-gradient(circle at 32% 20%,#3a3a3a,#0a0a0a 70%);box-shadow:0 10px 16px rgba(0,0,0,.4)}
+  background:radial-gradient(circle at 32% 20%,#4caf70,#163d28 70%);box-shadow:0 10px 16px rgba(0,0,0,.4)}
 .ah-cap-str{position:absolute;left:76px;top:16px;width:2px;height:54px;border-radius:2px;background:linear-gradient(#f3e0a0,#c9a227 60%,#8a6a18);transform:rotate(10deg);transform-origin:top}
 .ah-cap-tassel{position:absolute;left:66px;top:62px;width:22px;height:26px;border-radius:3px 3px 11px 11px;
   background:repeating-linear-gradient(90deg,#f3e0a0 0 3px,#c9a227 3px 5px,#8a6a18 5px 7px);box-shadow:inset 2px 0 0 rgba(255,255,255,.35),0 6px 10px rgba(0,0,0,.3);animation:ah-tassel 3.4s ease-in-out infinite}
 .ah-emblem{position:absolute;left:50%;top:34%;width:min(210px,64vw);margin-left:calc(min(210px,64vw) / -2);filter:drop-shadow(0 0 18px rgba(80,230,150,.35));animation:ah-bob 5.6s ease-in-out infinite;z-index:2}
 .ah-openbook{position:absolute;left:8%;bottom:6%;width:118px;filter:drop-shadow(0 10px 14px rgba(0,0,0,.35));animation:ah-bob 6.2s ease-in-out infinite reverse}
 .ah-brand{flex-shrink:0;margin-top:auto;padding-top:8px}
-.ah-brand h1{margin:0;font-size:clamp(28px,8vw,34px);letter-spacing:.08em;font-weight:800;color:#fff}
+.ah-brand h1{margin:0;font-size:clamp(30px,8.2vw,36px);letter-spacing:.12em;font-weight:800;color:#fff;line-height:1.05}
 .ah-brand p{margin:8px 0 0;color:#9ec9b2;font-size:14px}
 .ah-getstarted{
   flex-shrink:0;margin-top:22px;width:100%;height:58px;border:0;border-radius:29px;
@@ -69,38 +69,39 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
 
 /* —— Light screens 2–5 —— */
 .ah-light{
-  background:radial-gradient(120% 70% at 82% 0%, #e5f3ea 0%, #f5f7f6 46%, #f3f6f4 100%);
+  background:radial-gradient(120% 70% at 80% 0%, #f4fbf6 0%, #e7f3eb 52%, #e4f0e8 100%);
   color:var(--ah-text)
 }
 .ah-back{
   position:absolute;left:14px;top:calc(8px + env(safe-area-inset-top,0px));
   width:40px;height:40px;border:0;background:none;color:#1a1a1a;display:grid;place-items:center;z-index:4;padding:0
 }
-.ah-hero-slot{position:absolute;right:4px;top:calc(22px + env(safe-area-inset-top,0px));width:168px;height:150px;pointer-events:none;z-index:1}
+.ah-hero-slot{position:absolute;right:2px;top:calc(18px + env(safe-area-inset-top,0px));width:186px;height:168px;pointer-events:none;z-index:1}
 .ah-h{margin:10px 0 0;font-size:28px;line-height:1.18;font-weight:800;letter-spacing:-.03em;max-width:64%;text-align:left;color:#171d1a}
 .ah-h em{font-style:normal}
 .ah-p{margin:8px 0 20px;color:var(--ah-muted);font-size:13.5px;line-height:1.45;max-width:58%;text-align:left}
 .ah-form{margin-top:2px}
-.ah-tabs{display:flex;gap:22px;margin:0 0 16px;border-bottom:1px solid #e6eee9}
-.ah-tabs button{border:0;background:none;color:var(--ah-muted);font-weight:700;font-size:14px;padding:8px 0 10px}
-.ah-tabs button.on{color:var(--ah-em);box-shadow:inset 0 -2px 0 var(--ah-em)}
+.ah-tabs{display:flex;gap:8px;align-items:center;justify-content:center;margin:4px 0 18px}
+.ah-tabs button{border:0;background:none;color:var(--ah-muted);font-weight:700;font-size:13.5px;padding:4px 2px}
+.ah-tabs button.on{color:var(--ah-em)}
+.ah-tabs .ah-slash{color:#b5bfb8;font-weight:700}
 .ah-lab{display:block;font-size:12px;color:#8b948e;margin:12px 0 6px;font-weight:600}
 .ah-field{position:relative}
 .ah-inp{
-  width:100%;height:52px;border-radius:16px;border:1px solid var(--ah-border);
-  background:#fff;color:var(--ah-text);padding:0 44px 0 16px;font-size:15px
+  width:100%;height:50px;border-radius:14px;border:1px solid #dce8e0;
+  background:#fff;color:var(--ah-text);padding:0 44px 0 16px;font-size:15px;margin-bottom:10px
 }
 .ah-inp::placeholder{color:#b0b8b3}
 .ah-inp:focus{outline:none;border-color:var(--ah-em);box-shadow:0 0 0 3px rgba(30,122,76,.12)}
 .ah-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;color:#8b948e;width:36px;height:36px;display:grid;place-items:center;padding:0}
 .ah-forgot{display:block;margin:10px 0 6px auto;border:0;background:none;color:var(--ah-em);font-weight:700;font-size:13px;padding:0}
 .ah-btn{
-  width:100%;height:52px;border:0;border-radius:16px;margin-top:16px;
+  width:100%;height:52px;border:0;border-radius:999px;margin-top:14px;
   background:var(--ah-em);color:#fff;font-weight:800;font-size:15.5px;
   display:flex;align-items:center;justify-content:center;gap:8px;
-  box-shadow:0 10px 22px rgba(30,122,76,.28)
+  box-shadow:0 10px 22px rgba(21,92,58,.26)
 }
-.ah-btn.sec{background:#fff;color:var(--ah-text);border:1px solid var(--ah-border);box-shadow:none;font-weight:700}
+.ah-btn.sec{background:#fff;color:var(--ah-text);border:1px solid #dce8e0;box-shadow:none;font-weight:700}
 .ah-or{display:flex;align-items:center;gap:12px;margin:16px 0 12px;color:#9aa39d;font-size:12px}
 .ah-or:before,.ah-or:after{content:"";flex:1;height:1px;background:#e6eee9}
 .ah-err{color:#c0392b;font-size:12px;min-height:16px;margin-top:8px;text-align:center}
@@ -126,7 +127,14 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
 .ah-change{display:block;margin:8px auto 0;border:0;background:none;color:var(--ah-em);font-weight:700;font-size:13px}
 
 /* 3D composites */
-.ah-comp{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:ah-float 5s ease-in-out infinite}
+.ah-comp{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:ah-bob 5s ease-in-out infinite}
+.ah-plinth{position:absolute;background:linear-gradient(#fff,#e7eee9);border-radius:10px;box-shadow:0 10px 16px rgba(16,40,28,.12), inset 0 1px 0 #fff}
+.ah-plinth.p1{width:78px;height:54px;left:28px;bottom:10px;z-index:1}
+.ah-plinth.p2{width:46px;height:36px;right:18px;bottom:22px;z-index:0;background:linear-gradient(#f7fbf8,#dfe8e2)}
+.ah-plinth.p3{width:50px;height:42px;right:8px;bottom:8px;z-index:1}
+.ah-bust{position:absolute;right:14px;bottom:44px;width:44px;height:58px;z-index:3}
+.ah-bust .hd{position:absolute;left:10px;top:0;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,#d7e0da);box-shadow:0 4px 8px rgba(16,40,28,.12)}
+.ah-bust .bd{position:absolute;left:4px;top:22px;width:36px;height:34px;border-radius:16px 16px 10px 10px;background:linear-gradient(#fff,#d5ddd8)}
 .ah-ped{position:absolute;left:50%;bottom:8px;width:118px;height:26px;margin-left:-59px;z-index:0}
 .ah-ped.big{width:150px;margin-left:-75px;height:32px;bottom:4px}
 .ah-ped .t,.ah-ped .b{position:absolute;left:0;right:0;height:16px;border-radius:50%}
@@ -151,19 +159,19 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
 .ah-cube .lt{transform:rotateY(-90deg) translateZ(14px);background:#8fcaa9}
 .ah-cube .tp{transform:rotateX(90deg) translateZ(14px);background:#f4fbf7}
 .ah-cube .bt{transform:rotateX(-90deg) translateZ(14px);background:#7fba98}
-.ah-cube.c1{right:22px;top:58px;width:22px;height:22px}
+.ah-cube.c1{right:10px;top:auto;bottom:14px;width:22px;height:22px}
 .ah-cube.c1 i{/* size via parent */}
 .ah-cube.c1 .ft{transform:translateZ(11px)}.ah-cube.c1 .bk{transform:rotateY(180deg) translateZ(11px)}
 .ah-cube.c1 .rt{transform:rotateY(90deg) translateZ(11px)}.ah-cube.c1 .lt{transform:rotateY(-90deg) translateZ(11px)}
 .ah-cube.c1 .tp{transform:rotateX(90deg) translateZ(11px)}.ah-cube.c1 .bt{transform:rotateX(-90deg) translateZ(11px)}
-.ah-cube.c2{left:18px;top:28px;width:18px;height:18px;transform:rotateX(-18deg) rotateY(-28deg)}
+.ah-cube.c2{left:14px;top:auto;bottom:6px;width:18px;height:18px;transform:rotateX(-18deg) rotateY(-28deg)}
 .ah-cube.c2 i{background:#cfe8d8}
 .ah-cube.c2 .ft{transform:translateZ(9px);background:#fff}.ah-cube.c2 .bk{transform:rotateY(180deg) translateZ(9px)}
 .ah-cube.c2 .rt{transform:rotateY(90deg) translateZ(9px);background:#dcefe4}.ah-cube.c2 .lt{transform:rotateY(-90deg) translateZ(9px)}
 .ah-cube.c2 .tp{transform:rotateX(90deg) translateZ(9px);background:#fff}.ah-cube.c2 .bt{transform:rotateX(-90deg) translateZ(9px)}
 .ah-hex,.ah-okshield{width:min(200px,58vw);height:auto;display:block;margin:0 auto;filter:drop-shadow(0 16px 24px rgba(16,48,32,.22))}
 .ah-comp-otp .ah-hex{margin-top:8px}
-.ah-checkbadge{position:absolute;right:18%;bottom:28%;width:42px;height:42px;border-radius:50%;background:#2f9a5f;display:grid;place-items:center;box-shadow:0 8px 16px rgba(16,80,40,.28);z-index:3}
+.ah-checkbadge{position:absolute;right:16%;bottom:26%;width:40px;height:40px;border-radius:50%;background:#2f9a5f;display:grid;place-items:center;box-shadow:0 8px 16px rgba(16,80,40,.28),0 0 0 4px #eaf6ee;z-index:3}
 .ah-checkbadge svg{width:22px;height:22px}
 .ah-okshield{width:min(220px,64vw);margin-top:8px;position:relative;z-index:2}
 .ah-comp-ok .ah-ped{bottom:10px}
