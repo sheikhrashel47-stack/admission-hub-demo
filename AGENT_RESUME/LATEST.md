@@ -1,11 +1,9 @@
 # LATEST — Admission Hub Demo (2026-09-01)
 
-## চলমান কাজ: Exact-Clone UI v4 + আসল লোগো (clone-ui-v4, commit ট্যাগ)
-- **১০-স্ক্রিন exact-clone সম্পন্ন** (onboarding.js/css rewrite, Glass Daylight মুছে)
-- **আসল লোগো ৫টি** → `icons/uni/`: du.png (bn.wiki), ju.png (en.wiki via Wayback), ru.png (ru.ac.bd), cu.png (bn.wiki via Wayback), gst.png (অফিসিয়াল ওয়ার্ডমার্ক ব্যাজ — গুচ্ছ সাইট কোনো লোগো ফাইল প্রকাশ করে না)
-- jsdom smoke test পাস; preview-onboarding.html dev পেজ
-- আগের বেস: ১০-স্ক্রিন + 3D splash (ee06850), worker 15-min verify, 3D loading system — সব সক্রিয়
-
+## চলমান কাজ: v1 ডিজাইন ফেরত (ইউজার নির্দেশ, commit ট্যাগ v1-restore)
+- exact-clone UI (v4) **বাতিল** — ভাই চেয়েছেন **একদম প্রথম ডিজাইন (v1, d977a11)**; onboarding.css/js restore + `?v=p6-onboard-v1r`
+- jsdom টেস্ট পাস (S1→S10 + dashboard); preview-onboarding.html-এ দেখা যাবে
+- icons/uni আসল লোগো রয়ে গেছে (v1 ব্যবহার করে না)
 ## পরের ধাপ
 1. GH Pages deploy → live চেক (onboarding.css marker v4, icons/uni ২০০, TOTAL=10)
 2. control repo-তে resume sync
