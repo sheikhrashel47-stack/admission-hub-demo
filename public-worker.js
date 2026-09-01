@@ -74,7 +74,12 @@ function publicUser(u, profile) {
     institution: pf.institution || '', targetUniversity: pf.targetUniversity || '',
     targetUnit: pf.targetUnit || '', admissionYear: pf.admissionYear || '',
     bio: pf.bio || '', dob: pf.dob || '', gender: pf.gender || '', studyGroup: pf.studyGroup || '',
-    providers: u.providers || []
+    providers: u.providers || [],
+    onboardingCompleted: !!(pf.onboarding && pf.onboarding.completed),
+    onboardingStep: (pf.onboarding && pf.onboarding.step) || 0,
+    goal: (pf.onboarding && pf.onboarding.goal) || '',
+    studyGoal: (pf.onboarding && pf.onboarding.studyGoal) || '',
+    currentLevel: (pf.onboarding && pf.onboarding.currentLevel) || 0
   };
 }
 async function issueToken(env, rec) {
@@ -190,7 +195,10 @@ export default {
       }
       if (p === '/api/profile' && request.method === 'PUT') return await profilePut(request, env, uid);
       if (p === '/api/profile/photo' && request.method === 'POST') return await profilePhoto(request, env, uid);
-      
+      if (p === '/api/onboarding' && request.method === 'GET') return await onboardingGet(request, env, uid);
+      if (p === '/api/onboarding' && request.method === 'PUT') return await onboardingPut(request, env, uid);
+      if (p === '/api/onboarding/catalog' && request.method === 'GET') return await onboardingCatalog(env);
+
       if (p === '/api/state' && request.method === 'GET') return json(JSON.parse((await env.PUB_KV.get('ustate:' + uid)) || 'null'));
       if (p === '/api/state' && request.method === 'POST') {
         const b = await request.json();
@@ -875,6 +883,83 @@ const authDelete = async (request, env, uid) => {
   if (tok) await env.PUB_KV.delete('tok:' + tok);
   return json({ ok: true, deleted: true });
 };
+
+const UNI_CATALOG = [
+  { id: 'du', name: 'ঢাকা বিশ্ববিদ্যালয়', nameEn: 'University of Dhaka', short: 'DU', units: ['A', 'B', 'C', 'D'] },
+  { id: 'cu', name: 'চট্টগ্রাম বিশ্ববিদ্যালয়', nameEn: 'University of Chittagong', short: 'CU', units: ['A', 'B', 'C', 'D'] },
+  { id: 'ru', name: 'রাজশাহী বিশ্ববিদ্যালয়', nameEn: 'University of Rajshahi', short: 'RU', units: ['A', 'B', 'C', 'D'] },
+  { id: 'ju', name: 'জাহাঙ্গীরনগর বিশ্ববিদ্যালয়', nameEn: 'Jahangirnagar University', short: 'JU', units: ['A', 'B', 'C', 'D'] },
+  { id: 'ku', name: 'খুলনা বিশ্ববিদ্যালয়', nameEn: 'Khulna University', short: 'KU', units: ['A', 'B', 'C', 'D'] },
+  { id: 'cou', name: 'কুমিল্লা বিশ্ববিদ্যালয়', nameEn: 'Comilla University', short: 'CoU', units: ['A', 'B', 'C'] },
+  { id: 'other', name: 'অন্যান্য', nameEn: 'Other', short: 'OTH', units: ['A', 'B', 'C', 'D'] }
+];
+function buildOnboardPlan(o) {
+  const hours = Math.max(1, Number(o.dailyHours) || 2);
+  const days = Math.max(1, Number(o.weeklyDays) || 5);
+  const lvl = Math.max(0, Math.min(100, Number(o.currentLevel) || 0));
+  const weak = Array.isArray(o.weakSubjects) ? o.weakSubjects.slice(0, 6) : [];
+  const dailyQuestions = lvl < 25 ? 20 : lvl < 60 ? 35 : 45;
+  return {
+    at: Date.now(),
+    dailyMinutes: hours * 60,
+    weeklyDays: days,
+    dailyQuestions,
+    focus: weak,
+    university: (o.targetUniversities || [])[0] || '',
+    units: o.targetUnits || [],
+    goal: o.goal || '',
+    studyGoal: o.studyGoal || ''
+  };
+}
+function sanitizeOnboard(b) {
+  const o = b && typeof b === 'object' ? b : {};
+  const arr = (x, n) => (Array.isArray(x) ? x : []).map(s => String(s || '').trim().slice(0, 80)).filter(Boolean).slice(0, n);
+  const out = {
+    step: Math.max(1, Math.min(10, Number(o.step) || 1)),
+    completed: !!o.completed,
+    goal: String(o.goal || '').slice(0, 24),
+    targetUniversities: arr(o.targetUniversities, 8),
+    targetUniversityIds: arr(o.targetUniversityIds, 8),
+    targetUnits: arr(o.targetUnits, 8),
+    studyGoal: String(o.studyGoal || '').slice(0, 24),
+    currentLevel: Math.max(0, Math.min(100, Number(o.currentLevel) || 0)),
+    weakSubjects: arr(o.weakSubjects, 12),
+    dailyHours: Math.max(1, Math.min(5, Number(o.dailyHours) || 2)),
+    weeklyDays: Math.max(1, Math.min(7, Number(o.weeklyDays) || 5)),
+    preferredTime: String(o.preferredTime || 'flexible').slice(0, 24)
+  };
+  if (out.completed) out.plan = buildOnboardPlan(out);
+  else if (o.plan && typeof o.plan === 'object') out.plan = o.plan;
+  return out;
+}
+const onboardingGet = async (request, env, uid) => {
+  const u = await getUserById(env, uid);
+  if (!u) return json({ error: 'অ্যাকাউন্ট পাওয়া যায়নি' }, 404);
+  const pf = await loadProfile(env, u.uid || u.id);
+  return json({ onboarding: pf.onboarding || { completed: false, step: 1 } });
+};
+const onboardingPut = async (request, env, uid) => {
+  const u = await getUserById(env, uid);
+  if (!u) return json({ error: 'অ্যাকাউন্ট পাওয়া যায়নি' }, 404);
+  const pf = await loadProfile(env, u.uid || u.id);
+  pf.onboarding = sanitizeOnboard(await request.json().catch(() => ({})));
+  if (pf.onboarding.completed) {
+    if (pf.onboarding.targetUniversities[0]) pf.targetUniversity = pf.onboarding.targetUniversities[0];
+    if (pf.onboarding.targetUnits[0]) pf.targetUnit = pf.onboarding.targetUnits.join(',');
+  }
+  await saveProfile(env, u.uid || u.id, pf);
+  return json({ onboarding: pf.onboarding, user: await fullUser(env, u) });
+};
+const onboardingCatalog = async (env) => {
+  let extra = [];
+  try { extra = JSON.parse((await env.PUB_KV.get('onboardCatalog')) || '[]'); } catch (_) {}
+  const list = UNI_CATALOG.slice();
+  (Array.isArray(extra) ? extra : []).forEach(u => {
+    if (u && u.id && u.name && !list.some(x => x.id === u.id)) list.push({ id: String(u.id).slice(0, 24), name: String(u.name).slice(0, 80), short: String(u.short || u.id).slice(0, 8), units: Array.isArray(u.units) && u.units.length ? u.units.map(x => String(x).slice(0, 8)) : ['A', 'B', 'C', 'D'] });
+  });
+  return json({ universities: list });
+};
+
 const profilePut = async (request, env, uid) => {
   const u = await getUserById(env, uid);
   if (!u) return json({ error: 'অ্যাকাউন্ট পাওয়া যায়নি' }, 404);

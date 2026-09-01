@@ -6,6 +6,7 @@ Read this first. Continue existing work; do not redesign Phase 1.
 **Date:** 2026-09-01
 
 ## Status
+- Phase 6 onboarding live after auth (gate `#ahOnboardGate`). Auth unchanged.
 - Google button uses OAuth account picker (not One Tap prompt)
 - Mail fromName Admission Hub passed to MAIL_HOOK; Gmail Send-as name still needed on mahmudrashel1034
 - Phase 1 Exact Clone — frozen

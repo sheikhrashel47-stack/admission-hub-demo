@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v159-cross-wait-20260901';
+const BUILD_ID = 'v160-onboard-20260901';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -79,6 +79,8 @@ const APP_SHELL = [
   './premium-auth.css?v=p3-auth-ui-v25',
   './auth-svg.js?v=p3-auth-ui-v25',
   './premium-auth.js?v=p3-auth-ui-v25',
+  './onboarding.js?v=p6-onboard-v1',
+  './onboarding.css?v=p6-onboard-v1',
   './app-seed.js?v=p1',
   './',
   './index.html',

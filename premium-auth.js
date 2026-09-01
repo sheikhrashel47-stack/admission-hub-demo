@@ -832,6 +832,10 @@
     try { await pullState(); } catch (_) {}
     try { if (window.AdmissionCloudContent) await AdmissionCloudContent.pull(); } catch (_) {}
     try { await pushState(); } catch (_) {}
+    if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {
+      const onb = await AHOnboard.maybeStart();
+      if (onb) return;
+    }
     if (typeof navigate === 'function') navigate('dashboard');
     else if (typeof render === 'function') render();
   }
@@ -1097,6 +1101,10 @@
         setGate(false);
         await pullState();
         if (window.AdmissionCloudContent) AdmissionCloudContent.pull().catch(() => {});
+        if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {
+          const onb = await AHOnboard.maybeStart();
+          if (onb) return;
+        }
       } catch (e) {
         const msg = String(e && e.message || e);
         if (/আগে লগইন|http-401|http-403|অ্যাকাউন্ট বন্ধ/.test(msg)) {

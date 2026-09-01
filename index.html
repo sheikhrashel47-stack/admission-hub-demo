@@ -7,6 +7,7 @@
 <title>My Admission Hub</title>
 <script>(function(){try{document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')||sessionStorage.getItem('ahPubToken'))?'in':'out';}catch(e){document.documentElement.dataset.ah='out';}})();</script>
 <link rel="stylesheet" href="./premium-auth.css?v=p3-auth-ui-v25">
+<link rel="stylesheet" href="./onboarding.css?v=p6-onboard-v1">
 
 <link rel="manifest" href="manifest.json">
 <link rel="alternate" type="application/manifest+json" href="manifest.webmanifest">
@@ -581,6 +582,7 @@ textarea{min-height:96px}
 </div>
 </section>
 </div>
+<div id="ahOnboardGate" aria-label="Onboarding" style="display:none"></div>
 <div id="app"><main class="app-loading" role="status"><div class="app-loading-mark">✦</div><b>Preparing your study space…</b><span>Loading your saved data safely.</span></main></div>
 <div id="navRoot" aria-label="Primary navigation"></div>
 <div id="toast" class="toast"></div>
@@ -5095,12 +5097,12 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
       // An older worker can keep serving the pre-fix navigation bundle in an
       // installed PWA. Remove that controller once, then install the current
       // worker with a fresh build URL.
-      const expectedSwVersion = 'v159-cross-wait-20260901';
+      const expectedSwVersion = 'v160-onboard-20260901';
       if (registration && activeUrl && !activeUrl.includes(expectedSwVersion)) {
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v159-cross-wait-20260901',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v160-onboard-20260901',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Apply an already-installed worker immediately; never require a cache-clear action.
       activateWaiting(registration);
@@ -5633,6 +5635,7 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="./auth-svg.js?v=p3-auth-ui-v25"></script>
 <script src="./premium-auth.js?v=p3-auth-ui-v25"></script>
+<script src="./onboarding.js?v=p6-onboard-v1"></script>
 <script src="./app-seed.js?v=p1"></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */
