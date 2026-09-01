@@ -849,8 +849,18 @@
       if (document.body.querySelector('.ah-offline-note')) return;
       const n = document.createElement('div');
       n.className = 'ah-offline-note';
-      n.innerHTML = '📶 নেটওয়ার্ক সংযোগ মিলছে না — লগইন এ মুহূর্তে বন্ধ। ইন্টারনেট ঠিক করে অথবা লাইভ অ্যাপ খুলো: <a href="https://sheikhrashel47-stack.github.io/admission-hub-demo/">admission-hub-demo</a>';
+      n.innerHTML = `
+        <button class="ah-on-x" aria-label="বন্ধ করো">✕</button>
+        <div class="ah-on-ic">🔒</div>
+        <div class="ah-on-tx">
+          <b>এই প্রিভিউতে লগইন করা যায় না</b>
+          <span>এটা শুধু একটা প্রিভিউ উইন্ডো — এখানে ইন্টারনেট বন্ধ থাকে, তাই গুগল/লগইন এখানে চলে না। তোমার অ্যাকাউন্টে কোনো ঝুঁকি নেই।</span>
+          <a class="ah-on-btn" href="https://sheikhrashel47-stack.github.io/admission-hub-demo/" target="_blank" rel="noopener">📱 আসল অ্যাপ খুলো →</a>
+        </div>`;
       document.body.appendChild(n);
+      const x = n.querySelector('.ah-on-x');
+      if (x) x.onclick = () => { try { localStorage.setItem('ahPrefNoteOff', '1'); } catch (_) {} n.remove(); };
+      try { if (localStorage.getItem('ahPrefNoteOff') === '1') n.remove(); } catch (_) {}
     } catch (_) {}
   }
   function hideOfflineNote() {

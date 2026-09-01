@@ -315,9 +315,20 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
   .ah-pf-prep-side .li span{flex-basis:76px}
 }
 .ah-offline-note{
-  position:fixed;top:0;left:0;right:0;z-index:6100;text-align:center;
-  background:#fdf3e3;color:#7a4b06;font-size:12px;font-weight:600;line-height:1.5;
-  padding:10px 16px;border-bottom:1px solid #f0dfbe;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif
+  position:fixed;bottom:0;left:0;right:0;z-index:6500;
+  background:#ffffff;color:#1c2621;box-shadow:0 -8px 30px rgba(20,50,36,.18);
+  display:flex;gap:12px;align-items:flex-start;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid #e3ebe6;border-radius:18px 18px 0 0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif;
+  animation:ahNoteUp .3s cubic-bezier(.4,0,.2,1)
 }
-.ah-offline-note a{color:#7a4b06;font-weight:800;text-decoration:underline}
+@keyframes ahNoteUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ah-on-x{position:absolute;top:10px;right:12px;border:0;background:none;color:#8b948e;font-size:14px;width:28px;height:28px;border-radius:50%;cursor:pointer;font-weight:700}
+.ah-on-x:active{background:#f0f4f1}
+.ah-on-ic{font-size:22px;line-height:1.3;flex:0 0 auto}
+.ah-on-tx{flex:1;min-width:0;padding-right:24px}
+.ah-on-tx b{display:block;font-size:14px;font-weight:800;color:#122018}
+.ah-on-tx span{display:block;font-size:12px;color:#5b675f;line-height:1.55;margin-top:3px}
+.ah-on-btn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:#0f6b4f;color:#fff !important;text-decoration:none !important;
+  font-weight:800;font-size:13px;border-radius:12px;padding:11px 16px;box-shadow:0 8px 18px rgba(15,107,79,.25)}
+.ah-on-btn:active{transform:scale(.97)}
