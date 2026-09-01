@@ -3,27 +3,31 @@
   'use strict';
 
   function cap() {
-    return `<svg class="ah-illu ah-cap-svg" viewBox="0 0 240 170" aria-hidden="true">
+    return `<svg class="ah-illu ah-cap-svg" viewBox="0 0 240 180" aria-hidden="true">
       <defs>
-        <linearGradient id="capB" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#3a3a3a"/><stop offset="45%" stop-color="#161616"/><stop offset="100%" stop-color="#050505"/>
+        <linearGradient id="glassB" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity=".72"/>
+          <stop offset="45%" stop-color="#c9f5dd" stop-opacity=".42"/>
+          <stop offset="100%" stop-color="#7fd3b0" stop-opacity=".28"/>
         </linearGradient>
-        <linearGradient id="capS" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#2a2a2a"/><stop offset="100%" stop-color="#0a0a0a"/>
+        <linearGradient id="glassS" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#e7fff4" stop-opacity=".55"/>
+          <stop offset="100%" stop-color="#9fe0c4" stop-opacity=".22"/>
         </linearGradient>
         <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#f3e0a0"/><stop offset="50%" stop-color="#c9a227"/><stop offset="100%" stop-color="#8a6a18"/>
+          <stop offset="0%" stop-color="#f3e0a0"/><stop offset="55%" stop-color="#c9a227"/><stop offset="100%" stop-color="#8a6a18"/>
         </linearGradient>
       </defs>
-      <ellipse cx="120" cy="148" rx="48" ry="8" fill="rgba(0,0,0,.28)"/>
-      <path d="M78 108c0 22 18 34 42 34s42-12 42-34" fill="url(#capS)"/>
-      <ellipse cx="120" cy="108" rx="42" ry="12" fill="#1c1c1c"/>
-      <path d="M28 78 L120 42 L212 78 L120 114 Z" fill="url(#capB)"/>
-      <path d="M212 78 L212 86 L120 122 L120 114 Z" fill="#0b0b0b"/>
-      <path d="M28 78 L28 86 L120 122 L120 114 Z" fill="#1a1a1a"/>
-      <circle cx="120" cy="78" r="5" fill="url(#gold)"/>
-      <path d="M120 78 C148 70 168 92 172 118" fill="none" stroke="url(#gold)" stroke-width="2.4"/>
-      <path d="M166 118 h14 l-3 22 h-8 z" fill="url(#gold)"/>
+      <ellipse cx="120" cy="158" rx="46" ry="7" fill="rgba(40,90,70,.08)"/>
+      <path d="M84 112c0 20 16 30 36 30s36-10 36-30" fill="url(#glassS)" stroke="rgba(255,255,255,.55)" stroke-width="1.2"/>
+      <ellipse cx="120" cy="112" rx="36" ry="10" fill="rgba(255,255,255,.35)"/>
+      <path d="M40 84 L120 48 L200 84 L120 120 Z" fill="url(#glassB)" stroke="rgba(255,255,255,.7)" stroke-width="1.4"/>
+      <path d="M200 84 L200 90 L120 126 L120 120 Z" fill="rgba(120,180,150,.18)"/>
+      <path d="M40 84 L40 90 L120 126 L120 120 Z" fill="rgba(255,255,255,.2)"/>
+      <path d="M70 78 L110 62" stroke="#fff" stroke-width="2" opacity=".45" stroke-linecap="round"/>
+      <circle cx="120" cy="84" r="4" fill="url(#gold)"/>
+      <path d="M120 84 C146 76 164 96 168 122" fill="none" stroke="url(#gold)" stroke-width="2.2"/>
+      <path d="M162 122 h12 l-2 18 h-8 z" fill="url(#gold)"/>
     </svg>`;
   }
 

@@ -95,10 +95,13 @@
   const ico = k => (S().ico && S().ico[k]) || '';
   const passRow = (id, ph, auto) => `<div class="ah-field"><input class="ah-inp" id="${id}" type="password" placeholder="${ph}" autocomplete="${auto||'current-password'}"><button class="ah-eye" type="button" data-eye="${id}" aria-label="Show password">${ico('eye')}</button></div>`;
 
-  const welcome = () => paint(`<section class="ah-screen ah-welcome">
+  const welcome = () => paint(`<section class="ah-screen ah-welcome ah-glass">
     ${S().welcomeScene ? S().welcomeScene() : ''}
-    <div class="ah-brand"><h1>ADMISSION HUB</h1><p>Learn Smart, Achieve More</p></div>
-    <button class="ah-getstarted" type="button" data-go="login"><span>Get Started</span><i>→</i></button>
+    <div class="ah-dock">
+      <h1>ADMISSION HUB</h1>
+      <p class="ah-tag">Learn Smart, Achieve More</p>
+      <button class="ah-getstarted" type="button" data-go="login">Get Started</button>
+    </div>
   </section>`);
 
   const login = (tab) => {

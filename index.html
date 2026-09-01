@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>My Admission Hub</title>
 <script>(function(){try{document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')||sessionStorage.getItem('ahPubToken'))?'in':'out';}catch(e){document.documentElement.dataset.ah='out';}})();</script>
-<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-ui-v12">
+<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-ui-v13">
 
 <link rel="manifest" href="manifest.json">
 <link rel="alternate" type="application/manifest+json" href="manifest.webmanifest">
@@ -573,9 +573,12 @@ textarea{min-height:96px}
 </head>
 <body class="app-booting">
 <div id="ahAuthGate" aria-label="Authentication">
-<section class="ah-screen ah-welcome">
-<div class="ah-brand"><h1>ADMISSION HUB</h1><p>Learn Smart, Achieve More</p></div>
-<button class="ah-getstarted" type="button" onclick="document.dispatchEvent(new Event('ah-get-started'))"><span>Get Started</span><i>→</i></button>
+<section class="ah-screen ah-welcome ah-glass">
+<div class="ah-dock">
+<h1>ADMISSION HUB</h1>
+<p class="ah-tag">Learn Smart, Achieve More</p>
+<button class="ah-getstarted" type="button" onclick="document.dispatchEvent(new Event('ah-get-started'))">Get Started</button>
+</div>
 </section>
 </div>
 <div id="app"><main class="app-loading" role="status"><div class="app-loading-mark">✦</div><b>Preparing your study space…</b><span>Loading your saved data safely.</span></main></div>
@@ -5627,8 +5630,8 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script src="./android-runtime-fix.js?v=and-scroll-v1"></script>
 <script>window.AH_CLOUD_ROLE='public';</script>
 <script src="./cloud-content-sync.js?v=p2-cloud-v2"></script>
-<script src="./auth-svg.js?v=p3-auth-ui-v12"></script>
-<script src="./premium-auth.js?v=p3-auth-ui-v12"></script>
+<script src="./auth-svg.js?v=p3-auth-ui-v13"></script>
+<script src="./premium-auth.js?v=p3-auth-ui-v13"></script>
 <script src="./app-seed.js?v=p1"></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */
