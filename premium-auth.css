@@ -50,8 +50,8 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
   letter-spacing:.01em
 }
 .ah-lang-stage{
-  position:absolute;left:22px;right:22px;top:42%;z-index:5;
-  display:flex;flex-direction:column;align-items:center;gap:14px;transform:translateY(-36%)
+  position:absolute;left:22px;right:22px;top:48%;z-index:5;
+  display:flex;flex-direction:column;align-items:center;gap:22px;transform:translateY(-18%)
 }
 .ah-lang-btns{display:flex;gap:10px;width:min(100%,300px)}
 .ah-lang{
@@ -59,10 +59,10 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
   background:#fff;color:var(--ah-em);border:1.5px solid var(--ah-em)
 }
 .ah-lang.on{background:var(--ah-em);color:#fff}
-.ah-type{width:min(100%,320px);min-height:84px;text-align:center}
+.ah-type{width:min(100%,300px);min-height:88px;text-align:center;margin-top:4px}
 .ah-type-l{
-  margin:0 0 8px;font-family:var(--ah-display);font-size:16px;
-  line-height:1.5;color:#122018;font-weight:600;letter-spacing:.01em;
+  margin:0 0 12px;font-family:"Noto Serif Bengali","Noto Sans Bengali",var(--ah-display),Georgia,serif;
+  font-size:15.5px;line-height:1.7;color:#1c2621;font-weight:600;letter-spacing:0;
   white-space:normal;overflow-wrap:break-word;word-break:normal
 }
 .ah-caret{

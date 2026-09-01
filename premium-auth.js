@@ -34,19 +34,19 @@
       linkSent: 'Verification link sent to', linkTap: 'Open the link to activate your account.'
     },
     bn: {
-      tag: 'স্মার্ট শেখো, আরও এগিয়ে যাও', start: 'শুরু করো',
-      create: 'তোমার অ্যাকাউন্ট খুলো', tell: 'নিজের সম্পর্কে একটু বলো',
-      fullName: 'নাম', dob: 'জন্ম তারিখ', school: 'স্কুলের নাম', college: 'কলেজের নাম',
-      optional: '(ঐচ্ছিক)', cont: 'চালিয়ে যাও', or: 'অথবা', google: 'Google দিয়ে চালিয়ে যাও',
-      haveAcc: 'অ্যাকাউন্ট আগেই আছে?', login: 'লগইন',
-      welcomeBack: 'ফিরে এসো,<br>স্কলার! 👋', loginSub: 'Passkey, Google, বা ইমেইল',
-      passkey: 'Passkey দিয়ে চালিয়ে যাও', orPass: 'অথবা পাসওয়ার্ড', email: 'ইমেইল', password: 'পাসওয়ার্ড',
-      noAcc: 'অ্যাকাউন্ট নেই?', signup: 'সাইন আপ',
-      verifyTitle: 'অ্যাকাউন্ট যাচাই করো', verifySub: 'শেষ এক ধাপ',
-      emailWay: 'ইমেইল ভেরিফিকেশন', hint: 'যেটা সুবিধা, সেটাই নাও।',
-      emailTitle: 'ইমেইল যাচাই করো', emailSub: 'ভেরিফিকেশন লিংক পাঠাব',
-      sendLink: 'ভেরিফিকেশন লিংক পাঠাও', checkEmail: 'ইমেইল দেখো',
-      linkSent: 'ভেরিফিকেশন লিংক পাঠানো হয়েছে', linkTap: 'লিংক চাপলেই অ্যাকাউন্ট খুলবে।'
+      tag: 'জ্ঞান অর্জন করুন, লক্ষ্যে পৌঁছান', start: 'শুরু করুন',
+      create: 'অ্যাকাউন্ট তৈরি করুন', tell: 'আপনার তথ্য প্রদান করুন',
+      fullName: 'পূর্ণ নাম', dob: 'জন্ম তারিখ', school: 'বিদ্যালয়ের নাম', college: 'কলেজের নাম',
+      optional: '(ঐচ্ছিক)', cont: 'এগিয়ে যান', or: 'অথবা', google: 'গুগল দিয়ে এগিয়ে যান',
+      haveAcc: 'পূর্বে অ্যাকাউন্ট রয়েছে?', login: 'প্রবেশ করুন',
+      welcomeBack: 'স্বাগতম,<br>শিক্ষার্থী', loginSub: 'পাসকি, গুগল অথবা ইমেইল',
+      passkey: 'পাসকি দিয়ে এগিয়ে যান', orPass: 'অথবা পাসওয়ার্ড', email: 'ইমেইল', password: 'পাসওয়ার্ড',
+      noAcc: 'অ্যাকাউন্ট নেই?', signup: 'নিবন্ধন করুন',
+      verifyTitle: 'অ্যাকাউন্ট যাচাইকরণ', verifySub: 'নিরাপত্তার জন্য শেষ ধাপ',
+      emailWay: 'ইমেইল যাচাইকরণ', hint: 'আপনার সুবিধামতো পদ্ধতি বেছে নিন।',
+      emailTitle: 'ইমেইল যাচাইকরণ', emailSub: 'যাচাইকরণ লিংক প্রেরণ করা হবে',
+      sendLink: 'যাচাইকরণ লিংক পাঠান', checkEmail: 'ইমেইল পরীক্ষা করুন',
+      linkSent: 'যাচাইকরণ লিংক প্রেরণ করা হয়েছে', linkTap: 'লিংক খুললে অ্যাকাউন্ট সক্রিয় হবে।'
     }
   };
   const t = k => (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k;
@@ -387,10 +387,10 @@
     let i = 0;
     const tick = () => {
       if (gen !== typeGen) return;
-      if (i < g1.length) { add(l1, g1[i]); i += 1; setTimeout(tick, 22); return; }
+      if (i < g1.length) { add(l1, g1[i]); i += 1; setTimeout(tick, 14); return; }
       l1.querySelector('.ah-caret')?.remove();
       const j = i - g1.length;
-      if (j < g2.length) { add(l2, g2[j]); i += 1; setTimeout(tick, 22); return; }
+      if (j < g2.length) { add(l2, g2[j]); i += 1; setTimeout(tick, 14); return; }
       l2.querySelector('.ah-caret')?.remove();
     };
     tick();
@@ -483,21 +483,21 @@
   }
   function doContinueProfile() {
     grabProfile();
-    if (!draft.name || draft.name.length < 2) return showErr('ahErr', 'পূর্ণ নাম লেখো');
-    if (!draft.dob) return showErr('ahErr', 'জন্ম তারিখ দাও');
+    if (!draft.name || draft.name.length < 2) return showErr('ahErr', lang==='bn'?'পূর্ণ নাম লিখুন':'Enter your full name');
+    if (!draft.dob) return showErr('ahErr', lang==='bn'?'জন্ম তারিখ দিন':'Enter date of birth');
     go('verify');
   }
   async function doSignup() {
     try {
       draft.id = (document.getElementById('ahId') && document.getElementById('ahId').value.trim()) || draft.id;
-      if (!draft.id) return showErr('ahErr', 'ইমেইল লেখো');
+      if (!draft.id) return showErr('ahErr', lang==='bn'?'ইমেইল লিখুন':'Enter your email');
       const data = await api('/auth/register-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, dob: draft.dob, school: draft.school, college: draft.college }) });
       draft.masked = data.masked;
       paint(`<section class="ah-screen ah-light ah-center">
         <button class="ah-back" type="button" data-go="signup" aria-label="Back">${ico('back')}</button>
-        <h1 class="ah-h">Check your email</h1>
-        <p class="ah-p">Verification link পাঠানো হয়েছে<br><b>${esc(data.masked || draft.id)}</b></p>
-        <p class="ah-p">লিংক চাপলেই অ্যাকাউন্ট খুলবে।</p>
+        <h1 class="ah-h">${t('checkEmail')}</h1>
+        <p class="ah-p">${t('linkSent')}<br><b>${esc(data.masked || draft.id)}</b></p>
+        <p class="ah-p">${t('linkTap')}</p>
         ${errBox('ahErr')}
       </section>`);
     } catch (e) { showErr('ahErr', e.message); }
