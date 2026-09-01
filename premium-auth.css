@@ -314,3 +314,10 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
   .ah-pf-prep{flex-direction:column;text-align:center}
   .ah-pf-prep-side .li span{flex-basis:76px}
 }
+.ah-offline-note{
+  position:fixed;top:0;left:0;right:0;z-index:6100;text-align:center;
+  background:#fdf3e3;color:#7a4b06;font-size:12px;font-weight:600;line-height:1.5;
+  padding:10px 16px;border-bottom:1px solid #f0dfbe;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif
+}
+.ah-offline-note a{color:#7a4b06;font-weight:800;text-decoration:underline}

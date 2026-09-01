@@ -841,6 +841,18 @@
       document.head.appendChild(s);
     });
   }
+  function showOfflineNote() {
+    try {
+      if (document.body.querySelector('.ah-offline-note')) return;
+      const n = document.createElement('div');
+      n.className = 'ah-offline-note';
+      n.innerHTML = '🔌 সার্ভার সংযোগ পাওয়া যাচ্ছে না — এই প্রিভিউতে গুগল/ক্লাউড লগইন কাজ করে না। লাইভ সাইট <a href="https://sheikhrashel47-stack.github.io/admission-hub-demo/">github.io/admission-hub-demo</a> থেকে খুলো।';
+      document.body.appendChild(n);
+    } catch (_) {}
+  }
+  function hideOfflineNote() {
+    try { const n = document.body.querySelector('.ah-offline-note'); if (n) n.remove(); } catch (_) {}
+  }
   function startGooglePicker() {
     const client = google.accounts.oauth2.initTokenClient({
       client_id: cfg.googleClientId,
@@ -848,14 +860,20 @@
       prompt: 'select_account',
       callback: async (resp) => {
         if (!resp || resp.error || !resp.access_token) {
-          showErr('ahErr', lang === 'bn' ? 'গুগল লগইন বাতিল হয়েছে' : 'Google sign-in cancelled');
+          const msg = String((resp && (resp.error_description || resp.error)) || '');
+          if (/origin|not allowed|client_id/i.test(msg)) showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এই ঠিকানায় অনুমোদিত নয় — লাইভ সাইট https://sheikhrashel47-stack.github.io/admission-hub-demo/ থেকে খুলো' : 'Google login is not allowed on this address — open the live site https://sheikhrashel47-stack.github.io/admission-hub-demo/');
+          else showErr('ahErr', lang === 'bn' ? 'গুগল লগইন বাতিল হয়েছে' : 'Google sign-in cancelled');
           return;
         }
         try { await finishGoogle({ accessToken: resp.access_token }); }
         catch (e) { showErr('ahErr', e.message); }
       }
     });
-    client.requestAccessToken({ prompt: 'select_account' });
+    try {
+      client.requestAccessToken({ prompt: 'select_account' });
+    } catch (e) {
+      showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এই ঠিকানায় অনুমোদিত নয় — লাইভ সাইট https://sheikhrashel47-stack.github.io/admission-hub-demo/ থেকে খুলো' : 'Google login is not allowed on this address — open the live site');
+    }
   }
   async function doGoogle() {
     if (!cfg.googleClientId) return showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এখন সেটআপ নেই' : 'Google login is not set up');
@@ -1857,7 +1875,7 @@
         return;
       }
     } catch (e) { showErr('ahErr', e.message); }
-    try { cfg = await api('/auth/config'); } catch (_) {}
+    try { cfg = await api('/auth/config'); hideOfflineNote(); } catch (_) { showOfflineNote(); }
     if (cfg && cfg.googleClientId) loadGis().catch(() => {});
     window.AH_AUTH_CONFIG = cfg;
     const held = readWait();
