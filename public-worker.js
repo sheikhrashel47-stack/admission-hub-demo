@@ -86,9 +86,14 @@ async function issueToken(env, rec) {
 };
 async function rateLimit(env, key, max, ttl) {
   const k = 'rl:' + key;
-  const n = Number((await env.PUB_KV.get(k)) || 0) + 1;
-  await env.PUB_KV.put(k, String(n), { expirationTtl: ttl });
-  return n <= max;
+  const now = Date.now();
+  let row = null;
+  try { row = JSON.parse(await env.PUB_KV.get(k)); } catch (_) {}
+  if (!row || typeof row !== 'object' || !row.exp || row.exp < now) row = { n: 0, exp: now + ttl * 1000 };
+  row.n = Number(row.n || 0) + 1;
+  const remain = Math.max(10, Math.ceil((row.exp - now) / 1000));
+  await env.PUB_KV.put(k, JSON.stringify(row), { expirationTtl: remain });
+  return row.n <= max;
 };
 
 export const publishGlobal = async (env, full) => {
@@ -309,8 +314,8 @@ async function sendOtpMessage(env, destId, code) {
   return { ok: false, error: 'সঠিক ইমেইল বা মোবাইল লেখো' };
 }
 async function issueOtp(env, destId, purpose, ip) {
-  if (!(await rateLimit(env, 'otp:' + ip, 8, 3600))) return { error: 'একটু পরে আবার চেষ্টা করো', status: 429 };
-  if (!(await rateLimit(env, 'otp-id:' + destId, 6, 3600))) return { error: 'একটু পরে আবার চেষ্টা করো', status: 429 };
+  if (!(await rateLimit(env, 'otp:' + ip, 400, 3600))) return { error: 'একটু পরে আবার চেষ্টা করো', status: 429 };
+  if (!(await rateLimit(env, 'otp-id:' + destId, 20, 3600))) return { error: 'একটু পরে আবার চেষ্টা করো', status: 429 };
   const key = 'otp:' + purpose + ':' + destId;
   const prev = JSON.parse((await env.PUB_KV.get(key)) || 'null');
   if (prev && prev.sentAt && Date.now() - prev.sentAt < 45000) return { error: 'কোড আবার পাঠাতে একটু অপেক্ষা করো', status: 429, wait: 45 - Math.floor((Date.now() - prev.sentAt) / 1000) };
@@ -404,7 +409,13 @@ async function sendEmail(env, to, subject, text, html) {
   return { ok: false, error: last };
 }
 async function issueVerifyLink(env, destId, purpose, ip) {
-  if (!(await rateLimit(env, 'vlink:' + ip, 8, 3600))) return { error: 'একটু পরে আবার চেষ্টা করো', status: 429 };
+  const cool = Number((await env.PUB_KV.get('vcool:' + destId)) || 0);
+  if (cool && Date.now() - cool < 12000) {
+    const w = Math.ceil((12000 - (Date.now() - cool)) / 1000);
+    return { error: w + ' সেকেন্ড পরে আবার পাঠাও', status: 429 };
+  }
+  if (!(await rateLimit(env, 'vlink:' + ip, 400, 3600))) return { error: 'একটু পরে আবার চেষ্টা করো', status: 429 };
+  if (!(await rateLimit(env, 'vlink-id:' + destId, 20, 3600))) return { error: 'এই ইমেইলে অনেকবার পাঠানো হয়েছে — একটু পরে চেষ্টা করো', status: 429 };
   const raw = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const hash = await shaHex(raw);
   await env.PUB_KV.put('vlink:' + hash, JSON.stringify({ id: destId, purpose, at: Date.now() }), { expirationTtl: 1800 });
@@ -413,6 +424,7 @@ async function issueVerifyLink(env, destId, purpose, ip) {
   const text = 'Assalamu alaikum,\n\nAdmission Hub অ্যাপে এই ইমেইল দিয়ে অ্যাকাউন্ট খোলার রিকোয়েস্ট এসেছে।\n৩০ মিনিটের মধ্যে এই লিংক খুলো:\n\n' + link + '\n\nতুমি না খুললে এই মেইল ইগনোর করো।\n\nAdmission Hub';
   const sent = await sendEmail(env, to, 'Admission Hub', text, text);
   if (!sent.ok) return { error: sent.error, status: 503 };
+  await env.PUB_KV.put('vcool:' + destId, String(Date.now()), { expirationTtl: 60 });
   return { sent: true, masked: maskDest(destId) };
 }
 const authVerifyLink = async (request, env) => {
@@ -552,7 +564,7 @@ const pkLoginFinish = async (request, env) => {
 
 const authRegisterEmail = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';
-  if (!(await rateLimit(env, 'reg:' + ip, 10, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
+  if (!(await rateLimit(env, 'reg:' + ip, 400, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id || b.email);
   const name = String(b.name || '').trim().slice(0, 40);
@@ -584,7 +596,7 @@ const authRegisterEmail = async (request, env) => {
 };
 const authRegister = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';
-  if (!(await rateLimit(env, 'reg:' + ip, 10, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
+  if (!(await rateLimit(env, 'reg:' + ip, 400, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id);
   const password = String(b.password || '');
@@ -640,7 +652,7 @@ const otpSend = async (request, env) => {
 
 const otpVerify = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';
-  if (!(await rateLimit(env, 'otptry:' + ip, 30, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
+  if (!(await rateLimit(env, 'otptry:' + ip, 400, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id);
   const purpose = String(b.purpose || 'login');
@@ -679,7 +691,7 @@ const otpVerify = async (request, env) => {
 
 const authLogin = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';
-  if (!(await rateLimit(env, 'login:' + ip, 20, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
+  if (!(await rateLimit(env, 'login:' + ip, 2000, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id);
   const u = await getUserById(env, id);
