@@ -104,25 +104,19 @@
     </div>
   </section>`);
 
-  const login = (tab) => {
-    tab = tab || 'pass';
+  const login = () => {
     paint(`<section class="ah-screen ah-light">
       <button class="ah-back" type="button" data-go="welcome" aria-label="Back">${ico('back')}</button>
       <div class="ah-hero-slot">${S().loginHero ? S().loginHero() : ''}</div>
       <h1 class="ah-h">Welcome Back,<br>Scholar! 👋</h1>
-      <p class="ah-p">Login to continue your learning journey</p>
+      <p class="ah-p">Google দিয়ে ভেরিফাই করে ঢুকো</p>
       <div class="ah-form">
-        <div class="ah-tabs">
-          <button type="button" class="${tab==='pass'?'on':''}" data-go="login">Login</button>
-          <button type="button" class="${tab==='otp'?'on':''}" data-go="loginOtp">Login with OTP</button>
-        </div>
-        <label class="ah-lab">Email or Mobile Number</label>
-        <input class="ah-inp" id="ahId" placeholder="Email or Mobile Number" value="${esc(draft.id)}" autocomplete="username">
-        ${tab==='pass' ? `<label class="ah-lab">Password</label>${passRow('ahPass','Password','current-password')}
-        <button class="ah-forgot" type="button" data-go="forgot">Forgot Password?</button>
-        <button class="ah-btn" type="button" id="ahDoLogin">Login</button>` : `<button class="ah-btn" type="button" id="ahDoLoginOtp">Send OTP</button>`}
-        <div class="ah-or">or continue with</div>
-        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
+        <div id="ahGoogleSlot"><button class="ah-btn" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
+        <div class="ah-or">or password</div>
+        <label class="ah-lab">Email</label>
+        <input class="ah-inp" id="ahId" placeholder="Email" value="${esc(draft.id)}" autocomplete="username">
+        <label class="ah-lab">Password</label>${passRow('ahPass','Password','current-password')}
+        <button class="ah-btn sec" type="button" id="ahDoLogin">Login</button>
         ${errBox('ahErr')}
         <div class="ah-foot">Don't have an account? <button type="button" data-go="signup">Sign Up</button></div>
       </div>
@@ -130,24 +124,20 @@
     mountGoogle();
   };
 
-  const signup = () => paint(`<section class="ah-screen ah-light">
+  const signup = () => {
+    paint(`<section class="ah-screen ah-light">
     <button class="ah-back" type="button" data-go="login" aria-label="Back">${ico('back')}</button>
     <div class="ah-hero-slot">${S().signupHero ? S().signupHero() : ''}</div>
     <h1 class="ah-h">Create Your Account</h1>
-    <p class="ah-p">Join thousands of learners on Admission Hub</p>
+    <p class="ah-p">Google দিয়ে ভেরিফাই — OTP লাগবে না</p>
     <div class="ah-form">
-      <label class="ah-lab">Full Name</label>
-      <input class="ah-inp" id="ahName" placeholder="Full Name" value="${esc(draft.name)}" autocomplete="name">
-      <label class="ah-lab">Email or Mobile Number</label>
-      <input class="ah-inp" id="ahId" placeholder="Email or Mobile Number" value="${esc(draft.id)}" autocomplete="username">
-      <label class="ah-lab">Password</label>${passRow('ahPass','Password','new-password')}
-      <label class="ah-lab">Confirm Password</label>${passRow('ahPass2','Confirm Password','new-password')}
-      <label class="ah-check"><input id="ahTerms" type="checkbox" checked> I agree to the Terms &amp; Conditions and Privacy Policy</label>
-      <button class="ah-btn" type="button" id="ahDoSignup">Sign Up</button>
+      <div id="ahGoogleSlot"><button class="ah-btn" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
       ${errBox('ahErr')}
       <div class="ah-foot">Already have an account? <button type="button" data-go="login">Login</button></div>
     </div>
   </section>`);
+    mountGoogle();
+  };
 
   const otpScreen = () => paint(`<section class="ah-screen ah-light ah-center">
     <button class="ah-back" type="button" data-go="${draft.purpose==='reset'?'forgot':(draft.purpose==='signup'?'signup':'login')}" aria-label="Back">${ico('back')}</button>
@@ -195,8 +185,7 @@
   function go(name) {
     view = name;
     if (name === 'welcome') return welcome();
-    if (name === 'login') return login('pass');
-    if (name === 'loginOtp') return login('otp');
+    if (name === 'login' || name === 'loginOtp' || name === 'forgot' || name === 'otp' || name === 'reset') return login();
     if (name === 'signup') return signup();
     if (name === 'otp') return otpScreen();
     if (name === 'forgot') return forgot();
