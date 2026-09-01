@@ -126,16 +126,17 @@ async function trackSession(env, uid, token, ua) {
 }
 async function clearSession(env, uid, token) {
   const key = 'sess:' + uid;
-  const list = JSON.parse((await env.PUB_KV.get(key)) || '{}');
+  const list = JSON.parse((await kvGet(env, key)) || '{}');
   if (list && list[token]) { delete list[token]; await env.PUB_KV.put(key, JSON.stringify(list), { expirationTtl: 31536000 }); }
   await env.PUB_KV.delete('tok:' + token);
+  if (env.OLD_KV) await env.OLD_KV.delete('tok:' + token).catch(() => {});
 }
 async function listSessions(env, uid, currentToken) {
-  const list = JSON.parse((await env.PUB_KV.get('sess:' + uid)) || '{}');
+  const list = JSON.parse((await kvGet(env, 'sess:' + uid)) || '{}');
   const out = [];
   for (const token of Object.keys(list || {})) {
     const s = list[token];
-    const live = !!(await env.PUB_KV.get('tok:' + token));
+    const live = !!(await kvGet(env, 'tok:' + token));
     out.push({
       id: token.slice(0, 8),
       device: s.device || 'Browser', browser: s.browser || '',
@@ -255,15 +256,15 @@ export default {
       if (p === '/api/auth/google/link' && request.method === 'POST') return await authGoogleLink(request, env, uid);
       if (p === '/api/auth/google/unlink' && request.method === 'POST') return await authGoogleUnlink(request, env, uid);
       if (p === '/api/auth/me' && request.method === 'GET') {
-        const u = JSON.parse((await env.PUB_KV.get('user:' + uid)) || 'null');
-        const pf = JSON.parse((await env.PUB_KV.get('profile:' + (u && (u.uid || u.id)))) || '{}');
+        const u = await getUserById(env, uid);
+        const pf = await loadProfile(env, u && (u.uid || u.id));
         return json({ user: publicUser(u, pf) });
       }
       if (p === '/api/auth/password' && request.method === 'POST') return await authChangePassword(request, env, uid);
       if (p === '/api/auth/delete' && request.method === 'POST') return await authDelete(request, env, uid);
       if (p === '/api/profile' && request.method === 'GET') {
-        const u = JSON.parse((await env.PUB_KV.get('user:' + uid)) || 'null');
-        const pf = JSON.parse((await env.PUB_KV.get('profile:' + (u && (u.uid || u.id)))) || '{}');
+        const u = await getUserById(env, uid);
+        const pf = await loadProfile(env, u && (u.uid || u.id));
         return json({ user: publicUser(u, pf) });
       }
       if (p === '/api/profile' && request.method === 'PUT') return await profilePut(request, env, uid);
@@ -278,35 +279,41 @@ export default {
         const target = String(b.token || '');
         if (!target) return json({ error: 'সেশন চিহ্নিত করা যায়নি' }, 400);
         if (target === tok.slice(0, 8)) return json({ error: 'বর্তমান সেশন এভাবে বন্ধ করা যায় না — লগআউট ব্যবহার করো' }, 400);
-        const list = JSON.parse((await env.PUB_KV.get('sess:' + uid)) || '{}');
+        const list = JSON.parse((await kvGet(env, 'sess:' + uid)) || '{}');
         let found = false;
         for (const t of Object.keys(list || {})) {
-          if (t.slice(0, 8) === target) { await env.PUB_KV.delete('tok:' + t); delete list[t]; found = true; }
+          if (t.slice(0, 8) === target) {
+            await env.PUB_KV.delete('tok:' + t);
+            if (env.OLD_KV) await env.OLD_KV.delete('tok:' + t).catch(() => {});
+            delete list[t]; found = true;
+          }
         }
         if (found) { await env.PUB_KV.put('sess:' + uid, JSON.stringify(list), { expirationTtl: 31536000 }); await logAct(env, uid, 'logout', 'একটি ডিভাইস সেশন বন্ধ করা হয়েছে'); }
         return json({ ok: true, revoked: found });
       }
       if (p === '/api/sessions/revoke-others' && request.method === 'POST') {
         const tok = String(request.headers.get('Authorization') || '').replace('Bearer ', '').trim();
-        const list = JSON.parse((await env.PUB_KV.get('sess:' + uid)) || '{}');
+        const list = JSON.parse((await kvGet(env, 'sess:' + uid)) || '{}');
         let n = 0;
         for (const t of Object.keys(list || {})) {
           if (t === tok) continue;
-          await env.PUB_KV.delete('tok:' + t); delete list[t]; n++;
+          await env.PUB_KV.delete('tok:' + t);
+          if (env.OLD_KV) await env.OLD_KV.delete('tok:' + t).catch(() => {});
+          delete list[t]; n++;
         }
         await env.PUB_KV.put('sess:' + uid, JSON.stringify(list), { expirationTtl: 31536000 });
         if (n > 0) await logAct(env, uid, 'logout', 'অন্য সব ডিভাইসের সেশন বন্ধ করা হয়েছে');
         return json({ ok: true, revoked: n });
       }
       if (p === '/api/security/activity' && request.method === 'GET') {
-        const arr = JSON.parse((await env.PUB_KV.get('act:' + uid)) || '[]');
+        const arr = JSON.parse((await kvGet(env, 'act:' + uid)) || '[]');
         return json({ activity: Array.isArray(arr) ? arr : [] });
       }
       if (p === '/api/export' && request.method === 'GET') {
         const u = await getUserById(env, uid);
         if (!u) return json({ error: 'অ্যাকাউন্ট পাওয়া যায়নি' }, 404);
         const pf = await loadProfile(env, u.uid || u.id);
-        const ustate = JSON.parse((await env.PUB_KV.get('ustate:' + u.id)) || 'null');
+        const ustate = JSON.parse((await kvGet(env, 'ustate:' + u.id)) || 'null');
         const sessions = await listSessions(env, uid, String(request.headers.get('Authorization') || '').replace('Bearer ', '').trim());
         const activity = JSON.parse((await env.PUB_KV.get('act:' + uid)) || '[]');
         const data = {
@@ -377,7 +384,8 @@ function strongPass(p) {
   return '';
 }
 async function loadProfile(env, uid) {
-  return JSON.parse((await env.PUB_KV.get('profile:' + uid)) || '{}');
+  const v = await kvGet(env, 'profile:' + uid);
+  return JSON.parse(v || '{}');
 }
 async function saveProfile(env, uid, pf) {
   await env.PUB_KV.put('profile:' + uid, JSON.stringify(pf).slice(0, 350000));
@@ -521,8 +529,15 @@ async function checkOtp(env, destId, purpose, code) {
   await env.PUB_KV.delete(key);
   return { ok: true };
 }
+async function kvGet(env, key) {
+  // primary: PUB_KV → fallback: OLD_KV (পুরনো deploy থেকে data মাইগ্রেট না হওয়া পর্যন্ত)
+  let v = null;
+  if (env.PUB_KV) v = await env.PUB_KV.get(key);
+  if (v == null && env.OLD_KV) v = await env.OLD_KV.get(key);
+  return v;
+}
 async function getUserById(env, id) {
-  return JSON.parse((await env.PUB_KV.get('user:' + id)) || 'null');
+  return JSON.parse((await kvGet(env, 'user:' + id)) || 'null');
 }
 
 
@@ -1131,19 +1146,23 @@ const authDelete = async (request, env, uid) => {
     const hp = await hashPassword(String(b.password || ''), u.passSalt);
     if (hp.hash !== u.passHash) return json({ error: 'পাসওয়ার্ড ভুল' }, 401);
   }
-  await env.PUB_KV.delete('user:' + u.id);
-  await env.PUB_KV.delete('profile:' + (u.uid || u.id));
-  await env.PUB_KV.delete('ustate:' + u.id);
-  await env.PUB_KV.delete('onb:' + u.id);
-  await env.PUB_KV.delete('ach:' + u.id);
-  await env.PUB_KV.delete('act:' + u.id);
-  if (u.credId) await env.PUB_KV.delete('pkid:' + u.credId);
+  const del = async (k) => {
+    await env.PUB_KV.delete(k);
+    if (env.OLD_KV) await env.OLD_KV.delete(k).catch(() => {});
+  };
+  await del('user:' + u.id);
+  await del('profile:' + (u.uid || u.id));
+  await del('ustate:' + u.id);
+  await del('onb:' + u.id);
+  await del('ach:' + u.id);
+  await del('act:' + u.id);
+  if (u.credId) await del('pkid:' + u.credId);
   // revoke every live session token for this account
-  const sessions = JSON.parse((await env.PUB_KV.get('sess:' + u.id)) || '{}');
-  for (const t of Object.keys(sessions || {})) await env.PUB_KV.delete('tok:' + t);
-  await env.PUB_KV.delete('sess:' + u.id);
+  const sessions = JSON.parse((await kvGet(env, 'sess:' + u.id)) || '{}');
+  for (const t of Object.keys(sessions || {})) await del('tok:' + t);
+  await del('sess:' + u.id);
   const tok = String(request.headers.get('Authorization') || '').replace('Bearer ', '').trim();
-  if (tok) await env.PUB_KV.delete('tok:' + tok);
+  if (tok) await del('tok:' + tok);
   return json({ ok: true, deleted: true });
 };
 
@@ -1274,9 +1293,9 @@ const profilePhoto = async (request, env, uid) => {
 
 const authUser = async (request, env) => {
   const tok = String(request.headers.get('Authorization') || '').replace('Bearer ', '').trim();
-  const tr = JSON.parse((await env.PUB_KV.get('tok:' + tok)) || 'null');
+  const tr = JSON.parse((await kvGet(env, 'tok:' + tok)) || 'null');
   if (!tr) throw Object.assign(new Error('আগে লগইন করো'), { status: 401 });
-  const u = JSON.parse((await env.PUB_KV.get('user:' + tr.id)) || '{}');
+  const u = JSON.parse((await kvGet(env, 'user:' + tr.id)) || '{}');
   if (u.blocked || u.status === 'disabled' || u.status === 'suspended') throw Object.assign(new Error('অ্যাকাউন্ট বন্ধ করা হয়েছে'), { status: 403 });
   // session freshness tracking (best-effort, never blocks)
   try {

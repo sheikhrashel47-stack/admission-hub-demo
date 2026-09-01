@@ -78,16 +78,19 @@
   let waitPoll = 0;
 
   const readStore = (k) => {
-    try { return localStorage.getItem(k) || sessionStorage.getItem(k) || ''; } catch (_) { return ''; }
+    let v = '';
+    try { v = localStorage.getItem(k) || ''; } catch (_) {}
+    if (v) return v;
+    try { v = sessionStorage.getItem(k) || ''; } catch (_) {}
+    return v || '';
   };
   const token = () => readStore(LS_TOKEN);
   const user = () => { try { return JSON.parse(readStore(LS_USER) || 'null'); } catch (_) { return null; } };
   const setSession = (tok, u) => {
+    // লেখা ব্যর্থ হলে sessionStorage-এও চেষ্টা — private mode / সীমাবদ্ধ storage-এ লগইন টিকে থাকে
     const write = (k, v) => {
-      try {
-        if (v) { localStorage.setItem(k, v); sessionStorage.setItem(k, v); }
-        else { localStorage.removeItem(k); sessionStorage.removeItem(k); }
-      } catch (_) {}
+      try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (_) {}
+      try { if (v) sessionStorage.setItem(k, v); else sessionStorage.removeItem(k); } catch (_) {}
     };
     write(LS_TOKEN, tok || '');
     write(LS_USER, u ? JSON.stringify(u) : '');
@@ -846,7 +849,7 @@
       if (document.body.querySelector('.ah-offline-note')) return;
       const n = document.createElement('div');
       n.className = 'ah-offline-note';
-      n.innerHTML = '🔌 সার্ভার সংযোগ পাওয়া যাচ্ছে না — এই প্রিভিউতে গুগল/ক্লাউড লগইন কাজ করে না। লাইভ সাইট <a href="https://sheikhrashel47-stack.github.io/admission-hub-demo/">github.io/admission-hub-demo</a> থেকে খুলো।';
+      n.innerHTML = '📶 নেটওয়ার্ক সংযোগ মিলছে না — লগইন এ মুহূর্তে বন্ধ। ইন্টারনেট ঠিক করে অথবা লাইভ অ্যাপ খুলো: <a href="https://sheikhrashel47-stack.github.io/admission-hub-demo/">admission-hub-demo</a>';
       document.body.appendChild(n);
     } catch (_) {}
   }
@@ -1897,26 +1900,43 @@
     const g = gateEl();
     if (g && !g.innerHTML.trim()) welcome();
     if (token()) {
+      // অস্থায়ী নেটওয়ার্ক ঝামেলায় সেশন হারানো যাবে না — ১ বার retry, ৪০১/৪০৩ ছাড়া লগআউট নেই
+      let me = null;
+      let authErr = null;
       try {
-        const me = await api('/auth/me', { headers: authH() });
-        if (me.user && (me.user.status === 'disabled' || me.user.status === 'suspended')) {
-          setSession('', null); setGate(true); go('login'); return;
-        }
-        if (me.user) setSession(token(), me.user);
-        setGate(false);
-        await pullState();
-        if (window.AdmissionCloudContent) AdmissionCloudContent.pull().catch(() => {});
-        if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {
-          const onb = await AHOnboard.maybeStart();
-          if (onb) return;
-        }
+        me = await api('/auth/me', { headers: authH() });
       } catch (e) {
+        authErr = e;
         const msg = String(e && e.message || e);
+        if (!/আগে লগইন|http-401|http-403|অ্যাকাউন্ট বন্ধ/.test(msg)) {
+          try { await new Promise(r => setTimeout(r, 1100)); me = await api('/auth/me', { headers: authH() }); authErr = null; } catch (e2) { authErr = e2; }
+        }
+      }
+      if (authErr) {
+        const msg = String(authErr && authErr.message || authErr);
         if (/আগে লগইন|http-401|http-403|অ্যাকাউন্ট বন্ধ/.test(msg)) {
           setSession('', null); setGate(true); go('welcome');
         } else {
+          // নেটওয়ার্ক/সার্ভার সমস্যা — টোকেন ধরে রাখো, অ্যাপ দেখাও
           setGate(false);
+          showOfflineNote();
         }
+        if (token()) { setInterval(() => { if (token()) pushState().catch(() => {}); }, 90000); }
+        let n = 0;
+        setInterval(wrapRender, 800);
+        return;
+      }
+      if (me && me.user && (me.user.status === 'disabled' || me.user.status === 'suspended')) {
+        setSession('', null); setGate(true); go('login'); return;
+      }
+      if (me && me.user) setSession(token(), me.user);
+      setGate(false);
+      hideOfflineNote();
+      try { await pullState(); } catch (_) {}
+      if (window.AdmissionCloudContent) AdmissionCloudContent.pull().catch(() => {});
+      if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {
+        const onb = await AHOnboard.maybeStart();
+        if (onb) return;
       }
     } else {
       setGate(true);
