@@ -585,6 +585,7 @@
       draft.masked = data.masked;
       draft.waitId = data.waitId || '';
       draft.linkSec = Number(data.expiresIn || 120);
+      persistWait();
       go('checkmail');
     } catch (e) {
       if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('sendLink'); }
@@ -600,27 +601,57 @@
       draft.masked = data.masked || draft.masked;
       draft.waitId = data.waitId || '';
       draft.linkSec = Number(data.expiresIn || 120);
+      persistWait();
       go('checkmail');
     } catch (e) {
       if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('resendLink'); }
       showErr('ahErr', e.message);
     }
   }
+  function persistWait() {
+    try {
+      sessionStorage.setItem('ahWait', JSON.stringify({
+        waitId: draft.waitId, id: draft.id, masked: draft.masked, name: draft.name,
+        dob: draft.dob, school: draft.school, college: draft.college,
+        password: draft.password, confirm: draft.confirm,
+        until: Date.now() + 15 * 60 * 1000
+      }));
+    } catch (_) {}
+  }
+  function readWait() {
+    try {
+      const o = JSON.parse(sessionStorage.getItem('ahWait') || 'null');
+      if (!o || o.until < Date.now()) return null;
+      return o;
+    } catch (_) { return null; }
+  }
+  function clearWait() { try { sessionStorage.removeItem('ahWait'); } catch (_) {} }
   async function pollWait(waitId) {
     const n = ++waitPoll;
-    while (n === waitPoll) {
-      await new Promise(r => setTimeout(r, 2000));
-      if (n !== waitPoll) return;
-      if (!document.getElementById('ahWaitNote')) return;
+    const poke = async () => {
+      if (n !== waitPoll) return true;
+      if (!document.getElementById('ahWaitNote') && view !== 'checkmail') return true;
       try {
-        const data = await api('/auth/wait', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ waitId }) });
-        if (data && data.token) { await afterAuth(data); return; }
-      } catch (e) {
-        showErr('ahErr', e.message);
-        const r = document.getElementById('ahResendLink');
-        if (r) r.disabled = false;
-        return;
+        const data = await api('/auth/wait', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ waitId: waitId || draft.waitId, id: draft.id }) });
+        if (data && data.token) { clearWait(); await afterAuth(data); return true; }
+      } catch (_) {}
+      return false;
+    };
+    if (await poke()) return;
+    const onVis = () => { if (!document.hidden) poke(); };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('pageshow', onVis);
+    window.addEventListener('focus', onVis);
+    try {
+      while (n === waitPoll) {
+        await new Promise(r => setTimeout(r, document.hidden ? 1500 : 800));
+        if (n !== waitPoll) return;
+        if (await poke()) return;
       }
+    } finally {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pageshow', onVis);
+      window.removeEventListener('focus', onVis);
     }
   }
   async function doVerify() {
@@ -791,6 +822,7 @@
   }
 
   async function afterAuth(data) {
+    clearWait();
     setSession(data.token, data.user);
     await enterApp();
   }
@@ -1037,6 +1069,22 @@
     try { cfg = await api('/auth/config'); } catch (_) {}
     if (cfg && cfg.googleClientId) loadGis().catch(() => {});
     window.AH_AUTH_CONFIG = cfg;
+    const held = readWait();
+    if (!token() && held && (held.waitId || held.id)) {
+      draft.waitId = held.waitId || '';
+      draft.id = held.id || draft.id;
+      draft.masked = held.masked || draft.masked;
+      draft.name = held.name || draft.name;
+      draft.dob = held.dob || draft.dob;
+      draft.school = held.school || draft.school;
+      draft.college = held.college || draft.college;
+      draft.password = held.password || draft.password;
+      draft.confirm = held.confirm || draft.confirm;
+      draft.linkSec = Math.max(5, Math.ceil((held.until - Date.now()) / 1000));
+      setGate(true);
+      go('checkmail');
+      return;
+    }
     const g = gateEl();
     if (g && !g.innerHTML.trim()) welcome();
     if (token()) {

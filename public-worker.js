@@ -166,6 +166,7 @@ export default {
       if (p === '/api/auth/passkey/login/begin' && request.method === 'POST') return await pkLoginBegin(request, env);
       if (p === '/api/auth/passkey/login/finish' && request.method === 'POST') return await pkLoginFinish(request, env);
       if (p === '/api/auth/verify-link' && request.method === 'POST') return await authVerifyLink(request, env);
+      if (p === '/api/auth/confirm' && (request.method === 'GET' || request.method === 'POST')) return await authConfirm(request, env);
       if (p === '/api/auth/otp/send' && request.method === 'POST') return await otpSend(request, env);
       if (p === '/api/auth/otp/verify' && request.method === 'POST') return await otpVerify(request, env);
       if (p === '/api/auth/request' && request.method === 'POST') return await otpSend(request, env);
@@ -444,7 +445,7 @@ async function issueVerifyLink(env, destId, purpose, ip) {
   const raw = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const hash = await shaHex(raw);
   await env.PUB_KV.put('vlink:' + hash, JSON.stringify({ id: destId, purpose, at: Date.now() }), { expirationTtl: 120 });
-  const link = APP_URL + '?verify=' + raw;
+  const link = 'https://admission-gk.rashelzayan213.workers.dev/pub/auth/confirm?t=' + raw;
   const to = destId.slice(3);
   const letter = officialLetter('verify', { link });
   const sent = await sendEmail(env, to, letter.subject, letter.text, letter.html);
@@ -452,36 +453,69 @@ async function issueVerifyLink(env, destId, purpose, ip) {
   await env.PUB_KV.put('vcool:' + destId, String(Date.now()), { expirationTtl: 60 });
   return { sent: true, masked: maskDest(destId) };
 }
-const authVerifyLink = async (request, env) => {
-  const b = await request.json().catch(() => ({}));
-  const raw = String(b.token || '');
-  if (!raw) return json({ error: 'লিংক অবৈধ' }, 400);
+async function completeVerify(env, raw) {
+  raw = String(raw || '');
+  if (!raw) return { ok: false, error: 'লিংক অবৈধ', status: 400 };
   const hash = await shaHex(raw);
   const row = JSON.parse((await env.PUB_KV.get('vlink:' + hash)) || 'null');
-  if (!row || !row.id) return json({ error: 'লিংক অবৈধ অথবা মেয়াদ শেষ হয়েছে' }, 401);
+  if (!row || !row.id) return { ok: false, error: 'লিংক অবৈধ অথবা মেয়াদ শেষ হয়েছে', status: 401 };
   if (row.at && Date.now() - row.at > 120000) {
     await env.PUB_KV.delete('vlink:' + hash);
-    return json({ error: 'লিংকের মেয়াদ শেষ হয়েছে। নতুন লিংক প্রেরণ করুন।' }, 401);
+    return { ok: false, error: 'লিংকের মেয়াদ শেষ হয়েছে। নতুন লিংক প্রেরণ করুন।', status: 401 };
   }
   const pending = JSON.parse((await env.PUB_KV.get('pending:' + row.id)) || 'null');
-  if (!pending) return json({ error: 'আবার সাইন আপ করো' }, 400);
+  if (!pending) return { ok: false, error: 'আবার সাইন আপ করুন', status: 400 };
   pending.verified = true; pending.emailVerified = true; pending.status = 'active'; pending.lastSeen = Date.now();
   await env.PUB_KV.put('user:' + pending.id, JSON.stringify(pending));
   await env.PUB_KV.delete('pending:' + row.id);
   await env.PUB_KV.delete('vlink:' + hash);
   const issued = await issueToken(env, pending);
   issued.user = await fullUser(env, pending);
-  if (pending.waitId) {
-    await env.PUB_KV.put('wait:' + pending.waitId, JSON.stringify({ status: 'ready', token: issued.token, user: issued.user }), { expirationTtl: 180 });
+  const ready = JSON.stringify({ status: 'ready', token: issued.token, user: issued.user, id: pending.id });
+  if (pending.waitId) await env.PUB_KV.put('wait:' + pending.waitId, ready, { expirationTtl: 900 });
+  await env.PUB_KV.put('waitid:' + pending.id, ready, { expirationTtl: 900 });
+  return { ok: true, issued };
+}
+const authVerifyLink = async (request, env) => {
+  const b = await request.json().catch(() => ({}));
+  const out = await completeVerify(env, b.token);
+  if (!out.ok) return json({ error: out.error }, out.status);
+  return json(out.issued);
+};
+const authConfirm = async (request, env) => {
+  const url = new URL(request.url);
+  let raw = url.searchParams.get('t') || url.searchParams.get('verify') || '';
+  if (request.method === 'POST' && !raw) {
+    const b = await request.json().catch(() => ({}));
+    raw = String(b.token || b.t || '');
   }
-  return json(issued);
+  const out = await completeVerify(env, raw);
+  const ok = out.ok;
+  const msg = ok
+    ? 'Your email has been verified. Return to the original device — it will sign you in automatically.'
+    : (out.error || 'Verification failed');
+  const bn = ok
+    ? 'আপনার ইমেইল যাচাই সম্পন্ন হয়েছে। যে ডিভাইসে অ্যাকাউন্ট খুলছিলেন সেখানে ফিরে যান — সেটি স্বয়ংক্রিয়ভাবে প্রবেশ করাবে।'
+    : (out.error || 'যাচাই ব্যর্থ');
+  const html = `<!doctype html><html lang="bn"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admission Hub</title>
+<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f3f5f4;font-family:Georgia,Times,serif;color:#1a2420">
+<div style="max-width:440px;margin:24px;background:#fff;border:1px solid #dce6e0;padding:36px 28px;text-align:center">
+<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:.16em;color:#1e7a4c;font-weight:700">ADMISSION HUB</p>
+<p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:12px;color:#66756e">Office of Student Accounts</p>
+<h1 style="font-size:26px;margin:0 0 14px">${ok ? 'Verified' : 'Unable to verify'}</h1>
+<p style="line-height:1.55">${msg}</p>
+<p style="line-height:1.55;color:#44524c">${bn}</p>
+</div></body></html>`;
+  return new Response(html, { status: ok ? 200 : (out.status || 400), headers: { 'Content-Type': 'text/html; charset=utf-8', 'Access-Control-Allow-Origin': '*' } });
 };
 const authWait = async (request, env) => {
   const b = await request.json().catch(() => ({}));
   const waitId = String(b.waitId || '');
-  if (waitId.length < 16) return json({ error: 'অপেক্ষা অবৈধ' }, 400);
-  const row = JSON.parse((await env.PUB_KV.get('wait:' + waitId)) || 'null');
-  if (!row) return json({ error: 'লিংকের মেয়াদ শেষ হয়েছে। নতুন লিংক প্রেরণ করুন।' }, 410);
+  const id = normId(b.id || '');
+  let row = null;
+  if (waitId.length >= 16) row = JSON.parse((await env.PUB_KV.get('wait:' + waitId)) || 'null');
+  if (!row && id.startsWith('em:')) row = JSON.parse((await env.PUB_KV.get('waitid:' + id)) || 'null');
+  if (!row) return json({ waiting: true });
   if (row.status === 'ready' && row.token) return json({ token: row.token, user: row.user, ready: true });
   return json({ waiting: true });
 };
