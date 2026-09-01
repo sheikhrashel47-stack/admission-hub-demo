@@ -231,10 +231,35 @@ async function fullUser(env, rec) {
   const pf = await loadProfile(env, rec.uid || rec.id);
   return publicUser(rec, pf);
 }
+function officialLetter(kind, extra) {
+  const code = extra && extra.code ? String(extra.code) : '';
+  const link = extra && extra.link ? String(extra.link) : '';
+  const isReset = kind === 'reset';
+  const subject = isReset ? 'Admission Hub | Password Recovery' : 'Admission Hub | Email Verification';
+  const enLead = isReset
+    ? 'This correspondence confirms a request to recover the password for the Admission Hub account registered to this email address.'
+    : 'This correspondence confirms a request to verify the email address submitted for registration with Admission Hub.';
+  const bnLead = isReset
+    ? 'Admission Hub-এ এই ইমেইল ঠিকানায় নিবন্ধিত অ্যাকাউন্টের পাসওয়ার্ড পুনরুদ্ধারের অনুরোধ এই পত্রের মাধ্যমে নিশ্চিত করা হচ্ছে।'
+    : 'Admission Hub-এ নিবন্ধনের জন্য প্রদত্ত ইমেইল ঠিকানা যাচাইয়ের অনুরোধ এই পত্রের মাধ্যমে নিশ্চিত করা হচ্ছে।';
+  const enTime = 'This verification remains valid for two (2) minutes only.';
+  const bnTime = 'এই যাচাইকরণ মাত্র দুই (২) মিনিটের জন্য কার্যকর থাকবে।';
+  const enIgn = 'If you did not initiate this request, please disregard this message. No further action is required.';
+  const bnIgn = 'আপনি এই অনুরোধ না করে থাকলে এই বার্তাটি উপেক্ষা করুন। কোনো অতিরিক্ত পদক্ষেপ প্রয়োজন নেই।';
+  const text = ['Dear Student / প্রিয় শিক্ষার্থী,', '', enLead, bnLead, '', enTime, bnTime, '',
+    code ? ('Verification code / যাচাইকরণ কোড: ' + code) : ('Verification link / যাচাইকরণ লিংক:'),
+    code ? '' : link, '', enIgn, bnIgn, '', 'Yours sincerely,', 'Office of Student Accounts', 'Admission Hub'].filter(x => x !== undefined).join('\n');
+  const action = code
+    ? ('<p style="font-size:28px;letter-spacing:8px;font-weight:700;color:#1e7a4c;margin:22px 0;font-family:Arial,sans-serif">' + code + '</p>')
+    : ('<p style="margin:26px 0 10px"><a href="' + link + '" style="display:inline-block;background:#1e7a4c;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:6px;font-weight:700;font-size:14px;font-family:Arial,sans-serif">Verify email address</a></p><p style="font-size:12px;color:#66756e;word-break:break-all;font-family:Arial,sans-serif">' + link + '</p>');
+  const html = '<div style="background:#f3f5f4;padding:24px;font-family:Georgia,Times,serif;color:#1a2420"><div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #dce6e0;padding:32px 28px"><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:.16em;color:#1e7a4c;font-weight:700">ADMISSION HUB</p><p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:12px;color:#66756e">Office of Student Accounts</p><p>Dear Student / প্রিয় শিক্ষার্থী,</p><p>' + enLead + '</p><p>' + bnLead + '</p><p>' + enTime + '<br>' + bnTime + '</p>' + action + '<p style="color:#5b675f;font-size:14px">' + enIgn + '<br>' + bnIgn + '</p><p style="margin:28px 0 0">Yours sincerely,<br>Office of Student Accounts<br>Admission Hub</p></div></div>';
+  return { subject, text, html };
+}
 async function sendOtpMessage(env, destId, code) {
-  const text = 'Admission Hub verification code: ' + code + ' (valid 5 minutes). Do not share.';
-  const html = '<div style="font-family:sans-serif;padding:16px"><p>Admission Hub</p><p style="font-size:28px;letter-spacing:6px;font-weight:800">' + code + '</p><p>Valid 5 minutes. Do not share this code.</p></div>';
-  const subject = 'Your Admission Hub code: ' + code;
+  const letter = officialLetter('reset', { code });
+  const text = letter.text;
+  const html = letter.html;
+  const subject = letter.subject;
   if (destId.startsWith('em:')) {
     const to = destId.slice(3);
     if (env.MAIL_HOOK) {
@@ -318,12 +343,12 @@ async function issueOtp(env, destId, purpose, ip) {
   if (!(await rateLimit(env, 'otp-id:' + destId, 20, 3600))) return { error: 'একটু পরে আবার চেষ্টা করো', status: 429 };
   const key = 'otp:' + purpose + ':' + destId;
   const prev = JSON.parse((await env.PUB_KV.get(key)) || 'null');
-  if (prev && prev.sentAt && Date.now() - prev.sentAt < 45000) return { error: 'কোড আবার পাঠাতে একটু অপেক্ষা করো', status: 429, wait: 45 - Math.floor((Date.now() - prev.sentAt) / 1000) };
+  if (prev && prev.sentAt && Date.now() - prev.sentAt < 12000) return { error: 'কয়েক সেকেন্ড পর আবার প্রেরণ করুন', status: 429, wait: Math.max(1, 12 - Math.floor((Date.now() - prev.sentAt) / 1000)) };
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const sent = await sendOtpMessage(env, destId, code);
   if (!sent.ok) return { error: sent.error, status: 503 };
-  await env.PUB_KV.put(key, JSON.stringify({ hash: await shaHex(code), exp: Date.now() + 5 * 60000, tries: 0, sentAt: Date.now(), purpose }), { expirationTtl: 600 });
-  return { sent: true, channel: sent.channel, masked: maskDest(destId), wait: 45 };
+  await env.PUB_KV.put(key, JSON.stringify({ hash: await shaHex(code), exp: Date.now() + 120000, tries: 0, sentAt: Date.now(), purpose }), { expirationTtl: 150 });
+  return { sent: true, channel: sent.channel, masked: maskDest(destId), wait: 120 };
 }
 async function checkOtp(env, destId, purpose, code) {
   const key = 'otp:' + purpose + ':' + destId;
@@ -418,11 +443,11 @@ async function issueVerifyLink(env, destId, purpose, ip) {
   if (!(await rateLimit(env, 'vlink-id:' + destId, 20, 3600))) return { error: 'এই ইমেইলে অনেকবার পাঠানো হয়েছে — একটু পরে চেষ্টা করো', status: 429 };
   const raw = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const hash = await shaHex(raw);
-  await env.PUB_KV.put('vlink:' + hash, JSON.stringify({ id: destId, purpose, at: Date.now() }), { expirationTtl: 1800 });
+  await env.PUB_KV.put('vlink:' + hash, JSON.stringify({ id: destId, purpose, at: Date.now() }), { expirationTtl: 120 });
   const link = APP_URL + '?verify=' + raw;
   const to = destId.slice(3);
-  const text = 'Assalamu alaikum,\n\nAdmission Hub অ্যাপে এই ইমেইল দিয়ে অ্যাকাউন্ট খোলার রিকোয়েস্ট এসেছে।\n৩০ মিনিটের মধ্যে এই লিংক খুলো:\n\n' + link + '\n\nতুমি না খুললে এই মেইল ইগনোর করো।\n\nAdmission Hub';
-  const sent = await sendEmail(env, to, 'Admission Hub', text, text);
+  const letter = officialLetter('verify', { link });
+  const sent = await sendEmail(env, to, letter.subject, letter.text, letter.html);
   if (!sent.ok) return { error: sent.error, status: 503 };
   await env.PUB_KV.put('vcool:' + destId, String(Date.now()), { expirationTtl: 60 });
   return { sent: true, masked: maskDest(destId) };
@@ -433,7 +458,11 @@ const authVerifyLink = async (request, env) => {
   if (!raw) return json({ error: 'লিংক অবৈধ' }, 400);
   const hash = await shaHex(raw);
   const row = JSON.parse((await env.PUB_KV.get('vlink:' + hash)) || 'null');
-  if (!row || !row.id) return json({ error: 'লিংক অবৈধ বা মেয়াদ শেষ' }, 401);
+  if (!row || !row.id) return json({ error: 'লিংক অবৈধ অথবা মেয়াদ শেষ হয়েছে' }, 401);
+  if (row.at && Date.now() - row.at > 120000) {
+    await env.PUB_KV.delete('vlink:' + hash);
+    return json({ error: 'লিংকের মেয়াদ শেষ হয়েছে। নতুন লিংক প্রেরণ করুন।' }, 401);
+  }
   const pending = JSON.parse((await env.PUB_KV.get('pending:' + row.id)) || 'null');
   if (!pending) return json({ error: 'আবার সাইন আপ করো' }, 400);
   pending.verified = true; pending.emailVerified = true; pending.status = 'active'; pending.lastSeen = Date.now();
@@ -443,7 +472,7 @@ const authVerifyLink = async (request, env) => {
   const issued = await issueToken(env, pending);
   issued.user = await fullUser(env, pending);
   if (pending.waitId) {
-    await env.PUB_KV.put('wait:' + pending.waitId, JSON.stringify({ status: 'ready', token: issued.token, user: issued.user }), { expirationTtl: 600 });
+    await env.PUB_KV.put('wait:' + pending.waitId, JSON.stringify({ status: 'ready', token: issued.token, user: issued.user }), { expirationTtl: 180 });
   }
   return json(issued);
 };
@@ -452,7 +481,7 @@ const authWait = async (request, env) => {
   const waitId = String(b.waitId || '');
   if (waitId.length < 16) return json({ error: 'অপেক্ষা অবৈধ' }, 400);
   const row = JSON.parse((await env.PUB_KV.get('wait:' + waitId)) || 'null');
-  if (!row) return json({ error: 'সময় শেষ — আবার লিংক পাঠান' }, 410);
+  if (!row) return json({ error: 'লিংকের মেয়াদ শেষ হয়েছে। নতুন লিংক প্রেরণ করুন।' }, 410);
   if (row.status === 'ready' && row.token) return json({ token: row.token, user: row.user, ready: true });
   return json({ waiting: true });
 };
@@ -588,11 +617,11 @@ const authRegisterEmail = async (request, env) => {
     passHash: hp.hash, passSalt: hp.salt, waitId,
     created: Date.now(), providers: ['email', 'password'], verified: false, emailVerified: false, status: 'pending'
   };
-  await env.PUB_KV.put('pending:' + id, JSON.stringify(pending), { expirationTtl: 1800 });
-  await env.PUB_KV.put('wait:' + waitId, JSON.stringify({ id, status: 'pending' }), { expirationTtl: 1800 });
+  await env.PUB_KV.put('pending:' + id, JSON.stringify(pending), { expirationTtl: 900 });
+  await env.PUB_KV.put('wait:' + waitId, JSON.stringify({ id, status: 'pending' }), { expirationTtl: 150 });
   const sent = await issueVerifyLink(env, id, 'signup', ip);
   if (sent.error) return json({ error: sent.error }, sent.status || 503);
-  return json({ pending: true, sent: true, channel: 'link', masked: sent.masked, purpose: 'signup', waitId });
+  return json({ pending: true, sent: true, channel: 'link', masked: sent.masked, purpose: 'signup', waitId, expiresIn: 120 });
 };
 const authRegister = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';
@@ -749,9 +778,16 @@ const authGoogle = async (request, env) => {
   return json(issued);
 };
 const authForgot = async (request, env) => {
+  const ip = request.headers.get('CF-Connecting-IP') || 'ip';
   const b = await request.json().catch(() => ({}));
-  b.purpose = 'reset';
-  return otpSend(new Request(request.url, { method: 'POST', headers: request.headers, body: JSON.stringify(b) }), env);
+  const id = normId(b.id);
+  if (!id.startsWith('em:')) return json({ error: 'নিবন্ধিত ইমেইল ঠিকানা লিখুন' }, 400);
+  const u = await getUserById(env, id);
+  if (!u || (u.status && u.status !== 'active')) return json({ error: 'এই ইমেইলে কোনো অ্যাকাউন্ট পাওয়া যায়নি' }, 404);
+  if (u.blocked || u.status === 'disabled' || u.status === 'suspended') return json({ error: 'অ্যাকাউন্ট বন্ধ' }, 403);
+  const otp = await issueOtp(env, id, 'reset', ip);
+  if (otp.error) return json({ error: otp.error, wait: otp.wait }, otp.status || 503);
+  return json({ sent: true, channel: otp.channel, masked: otp.masked, wait: otp.wait, purpose: 'reset', expiresIn: 120 });
 };
 const authReset = async (request, env) => {
   const b = await request.json().catch(() => ({}));

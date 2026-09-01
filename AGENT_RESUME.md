@@ -17,7 +17,7 @@ Read this first. Continue existing work; do not redesign Phase 1.
 - Control: https://sheikhrashel47-stack.github.io/admission-hub/
 - Public: https://sheikhrashel47-stack.github.io/admission-hub-demo/
 - Workers PUT 2026-09-01: `admission-gk` + `ah-public` (passkey + register-email **live**)
-- Demo git: SW `v157-google-oauth-20260901` / `p3-auth-ui-v23`
+- Demo git: SW `v158-mail-reset-20260901` / `p3-auth-ui-v24`
 - Welcome: same Glass Daylight. Middle English/বাংলা → buttons hide → clean letter typing (no cat, no photo BG)
 - Hub git: `d353285`
 - PUB: `https://admission-gk.rashelzayan213.workers.dev/pub`

@@ -136,3 +136,11 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
 .ah-bar{height:8px;background:#e9eeeb;border-radius:99px;overflow:hidden}
 .ah-bar i{display:block;height:100%;background:#0f6b4f;border-radius:99px}
 .ah-kicker{font-weight:800}
+
+.ah-mail .ah-kicker{letter-spacing:.16em;font-size:11px;color:var(--ah-em);margin:8px 0 10px}
+.ah-count-lab{text-align:center;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ah-muted);font-weight:700;margin:18px 0 4px}
+.ah-count{text-align:center;font-size:34px;font-weight:800;letter-spacing:3px;color:var(--ah-em);font-variant-numeric:tabular-nums;line-height:1.1}
+.ah-mail .ah-p{max-width:320px;margin-left:auto;margin-right:auto;line-height:1.55}
+#ahResendLink{margin-top:18px}
+#ahResend{display:none;margin:8px auto 0}
+#ahResend:disabled,#ahResendLink:disabled{opacity:.45}

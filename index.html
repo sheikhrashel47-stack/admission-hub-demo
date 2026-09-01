@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>My Admission Hub</title>
 <script>(function(){try{document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')||sessionStorage.getItem('ahPubToken'))?'in':'out';}catch(e){document.documentElement.dataset.ah='out';}})();</script>
-<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-ui-v23">
+<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-ui-v24">
 
 <link rel="manifest" href="manifest.json">
 <link rel="alternate" type="application/manifest+json" href="manifest.webmanifest">
@@ -5095,12 +5095,12 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
       // An older worker can keep serving the pre-fix navigation bundle in an
       // installed PWA. Remove that controller once, then install the current
       // worker with a fresh build URL.
-      const expectedSwVersion = 'v157-google-oauth-20260901';
+      const expectedSwVersion = 'v158-mail-reset-20260901';
       if (registration && activeUrl && !activeUrl.includes(expectedSwVersion)) {
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v157-google-oauth-20260901',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v158-mail-reset-20260901',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Apply an already-installed worker immediately; never require a cache-clear action.
       activateWaiting(registration);
@@ -5631,8 +5631,8 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script>window.AH_CLOUD_ROLE='public';</script>
 <script src="./cloud-content-sync.js?v=p2-cloud-v2"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
-<script src="./auth-svg.js?v=p3-auth-ui-v23"></script>
-<script src="./premium-auth.js?v=p3-auth-ui-v23"></script>
+<script src="./auth-svg.js?v=p3-auth-ui-v24"></script>
+<script src="./premium-auth.js?v=p3-auth-ui-v24"></script>
 <script src="./app-seed.js?v=p1"></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */

@@ -30,9 +30,19 @@
       verifyTitle: 'Verify your account', verifySub: 'One last step to secure your account',
       emailWay: 'Continue with Email Verification', hint: 'Choose whichever is more convenient for you.',
       emailTitle: 'Verify your email', emailSub: "We'll send a verification link",
-      sendLink: 'Send verification link', checkEmail: 'Check your email',
-      linkSent: 'Verification link sent to', linkTap: 'Open the link to activate your account.',
-      processing: 'Processing…', waitingMail: 'Keep this page open. After you confirm the link, this device will sign in automatically.'
+      sendLink: 'Send verification link', checkEmail: 'Confirm your email',
+      linkSent: 'A verification message has been sent to',
+      linkTap: 'Open the link in that message to activate your account.',
+      processing: 'Processing…', waitingMail: 'Please keep this page open. Once the link is confirmed, this device will sign you in.',
+      linkExpires: 'Link expires in', linkExpired: 'The verification link has expired. Please request a new one.',
+      resendLink: 'Resend verification link', forgot: 'Forgot password?',
+      forgotTitle: 'Recover password', forgotSub: 'Enter the email address used to create your account. A verification code will be sent only to that address.',
+      sendCode: 'Send verification code', otpTitle: 'Enter verification code',
+      otpSub: 'A six-digit code has been sent to', resendCode: 'Resend code', resendIn: 'Resend available in',
+      verifyContinue: 'Verify and continue', newPass: 'Set a new password',
+      newPassSub: 'Choose a new password for your Admission Hub account.', updatePass: 'Update password',
+      resetOkTitle: 'Password updated', resetOkSub: 'Your password has been changed. You may now continue.',
+      goDash: 'Continue'
     },
     bn: {
       tag: 'জ্ঞান অর্জন করুন, লক্ষ্যে পৌঁছান', start: 'শুরু করুন',
@@ -46,9 +56,19 @@
       verifyTitle: 'অ্যাকাউন্ট যাচাইকরণ', verifySub: 'নিরাপত্তার জন্য শেষ ধাপ',
       emailWay: 'ইমেইল যাচাইকরণ', hint: 'আপনার সুবিধামতো পদ্ধতি বেছে নিন।',
       emailTitle: 'ইমেইল যাচাইকরণ', emailSub: 'যাচাইকরণ লিংক প্রেরণ করা হবে',
-      sendLink: 'যাচাইকরণ লিংক পাঠান', checkEmail: 'ইমেইল পরীক্ষা করুন',
-      linkSent: 'যাচাইকরণ লিংক প্রেরণ করা হয়েছে', linkTap: 'লিংক খুললে অ্যাকাউন্ট সক্রিয় হবে।',
-      processing: 'প্রক্রিয়াকরণ চলছে…', waitingMail: 'এই পাতা খোলা রাখুন। লিংক নিশ্চিত হলে এই ডিভাইসে স্বয়ংক্রিয়ভাবে প্রবেশ করবে।'
+      sendLink: 'যাচাইকরণ লিংক পাঠান', checkEmail: 'ইমেইল নিশ্চিতকরণ',
+      linkSent: 'যাচাইকরণ বার্তা প্রেরণ করা হয়েছে',
+      linkTap: 'বার্তার লিংক খুললে আপনার অ্যাকাউন্ট সক্রিয় হবে।',
+      processing: 'প্রক্রিয়াকরণ চলছে…', waitingMail: 'এই পাতা খোলা রাখুন। লিংক নিশ্চিত হলে এই ডিভাইসে স্বয়ংক্রিয়ভাবে প্রবেশ করবে।',
+      linkExpires: 'লিংকের মেয়াদ', linkExpired: 'যাচাইকরণ লিংকের মেয়াদ শেষ হয়েছে। নতুন লিংক প্রেরণ করুন।',
+      resendLink: 'নতুন লিংক প্রেরণ করুন', forgot: 'পাসওয়ার্ড ভুলে গেছেন?',
+      forgotTitle: 'পাসওয়ার্ড পুনরুদ্ধার', forgotSub: 'যে ইমেইল ঠিকানায় অ্যাকাউন্ট খুলেছিলেন সেটি লিখুন। যাচাইকরণ কোড কেবল সেই ঠিকানায় প্রেরণ করা হবে।',
+      sendCode: 'যাচাইকরণ কোড পাঠান', otpTitle: 'যাচাইকরণ কোড লিখুন',
+      otpSub: 'ছয় অঙ্কের কোড প্রেরণ করা হয়েছে', resendCode: 'কোড পুনরায় পাঠান', resendIn: 'পুনরায় পাঠানো যাবে',
+      verifyContinue: 'যাচাই করে এগিয়ে যান', newPass: 'নতুন পাসওয়ার্ড নির্ধারণ',
+      newPassSub: 'Admission Hub অ্যাকাউন্টের জন্য একটি নতুন পাসওয়ার্ড নির্ধারণ করুন।', updatePass: 'পাসওয়ার্ড হালনাগাদ করুন',
+      resetOkTitle: 'পাসওয়ার্ড হালনাগাদ হয়েছে', resetOkSub: 'আপনার পাসওয়ার্ড পরিবর্তন সম্পন্ন হয়েছে। এখন প্রবেশ করতে পারেন।',
+      goDash: 'এগিয়ে যান'
     }
   };
   const t = k => (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k;
@@ -174,6 +194,7 @@
         <label class="ah-lab">${t('email')}</label>
         <input class="ah-inp" id="ahId" placeholder="${t('email')}" value="${esc(draft.id)}" autocomplete="username">
         <label class="ah-lab">${t('password')}</label>${passRow('ahPass', t('password'), 'current-password')}
+        <button class="ah-forgot" type="button" data-go="forgot">${t('forgot')}</button>
         <button class="ah-btn sec" type="button" id="ahDoLogin">${t('login')}</button>
         ${errBox('ahErr')}
         <div class="ah-foot">${t('noAcc')} <button type="button" data-go="signup">${t('signup')}</button></div>
@@ -239,14 +260,14 @@
 
   const otpScreen = () => paint(`<section class="ah-screen ah-light ah-center">
     <button class="ah-back" type="button" data-go="${draft.purpose==='reset'?'forgot':(draft.purpose==='signup'?'signup':'login')}" aria-label="Back">${ico('back')}</button>
-    <div class="ah-hero-slot">${S().otpHero ? S().otpHero() : ''}</div>
-    <h1 class="ah-h">Verify Your Number</h1>
-    <p class="ah-p">We sent a 6-digit code to<br><b>${esc(draft.masked || draft.id)}</b></p>
-    <button class="ah-change" type="button" data-go="${draft.purpose==='signup'?'signup':'login'}">Change Number</button>
+    <h1 class="ah-h">${t('otpTitle')}</h1>
+    <p class="ah-p">${t('otpSub')}<br><b>${esc(draft.masked || draft.id)}</b></p>
     <div class="ah-otp" id="ahOtp">${[0,1,2,3,4,5].map(i=>`<input maxlength="1" inputmode="numeric" data-otp="${i}" autocomplete="${i?'off':'one-time-code'}">`).join('')}</div>
-    <div class="ah-resend" id="ahOtpWait">Resend code in 00:<span id="ahSec">${esc(String(draft.wait||45))}</span></div>
-    <button class="ah-resend ah-link" type="button" id="ahResend">Resend code</button>
-    <button class="ah-btn" type="button" id="ahDoVerify">Verify &amp; Continue</button>
+    <p class="ah-count-lab">${t('linkExpires')}</p>
+    <div class="ah-count" id="ahCount">02:00</div>
+    <div class="ah-resend" id="ahOtpWait">${t('resendIn')} <span id="ahSec">${esc(String(draft.wait||120))}</span>s</div>
+    <button class="ah-btn sec" type="button" id="ahResend" disabled>${t('resendCode')}</button>
+    <button class="ah-btn" type="button" id="ahDoVerify">${t('verifyContinue')}</button>
     ${errBox('ahErr')}
   </section>`);
 
@@ -259,22 +280,38 @@
 
   const forgot = () => paint(`<section class="ah-screen ah-light">
     <button class="ah-back" type="button" data-go="login" aria-label="Back">${ico('back')}</button>
-    <div class="ah-hero-slot">${S().loginHero ? S().loginHero() : ''}</div>
-    <h1 class="ah-h">Forgot Password</h1>
-    <p class="ah-p">Enter your email or mobile to receive a code</p>
-    <label class="ah-lab">Email or Mobile Number</label>
-    <input class="ah-inp" id="ahId" placeholder="Email or Mobile Number" value="${esc(draft.id)}">
-    <button class="ah-btn" type="button" id="ahDoForgot">Send Code</button>
-    ${errBox('ahErr')}
+    <h1 class="ah-h">${t('forgotTitle')}</h1>
+    <p class="ah-p">${t('forgotSub')}</p>
+    <div class="ah-form">
+      <label class="ah-lab">${t('email')}</label>
+      <input class="ah-inp" id="ahId" placeholder="${t('email')}" value="${esc(draft.id)}" autocomplete="email" inputmode="email">
+      <button class="ah-btn" type="button" id="ahDoForgot">${t('sendCode')}</button>
+      ${errBox('ahErr')}
+    </div>
   </section>`);
 
   const reset = () => paint(`<section class="ah-screen ah-light">
     <button class="ah-back" type="button" data-go="forgot" aria-label="Back">${ico('back')}</button>
-    <h1 class="ah-h">New Password</h1>
-    <p class="ah-p">Choose a new password for your account</p>
-    <label class="ah-lab">Password</label>${passRow('ahPass','Password','new-password')}
-    <label class="ah-lab">Confirm Password</label>${passRow('ahPass2','Confirm Password','new-password')}
-    <button class="ah-btn" type="button" id="ahDoReset">Update</button>
+    <h1 class="ah-h">${t('newPass')}</h1>
+    <p class="ah-p">${t('newPassSub')}</p>
+    <div class="ah-form">
+      <label class="ah-lab">${t('password')}</label>${passRow('ahPass', t('password'), 'new-password')}
+      <label class="ah-lab">${t('confirm')}</label>${passRow('ahPass2', t('confirm'), 'new-password')}
+      <button class="ah-btn" type="button" id="ahDoReset">${t('updatePass')}</button>
+      ${errBox('ahErr')}
+    </div>
+  </section>`);
+
+  const checkMail = () => paint(`<section class="ah-screen ah-light ah-center ah-mail">
+    <button class="ah-back" type="button" data-go="emailv" aria-label="Back">${ico('back')}</button>
+    <p class="ah-kicker">ADMISSION HUB</p>
+    <h1 class="ah-h">${t('checkEmail')}</h1>
+    <p class="ah-p">${t('linkSent')}<br><b>${esc(draft.masked || draft.id)}</b></p>
+    <p class="ah-p">${t('linkTap')}</p>
+    <p class="ah-count-lab">${t('linkExpires')}</p>
+    <div class="ah-count" id="ahCount">02:00</div>
+    <p class="ah-p" id="ahWaitNote">${t('waitingMail')}</p>
+    <button class="ah-btn sec" type="button" id="ahResendLink" disabled>${t('resendLink')}</button>
     ${errBox('ahErr')}
   </section>`);
 
@@ -285,15 +322,16 @@
     waitPoll += 1;
     view = name;
     if (name === 'welcome') return welcome();
-    if (name === 'login' || name === 'loginOtp' || name === 'forgot' || name === 'otp' || name === 'reset') return login();
+    if (name === 'login' || name === 'loginOtp') return login();
     if (name === 'signup') return signup();
     if (name === 'verify') return signupVerify();
     if (name === 'emailv') return emailVerify();
+    if (name === 'checkmail') return checkMail();
     if (name === 'otp') return otpScreen();
     if (name === 'forgot') return forgot();
     if (name === 'reset') return reset();
-    if (name === 'ok') return success('Welcome Aboard! 🎉', 'Your account has been verified successfully.', 'Go to Dashboard');
-    if (name === 'resetOk') return success('All Set! 🎉', 'Your password has been updated successfully.', 'Login');
+    if (name === 'ok') return success(lang==='bn' ? 'অ্যাকাউন্ট সক্রিয় হয়েছে' : 'Account verified', lang==='bn' ? 'যাচাইকরণ সম্পন্ন হয়েছে।' : 'Verification is complete.', t('goDash'));
+    if (name === 'resetOk') return success(t('resetOkTitle'), t('resetOkSub'), t('login'));
   }
 
   function bind() {
@@ -339,8 +377,12 @@
     if (enter) enter.onclick = () => { if (view === 'resetOk') go('login'); else enterApp(); };
     const resend = document.getElementById('ahResend');
     if (resend) resend.onclick = resendOtp;
+    const rl = document.getElementById('ahResendLink');
+    if (rl) rl.onclick = resendVerifyLink;
     setupOtpInputs();
     startOtpCountdown();
+    if (document.getElementById('ahCount')) startLinkCountdown();
+    if (view === 'checkmail' && draft.waitId) pollWait(draft.waitId);
     bindTilt();
     lockAuthGestures();
   }
@@ -442,18 +484,48 @@
     const box = document.getElementById('ahOtp'); if (!box) return '';
     return [...box.querySelectorAll('input')].map(i => i.value).join('');
   }
+  function fmtClock(n) {
+    n = Math.max(0, Number(n) || 0);
+    const m = String(Math.floor(n / 60)).padStart(2, '0');
+    const s = String(n % 60).padStart(2, '0');
+    return m + ':' + s;
+  }
+  function startLinkCountdown() {
+    const el = document.getElementById('ahCount');
+    if (!el) return;
+    clearInterval(otpTimer);
+    let n = Number(draft.linkSec || draft.wait || 120);
+    el.textContent = fmtClock(n);
+    const btn = document.getElementById('ahResendLink') || document.getElementById('ahResend');
+    if (btn) btn.disabled = true;
+    otpTimer = setInterval(() => {
+      n -= 1;
+      const clock = document.getElementById('ahCount');
+      if (clock) clock.textContent = fmtClock(n);
+      const sec = document.getElementById('ahSec');
+      if (sec) sec.textContent = String(Math.max(0, n));
+      if (n <= 0) {
+        clearInterval(otpTimer);
+        const w = document.getElementById('ahOtpWait'); if (w) w.style.display = 'none';
+        const r = document.getElementById('ahResendLink') || document.getElementById('ahResend');
+        if (r) { r.disabled = false; r.style.display = 'flex'; }
+        if (document.getElementById('ahWaitNote')) showErr('ahErr', t('linkExpired'));
+      }
+    }, 1000);
+  }
   function startOtpCountdown() {
+    if (document.getElementById('ahCount')) return;
     const sec = document.getElementById('ahSec');
     if (!sec) return;
     clearInterval(otpTimer);
-    let n = Number(draft.wait || 45);
+    let n = Number(draft.wait || 120);
     otpTimer = setInterval(() => {
       n -= 1;
       if (sec) sec.textContent = String(Math.max(0, n));
       if (n <= 0) {
         clearInterval(otpTimer);
         const w = document.getElementById('ahOtpWait'); if (w) w.style.display = 'none';
-        const r = document.getElementById('ahResend'); if (r) r.style.display = 'block';
+        const r = document.getElementById('ahResend'); if (r) { r.disabled = false; r.style.display = 'flex'; }
       }
     }, 1000);
   }
@@ -473,7 +545,7 @@
       draft.id = document.getElementById('ahId').value.trim();
       draft.purpose = 'login';
       const data = await api('/auth/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id, purpose: 'login' }) });
-      draft.masked = data.masked; draft.wait = data.wait || 45;
+      draft.masked = data.masked; draft.wait = data.wait || 120;
       go('otp');
     } catch (e) { showErr('ahErr', e.message); }
   }
@@ -511,17 +583,26 @@
       if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; btn.innerHTML = '<i class="ah-spin"></i>' + t('processing'); }
       const data = await api('/auth/register-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, dob: draft.dob, school: draft.school, college: draft.college, password: draft.password, confirm: draft.confirm }) });
       draft.masked = data.masked;
-      paint(`<section class="ah-screen ah-light ah-center">
-        <button class="ah-back" type="button" data-go="signup" aria-label="Back">${ico('back')}</button>
-        <h1 class="ah-h">${t('checkEmail')}</h1>
-        <p class="ah-p">${t('linkSent')}<br><b>${esc(data.masked || draft.id)}</b></p>
-        <p class="ah-p">${t('linkTap')}</p>
-        <p class="ah-p" id="ahWaitNote">${t('waitingMail')}</p>
-        ${errBox('ahErr')}
-      </section>`);
-      if (data.waitId) pollWait(data.waitId);
+      draft.waitId = data.waitId || '';
+      draft.linkSec = Number(data.expiresIn || 120);
+      go('checkmail');
     } catch (e) {
       if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('sendLink'); }
+      showErr('ahErr', e.message);
+    }
+  }
+  async function resendVerifyLink() {
+    const btn = document.getElementById('ahResendLink');
+    const prev = btn ? btn.innerHTML : '';
+    try {
+      if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; btn.innerHTML = '<i class="ah-spin"></i>' + t('processing'); }
+      const data = await api('/auth/register-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, dob: draft.dob, school: draft.school, college: draft.college, password: draft.password, confirm: draft.confirm }) });
+      draft.masked = data.masked || draft.masked;
+      draft.waitId = data.waitId || '';
+      draft.linkSec = Number(data.expiresIn || 120);
+      go('checkmail');
+    } catch (e) {
+      if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('resendLink'); }
       showErr('ahErr', e.message);
     }
   }
@@ -536,6 +617,8 @@
         if (data && data.token) { await afterAuth(data); return; }
       } catch (e) {
         showErr('ahErr', e.message);
+        const r = document.getElementById('ahResendLink');
+        if (r) r.disabled = false;
         return;
       }
     }
@@ -543,7 +626,7 @@
   async function doVerify() {
     try {
       const code = readOtp();
-      if (code.length !== 6) return showErr('ahErr', '৬ অঙ্কের কোড লেখো');
+      if (code.length !== 6) return showErr('ahErr', lang==='bn'?'ছয় অঙ্কের কোড লিখুন':'Enter the six-digit code');
       if (draft.purpose === 'reset') {
         await api('/auth/otp/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id, code, purpose: 'reset' }) });
         go('reset');
@@ -557,18 +640,25 @@
   async function resendOtp() {
     try {
       const data = await api('/auth/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id, purpose: draft.purpose }) });
-      draft.wait = data.wait || 45;
+      draft.wait = data.wait || 120;
       go('otp');
     } catch (e) { showErr('ahErr', e.message); }
   }
   async function doForgot() {
+    const btn = document.getElementById('ahDoForgot');
+    const prev = btn ? btn.innerHTML : '';
     try {
       draft.id = document.getElementById('ahId').value.trim();
+      if (!draft.id) return showErr('ahErr', lang==='bn'?'নিবন্ধিত ইমেইল লিখুন':'Enter your registered email');
       draft.purpose = 'reset';
+      if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; btn.innerHTML = '<i class="ah-spin"></i>' + t('processing'); }
       const data = await api('/auth/forgot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id }) });
-      draft.masked = data.masked; draft.wait = data.wait || 45;
+      draft.masked = data.masked; draft.wait = data.wait || data.expiresIn || 120; draft.linkSec = draft.wait;
       go('otp');
-    } catch (e) { showErr('ahErr', e.message); }
+    } catch (e) {
+      if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('sendCode'); }
+      showErr('ahErr', e.message);
+    }
   }
   async function doReset() {
     try {
