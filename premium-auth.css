@@ -47,8 +47,8 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
 }
 .ah-getstarted i{width:48px;height:48px;border-radius:50%;background:var(--ah-em);color:#fff;display:grid;place-items:center;font-style:normal;font-size:20px}
 
-.ah-light{background:#f4f7f5;color:var(--ah-text)}
-.ah-back{position:absolute;left:14px;top:calc(8px + env(safe-area-inset-top,0px));width:40px;height:40px;border:0;background:none;color:#1a1a1a;display:grid;place-items:center;z-index:4;padding:0}
+.ah-light{background:#f4f7f5;color:var(--ah-text);padding-top:calc(56px + env(safe-area-inset-top,0px))}
+.ah-back{position:absolute;left:16px;top:calc(10px + env(safe-area-inset-top,0px));width:40px;height:40px;border:0;background:none;color:#1a1a1a;display:grid;place-items:center;z-index:4;padding:0}
 .ah-hero-slot{position:absolute;right:4px;top:calc(16px + env(safe-area-inset-top,0px));width:150px;height:140px;pointer-events:none;z-index:1}
 .ah-hero-illu{position:relative;width:100%;height:100%}
 .ah-hero-illu .ah-illu,.ah-hero-illu .ah-bag-svg,.ah-hero-illu .ah-shield-svg{position:relative;left:auto;top:auto;width:100%;height:100%;margin:0;display:block}
