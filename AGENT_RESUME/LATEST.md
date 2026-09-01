@@ -1,3 +1,3 @@
-# LATEST — 2026-09-02 · v33 (auth flow fix) live
+# LATEST — 2026-09-02 · v34 (Google resilience) live
 
-**স্থিতি:** v33 `11af33f` + SW `v163-auth-fix-20260902` লাইভ। Signup verify স্ক্রিন সরল: শুধু "ইমেইলে কোড পাঠান" (৬-অঙ্ক), passkey বাটন সরানো → "আগে লগইন করো" error নাই। Passkey শুধু login-এ; না থাকলে স্পষ্ট বাংলা। গুগল signup-এ নাম/জন্মতারিখ যায়। টেস্ট ১১/১১ ✅। ভাইয়ের কনফার্মেশন বাকি; worker URL `admission-gk.rashelzayan213.workers.dev` live verified (config+OTP)।
+**স্থিতি:** v34 `0d37efa` + SW `v164-auth-fix-20260902` লাইভ। গুগল "not set up" fix: config retry ৩x + বাটনে ক্লিকে on-demand refetch + api timeout; worker `Cache-Control: no-store` (deployed `08cae72e`)। টেস্ট ২/২ ✅। ভাইয়ের কনফার্মেশন বাকি।
