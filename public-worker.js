@@ -251,7 +251,7 @@ function officialLetter(kind, extra) {
   const bnLead = isReset
     ? 'Admission Hub-এ এই ইমেইল ঠিকানায় নিবন্ধিত অ্যাকাউন্টের পাসওয়ার্ড পুনরুদ্ধারের অনুরোধ এই পত্রের মাধ্যমে নিশ্চিত করা হচ্ছে।'
     : 'Admission Hub-এ নিবন্ধনের জন্য প্রদত্ত ইমেইল ঠিকানা যাচাইয়ের অনুরোধ এই পত্রের মাধ্যমে নিশ্চিত করা হচ্ছে।';
-  const enTime = 'This verification remains valid for two (2) minutes only.';
+  const enTime = 'This verification remains valid for fifteen (15) minutes only.';
   const bnTime = 'এই যাচাইকরণ মাত্র দুই (২) মিনিটের জন্য কার্যকর থাকবে।';
   const enIgn = 'If you did not initiate this request, please disregard this message. No further action is required.';
   const bnIgn = 'আপনি এই অনুরোধ না করে থাকলে এই বার্তাটি উপেক্ষা করুন। কোনো অতিরিক্ত পদক্ষেপ প্রয়োজন নেই।';
@@ -420,8 +420,13 @@ function derToRaw(der) {
 async function sendEmail(env, to, subject, text, html) {
   const destId = 'em:' + String(to).toLowerCase();
   if (env.MAIL_HOOK) {
-    const r = await fetch(env.MAIL_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: env.MAIL_HOOK_SECRET || '', to, subject, text, html, name: 'Admission Hub', fromName: 'Admission Hub' }) });
-    if (r.ok) return { ok: true };
+    try {
+      const r = await fetch(env.MAIL_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: env.MAIL_HOOK_SECRET || '', to, subject, text, html, name: 'Admission Hub', fromName: 'Admission Hub' }) });
+      const body = await r.text().catch(() => '');
+      const ok = r.ok && !/error|fail|invalid|denied/i.test(body);
+      if (ok) return { ok: true, channel: 'hook' };
+      if (r.ok && !ok) return { ok: false, error: 'মেইল গেটওয়ে বলছে: ' + String(body).slice(0, 160), channel: 'hook-fail' };
+    } catch (_) { /* fallthrough */ }
   }
   if (env.BREVO_KEY) {
     const r = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -452,7 +457,7 @@ async function issueVerifyLink(env, destId, purpose, ip) {
   if (!(await rateLimit(env, 'vlink-id:' + destId, 20, 3600))) return { error: 'এই ইমেইলে অনেকবার পাঠানো হয়েছে — একটু পরে চেষ্টা করো', status: 429 };
   const raw = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const hash = await shaHex(raw);
-  await env.PUB_KV.put('vlink:' + hash, JSON.stringify({ id: destId, purpose, at: Date.now() }), { expirationTtl: 120 });
+  await env.PUB_KV.put('vlink:' + hash, JSON.stringify({ id: destId, purpose, at: Date.now() }), { expirationTtl: 900 });
   const link = 'https://admission-gk.rashelzayan213.workers.dev/pub/auth/confirm?t=' + raw;
   const to = destId.slice(3);
   const letter = officialLetter('verify', { link });
@@ -467,9 +472,9 @@ async function completeVerify(env, raw) {
   const hash = await shaHex(raw);
   const row = JSON.parse((await env.PUB_KV.get('vlink:' + hash)) || 'null');
   if (!row || !row.id) return { ok: false, error: 'লিংক অবৈধ অথবা মেয়াদ শেষ হয়েছে', status: 401 };
-  if (row.at && Date.now() - row.at > 120000) {
+  if (row.at && Date.now() - row.at > 900000) {
     await env.PUB_KV.delete('vlink:' + hash);
-    return { ok: false, error: 'লিংকের মেয়াদ শেষ হয়েছে। নতুন লিংক প্রেরণ করুন।', status: 401 };
+    return { ok: false, error: 'লিংকের মেয়াদ শেষ হয়েছে। আবার নতুন লিংক পাঠাও।', status: 401 };
   }
   const pending = JSON.parse((await env.PUB_KV.get('pending:' + row.id)) || 'null');
   if (!pending) return { ok: false, error: 'আবার সাইন আপ করুন', status: 400 };
@@ -665,7 +670,7 @@ const authRegisterEmail = async (request, env) => {
   await env.PUB_KV.put('wait:' + waitId, JSON.stringify({ id, status: 'pending' }), { expirationTtl: 150 });
   const sent = await issueVerifyLink(env, id, 'signup', ip);
   if (sent.error) return json({ error: sent.error }, sent.status || 503);
-  return json({ pending: true, sent: true, channel: 'link', masked: sent.masked, purpose: 'signup', waitId, expiresIn: 120 });
+  return json({ pending: true, sent: true, channel: 'link', masked: sent.masked, purpose: 'signup', waitId, expiresIn: 900 });
 };
 const authRegister = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';

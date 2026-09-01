@@ -289,7 +289,10 @@
       <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">প্ল্যান তৈরি করুন →</button></div>`);
 
     if (step === 9) return paint(`${progressHtml()}
-      <h1 class="ob-h">তোমার জন্য পার্সোনাল প্ল্যান তৈরি হচ্ছে…</h1>
+      <div class="ob-center">
+        <span class="ah3d" aria-hidden="true" style="margin:0 auto 10px"><span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span><span class="cube"><i class="f1"></i><i class="f2"></i><i class="f3"></i><i class="f4"></i><i class="f5"></i><i class="f6"></i></span><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="dot d4"></span></span>
+        <h1 class="ob-h">তোমার জন্য পার্সোনাল প্ল্যান তৈরি হচ্ছে…</h1>
+      </div>
       <ul class="ob-steps" id="obStages">
         <li data-st="0"><i class="ob-dot"></i> লক্ষ্য বিশ্লেষণ</li>
         <li data-st="1"><i class="ob-dot"></i> Target University বিশ্লেষণ</li>

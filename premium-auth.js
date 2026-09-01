@@ -264,7 +264,7 @@
     <p class="ah-p">${t('otpSub')}<br><b>${esc(draft.masked || draft.id)}</b></p>
     <div class="ah-otp" id="ahOtp">${[0,1,2,3,4,5].map(i=>`<input maxlength="1" inputmode="numeric" data-otp="${i}" autocomplete="${i?'off':'one-time-code'}">`).join('')}</div>
     <p class="ah-count-lab">${t('linkExpires')}</p>
-    <div class="ah-count" id="ahCount">02:00</div>
+    <div class="ah-count" id="ahCount">15:00</div>
     <div class="ah-resend" id="ahOtpWait">${t('resendIn')} <span id="ahSec">${esc(String(draft.wait||120))}</span>s</div>
     <button class="ah-btn sec" type="button" id="ahResend" disabled>${t('resendCode')}</button>
     <button class="ah-btn" type="button" id="ahDoVerify">${t('verifyContinue')}</button>
@@ -309,7 +309,7 @@
     <p class="ah-p">${t('linkSent')}<br><b>${esc(draft.masked || draft.id)}</b></p>
     <p class="ah-p">${t('linkTap')}</p>
     <p class="ah-count-lab">${t('linkExpires')}</p>
-    <div class="ah-count" id="ahCount">02:00</div>
+    <div class="ah-count" id="ahCount">15:00</div>
     <p class="ah-p" id="ahWaitNote">${t('waitingMail')}</p>
     <button class="ah-btn sec" type="button" id="ahResendLink" disabled>${t('resendLink')}</button>
     ${errBox('ahErr')}
@@ -345,7 +345,7 @@
       view = 'verifying';
       paint(`<section class="ah-screen ah-light ah-center">
         <p class="ah-kicker">ADMISSION HUB</p>
-        <div class="ah-spinbox"><i class="ah-spin"></i></div>
+        <span class="ah3d" aria-hidden="true" style="margin:10px auto 6px"><span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span><span class="cube"><i class="f1"></i><i class="f2"></i><i class="f3"></i><i class="f4"></i><i class="f5"></i><i class="f6"></i></span><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="dot d4"></span></span>
         <h1 class="ah-h">${lang==='bn'?'যাচাই সম্পন্ন — প্রবেশ করা হচ্ছে…':'Verified — signing you in…'}</h1>
       </section>`);
       try {
@@ -539,7 +539,7 @@
     const el = document.getElementById('ahCount');
     if (!el) return;
     clearInterval(otpTimer);
-    let n = Number(draft.linkSec || draft.wait || 120);
+    let n = Number(draft.linkSec || draft.wait || 900);
     el.textContent = fmtClock(n);
     const btn = document.getElementById('ahResendLink') || document.getElementById('ahResend');
     if (btn) btn.disabled = true;
@@ -590,7 +590,7 @@
       draft.id = document.getElementById('ahId').value.trim();
       draft.purpose = 'login';
       const data = await api('/auth/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id, purpose: 'login' }) });
-      draft.masked = data.masked; draft.wait = data.wait || 120;
+      draft.masked = data.masked; draft.wait = data.wait || 900;
       go('otp');
     } catch (e) { showErr('ahErr', e.message); }
   }
@@ -629,7 +629,7 @@
       const data = await api('/auth/register-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, dob: draft.dob, school: draft.school, college: draft.college, password: draft.password, confirm: draft.confirm }) });
       draft.masked = data.masked;
       draft.waitId = data.waitId || '';
-      draft.linkSec = Number(data.expiresIn || 120);
+      draft.linkSec = Number(data.expiresIn || 900);
       persistWait();
       go('checkmail');
     } catch (e) {
@@ -645,7 +645,7 @@
       const data = await api('/auth/register-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, dob: draft.dob, school: draft.school, college: draft.college, password: draft.password, confirm: draft.confirm }) });
       draft.masked = data.masked || draft.masked;
       draft.waitId = data.waitId || '';
-      draft.linkSec = Number(data.expiresIn || 120);
+      draft.linkSec = Number(data.expiresIn || 900);
       persistWait();
       go('checkmail');
     } catch (e) {
@@ -719,7 +719,7 @@
   async function resendOtp() {
     try {
       const data = await api('/auth/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id, purpose: draft.purpose }) });
-      draft.wait = data.wait || 120;
+      draft.wait = data.wait || 900;
       go('otp');
     } catch (e) { showErr('ahErr', e.message); }
   }
@@ -732,7 +732,7 @@
       draft.purpose = 'reset';
       if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; btn.innerHTML = '<i class="ah-spin"></i>' + t('processing'); }
       const data = await api('/auth/forgot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id }) });
-      draft.masked = data.masked; draft.wait = data.wait || data.expiresIn || 120; draft.linkSec = draft.wait;
+      draft.masked = data.masked; draft.wait = data.wait || data.expiresIn || 900; draft.linkSec = draft.wait;
       go('otp');
     } catch (e) {
       if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('sendCode'); }

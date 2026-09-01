@@ -11,6 +11,7 @@
 
 <link rel="manifest" href="manifest.json">
 <link rel="alternate" type="application/manifest+json" href="manifest.webmanifest">
+<link rel="stylesheet" href="./3d-loader.css?v=3d-v1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Noto+Serif+Bengali:wght@500;600;700&display=swap" rel="stylesheet">
@@ -583,7 +584,7 @@ textarea{min-height:96px}
 </section>
 </div>
 <div id="ahOnboardGate" aria-label="Onboarding" style="display:none"></div>
-<div id="app"><main class="app-loading" role="status"><div class="app-loading-mark">✦</div><b>Preparing your study space…</b><span>Loading your saved data safely.</span></main></div>
+<div id="app"><main class="app-loading" role="status"><div class="app-loading-mark"><span class="ah3d" aria-hidden="true"><span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span><span class="cube"><i class="f1"></i><i class="f2"></i><i class="f3"></i><i class="f4"></i><i class="f5"></i><i class="f6"></i></span><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="dot d4"></span></span></div><b>Preparing your study space…</b><span>Loading your saved data safely.</span></main></div>
 <div id="navRoot" aria-label="Primary navigation"></div>
 <div id="toast" class="toast"></div>
 <div id="modalRoot"></div>
@@ -971,7 +972,7 @@ function renderStartupLoading(){
   const app=document.getElementById('app');
   if(!app) return;
   app.classList.add('no-nav');
-  if(!app.firstElementChild || !app.firstElementChild.classList.contains('app-loading')) app.innerHTML='<main class="app-loading" role="status"><div class="app-loading-mark">✦</div><b>Preparing your study space…</b><span>Loading your saved data safely.</span></main>';
+  if(!app.firstElementChild || !app.firstElementChild.classList.contains('app-loading')) app.innerHTML='<main class="app-loading" role="status"><div class="app-loading-mark"><span class="ah3d" aria-hidden="true"><span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span><span class="cube"><i class="f1"></i><i class="f2"></i><i class="f3"></i><i class="f4"></i><i class="f5"></i><i class="f6"></i></span><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="dot d4"></span></span></div><b>Preparing your study space…</b><span>Loading your saved data safely.</span></main>';
   const navRoot=document.getElementById('navRoot');
   if(navRoot) navRoot.innerHTML='';
   return app.firstElementChild;

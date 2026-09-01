@@ -1,6 +1,6 @@
 # 📍 LATEST — Admission Hub (Public) · সর্বশেষ অবস্থা
 
-**আপডেট:** 2026-09-01 (Onboarding v2) · **এজেন্ট:** জুজু
+**আপডেট:** 2026-09-01 (Email fix + Glass design + 3D loader) · **এজেন্ট:** জুজু
 > নতুন এজেন্ট: প্রথমে এটা পড়ো, তারপর `AGENT_RESUME/`-এর সবচেয়ে নতুন ডেটেড resume।
 
 ---
@@ -18,10 +18,12 @@
 
 ## 📌 বর্তমান অবস্থা
 
-- **Onboarding v2 (Premium Game Style)** — live-ready: ৩D সিন, গেম-স্টাইল সিলেকশন, ইউনিভার্সিটি লোগো, অ্যানিমেশন
+- **Onboarding v3 (Glass Daylight)** — ছবির মতো light glass + 3D সিন + গেম সিলেকশন + ইউনিভার্সিটি লোগো
+- **3D Loading System** — boot/verify/plan-এ pure-CSS 3D emerald loader (`3d-loader.css`)
+- **Email verify fix** — MAIL_HOOK body-check, লিংক মেয়াদ ১৫ মিনিট, countdown 15:00
 - **Same-Browser Verify** — live-ready: একই ব্রাউজারে verify = সরাসরি প্রবেশ (কোনো বার্তা নয়); ভিন্ন ব্রাউজার = শুধু তখনই বার্তা
 - **Loading অপ্টিমাইজড** — ১৫টা ভারী script defer (parse-ব্লকিং ~৩MB কম)
-- **Worker deployed:** `admission-gk` Version `679b071b` (wrangler, ১৩ সিক্রেট intact) — `/pub/health` ✅
+- **Worker deployed:** `admission-gk` Version `4186759c` (wrangler, ১৩ সিক্রেট intact) — `/pub/health` ✅
 - Phase 1 frozen · Phase 2 live · Phase 3 auth live (google+passkey+email) · Phase 6 onboarding live
 - **🛑 STOP:** `PHASE 3 APPROVED` না বলা পর্যন্ত **Phase 4 শুরু করবে না**
 
