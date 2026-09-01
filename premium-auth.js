@@ -109,9 +109,10 @@
       <button class="ah-back" type="button" data-go="welcome" aria-label="Back">${ico('back')}</button>
       <div class="ah-hero-slot">${S().loginHero ? S().loginHero() : ''}</div>
       <h1 class="ah-h">Welcome Back,<br>Scholar! 👋</h1>
-      <p class="ah-p">Google দিয়ে ভেরিফাই করে ঢুকো</p>
+      <p class="ah-p">Passkey, Google, or email</p>
       <div class="ah-form">
-        <div id="ahGoogleSlot"><button class="ah-btn" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
+        <button class="ah-btn" type="button" id="ahPasskey">Continue with Passkey</button>
+        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
         <div class="ah-or">or password</div>
         <label class="ah-lab">Email</label>
         <input class="ah-inp" id="ahId" placeholder="Email" value="${esc(draft.id)}" autocomplete="username">
@@ -129,9 +130,18 @@
     <button class="ah-back" type="button" data-go="login" aria-label="Back">${ico('back')}</button>
     <div class="ah-hero-slot">${S().signupHero ? S().signupHero() : ''}</div>
     <h1 class="ah-h">Create Your Account</h1>
-    <p class="ah-p">Google দিয়ে ভেরিফাই — OTP লাগবে না</p>
+    <p class="ah-p">Passkey বা Google, অথবা ইমেইল লিংক</p>
     <div class="ah-form">
-      <div id="ahGoogleSlot"><button class="ah-btn" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
+      <button class="ah-btn" type="button" id="ahPasskey">Continue with Passkey</button>
+      <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
+      <div class="ah-or">or email link</div>
+      <label class="ah-lab">Full Name</label>
+      <input class="ah-inp" id="ahName" placeholder="Full Name" value="${esc(draft.name)}" autocomplete="name">
+      <label class="ah-lab">Email</label>
+      <input class="ah-inp" id="ahId" placeholder="Email" value="${esc(draft.id)}" autocomplete="username">
+      <label class="ah-lab">Password</label>${passRow('ahPass','Password','new-password')}
+      <label class="ah-lab">Confirm Password</label>${passRow('ahPass2','Confirm Password','new-password')}
+      <button class="ah-btn sec" type="button" id="ahDoSignup">Send verification link</button>
       ${errBox('ahErr')}
       <div class="ah-foot">Already have an account? <button type="button" data-go="login">Login</button></div>
     </div>
@@ -220,6 +230,8 @@
     if (r) r.onclick = doReset;
     const gbtn = document.getElementById('ahGoogle');
     if (gbtn) gbtn.onclick = doGoogle;
+    const pk = document.getElementById('ahPasskey');
+    if (pk) pk.onclick = () => (view === 'signup' ? doPasskeyRegister() : doPasskeyLogin());
     const enter = document.getElementById('ahEnter');
     if (enter) enter.onclick = () => { if (view === 'resetOk') go('login'); else enterApp(); };
     const resend = document.getElementById('ahResend');
@@ -315,8 +327,14 @@
       draft.password = password;
       draft.purpose = 'signup';
       const data = await api('/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, password, confirm }) });
-      draft.masked = data.masked; draft.wait = data.wait || 45;
-      go('otp');
+      draft.masked = data.masked;
+      paint(`<section class="ah-screen ah-light ah-center">
+        <button class="ah-back" type="button" data-go="signup" aria-label="Back">${ico('back')}</button>
+        <h1 class="ah-h">Check your email</h1>
+        <p class="ah-p">Verification link পাঠানো হয়েছে<br><b>${esc(data.masked || draft.id)}</b></p>
+        <p class="ah-p">লিংক চাপলেই অ্যাকাউন্ট খুলবে।</p>
+        ${errBox('ahErr')}
+      </section>`);
     } catch (e) { showErr('ahErr', e.message); }
   }
   async function doVerify() {
@@ -357,6 +375,73 @@
       if (data.token) setSession(data.token, data.user);
       go('resetOk');
     } catch (e) { showErr('ahErr', e.message); }
+  }
+
+
+  function b64urlToBuf(s) {
+    s = String(s || '').replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    const bin = atob(s);
+    const u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return u.buffer;
+  }
+  function bufToB64url(buf) {
+    const u = new Uint8Array(buf);
+    let s = '';
+    for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+  async function doPasskeyRegister() {
+    try {
+      if (!window.PublicKeyCredential) return showErr('ahErr', 'এই ডিভাইসে Passkey নেই');
+      const begin = await api('/auth/passkey/register/begin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const opt = begin.options;
+      opt.challenge = b64urlToBuf(opt.challenge);
+      opt.user.id = b64urlToBuf(opt.user.id);
+      const cred = await navigator.credentials.create({ publicKey: opt });
+      const att = cred.response;
+      const data = await api('/auth/passkey/register/finish', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chalId: begin.chalId,
+          id: cred.id,
+          rawId: bufToB64url(cred.rawId),
+          clientDataJSON: bufToB64url(att.clientDataJSON),
+          attestationObject: bufToB64url(att.attestationObject),
+          publicKey: att.getPublicKey ? bufToB64url(att.getPublicKey()) : '',
+          publicKeyAlgorithm: att.getPublicKeyAlgorithm ? att.getPublicKeyAlgorithm() : -7
+        })
+      });
+      await afterAuth(data);
+    } catch (e) {
+      showErr('ahErr', e.name === 'NotAllowedError' ? 'Passkey বাতিল' : (e.message || 'Passkey ব্যর্থ'));
+    }
+  }
+  async function doPasskeyLogin() {
+    try {
+      if (!window.PublicKeyCredential) return showErr('ahErr', 'এই ডিভাইসে Passkey নেই');
+      const begin = await api('/auth/passkey/login/begin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const opt = begin.options;
+      opt.challenge = b64urlToBuf(opt.challenge);
+      const cred = await navigator.credentials.get({ publicKey: opt });
+      const as = cred.response;
+      const data = await api('/auth/passkey/login/finish', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chalId: begin.chalId,
+          id: cred.id,
+          rawId: bufToB64url(cred.rawId),
+          clientDataJSON: bufToB64url(as.clientDataJSON),
+          authenticatorData: bufToB64url(as.authenticatorData),
+          signature: bufToB64url(as.signature),
+          userHandle: as.userHandle ? bufToB64url(as.userHandle) : ''
+        })
+      });
+      await afterAuth(data);
+    } catch (e) {
+      showErr('ahErr', e.name === 'NotAllowedError' ? 'Passkey বাতিল' : (e.message || 'Passkey ব্যর্থ'));
+    }
   }
 
   function mountGoogle() {
@@ -640,6 +725,15 @@
   async function boot() {
     wrapRender();
     hookPersonalWrites();
+    try {
+      const tok = new URLSearchParams(location.search).get('verify');
+      if (tok) {
+        const data = await api('/auth/verify-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: tok }) });
+        history.replaceState({}, '', location.pathname + location.hash);
+        await afterAuth(data);
+        return;
+      }
+    } catch (e) { showErr('ahErr', e.message); }
     try { cfg = await api('/auth/config'); } catch (_) {}
     window.AH_AUTH_CONFIG = cfg;
     const g = gateEl();

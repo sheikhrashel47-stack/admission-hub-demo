@@ -146,13 +146,19 @@ export default {
         return json({
           google: !!env.GOOGLE_CLIENT_ID,
           googleClientId: env.GOOGLE_CLIENT_ID || '',
-          email: !!((env.RESEND_KEY || env.RESEND_KEY_2) && env.MAIL_FROM),
-          sms: !!(env.TWILIO_SID && env.TWILIO_TOKEN && env.TWILIO_FROM) || !!(env.SMS_API_URL && env.SMS_API_KEY)
+          passkey: true,
+          email: !!((env.RESEND_KEY || env.RESEND_KEY_2 || env.MAIL_HOOK || env.BREVO_KEY) && (env.MAIL_FROM || env.MAIL_HOOK || env.BREVO_KEY)),
+          sms: !!(env.TWILIO_SID && env.TWILIO_TOKEN && env.TWILIO_FROM) || !!(env.SMS_API_URL && env.SMS_API_KEY) || !!env.GREENWEB_TOKEN
         });
       }
       if (p === '/api/auth/register' && request.method === 'POST') return await authRegister(request, env);
       if (p === '/api/auth/login' && request.method === 'POST') return await authLogin(request, env);
       if (p === '/api/auth/google' && request.method === 'POST') return await authGoogle(request, env);
+      if (p === '/api/auth/passkey/register/begin' && request.method === 'POST') return await pkRegBegin(request, env);
+      if (p === '/api/auth/passkey/register/finish' && request.method === 'POST') return await pkRegFinish(request, env);
+      if (p === '/api/auth/passkey/login/begin' && request.method === 'POST') return await pkLoginBegin(request, env);
+      if (p === '/api/auth/passkey/login/finish' && request.method === 'POST') return await pkLoginFinish(request, env);
+      if (p === '/api/auth/verify-link' && request.method === 'POST') return await authVerifyLink(request, env);
       if (p === '/api/auth/otp/send' && request.method === 'POST') return await otpSend(request, env);
       if (p === '/api/auth/otp/verify' && request.method === 'POST') return await otpVerify(request, env);
       if (p === '/api/auth/request' && request.method === 'POST') return await otpSend(request, env);
@@ -331,6 +337,193 @@ async function getUserById(env, id) {
   return JSON.parse((await env.PUB_KV.get('user:' + id)) || 'null');
 }
 
+
+const RP_ID = 'sheikhrashel47-stack.github.io';
+const RP_ORIGIN = 'https://sheikhrashel47-stack.github.io';
+const APP_URL = 'https://sheikhrashel47-stack.github.io/admission-hub-demo/';
+function b64url(buf) {
+  const u = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let s = '';
+  for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+function unb64url(s) {
+  s = String(s || '').replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u;
+}
+function derToRaw(der) {
+  const u = der instanceof Uint8Array ? der : new Uint8Array(der);
+  let i = 0;
+  if (u[i++] !== 0x30) throw new Error('sig');
+  if (u[i] & 0x80) i += 1 + (u[i] & 0x7f); else i++;
+  if (u[i++] !== 0x02) throw new Error('sig');
+  let l1 = u[i++];
+  let r = u.slice(i, i + l1); i += l1;
+  if (u[i++] !== 0x02) throw new Error('sig');
+  let l2 = u[i++];
+  let s = u.slice(i, i + l2);
+  const pad = x => {
+    while (x.length > 32 && x[0] === 0) x = x.slice(1);
+    const o = new Uint8Array(32);
+    o.set(x, 32 - Math.min(32, x.length));
+    return o;
+  };
+  const out = new Uint8Array(64);
+  out.set(pad(r), 0); out.set(pad(s), 32);
+  return out;
+}
+async function sendEmail(env, to, subject, text, html) {
+  const destId = 'em:' + String(to).toLowerCase();
+  if (env.MAIL_HOOK) {
+    const r = await fetch(env.MAIL_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: env.MAIL_HOOK_SECRET || '', to, subject, text, html }) });
+    if (r.ok) return { ok: true };
+  }
+  if (env.BREVO_KEY) {
+    const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST', headers: { accept: 'application/json', 'content-type': 'application/json', 'api-key': env.BREVO_KEY },
+      body: JSON.stringify({ sender: { name: 'Admission Hub', email: (env.BREVO_FROM || 'mahmudrashel1034@gmail.com') }, to: [{ email: to }], subject, textContent: text, htmlContent: html })
+    });
+    if (r.ok) return { ok: true };
+  }
+  const from = env.MAIL_FROM || 'Admission Hub <onboarding@resend.dev>';
+  const keys = [env.RESEND_KEY, env.RESEND_KEY_2].filter(Boolean);
+  let last = 'ইমেইল পাঠানো যায়নি';
+  for (const key of keys) {
+    const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify({ from, to: [to], subject, text, html }) });
+    if (r.ok) return { ok: true };
+    const err = await r.json().catch(() => ({}));
+    last = String(err.message || err.error || last).slice(0, 180);
+  }
+  if (/only send testing emails|own email/i.test(last)) return { ok: false, error: 'এখন শুধু অ্যাকাউন্টের নিজের Gmail-এ মেইল যায়। যেকেউ পেতে MAIL_HOOK/BREVO লাগবে।' };
+  return { ok: false, error: last };
+}
+async function issueVerifyLink(env, destId, purpose, ip) {
+  if (!(await rateLimit(env, 'vlink:' + ip, 8, 3600))) return { error: 'একটু পরে আবার চেষ্টা করো', status: 429 };
+  const raw = b64url(crypto.getRandomValues(new Uint8Array(32)));
+  const hash = await shaHex(raw);
+  await env.PUB_KV.put('vlink:' + hash, JSON.stringify({ id: destId, purpose, at: Date.now() }), { expirationTtl: 1800 });
+  const link = APP_URL + '?verify=' + raw;
+  const to = destId.slice(3);
+  const sent = await sendEmail(env, to, 'Verify your Admission Hub email', 'Open this link to verify: ' + link, '<div style="font-family:sans-serif;padding:20px"><p>Admission Hub</p><p><a href="' + link + '" style="display:inline-block;padding:12px 20px;background:#1e7a4c;color:#fff;border-radius:12px;text-decoration:none">Verify your email</a></p><p>Link expires in 30 minutes.</p></div>');
+  if (!sent.ok) return { error: sent.error, status: 503 };
+  return { sent: true, masked: maskDest(destId) };
+}
+const authVerifyLink = async (request, env) => {
+  const b = await request.json().catch(() => ({}));
+  const raw = String(b.token || '');
+  if (!raw) return json({ error: 'লিংক অবৈধ' }, 400);
+  const hash = await shaHex(raw);
+  const row = JSON.parse((await env.PUB_KV.get('vlink:' + hash)) || 'null');
+  if (!row || !row.id) return json({ error: 'লিংক অবৈধ বা মেয়াদ শেষ' }, 401);
+  const pending = JSON.parse((await env.PUB_KV.get('pending:' + row.id)) || 'null');
+  if (!pending) return json({ error: 'আবার সাইন আপ করো' }, 400);
+  pending.verified = true; pending.emailVerified = true; pending.status = 'active'; pending.lastSeen = Date.now();
+  await env.PUB_KV.put('user:' + pending.id, JSON.stringify(pending));
+  await env.PUB_KV.delete('pending:' + row.id);
+  await env.PUB_KV.delete('vlink:' + hash);
+  const issued = await issueToken(env, pending);
+  issued.user = await fullUser(env, pending);
+  return json(issued);
+};
+const pkRegBegin = async (request, env) => {
+  const uid = crypto.randomUUID();
+  const chal = crypto.getRandomValues(new Uint8Array(32));
+  const chalId = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  await env.PUB_KV.put('pkch:' + chalId, JSON.stringify({ challenge: b64url(chal), uid, t: 'reg', at: Date.now() }), { expirationTtl: 300 });
+  return json({
+    chalId,
+    userId: uid,
+    options: {
+      challenge: b64url(chal),
+      rp: { id: RP_ID, name: 'Admission Hub' },
+      user: { id: b64url(new TextEncoder().encode('pk:' + uid)), name: 'scholar-' + uid.slice(0, 8), displayName: 'Scholar' },
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+      authenticatorSelection: { authenticatorAttachment: 'platform', residentKey: 'preferred', requireResidentKey: false, userVerification: 'required' },
+      timeout: 120000,
+      attestation: 'none'
+    }
+  });
+};
+const pkRegFinish = async (request, env) => {
+  const b = await request.json().catch(() => ({}));
+  const ch = JSON.parse((await env.PUB_KV.get('pkch:' + b.chalId)) || 'null');
+  if (!ch || ch.t !== 'reg') return json({ error: 'Passkey চ্যালেঞ্জ শেষ' }, 401);
+  let cdata;
+  try { cdata = JSON.parse(new TextDecoder().decode(unb64url(b.clientDataJSON))); } catch (_) { return json({ error: 'Passkey ডেটা খারাপ' }, 400); }
+  if (cdata.type !== 'webauthn.create') return json({ error: 'Passkey টাইপ ভুল' }, 400);
+  if (String(cdata.challenge) !== ch.challenge) return json({ error: 'Passkey মিলছে না' }, 401);
+  if (!String(cdata.origin || '').startsWith(RP_ORIGIN)) return json({ error: 'Origin মিলছে না' }, 401);
+  if (!b.publicKey || !b.rawId) return json({ error: 'Passkey পাবলিক কী নেই' }, 400);
+  const id = 'pk:' + ch.uid;
+  const rec = {
+    id, uid: ch.uid, name: 'Scholar', email: '', mobile: '', contact: '',
+    created: Date.now(), lastSeen: Date.now(), blocked: false, verified: true, emailVerified: false,
+    status: 'active', providers: ['passkey'], credId: b.rawId, pubKey: b.publicKey, pubAlg: b.publicKeyAlgorithm || -7
+  };
+  await env.PUB_KV.put('pkid:' + b.rawId, JSON.stringify({ id, pubKey: rec.pubKey, alg: rec.pubAlg }));
+  await env.PUB_KV.delete('pkch:' + b.chalId);
+  const issued = await issueToken(env, rec);
+  issued.user = await fullUser(env, rec);
+  return json(issued);
+};
+const pkLoginBegin = async (request, env) => {
+  const chal = crypto.getRandomValues(new Uint8Array(32));
+  const chalId = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  await env.PUB_KV.put('pkch:' + chalId, JSON.stringify({ challenge: b64url(chal), t: 'login', at: Date.now() }), { expirationTtl: 300 });
+  return json({
+    chalId,
+    options: {
+      challenge: b64url(chal),
+      rpId: RP_ID,
+      timeout: 120000,
+      userVerification: 'required'
+    }
+  });
+};
+const pkLoginFinish = async (request, env) => {
+  const b = await request.json().catch(() => ({}));
+  const ch = JSON.parse((await env.PUB_KV.get('pkch:' + b.chalId)) || 'null');
+  if (!ch || ch.t !== 'login') return json({ error: 'Passkey চ্যালেঞ্জ শেষ' }, 401);
+  let cdata;
+  try { cdata = JSON.parse(new TextDecoder().decode(unb64url(b.clientDataJSON))); } catch (_) { return json({ error: 'Passkey ডেটা খারাপ' }, 400); }
+  if (cdata.type !== 'webauthn.get') return json({ error: 'Passkey টাইপ ভুল' }, 400);
+  if (String(cdata.challenge) !== ch.challenge) return json({ error: 'Passkey মিলছে না' }, 401);
+  if (!String(cdata.origin || '').startsWith(RP_ORIGIN)) return json({ error: 'Origin মিলছে না' }, 401);
+  const row = JSON.parse((await env.PUB_KV.get('pkid:' + b.rawId)) || 'null');
+  if (!row || !row.id) return json({ error: 'এই ডিভাইসে Passkey নেই — আগে তৈরি করো' }, 404);
+  const rec = JSON.parse((await env.PUB_KV.get('user:' + row.id)) || 'null');
+  if (!rec) return json({ error: 'অ্যাকাউন্ট নেই' }, 404);
+  if (rec.blocked || rec.status === 'disabled') return json({ error: 'অ্যাকাউন্ট বন্ধ' }, 403);
+  try {
+    const pub = unb64url(row.pubKey);
+    const alg = Number(row.alg || -7);
+    const authData = unb64url(b.authenticatorData);
+    const clientHash = new Uint8Array(await crypto.subtle.digest('SHA-256', unb64url(b.clientDataJSON)));
+    const signed = new Uint8Array(authData.length + clientHash.length);
+    signed.set(authData, 0); signed.set(clientHash, authData.length);
+    let ok = false;
+    if (alg === -7) {
+      const key = await crypto.subtle.importKey('spki', pub, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+      ok = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, derToRaw(unb64url(b.signature)), signed);
+    } else if (alg === -257) {
+      const key = await crypto.subtle.importKey('spki', pub, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+      ok = await crypto.subtle.verify({ name: 'RSASSA-PKCS1-v1_5' }, key, unb64url(b.signature), signed);
+    }
+    if (!ok) return json({ error: 'Passkey যাচাই ব্যর্থ' }, 401);
+  } catch (e) {
+    return json({ error: 'Passkey যাচাই ব্যর্থ' }, 401);
+  }
+  await env.PUB_KV.delete('pkch:' + b.chalId);
+  rec.lastSeen = Date.now(); rec.verified = true;
+  const issued = await issueToken(env, rec);
+  issued.user = await fullUser(env, rec);
+  return json(issued);
+};
+
 const authRegister = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';
   if (!(await rateLimit(env, 'reg:' + ip, 10, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
@@ -355,10 +548,11 @@ const authRegister = async (request, env) => {
     contact: id.startsWith('ph:') ? '+88' + id.slice(3).replace(/^88/, '') : id.slice(3),
     created: Date.now(), providers: ['password']
   };
+  if (!id.startsWith('em:')) return json({ error: 'ইমেইল লিংক ভেরিফাই শুধু Gmail/ইমেইলে — মোবাইলে Google বা Passkey ব্যবহার করো' }, 400);
   await env.PUB_KV.put('pending:' + id, JSON.stringify(pending), { expirationTtl: 1800 });
-  const otp = await issueOtp(env, id, 'signup', ip);
-  if (otp.error) return json({ error: otp.error }, otp.status || 503);
-  return json({ pending: true, sent: true, channel: otp.channel, masked: otp.masked, wait: otp.wait, purpose: 'signup' });
+  const sent = await issueVerifyLink(env, id, 'signup', ip);
+  if (sent.error) return json({ error: sent.error }, sent.status || 503);
+  return json({ pending: true, sent: true, channel: 'link', masked: sent.masked, purpose: 'signup' });
 };
 
 const otpSend = async (request, env) => {
