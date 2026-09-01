@@ -4,7 +4,7 @@
   if (window.AHOnboard) return;
 
   const PUB = 'https://admission-gk.rashelzayan213.workers.dev/pub';
-  const TOTAL = 9;
+  const TOTAL = 10;
   const FALLBACK_UNI = [
     { id: 'du', name: 'ঢাকা বিশ্ববিদ্যালয়', short: 'DU', units: ['A', 'B', 'C', 'D'] },
     { id: 'cu', name: 'চট্টগ্রাম বিশ্ববিদ্যালয়', short: 'CU', units: ['A', 'B', 'C', 'D'] },
@@ -360,8 +360,34 @@
   function finish() {
     showGate(false);
     try { localStorage.removeItem(storeKey()); } catch (_) {}
-    if (typeof navigate === 'function') navigate('dashboard');
-    else if (typeof render === 'function') render();
+    // 3D লোগো লোডিং স্প্ল্যাশ (সংক্ষিপ্ত) → তারপর dashboard
+    showSplash();
+    setTimeout(() => {
+      hideSplash();
+      if (typeof navigate === 'function') navigate('dashboard');
+      else if (typeof render === 'function') render();
+    }, 1600);
+  }
+
+  function showSplash() {
+    let s = document.getElementById('ahSplash');
+    if (!s) {
+      s = document.createElement('div');
+      s.id = 'ahSplash';
+      s.className = 'ah-splash';
+      s.innerHTML = `<div class="ah-splash-in">
+        <span class="ah3d ah3d-lg" aria-hidden="true"><span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span><span class="cube"><i class="f1"></i><i class="f2"></i><i class="f3"></i><i class="f4"></i><i class="f5"></i><i class="f6"></i></span><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="dot d4"></span></span>
+        <p class="ah-splash-t">ADMISSION HUB</p>
+        <div class="ah3d-bar"><i></i></div>
+        <p class="ah-splash-s">তোমার ড্যাশবোর্ড তৈরি হচ্ছে…</p>
+      </div>`;
+      document.body.appendChild(s);
+    }
+    s.classList.add('show');
+  }
+  function hideSplash() {
+    const s = document.getElementById('ahSplash');
+    if (s) s.classList.remove('show');
   }
 
   function bind() {
