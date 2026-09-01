@@ -1,50 +1,55 @@
-/* Phase 6 — personalized onboarding. Auth / Phase 1 screens untouched. */
+/* ============================================================
+   ADMISSION HUB — Onboarding (v11 · AI premium design)
+   User HTML (index 11.html) → integrated with app:
+   - window.AHOnboard = { maybeStart, start } API (অক্ষত)
+   - per-user persist (localStorage + worker /pub/onboarding)
+   - resume, back, selection, gauge, plan build, dashboard
+   - real university logos (icons/uni/du.png etc.)
+   ============================================================ */
 (() => {
   'use strict';
   if (window.AHOnboard) return;
 
   const PUB = 'https://admission-gk.rashelzayan213.workers.dev/pub';
-  const TOTAL = 9;
-  const FALLBACK_UNI = [
-    { id: 'du', name: 'ঢাকা বিশ্ববিদ্যালয়', short: 'DU', units: ['A', 'B', 'C', 'D'] },
-    { id: 'cu', name: 'চট্টগ্রাম বিশ্ববিদ্যালয়', short: 'CU', units: ['A', 'B', 'C', 'D'] },
-    { id: 'ru', name: 'রাজশাহী বিশ্ববিদ্যালয়', short: 'RU', units: ['A', 'B', 'C', 'D'] },
-    { id: 'ju', name: 'জাহাঙ্গীরনগর বিশ্ববিদ্যালয়', short: 'JU', units: ['A', 'B', 'C', 'D'] },
-    { id: 'ku', name: 'খুলনা বিশ্ববিদ্যালয়', short: 'KU', units: ['A', 'B', 'C', 'D'] },
-    { id: 'cou', name: 'কুমিল্লা বিশ্ববিদ্যালয়', short: 'CoU', units: ['A', 'B', 'C'] },
-    { id: 'other', name: 'অন্যান্য', short: 'OTH', units: ['A', 'B', 'C', 'D'] }
-  ];
-  const GOALS = [
-    { id: 'uni', t: 'বিশ্ববিদ্যালয় ভর্তি', ic: '#dbeade', svg: 'cap' },
-    { id: 'hsc', t: 'HSC / আলিম', ic: '#e4eefc', svg: 'book' },
-    { id: 'ssc', t: 'SSC / দাখিল', ic: '#e7f6ea', svg: 'note' },
-    { id: 'bcs', t: 'বিসিএস / চাকরি', ic: '#f3eadb', svg: 'bag' },
-    { id: 'other', t: 'অন্যান্য', ic: '#eeeef3', svg: 'dots' }
-  ];
-  const AIMS = [
-    { id: 'top', t: 'টপ র্যাঙ্ক', s: 'সেরাদের মধ্যে থাকতে চাই' },
-    { id: 'good', t: 'ভালো প্রস্তুতি', s: 'ভারসাম্যপূর্ণ প্রস্তুতি নিতে চাই' },
-    { id: 'fast', t: 'স্মার্ট ও ফাস্ট', s: 'কম সময়ে কার্যকর প্রস্তুতি চাই' },
-    { id: 'weak', t: 'দুর্বলতা কাটানো', s: 'যেখানে পিছিয়ে, সেখানে জোর' }
-  ];
-  const LEVELS = [
-    [0, 'একদম শুরু'], [15, 'Beginner'], [25, '২৫%'], [50, '৫০%'], [75, '৭৫%'], [90, 'Almost Ready'], [100, 'Exam Ready']
-  ];
+  const TOTAL = 10;
 
-  let catalog = FALLBACK_UNI.slice();
+  const UNIVERSITIES = [
+    { code: 'du',  short: 'ঢাবি', name: 'ঢাকা বিশ্ববিদ্যালয়',      en: 'University of Dhaka',        logo: 'icons/uni/du.png' },
+    { code: 'ju',  short: 'জাবি', name: 'জাহাঙ্গীরনগর বিশ্ববিদ্যালয়', en: 'Jahangirnagar University',  logo: 'icons/uni/ju.png' },
+    { code: 'ru',  short: 'রাবি', name: 'রাজশাহী বিশ্ববিদ্যালয়',   en: 'University of Rajshahi',     logo: 'icons/uni/ru.png' },
+    { code: 'cu',  short: 'চবি', name: 'চট্টগ্রাম বিশ্ববিদ্যালয়', en: 'University of Chittagong',   logo: 'icons/uni/cu.png' },
+    { code: 'ku',  short: 'খুবি', name: 'খুলনা বিশ্ববিদ্যালয়',      en: 'Khulna University',          logo: '' },
+    { code: 'bau', short: 'বাকৃবি', name: 'বাংলাদেশ কৃষি বিশ্ববিদ্যালয়', en: 'Bangladesh Agricultural University', logo: '' }
+  ];
+  const SUBJECTS = ['বাংলা', 'English', 'GK', 'ICT', 'Math'];
+  const SUBJ_COUNT = { 'বাংলা': 20, 'English': 16, 'GK': 10, 'ICT': 12, 'Math': 14 };
+  const SUBJ_ICON = {
+    'বাংলা': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+    'English': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+    'GK': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+    'ICT': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>',
+    'Math': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16M4 20h16M4 4l16 16M20 4L4 20"/></svg>'
+  };
+
   let step = 1;
-  let q = '';
-  let busy = false;
   let data = blank();
 
   function blank() {
     return {
       step: 1, completed: false,
-      goal: '', targetUniversities: [], targetUniversityIds: [], targetUnits: [],
-      studyGoal: '', currentLevel: 50, weakSubjects: [],
-      dailyHours: 2, weeklyDays: 5, preferredTime: 'flexible', plan: null
+      goal: 'uni', targetUniversityIds: [], targetUniversities: [], targetUnits: [],
+      studyGoal: 'top', currentLevel: 50, weakSubjects: ['বাংলা', 'English', 'GK'],
+      session: '10-20', weeklyDays: 5, plan: null
     };
   }
+  function ensureDefaults() {
+    if (!data.weakSubjects || !data.weakSubjects.length) data.weakSubjects = ['বাংলা', 'English', 'GK'];
+    if (!data.session) data.session = '10-20';
+    if (!data.weeklyDays) data.weeklyDays = 5;
+    if (!data.studyGoal) data.studyGoal = 'top';
+    if (typeof data.currentLevel !== 'number') data.currentLevel = 50;
+  }
+
   const uid = () => {
     try {
       const u = JSON.parse(localStorage.getItem('ahPubUser') || sessionStorage.getItem('ahPubUser') || 'null');
@@ -54,14 +59,12 @@
   const userName = () => {
     try {
       const u = JSON.parse(localStorage.getItem('ahPubUser') || sessionStorage.getItem('ahPubUser') || 'null');
-      return (u && (u.displayName || u.name)) || 'শিক্ষার্থী';
-    } catch (_) { return 'শিক্ষার্থী'; }
+      return (u && (u.displayName || u.name)) || '';
+    } catch (_) { return ''; }
   };
   const token = () => { try { return localStorage.getItem('ahPubToken') || sessionStorage.getItem('ahPubToken') || ''; } catch (_) { return ''; } };
   const storeKey = () => 'ahOnboard:' + uid();
-  function persistLocal() {
-    try { localStorage.setItem(storeKey(), JSON.stringify(data)); } catch (_) {}
-  }
+  function persistLocal() { try { localStorage.setItem(storeKey(), JSON.stringify(data)); } catch (_) {} }
   function loadLocal() {
     try {
       const o = JSON.parse(localStorage.getItem(storeKey()) || 'null');
@@ -77,6 +80,7 @@
   function authH() { return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() }; }
   async function saveRemote(extra) {
     data = Object.assign(data, extra || {}, { step });
+    ensureDefaults();
     persistLocal();
     if (!token()) return;
     try {
@@ -96,221 +100,461 @@
     if (g) g.style.display = on ? 'block' : 'none';
   }
 
-  function ico(kind) {
-    const m = {
-      cap: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="#1e7a4c" d="M3 10l9-5 9 5-9 5-9-5zm2 3.2V17c0 1.5 3.1 3 7 3s7-1.5 7-3v-3.8l-7 3.9-7-3.9z"/></svg>',
-      book: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="#2b6cb0" d="M5 4h9a3 3 0 013 3v13H8a3 3 0 01-3-3V4zm3 2v12h.2A4.8 4.8 0 0112 16h5V7a1 1 0 00-1-1H8z"/></svg>',
-      note: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="#2f855a" d="M6 3h9l5 5v13H6V3zm9 1.5V9h4.5"/></svg>',
-      bag: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="#b7791f" d="M8 7V6a4 4 0 118 0v1h3v13H5V7h3zm2 0h4V6a2 2 0 10-4 0v1z"/></svg>',
-      dots: '<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="6" cy="12" r="2" fill="#718096"/><circle cx="12" cy="12" r="2" fill="#718096"/><circle cx="18" cy="12" r="2" fill="#718096"/></svg>',
-      back: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2.2" d="M15 5l-7 7 7 7"/></svg>'
-    };
-    return m[kind] || '';
+  /* ---------------- icons (হুবহু HTML থেকে) ---------------- */
+  const IC = {
+    arrowR: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+    back: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+    check: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    search: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    menu: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>',
+    bell: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+    chipCheck: '<svg viewBox="0 0 24 24" fill="none" stroke="#1c7f45" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    goalCap: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1c7f45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+    goalBook: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+    goalSsc: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+    goalBcs: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+    aimTrophy: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>',
+    aimGood: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+    aimFast: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+    sessClock: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    sessCal: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
+  };
+  function uniLogoSvg() {
+    return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1c7f45" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 6 6 9l6 3 6-3-6-3z"/><path d="M8 11v4c0 1 1.8 2 4 2s4-1 4-2v-4"/></svg>';
+  }
+  function uniLogoHtml(u) {
+    if (u && u.logo) return '<img src="' + esc(u.logo) + '" alt="' + esc(u.short) + '">';
+    return uniLogoSvg();
   }
 
-  function world() {
-    return `<div class="ob-stage" aria-hidden="true">
-      <div class="ob-world">
-        <svg viewBox="0 0 360 200" width="100%" height="100%">
-          <defs>
-            <linearGradient id="obSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e7f4ec"/><stop offset="1" stop-color="#f3f7f4"/></linearGradient>
-          </defs>
-          <rect width="360" height="200" fill="url(#obSky)"/>
-          <ellipse cx="180" cy="188" rx="160" ry="18" fill="#d7eadf"/>
-          <g transform="translate(118 78)">
-            <rect x="20" y="36" width="84" height="52" rx="4" fill="#1e7a4c"/>
-            <polygon points="12,40 62,8 112,40" fill="#0f6b4f"/>
-            <rect x="52" y="58" width="20" height="30" rx="2" fill="#f4fbf6"/>
-            <rect x="32" y="48" width="12" height="12" rx="2" fill="#cfe6d8"/>
-            <rect x="80" y="48" width="12" height="12" rx="2" fill="#cfe6d8"/>
+  /* ---------------- screen builders ---------------- */
+  function sWelcome() {
+    return `<div class="screen active" id="s0">
+      <div class="logo-mark">
+        <div class="logo-icon-box">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1c7f45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.1 2.7 3 6 3s6-1.9 6-3v-5"/></svg>
+        </div>
+        <div class="logo-text">ADMISSION<br>HUB</div>
+      </div>
+      <h1 class="title">তোমার স্বপ্নের অ্যাডমিশনের যাত্রা শুরু হোক আজই</h1>
+      <p class="subtitle">কয়েকটি তথ্য দাও, আমরা তোমার জন্য তৈরি করবো পার্সোনাল প্রিপারেশন প্ল্যান।</p>
+      <div class="illus-box">
+        <svg viewBox="0 0 300 170" width="100%" height="auto">
+          <rect x="0" y="130" width="300" height="40" fill="#eef2f0"/>
+          <circle cx="40" cy="120" r="26" fill="#cdeedb"/>
+          <rect x="36" y="120" width="8" height="34" fill="#a9d9bd"/>
+          <circle cx="264" cy="112" r="22" fill="#cdeedb"/>
+          <rect x="260" y="112" width="8" height="42" fill="#a9d9bd"/>
+          <rect x="95" y="60" width="110" height="90" fill="#1c7f45"/>
+          <polygon points="90,60 150,28 210,60" fill="#136534"/>
+          <rect x="115" y="80" width="16" height="20" fill="#eafaf0"/>
+          <rect x="142" y="80" width="16" height="20" fill="#eafaf0"/>
+          <rect x="169" y="80" width="16" height="20" fill="#eafaf0"/>
+          <rect x="115" y="112" width="16" height="20" fill="#eafaf0"/>
+          <rect x="169" y="112" width="16" height="20" fill="#eafaf0"/>
+          <rect x="140" y="112" width="20" height="38" fill="#eafaf0"/>
+          <circle cx="150" cy="42" r="5" fill="#f4b400"/>
+        </svg>
+      </div>
+      <div class="bottom-area">
+        <button class="btn-primary" data-next="1">চল শুরু করি ${IC.arrowR}</button>
+      </div>
+    </div>`;
+  }
+  function sGoal() {
+    const goals = [
+      { id: 'uni', t: 'বিশ্ববিদ্যালয় ভর্তি', ic: '#eafaf0', svg: IC.goalCap },
+      { id: 'hsc', t: 'HSC / আলিম', ic: '#e8f0fe', svg: IC.goalBook },
+      { id: 'ssc', t: 'SSC / দাখিল', ic: '#eef2ff', svg: IC.goalSsc },
+      { id: 'bcs', t: 'বিসিএস / চাকরি', ic: '#fff3e0', svg: IC.goalBcs }
+    ];
+    return `<div class="screen" id="s1">
+      ${topbar(1, 0)}
+      <h1 class="title">তুমি কী জন্য প্রস্তুতি নিচ্ছো?</h1>
+      <p class="subtitle" style="margin-bottom:18px;"></p>
+      ${goals.map(g => `
+        <div class="option-card ${data.goal === g.id ? 'selected' : ''}" data-goal="${g.id}">
+          <div class="option-icon" style="background:${g.ic};">${g.svg}</div>
+          <div class="option-text"><p class="t">${g.t}</p></div>
+          <div class="check-badge">${IC.check}</div>
+        </div>`).join('')}
+      <button class="fab-next" data-next="2">${IC.arrowR}</button>
+    </div>`;
+  }
+  function sUniversity() {
+    return `<div class="screen" id="s2">
+      ${topbar(2, 1)}
+      <h1 class="title">তোমার টার্গেট বিশ্ববিদ্যালয় কোনটি?</h1>
+      <div class="search-box">${IC.search}<input id="uniSearch" type="text" placeholder="বিশ্ববিদ্যালয় খুঁজুন..."></div>
+      <p class="section-label">জনপ্রিয় বিশ্ববিদ্যালয়</p>
+      <div class="uni-grid" id="uniGrid"></div>
+      <div class="uni-confirm" id="uniConfirm">
+        <div class="uni-logo" id="confirmLogo"></div>
+        <div style="flex:1;">
+          <p class="t" id="confirmName">ঢাকা বিশ্ববিদ্যালয়</p>
+          <p class="d" id="confirmSub">University of Dhaka</p>
+        </div>
+        <div class="check-badge" style="opacity:1;transform:scale(1);">${IC.check}</div>
+      </div>
+      <button class="fab-next" data-next="3" style="bottom:96px;">${IC.arrowR}</button>
+    </div>`;
+  }
+  function sUnit() {
+    return `<div class="screen" id="s3">
+      ${topbar(3, 2)}
+      <h1 class="title">কোন ইউনিটের জন্য প্রস্তুতি নিচ্ছো?</h1>
+      <div class="uni-hero">
+        <div class="uni-logo" id="unitLogo"></div>
+        <p class="name" id="unitUniName">ঢাকা বিশ্ববিদ্যালয়</p>
+      </div>
+      <div class="unit-grid">
+        ${['A', 'B', 'C', 'D'].map(x => `<div class="unit-card ${data.targetUnits[0] === x ? 'selected' : ''}" data-unit="${x}">${x} ইউনিট</div>`).join('')}
+      </div>
+      <button class="fab-next" data-next="4">${IC.arrowR}</button>
+    </div>`;
+  }
+  function sStudyGoal() {
+    const aims = [
+      { id: 'top', t: 'টপ র‍্যাংক', d: 'সেরাদের মধ্যে থাকতে চাই', ic: '#fef3c7', svg: IC.aimTrophy },
+      { id: 'good', t: 'ভালো প্রস্তুতি', d: 'ভালোভাবে প্রস্তুতি নিতে চাই', ic: '#fee2e2', svg: IC.aimGood },
+      { id: 'fast', t: 'স্মার্ট ও ফাস্ট', d: 'কম সময়ে কার্যকর প্রস্তুতি চাই', ic: '#fef9c3', svg: IC.aimFast }
+    ];
+    return `<div class="screen" id="s4">
+      ${topbar(4, 3)}
+      <h1 class="title">তোমার লক্ষ্য কী?</h1>
+      <p class="subtitle">একটি বেছে নাও</p>
+      ${aims.map(a => `
+        <div class="goal-card ${data.studyGoal === a.id ? 'selected' : ''}" data-aim="${a.id}">
+          <div class="option-icon" style="background:${a.ic};">${a.svg}</div>
+          <div class="option-text"><p class="t">${a.t}</p><p class="d">${a.d}</p></div>
+          <div class="check-badge">${IC.check}</div>
+        </div>`).join('')}
+      <button class="fab-next" data-next="5">${IC.arrowR}</button>
+    </div>`;
+  }
+  function sLevel() {
+    return `<div class="screen" id="s5">
+      ${topbar(5, 4)}
+      <h1 class="title">তুমি এখন কতটুকু প্রস্তুত?</h1>
+      <div class="gauge-wrap">
+        <svg id="gaugeSvg" viewBox="0 0 200 115" width="230">
+          <path d="M15 100 A85 85 0 0 1 68 21" fill="none" stroke="#22c55e" stroke-width="14" stroke-linecap="round"/>
+          <path d="M68 21 A85 85 0 0 1 132 21" fill="none" stroke="#eab308" stroke-width="14" stroke-linecap="round"/>
+          <path d="M132 21 A85 85 0 0 1 185 100" fill="none" stroke="#f97316" stroke-width="14" stroke-linecap="round"/>
+          <line id="needle" x1="100" y1="100" x2="30" y2="100" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="100" cy="100" r="7" fill="#111827"/>
+        </svg>
+        <div class="gauge-pct"><span id="gaugePct">0</span>%</div>
+        <div class="gauge-label" id="gaugeText">শুরুর দিকে</div>
+      </div>
+      <p class="subtitle" style="margin-bottom:14px;font-weight:700;color:#111827;">কোন বিষয়গুলোতে বেশি মনোযোগ প্রয়োজন?</p>
+      <div class="chip-row">
+        ${SUBJECTS.map(s => `
+          <div class="chip ${data.weakSubjects.includes(s) ? 'selected' : ''}" data-sub="${esc(s)}">${s} ${IC.chipCheck}</div>`).join('')}
+      </div>
+      <button class="fab-next" data-next="6">${IC.arrowR}</button>
+    </div>`;
+  }
+  function sHabit() {
+    const sessions = [
+      { id: '10-20', t: '10-20 মিনিট', d: 'কুইক সেশন' },
+      { id: '30-60', t: '30-60 মিনিট', d: 'ফোকাসড স্টাডি' },
+      { id: '1-2h', t: '1-2 ঘন্টা', d: 'গভীর পড়াশোনা' },
+      { id: 'flex', t: 'যখন পারি', d: 'ফ্লেক্সিবল' }
+    ];
+    return `<div class="screen" id="s6">
+      ${topbar(6, 5)}
+      <h1 class="title">তুমি কীভাবে পড়তে বেশি স্বাচ্ছন্দ্যবোধ করো?</h1>
+      <div class="habit-grid">
+        ${sessions.map((s, i) => `
+          <div class="habit-card ${data.session === s.id ? 'selected' : ''}" data-sess="${s.id}">
+            <div class="chk">${IC.check}</div>
+            <div class="ic">${i === 1 ? IC.sessCal : IC.sessClock}</div>
+            <p class="t">${s.t}</p><p class="d">${s.d}</p>
+          </div>`).join('')}
+      </div>
+      <p class="subtitle" style="margin-bottom:14px;font-weight:700;color:#111827;">সপ্তাহে কয়দিন পড়তে পারবে?</p>
+      <div class="day-row">
+        ${[3, 4, 5, 6, 7].map(d => `<div class="day-pill ${Number(data.weeklyDays) === d ? 'selected' : ''}" data-day="${d}">${d} দিন</div>`).join('')}
+      </div>
+      <button class="fab-next" data-next="7">${IC.arrowR}</button>
+    </div>`;
+  }
+  function sAlmost() {
+    return `<div class="screen" id="s7" data-tap-next="8">
+      <h1 class="title" style="font-size:21px;">আর মাত্র একটু বাকি!</h1>
+      <div class="clip-illus">
+        <div class="confetti" style="left:8px;top:14px;width:8px;height:8px;background:#f97316;transform:rotate(20deg);"></div>
+        <div class="confetti" style="right:14px;top:6px;width:7px;height:7px;background:#eab308;border-radius:50%;"></div>
+        <div class="confetti" style="left:2px;bottom:40px;width:6px;height:6px;background:#3b82f6;border-radius:50%;"></div>
+        <div class="confetti" style="right:4px;bottom:60px;width:9px;height:9px;background:#22c55e;transform:rotate(45deg);"></div>
+        <div class="confetti" style="left:30px;top:0px;width:6px;height:6px;background:#ec4899;border-radius:50%;"></div>
+        <div class="confetti" style="right:26px;bottom:10px;width:7px;height:7px;background:#a855f7;transform:rotate(10deg);"></div>
+        <svg viewBox="0 0 220 220" width="220" height="220">
+          <rect x="45" y="30" width="130" height="170" rx="12" fill="#fff" stroke="#e5e7eb" stroke-width="3"/>
+          <rect x="85" y="18" width="50" height="24" rx="6" fill="#f97316"/>
+          <line x1="65" y1="70" x2="150" y2="70" stroke="#e5e7eb" stroke-width="3"/>
+          <circle cx="70" cy="105" r="9" fill="#eafaf0" stroke="#1c7f45" stroke-width="2"/>
+          <polyline points="66,105 69,108 75,101" fill="none" stroke="#1c7f45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="88" y1="105" x2="150" y2="105" stroke="#e5e7eb" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="70" cy="135" r="9" fill="#eafaf0" stroke="#1c7f45" stroke-width="2"/>
+          <polyline points="66,135 69,138 75,131" fill="none" stroke="#1c7f45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="88" y1="135" x2="150" y2="135" stroke="#e5e7eb" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="70" cy="165" r="9" fill="#eafaf0" stroke="#1c7f45" stroke-width="2"/>
+          <polyline points="66,165 69,168 75,161" fill="none" stroke="#1c7f45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="88" y1="165" x2="140" y2="165" stroke="#e5e7eb" stroke-width="6" stroke-linecap="round"/>
+          <g transform="rotate(45 175 55)">
+            <rect x="170" y="10" width="10" height="70" rx="4" fill="#f97316"/>
+            <polygon points="170,80 180,80 175,95" fill="#fcd34d"/>
           </g>
         </svg>
       </div>
-      ${[0,1,2,3,4,5,6,7].map(i => `<i class="ob-part" style="left:${12+i*11}%;animation-delay:${i*.4}s"></i>`).join('')}
-    </div>`;
-  }
-
-  function progressHtml() {
-    const n = Math.min(step, TOTAL);
-    return `<div class="ob-top">
-      ${step > 1 && step < 10 ? `<button class="ob-back" type="button" id="obBack" aria-label="Back">${ico('back')}</button>` : '<span style="width:36px"></span>'}
-      <div class="ob-prog">${Array.from({ length: TOTAL }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</div>
-    </div>`;
-  }
-
-  function paint(html) {
-    const g = gate(); if (!g) return;
-    g.innerHTML = `<section class="ob-screen">${html}</section>`;
-    bind();
-  }
-
-  function needsUni() { return data.goal === 'uni'; }
-  function unis() {
-    const list = catalog.length ? catalog : FALLBACK_UNI;
-    const s = q.trim().toLowerCase();
-    if (!s) return list;
-    return list.filter(u => (u.name + (u.short || '') + (u.nameEn || '')).toLowerCase().includes(s));
-  }
-  function selectedUni() {
-    const id = data.targetUniversityIds[0];
-    return (catalog.find(u => u.id === id) || FALLBACK_UNI.find(u => u.id === id) || null);
-  }
-  function subjects() {
-    const fromBank = (typeof CACHE !== 'undefined' && Array.isArray(CACHE.subjects))
-      ? CACHE.subjects.map(s => s.name).filter(Boolean)
-      : [];
-    const base = ['বাংলা', 'English', 'GK', 'ICT', 'Math'];
-    const all = [];
-    [...base, ...fromBank].forEach(n => { if (n && !all.includes(n)) all.push(n); });
-    return all.slice(0, 10);
-  }
-  function levelLabel(v) {
-    let lab = LEVELS[0][1];
-    LEVELS.forEach(([n, t]) => { if (v >= n) lab = t; });
-    return lab;
-  }
-
-  function render() {
-    if (step === 1) return paint(`${world()}
-      <div class="ob-center">
-        <p class="ob-kicker">ADMISSION HUB</p>
-        <h1 class="ob-h">তোমার স্বপ্নের অ্যাডমিশনের যাত্রা শুরু হোক আজই</h1>
-        <p class="ob-p">কয়েকটি তথ্য দাও, আমরা তোমার জন্য তৈরি করবো পার্সোনাল প্রিপারেশন প্ল্যান।</p>
+      <p class="subtitle">তোমার তথ্যগুলো আমরা সাজিয়ে নিচ্ছি পার্সোনাল প্ল্যান তৈরির জন্য।</p>
+      <div class="dots-row">
+        <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
       </div>
-      <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">চল শুরু করি →</button></div>`);
-
-    if (step === 2) return paint(`${progressHtml()}
-      <h1 class="ob-h">তুমি এখন কোন লক্ষ্যে এগোচ্ছো?</h1>
-      <div class="ob-list">${GOALS.map(g => `<button class="ob-card ${data.goal === g.id ? 'on' : ''}" data-goal="${g.id}" type="button"><span class="ic" style="background:${g.ic}">${ico(g.svg)}</span><span>${g.t}</span></button>`).join('')}</div>
-      <p class="ob-err" id="obErr"></p>
-      <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
-
-    if (step === 3) {
-      const list = unis();
-      return paint(`${progressHtml()}
-        <h1 class="ob-h">কোন বিশ্ববিদ্যালয়ে তোমার লক্ষ্য?</h1>
-        <div class="ob-search">${ico('book').replace('width="22"','width="18"')}<input id="obQ" placeholder="বিশ্ববিদ্যালয় খুঁজুন..." value="${esc(q)}"></div>
-        <div class="ob-uni">${list.slice(0, 8).map(u => `<button class="ob-chip ${data.targetUniversityIds.includes(u.id) ? 'on' : ''}" data-uni="${esc(u.id)}" type="button"><b>${esc(u.short || u.id)}</b><br>${esc(u.name)}</button>`).join('')}</div>
-        ${selectedUni() ? `<div class="ob-picked"><b>${esc(selectedUni().short)}</b><div><strong>${esc(selectedUni().name)}</strong><small>নির্বাচিত</small></div></div>` : ''}
-        <p class="ob-err" id="obErr"></p>
-        <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
-    }
-
-    if (step === 4) {
-      const u = selectedUni() || FALLBACK_UNI[0];
-      const units = u.units || ['A', 'B', 'C', 'D'];
-      return paint(`${progressHtml()}
-        <h1 class="ob-h">কোন ইউনিটের জন্য প্রস্তুতি নিচ্ছো?</h1>
-        <p class="ob-p">${esc(u.name)}</p>
-        <div class="ob-grid">${units.map(x => `<button class="ob-chip ${data.targetUnits.includes(x) ? 'on' : ''}" data-unit="${x}" type="button">${x} ইউনিট</button>`).join('')}</div>
-        <p class="ob-err" id="obErr"></p>
-        <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
-    }
-
-    if (step === 5) return paint(`${progressHtml()}
-      <h1 class="ob-h">তোমার মূল লক্ষ্য কী?</h1>
-      <div class="ob-list">${AIMS.map(a => `<button class="ob-card ${data.studyGoal === a.id ? 'on' : ''}" data-aim="${a.id}" type="button"><span>${a.id === 'top' ? '🏆' : a.id === 'good' ? '📈' : a.id === 'fast' ? '⚡' : '🎯'}</span><span>${a.t}<small>${a.s}</small></span></button>`).join('')}</div>
-      <p class="ob-err" id="obErr"></p>
-      <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
-
-    if (step === 6) {
-      const v = Number(data.currentLevel || 50);
-      return paint(`${progressHtml()}
-        <h1 class="ob-h">তোমার বর্তমান প্রস্তুতি কেমন?</h1>
-        <div class="ob-gauge">
-          <svg class="ob-gauge-arc" viewBox="0 0 200 110">
-            <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#e5eee8" stroke-width="14" stroke-linecap="round"/>
-            <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#1e7a4c" stroke-width="14" stroke-linecap="round" stroke-dasharray="${Math.max(1, v * 2.5)} 260"/>
-          </svg>
-          <div class="ob-gval">${v}%</div>
-          <div class="ob-glab">${esc(levelLabel(v))}</div>
-          <input class="ob-range" id="obLvl" type="range" min="0" max="100" step="5" value="${v}">
+    </div>`;
+  }
+  function sBuilding() {
+    const steps = [
+      'তোমার লক্ষ্য বিশ্লেষণ',
+      'তোমার বর্তমান অবস্থা মূল্যায়ন',
+      'বিষয়ভিত্তিক প্ল্যান তৈরি',
+      'সময়ের উপর ভিত্তি করে সাজানো'
+    ];
+    return `<div class="screen" id="s8">
+      ${topbar(9, 6)}
+      <h1 class="title">তোমার জন্য পার্সোনাল প্ল্যান তৈরি হচ্ছে...</h1>
+      <div>
+        ${steps.map((t, i) => `
+          <div class="plan-item">
+            <div class="plan-icon" id="plan-ic-${i + 1}">
+              ${i === 2 ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' : i === 3 ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'}
+            </div>
+            <span class="lbl">${t}</span>
+          </div>`).join('')}
+      </div>
+      <div class="plan-bar-wrap">
+        <div class="plan-bar-track"><div class="plan-bar-fill" id="planBarFill"></div></div>
+        <p class="plan-pct-label"><span id="planPctText">0</span>% সম্পন্ন</p>
+      </div>
+    </div>`;
+  }
+  function sDash() {
+    const uni = selectedUni() || UNIVERSITIES[0];
+    const unit = (data.targetUnits || [])[0] || 'A';
+    const focus = (data.weakSubjects && data.weakSubjects.length ? data.weakSubjects : ['বাংলা', 'English', 'GK']).slice(0, 3);
+    const days = Number(data.weeklyDays) || 5;
+    const ringPct = Math.round(days / 7 * 100);
+    return `<div class="screen" id="s9">
+      <div class="dash-top">
+        <button class="icon-btn">${IC.menu}</button>
+        <button class="icon-btn">${IC.bell}</button>
+      </div>
+      <p class="greet">অভিনন্দন, ${esc((userName() || 'Rashed').split(' ')[0])}! 🎉</p>
+      <p class="greet-sub">তোমার প্রস্তুতি শুরু হোক এখনই!</p>
+      <div class="goal-hero-card">
+        <p class="lbl">তোমার লক্ষ্য</p>
+        <p class="name" id="dashUniName">${esc(uni.name)}</p>
+        <p class="unit" id="dashUnitName">${unit} ইউনিট</p>
+        <svg width="90" height="70" style="position:absolute;right:8px;bottom:0;opacity:.35;" viewBox="0 0 90 70">
+          <rect x="15" y="20" width="60" height="50" fill="#fff"/>
+          <polygon points="10,20 45,4 80,20" fill="#fff"/>
+          <rect x="25" y="32" width="8" height="10" fill="#136534"/>
+          <rect x="41" y="32" width="8" height="10" fill="#136534"/>
+          <rect x="57" y="32" width="8" height="10" fill="#136534"/>
+          <rect x="38" y="50" width="14" height="20" fill="#136534"/>
+        </svg>
+      </div>
+      <p class="section-title">আজকের ফোকাস</p>
+      <div class="focus-card">
+        ${focus.map(s => `
+          <div class="focus-row">
+            <div class="focus-ic" style="background:${'#eef2ff'};">${SUBJ_ICON[s] || IC.goalBook}</div>
+            <span class="name">${esc(s)}</span>
+            <span class="count">${SUBJ_COUNT[s] || 12} টি প্রশ্ন</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>`).join('')}
+      </div>
+      <div class="week-row">
+        <div>
+          <p class="wt">সাপ্তাহিক অগ্রগতি</p>
+          <p class="wd">${days}/${7} দিন</p>
         </div>
-        <p class="ob-p">কোন বিষয়গুলোতে বেশি মনোযোগ দরকার?</p>
-        <div class="ob-grid">${subjects().map(s => `<button class="ob-chip ${data.weakSubjects.includes(s) ? 'on' : ''}" data-sub="${esc(s)}" type="button">${esc(s)}</button>`).join('')}</div>
-        <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
-    }
-
-    if (step === 7) return paint(`${progressHtml()}
-      <h1 class="ob-h">প্রতিদিন কতক্ষণ পড়তে পারবে?</h1>
-      <div class="ob-grid">${[1,2,3,4,5].map(h => `<button class="ob-chip ${Number(data.dailyHours) === h ? 'on' : ''}" data-hr="${h}" type="button">${h === 5 ? '৫+ ঘণ্টা' : h + ' ঘণ্টা'}</button>`).join('')}</div>
-      <p class="ob-p" style="margin-top:18px">সপ্তাহে কয়দিন পড়তে পারবে?</p>
-      <div class="ob-days">${[1,2,3,4,5,6,7].map(d => `<button type="button" data-day="${d}" class="${Number(data.weeklyDays) === d ? 'on' : ''}">${d}</button>`).join('')}</div>
-      <p class="ob-p" style="margin-top:18px">পড়ার সময় (ঐচ্ছিক)</p>
-      <div class="ob-grid">${[['morning','সকাল'],['afternoon','দুপুর'],['evening','সন্ধ্যা'],['night','রাত'],['flexible','Flexible']].map(([id,t]) => `<button class="ob-chip ${data.preferredTime === id ? 'on' : ''}" data-time="${id}" type="button">${t}</button>`).join('')}</div>
-      <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
-
-    if (step === 8) return paint(`${progressHtml()}
-      <div class="ob-center">
-        ${world()}
-        <h1 class="ob-h">আর একটু…</h1>
-        <p class="ob-p">তোমার জন্য সেরা প্রস্তুতির পথ তৈরি করা হচ্ছে।</p>
+        <svg width="56" height="56" viewBox="0 0 56 56">
+          <circle cx="28" cy="28" r="24" fill="none" stroke="#eafaf0" stroke-width="6"/>
+          <circle id="ringProgress" cx="28" cy="28" r="24" fill="none" stroke="#1c7f45" stroke-width="6" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="150.8" transform="rotate(-90 28 28)"/>
+          <text id="ringText" x="28" y="32" text-anchor="middle" font-size="12" font-weight="700" fill="#111827">0%</text>
+        </svg>
       </div>
-      <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">প্ল্যান তৈরি করুন</button></div>`);
-
-    if (step === 9) return paint(`${progressHtml()}
-      <h1 class="ob-h">তোমার জন্য পার্সোনাল প্ল্যান তৈরি হচ্ছে…</h1>
-      <ul class="ob-steps" id="obStages">
-        <li data-st="0"><i class="ob-dot"></i> লক্ষ্য বিশ্লেষণ</li>
-        <li data-st="1"><i class="ob-dot"></i> Target University বিশ্লেষণ</li>
-        <li data-st="2"><i class="ob-dot"></i> Unit syllabus mapping</li>
-        <li data-st="3"><i class="ob-dot"></i> Current level analysis</li>
-        <li data-st="4"><i class="ob-dot"></i> Weak subject analysis</li>
-        <li data-st="5"><i class="ob-dot"></i> Study capacity analysis</li>
-        <li data-st="6"><i class="ob-dot"></i> Personalized preparation plan</li>
-      </ul>`);
-
-    const plan = data.plan || {};
-    const uni = (data.targetUniversities || [])[0] || 'লক্ষ্য নির্ধারিত';
-    const unit = (data.targetUnits || []).map(x => x + ' ইউনিট').join(', ');
-    const hour = new Date().getHours();
-    const greet = hour < 12 ? 'সুপ্রভাত' : hour < 17 ? 'শুভ অপরাহ্ন' : hour < 20 ? 'শুভ সন্ধ্যা' : 'শুভ রাত্রি';
-    return paint(`<div class="ob-center">
-      <p class="ob-kicker">ADMISSION HUB</p>
-      <h1 class="ob-h">${greet}, ${esc(userName().split(' ')[0])} </h1>
-      <p class="ob-p">তোমার প্রস্তুতি শুরু হোক এখনই।</p>
-      <div class="ob-ready"><h3>তোমার লক্ষ্য</h3><p>${esc(uni)}${unit ? ' — ' + esc(unit) : ''}</p></div>
-      <div class="ob-ready"><h3>আজকের ফোকাস</h3><p>${esc((plan.focus || data.weakSubjects || []).slice(0, 3).join(' · ') || 'মূল বিষয়সমূহ')}</p>
-        <p>প্রতিদিন ${esc(plan.dailyQuestions || 30)}টি প্রশ্ন · ${esc(plan.dailyMinutes || (data.dailyHours * 60) || 120)} মিনিট</p></div>
-      <div class="ob-ready"><h3>সাপ্তাহিক অগ্রগতি</h3><div class="ob-meter"><i style="width:${Math.max(8, Number(data.currentLevel || 0))}%"></i></div></div>
-      <div class="ob-dock"><button class="ob-btn" type="button" id="obGo">আমার প্রস্তুতি শুরু করি →</button></div>
-    </div>`);
+      <button class="btn-primary" id="dashStart">আমার প্রস্তুতি শুরু করি ${IC.arrowR}</button>
+    </div>`;
+  }
+  function topbar(screenIdx, backTo) {
+    return `<div class="topbar">
+      <button class="back-btn" data-back="${backTo}">${IC.back}</button>
+      <div class="progress-track"><div class="progress-fill" id="pf-${screenIdx}"></div></div>
+    </div>`;
   }
 
-  function err(m) { const e = document.getElementById('obErr'); if (e) e.textContent = m || ''; }
-
-  function nextStep() {
-    if (step === 2 && !data.goal) return err('একটি লক্ষ্য বেছে নিন');
-    if (step === 3 && needsUni() && !data.targetUniversityIds.length) return err('একটি বিশ্ববিদ্যালয় বেছে নিন');
-    if (step === 4 && needsUni() && !data.targetUnits.length) return err('কমপক্ষে একটি ইউনিট বেছে নিন');
-    if (step === 5 && !data.studyGoal) return err('একটি মূল লক্ষ্য বেছে নিন');
-    if (step === 3 && !needsUni()) { step = 5; saveRemote(); return render(); }
-    if (step === 2 && !needsUni()) { step = 5; saveRemote(); return render(); }
-    if (step === 8) { step = 9; saveRemote(); render(); return runPlan(); }
-    if (step < 10) { step += 1; saveRemote(); render(); }
+  /* ---------------- mount / show ---------------- */
+  function mount() {
+    const g = gate(); if (!g) return;
+    g.innerHTML = `<div class="app-shell">
+      ${sWelcome()}${sGoal()}${sUniversity()}${sUnit()}${sStudyGoal()}${sLevel()}${sHabit()}${sAlmost()}${sBuilding()}${sDash()}
+    </div>`;
+    bind();
+    renderUniGrid('');
+    updateUniConfirm();
   }
-  function prev() {
-    if (step === 5 && !needsUni()) step = 2;
-    else if (step > 1) step -= 1;
-    saveRemote(); render();
+  const screenIndex = s => Math.max(0, Math.min(9, s - 1)); // step 1..10 → 0..9
+  const progressOrder = [1, 2, 3, 4, 5, 6, 8]; // screen ids (0-based) with topbar
+  function showScreen(stepIdx) {
+    const idx = screenIndex(stepIdx);
+    document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+    const target = document.getElementById('s' + idx);
+    if (target) target.classList.add('active');
+    updateProgress(idx);
+    const g = gate(); if (g) g.scrollTop = 0;
+    // side effects
+    if (idx === 5) animateGauge();
+    if (idx === 7) startAlmostTimer();
+    if (idx === 8) runPlan();
+    if (idx === 9) animateRing();
+  }
+  function updateProgress(idx) {
+    const pos = progressOrder.indexOf(idx);
+    if (pos === -1) return;
+    const pct = ((pos + 1) / progressOrder.length) * 100;
+    const el = document.getElementById('pf-' + idx);
+    if (el) el.style.width = pct + '%';
   }
 
+  /* ---------------- university grid ---------------- */
+  function uniList(filter) {
+    const f = (filter || '').trim().toLowerCase();
+    if (!f) return UNIVERSITIES;
+    return UNIVERSITIES.filter(u => (u.name + ' ' + u.en + ' ' + u.short).toLowerCase().includes(f));
+  }
+  function selectedUni() { return UNIVERSITIES.find(u => u.code === data.targetUniversityIds[0]) || null; }
+  function renderUniGrid(filter) {
+    const grid = document.getElementById('uniGrid'); if (!grid) return;
+    const list = uniList(filter);
+    grid.innerHTML = list.map(u => `
+      <div class="uni-item ${data.targetUniversityIds[0] === u.code ? 'selected' : ''}" data-uni="${u.code}">
+        <div class="uni-logo">${uniLogoHtml(u)}</div>
+        <span>${esc(u.short)}</span>
+      </div>`).join('');
+  }
+  function updateUniConfirm() {
+    const u = selectedUni();
+    if (!u) return;
+    const cn = document.getElementById('confirmName'); if (cn) cn.textContent = u.name;
+    const cs = document.getElementById('confirmSub'); if (cs) cs.textContent = u.en;
+    const cl = document.getElementById('confirmLogo'); if (cl) cl.innerHTML = uniLogoHtml(u);
+    const ul = document.getElementById('unitLogo'); if (ul) ul.innerHTML = uniLogoHtml(u);
+    const un = document.getElementById('unitUniName'); if (un) un.textContent = u.name;
+    const dn = document.getElementById('dashUniName'); if (dn) dn.textContent = u.name;
+  }
+
+  /* ---------------- gauge ---------------- */
+  function gaugeLabel(v) {
+    return v < 34 ? 'শুরুর দিকে' : v < 67 ? 'মাঝামাঝি' : 'চমৎকার';
+  }
+  function setNeedle(v) {
+    const needle = document.getElementById('needle');
+    const pct = document.getElementById('gaugePct');
+    const txt = document.getElementById('gaugeText');
+    if (!needle) return;
+    const val = Math.max(0, Math.min(100, v));
+    if (pct) pct.textContent = val;
+    if (txt) txt.textContent = gaugeLabel(val);
+    const angle = 180 - (val / 100 * 180);
+    const rad = angle * Math.PI / 180;
+    needle.setAttribute('x2', (100 + 70 * Math.cos(rad)).toFixed(1));
+    needle.setAttribute('y2', (100 - 70 * Math.sin(rad)).toFixed(1));
+  }
+  function animateGauge() {
+    const target = Math.max(0, Math.min(100, Number(data.currentLevel) || 50));
+    const dur = 900, start = performance.now();
+    (function frame(now) {
+      const t = Math.min(1, (now - start) / dur);
+      setNeedle(Math.round(target * t));
+      if (t < 1) requestAnimationFrame(frame);
+    })(performance.now());
+  }
+
+  /* ---------------- screen 8 auto / screen 9 plan ---------------- */
+  let almostTimer = null;
+  function startAlmostTimer() {
+    clearTimeout(almostTimer);
+    almostTimer = setTimeout(() => { if (step === 8) nextStep(); }, 2500);
+  }
+  let planTimer = null;
   async function runPlan() {
-    const rows = [...document.querySelectorAll('#obStages li')];
-    for (let i = 0; i < rows.length; i++) {
-      rows.forEach(el => el.classList.remove('now'));
-      rows[i].classList.add('now');
-      if (i) rows[i - 1].classList.add('ok');
-      await new Promise(r => setTimeout(r, 280));
-    }
-    rows.forEach(el => el.classList.add('ok'));
+    clearInterval(planTimer);
+    const fill = document.getElementById('planBarFill');
+    const pctText = document.getElementById('planPctText');
+    const icons = [1, 2, 3, 4].map(n => document.getElementById('plan-ic-' + n));
+    icons.forEach(ic => ic && ic.classList.remove('done'));
+    if (fill) fill.style.width = '0%';
+    if (pctText) pctText.textContent = '0';
+    let pct = 0;
+    await new Promise(res => {
+      planTimer = setInterval(() => {
+        pct += 2;
+        if (pct > 100) pct = 100;
+        if (fill) fill.style.width = pct + '%';
+        if (pctText) pctText.textContent = pct;
+        if (pct >= 25) icons[0] && icons[0].classList.add('done');
+        if (pct >= 50) icons[1] && icons[1].classList.add('done');
+        if (pct >= 75) icons[2] && icons[2].classList.add('done');
+        if (pct >= 100) {
+          icons[3] && icons[3].classList.add('done');
+          clearInterval(planTimer);
+          setTimeout(res, 700);
+        }
+      }, 40);
+    });
+    if (step !== 9) return;
     data.completed = true;
     data.step = 10;
     await saveRemote({ completed: true, step: 10 });
     step = 10;
-    render();
+    showScreen(10);
+  }
+  function animateRing() {
+    const circle = document.getElementById('ringProgress');
+    const text = document.getElementById('ringText');
+    if (!circle) return;
+    const days = Number(data.weeklyDays) || 5;
+    const target = Math.round(days / 7 * 100);
+    const circumference = 150.8;
+    let val = 0;
+    const dur = 900, start = performance.now();
+    (function frame(now) {
+      const t = Math.min(1, (now - start) / dur);
+      val = Math.round(target * t);
+      circle.setAttribute('stroke-dashoffset', (circumference - val / 100 * circumference).toFixed(1));
+      if (text) text.textContent = val + '%';
+      if (t < 1) requestAnimationFrame(frame);
+    })(performance.now());
   }
 
+  /* ---------------- navigation ---------------- */
+  function nextStep() {
+    if (step >= 10) return finish();
+    step += 1;
+    saveRemote();
+    showScreen(step);
+  }
+  function goBack(to) {
+    step = Math.max(1, Math.min(9, Number(to) || step - 1));
+    saveRemote();
+    showScreen(step);
+  }
+
+  /* ---------------- finish ---------------- */
   function finish() {
     showGate(false);
     try { localStorage.removeItem(storeKey()); } catch (_) {}
@@ -318,61 +562,84 @@
     else if (typeof render === 'function') render();
   }
 
+  /* ---------------- bind ---------------- */
   function bind() {
-    const n = document.getElementById('obNext'); if (n) n.onclick = nextStep;
-    const b = document.getElementById('obBack'); if (b) b.onclick = prev;
-    const g = document.getElementById('obGo'); if (g) g.onclick = finish;
-    gate()?.querySelectorAll('[data-goal]').forEach(el => el.onclick = () => { data.goal = el.getAttribute('data-goal'); render(); });
-    gate()?.querySelectorAll('[data-uni]').forEach(el => el.onclick = () => {
-      const id = el.getAttribute('data-uni');
-      const u = catalog.find(x => x.id === id) || FALLBACK_UNI.find(x => x.id === id);
-      data.targetUniversityIds = [id];
-      data.targetUniversities = u ? [u.name] : [id];
-      data.targetUnits = [];
-      render();
-    });
-    gate()?.querySelectorAll('[data-unit]').forEach(el => el.onclick = () => {
-      const x = el.getAttribute('data-unit');
-      const set = new Set(data.targetUnits);
-      if (set.has(x)) set.delete(x); else set.add(x);
-      data.targetUnits = [...set];
-      render();
-    });
-    gate()?.querySelectorAll('[data-aim]').forEach(el => el.onclick = () => { data.studyGoal = el.getAttribute('data-aim'); render(); });
-    gate()?.querySelectorAll('[data-sub]').forEach(el => el.onclick = () => {
-      const x = el.getAttribute('data-sub');
-      const set = new Set(data.weakSubjects);
-      if (set.has(x)) set.delete(x); else set.add(x);
-      data.weakSubjects = [...set];
-      render();
-    });
-    gate()?.querySelectorAll('[data-hr]').forEach(el => el.onclick = () => { data.dailyHours = Number(el.getAttribute('data-hr')); render(); });
-    gate()?.querySelectorAll('[data-day]').forEach(el => el.onclick = () => { data.weeklyDays = Number(el.getAttribute('data-day')); render(); });
-    gate()?.querySelectorAll('[data-time]').forEach(el => el.onclick = () => { data.preferredTime = el.getAttribute('data-time'); render(); });
-    const rng = document.getElementById('obLvl');
-    if (rng) rng.oninput = () => { data.currentLevel = Number(rng.value); const v = document.querySelector('.ob-gval'); if (v) v.textContent = rng.value + '%'; const l = document.querySelector('.ob-glab'); if (l) l.textContent = levelLabel(Number(rng.value)); };
-    const sq = document.getElementById('obQ');
-    if (sq) sq.oninput = () => { q = sq.value; render(); const again = document.getElementById('obQ'); if (again) { again.focus(); again.value = q; again.setSelectionRange(q.length, q.length); } };
-  }
-
-  async function loadCatalog() {
-    try {
-      const r = await api('/onboarding/catalog', { headers: authH() });
-      if (Array.isArray(r.universities) && r.universities.length) catalog = r.universities;
-    } catch (_) {
-      const extra = [];
-      if (typeof CACHE !== 'undefined') {
-        (CACHE.exams || []).forEach(ex => {
-          const n = String(ex.university || ex.uni || '').trim();
-          if (n && !FALLBACK_UNI.some(u => u.name === n) && !extra.some(u => u.name === n)) {
-            extra.push({ id: 'ex-' + extra.length, name: n, short: n.slice(0, 3).toUpperCase(), units: ['A', 'B', 'C', 'D'] });
-          }
-        });
+    const g = gate(); if (!g) return;
+    g.addEventListener('click', (e) => {
+      const nxt = e.target.closest('[data-next]');
+      if (nxt) { nextStep(); return; }
+      const bck = e.target.closest('[data-back]');
+      if (bck) { goBack(bck.getAttribute('data-back')); return; }
+      const tap = e.target.closest('[data-tap-next]');
+      if (tap) { nextStep(); return; }
+      const goal = e.target.closest('[data-goal]');
+      if (goal) {
+        data.goal = goal.getAttribute('data-goal');
+        saveRemote(); syncSelected('[data-goal]', data.goal); return;
       }
-      catalog = FALLBACK_UNI.concat(extra);
+      const uni = e.target.closest('[data-uni]');
+      if (uni) {
+        const code = uni.getAttribute('data-uni');
+        data.targetUniversityIds = [code];
+        data.targetUniversities = [(() => { const u = UNIVERSITIES.find(x => x.code === code); return u ? u.name : code; })()];
+        saveRemote(); renderUniGrid(document.getElementById('uniSearch') ? document.getElementById('uniSearch').value : ''); updateUniConfirm(); return;
+      }
+      const unit = e.target.closest('[data-unit]');
+      if (unit) {
+        data.targetUnits = [unit.getAttribute('data-unit')];
+        saveRemote(); syncSelected('[data-unit]', data.targetUnits[0]); return;
+      }
+      const aim = e.target.closest('[data-aim]');
+      if (aim) {
+        data.studyGoal = aim.getAttribute('data-aim');
+        saveRemote(); syncSelected('[data-aim]', data.studyGoal); return;
+      }
+      const sub = e.target.closest('[data-sub]');
+      if (sub) {
+        const v = sub.getAttribute('data-sub');
+        const set = new Set(data.weakSubjects);
+        if (set.has(v)) set.delete(v); else set.add(v);
+        data.weakSubjects = [...set];
+        saveRemote(); sub.classList.toggle('selected'); return;
+      }
+      const sess = e.target.closest('[data-sess]');
+      if (sess) {
+        data.session = sess.getAttribute('data-sess');
+        saveRemote(); syncSelected('[data-sess]', data.session); return;
+      }
+      const day = e.target.closest('[data-day]');
+      if (day) {
+        data.weeklyDays = Number(day.getAttribute('data-day'));
+        saveRemote(); syncSelected('[data-day]', String(data.weeklyDays)); return;
+      }
+      const start = e.target.closest('#dashStart');
+      if (start) { finish(); return; }
+    });
+    // gauge drag/tap
+    const svg = document.getElementById('gaugeSvg');
+    if (svg) {
+      const apply = (clientX) => {
+        const r = svg.getBoundingClientRect();
+        if (!r.width) return;
+        const p = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+        data.currentLevel = Math.round(p * 100);
+        setNeedle(data.currentLevel);
+      };
+      svg.addEventListener('pointerdown', (e) => { e.preventDefault(); apply(e.clientX); });
+      svg.addEventListener('pointermove', (e) => { if (e.buttons) apply(e.clientX); });
     }
+    // search
+    const sq = document.getElementById('uniSearch');
+    if (sq) sq.addEventListener('input', () => renderUniGrid(sq.value));
+  }
+  function syncSelected(sel, val) {
+    document.querySelectorAll(sel).forEach(el => {
+      const isSel = el.getAttribute('data-value') === val || el.getAttribute('data-goal') === val || el.getAttribute('data-uni') === val || el.getAttribute('data-unit') === val || el.getAttribute('data-aim') === val || el.getAttribute('data-sub') === val || el.getAttribute('data-sess') === val || el.getAttribute('data-day') === val;
+      el.classList.toggle('selected', isSel);
+    });
   }
 
+  /* ---------------- boot ---------------- */
   async function maybeStart() {
     if (!token()) return false;
     loadLocal();
@@ -380,13 +647,12 @@
       const r = await api('/onboarding', { headers: authH() });
       if (r.onboarding) data = Object.assign(blank(), data, r.onboarding);
     } catch (_) {}
+    ensureDefaults();
     if (data.completed) return false;
-    await loadCatalog();
-    step = Math.max(1, Number(data.step) || 1);
-    if (step > 9 && !data.completed) step = 9;
+    step = Math.max(1, Math.min(10, Number(data.step) || 1));
     showGate(true);
-    render();
-    if (step === 9) runPlan();
+    mount();
+    showScreen(step);
     return true;
   }
 

@@ -1,9 +1,10 @@
 # LATEST — Admission Hub Demo (2026-09-01)
 
-## চলমান কাজ: v1 ডিজাইন ফেরত (ইউজার নির্দেশ, commit ট্যাগ v1-restore)
-- exact-clone UI (v4) **বাতিল** — ভাই চেয়েছেন **একদম প্রথম ডিজাইন (v1, d977a11)**; onboarding.css/js restore + `?v=p6-onboard-v1r`
-- jsdom টেস্ট পাস (S1→S10 + dashboard); preview-onboarding.html-এ দেখা যাবে
-- icons/uni আসল লোগো রয়ে গেছে (v1 ব্যবহার করে না)
+## চলমান কাজ: v11 — AI-বানানো প্রিমিয়াম ডিজাইন বসানো (commit ট্যাগ v11-ai-design)
+- ভাইয়ের AI-কোড (`uploads/index 11.html`) অ্যাপে বসানো হয়েছে — ১০-স্ক্রিন নতুন প্রিমিয়াম ডিজাইন (onboarding.css/js rewrite, `?v=p6-onboard-v11`)
+- আসল লোগো: du/ju/ru/cu.png uni-grid/confirm/unit-hero-এ; KU/BAU → ডিফল্ট SVG (অফিসিয়াল লোগো নেই)
+- jsdom টেস্ট পাস; GH Pages deploy চলছে → live চেক pending
+- v1 ডিজাইন (d977a11) git-এ আছেই — ফেরত আনা যাবে
 ## পরের ধাপ
 1. GH Pages deploy → live চেক (onboarding.css marker v4, icons/uni ২০০, TOTAL=10)
 2. control repo-তে resume sync
