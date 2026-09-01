@@ -91,6 +91,7 @@
     bind();
   };
   const errBox = id => `<div class="ah-err" id="${id}"></div>`;
+  const showErr = (id, m) => { const n = document.getElementById(id); if (n) n.textContent = m || ''; };
   const S = () => window.AHAuth3D || {};
   const ico = k => (S().ico && S().ico[k]) || '';
   const passRow = (id, ph, auto) => `<div class="ah-field"><input class="ah-inp" id="${id}" type="password" placeholder="${ph}" autocomplete="${auto||'current-password'}"><button class="ah-eye" type="button" data-eye="${id}" aria-label="Show password">${ico('eye')}</button></div>`;
@@ -130,18 +131,10 @@
     <button class="ah-back" type="button" data-go="login" aria-label="Back">${ico('back')}</button>
     <div class="ah-hero-slot">${S().signupHero ? S().signupHero() : ''}</div>
     <h1 class="ah-h">Create Your Account</h1>
-    <p class="ah-p">Passkey বা Google, অথবা ইমেইল লিংক</p>
+    <p class="ah-p">Face ID / Touch ID, অথবা Google</p>
     <div class="ah-form">
       <button class="ah-btn" type="button" id="ahPasskey">Continue with Passkey</button>
       <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
-      <div class="ah-or">or email link</div>
-      <label class="ah-lab">Full Name</label>
-      <input class="ah-inp" id="ahName" placeholder="Full Name" value="${esc(draft.name)}" autocomplete="name">
-      <label class="ah-lab">Email</label>
-      <input class="ah-inp" id="ahId" placeholder="Email" value="${esc(draft.id)}" autocomplete="username">
-      <label class="ah-lab">Password</label>${passRow('ahPass','Password','new-password')}
-      <label class="ah-lab">Confirm Password</label>${passRow('ahPass2','Confirm Password','new-password')}
-      <button class="ah-btn sec" type="button" id="ahDoSignup">Send verification link</button>
       ${errBox('ahErr')}
       <div class="ah-foot">Already have an account? <button type="button" data-go="login">Login</button></div>
     </div>
@@ -320,10 +313,9 @@
     try {
       draft.name = document.getElementById('ahName').value.trim();
       draft.id = document.getElementById('ahId').value.trim();
-      const password = document.getElementById('ahPass').value;
-      const confirm = document.getElementById('ahPass2').value;
-      if (!document.getElementById('ahTerms').checked) return showErr('ahErr', 'শর্তাবলীতে রাজি হতে হবে');
-      if (password !== confirm) return showErr('ahErr', 'পাসওয়ার্ড দুটো মিলছে না');
+      const password = document.getElementById('ahPass') ? document.getElementById('ahPass').value : '';
+      const confirm = document.getElementById('ahPass2') ? document.getElementById('ahPass2').value : '';
+      if (password && password !== confirm) return showErr('ahErr', 'পাসওয়ার্ড দুটো মিলছে না');
       draft.password = password;
       draft.purpose = 'signup';
       const data = await api('/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, password, confirm }) });
