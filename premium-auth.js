@@ -11,10 +11,45 @@
   let cfg = { google: false, googleClientId: '', email: false, sms: false };
   let view = 'welcome';
   let typeGen = 0;
+  let lang = 'en';
+  try { if (localStorage.getItem('ahLang') === 'bn') lang = 'bn'; } catch (_) {}
   const LINES = {
     bn: ['আসসালামু আলাইকুম! আপনাকে পেয়ে আমরা আনন্দিত।', 'চলুন, একসাথে শুরু করি নতুন এক অভিজ্ঞতা।'],
     en: ['Welcome! Let’s get started.', 'Make every moment of learning count.']
   };
+  const I18N = {
+    en: {
+      tag: 'Learn Smart, Achieve More', start: 'Get Started',
+      create: 'Create Your Account', tell: 'Tell us a little about you',
+      fullName: 'Full Name', dob: 'Date of Birth', school: 'School name', college: 'College name',
+      optional: '(optional)', cont: 'Continue', or: 'or', google: 'Continue with Google',
+      haveAcc: 'Already have an account?', login: 'Login',
+      welcomeBack: 'Welcome Back,<br>Scholar! 👋', loginSub: 'Passkey, Google, or email',
+      passkey: 'Continue with Passkey', orPass: 'or password', email: 'Email', password: 'Password',
+      noAcc: "Don't have an account?", signup: 'Sign Up',
+      verifyTitle: 'Verify your account', verifySub: 'One last step to secure your account',
+      emailWay: 'Continue with Email Verification', hint: 'Choose whichever is more convenient for you.',
+      emailTitle: 'Verify your email', emailSub: "We'll send a verification link",
+      sendLink: 'Send verification link', checkEmail: 'Check your email',
+      linkSent: 'Verification link sent to', linkTap: 'Open the link to activate your account.'
+    },
+    bn: {
+      tag: 'স্মার্ট শেখো, আরও এগিয়ে যাও', start: 'শুরু করো',
+      create: 'তোমার অ্যাকাউন্ট খুলো', tell: 'নিজের সম্পর্কে একটু বলো',
+      fullName: 'নাম', dob: 'জন্ম তারিখ', school: 'স্কুলের নাম', college: 'কলেজের নাম',
+      optional: '(ঐচ্ছিক)', cont: 'চালিয়ে যাও', or: 'অথবা', google: 'Google দিয়ে চালিয়ে যাও',
+      haveAcc: 'অ্যাকাউন্ট আগেই আছে?', login: 'লগইন',
+      welcomeBack: 'ফিরে এসো,<br>স্কলার! 👋', loginSub: 'Passkey, Google, বা ইমেইল',
+      passkey: 'Passkey দিয়ে চালিয়ে যাও', orPass: 'অথবা পাসওয়ার্ড', email: 'ইমেইল', password: 'পাসওয়ার্ড',
+      noAcc: 'অ্যাকাউন্ট নেই?', signup: 'সাইন আপ',
+      verifyTitle: 'অ্যাকাউন্ট যাচাই করো', verifySub: 'শেষ এক ধাপ',
+      emailWay: 'ইমেইল ভেরিফিকেশন', hint: 'যেটা সুবিধা, সেটাই নাও।',
+      emailTitle: 'ইমেইল যাচাই করো', emailSub: 'ভেরিফিকেশন লিংক পাঠাব',
+      sendLink: 'ভেরিফিকেশন লিংক পাঠাও', checkEmail: 'ইমেইল দেখো',
+      linkSent: 'ভেরিফিকেশন লিংক পাঠানো হয়েছে', linkTap: 'লিংক চাপলেই অ্যাকাউন্ট খুলবে।'
+    }
+  };
+  const t = k => (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k;
   let draft = { name: '', dob: '', school: '', college: '', id: '', password: '', purpose: 'signup', masked: '', wait: 45 };
   let syncing = false;
   let otpTimer = 0;
@@ -101,41 +136,44 @@
   const ico = k => (S().ico && S().ico[k]) || '';
   const passRow = (id, ph, auto) => `<div class="ah-field"><input class="ah-inp" id="${id}" type="password" placeholder="${ph}" autocomplete="${auto||'current-password'}"><button class="ah-eye" type="button" data-eye="${id}" aria-label="Show password">${ico('eye')}</button></div>`;
 
-  const welcome = () => paint(`<section class="ah-screen ah-welcome ah-glass">
+  const welcome = () => {
+    paint(`<section class="ah-screen ah-welcome ah-glass">
     ${S().welcomeScene ? S().welcomeScene() : ''}
     <div class="ah-lang-stage">
       <div class="ah-lang-btns" id="ahLangBtns">
-        <button type="button" class="ah-lang en" data-lang="en">English</button>
-        <button type="button" class="ah-lang bn" data-lang="bn">বাংলা</button>
+        <button type="button" class="ah-lang${lang === 'en' ? ' on' : ''}" data-lang="en">English</button>
+        <button type="button" class="ah-lang${lang === 'bn' ? ' on' : ''}" data-lang="bn">বাংলা</button>
       </div>
-      <div class="ah-type" id="ahType" hidden>
+      <div class="ah-type" id="ahType">
         <p class="ah-type-l" id="ahType1"></p>
         <p class="ah-type-l" id="ahType2"></p>
       </div>
     </div>
     <div class="ah-dock">
       <h1>ADMISSION HUB</h1>
-      <p class="ah-tag">Learn Smart, Achieve More</p>
-      <button class="ah-getstarted" type="button" data-go="signup">Get Started</button>
+      <p class="ah-tag">${t('tag')}</p>
+      <button class="ah-getstarted" type="button" data-go="signup">${t('start')}</button>
     </div>
   </section>`);
+    startWelcomeType(lang);
+  };
 
   const login = () => {
     paint(`<section class="ah-screen ah-light">
       <button class="ah-back" type="button" data-go="welcome" aria-label="Back">${ico('back')}</button>
       <div class="ah-hero-slot">${S().loginHero ? S().loginHero() : ''}</div>
-      <h1 class="ah-h">Welcome Back,<br>Scholar! 👋</h1>
-      <p class="ah-p">Passkey, Google, or email</p>
+      <h1 class="ah-h">${t('welcomeBack')}</h1>
+      <p class="ah-p">${t('loginSub')}</p>
       <div class="ah-form">
-        <button class="ah-btn" type="button" id="ahPasskey">Continue with Passkey</button>
-        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
-        <div class="ah-or">or password</div>
-        <label class="ah-lab">Email</label>
-        <input class="ah-inp" id="ahId" placeholder="Email" value="${esc(draft.id)}" autocomplete="username">
-        <label class="ah-lab">Password</label>${passRow('ahPass','Password','current-password')}
-        <button class="ah-btn sec" type="button" id="ahDoLogin">Login</button>
+        <button class="ah-btn" type="button" id="ahPasskey">${t('passkey')}</button>
+        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button></div>
+        <div class="ah-or">${t('orPass')}</div>
+        <label class="ah-lab">${t('email')}</label>
+        <input class="ah-inp" id="ahId" placeholder="${t('email')}" value="${esc(draft.id)}" autocomplete="username">
+        <label class="ah-lab">${t('password')}</label>${passRow('ahPass', t('password'), 'current-password')}
+        <button class="ah-btn sec" type="button" id="ahDoLogin">${t('login')}</button>
         ${errBox('ahErr')}
-        <div class="ah-foot">Don't have an account? <button type="button" data-go="signup">Sign Up</button></div>
+        <div class="ah-foot">${t('noAcc')} <button type="button" data-go="signup">${t('signup')}</button></div>
       </div>
     </section>`);
     mountGoogle();
@@ -145,22 +183,22 @@
     paint(`<section class="ah-screen ah-light">
     <button class="ah-back" type="button" data-go="welcome" aria-label="Back">${ico('back')}</button>
     <div class="ah-hero-slot">${S().signupHero ? S().signupHero() : ''}</div>
-    <h1 class="ah-h">Create Your Account</h1>
-    <p class="ah-p">Tell us a little about you</p>
+    <h1 class="ah-h">${t('create')}</h1>
+    <p class="ah-p">${t('tell')}</p>
     <div class="ah-form">
-      <label class="ah-lab">Full Name</label>
-      <input class="ah-inp" id="ahName" placeholder="Full Name" value="${esc(draft.name)}" autocomplete="name">
-      <label class="ah-lab">Date of Birth</label>
+      <label class="ah-lab">${t('fullName')}</label>
+      <input class="ah-inp" id="ahName" placeholder="${t('fullName')}" value="${esc(draft.name)}" autocomplete="name">
+      <label class="ah-lab">${t('dob')}</label>
       <input class="ah-inp" id="ahDob" type="date" value="${esc(draft.dob)}" autocomplete="bday">
-      <label class="ah-lab">School name <span class="ah-opt">(optional)</span></label>
-      <input class="ah-inp" id="ahSchool" placeholder="School name" value="${esc(draft.school)}">
-      <label class="ah-lab">College name <span class="ah-opt">(optional)</span></label>
-      <input class="ah-inp" id="ahCollege" placeholder="College name" value="${esc(draft.college)}">
-      <button class="ah-btn" type="button" id="ahContinue">Continue</button>
-      <div class="ah-or">or</div>
-      <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
+      <label class="ah-lab">${t('school')} <span class="ah-opt">${t('optional')}</span></label>
+      <input class="ah-inp" id="ahSchool" placeholder="${t('school')}" value="${esc(draft.school)}">
+      <label class="ah-lab">${t('college')} <span class="ah-opt">${t('optional')}</span></label>
+      <input class="ah-inp" id="ahCollege" placeholder="${t('college')}" value="${esc(draft.college)}">
+      <button class="ah-btn" type="button" id="ahContinue">${t('cont')}</button>
+      <div class="ah-or">${t('or')}</div>
+      <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button></div>
       ${errBox('ahErr')}
-      <div class="ah-foot">Already have an account? <button type="button" data-go="login">Login</button></div>
+      <div class="ah-foot">${t('haveAcc')} <button type="button" data-go="login">${t('login')}</button></div>
     </div>
   </section>`);
     mountGoogle();
@@ -169,12 +207,12 @@
   const signupVerify = () => {
     paint(`<section class="ah-screen ah-light">
     <button class="ah-back" type="button" data-go="signup" aria-label="Back">${ico('back')}</button>
-    <h1 class="ah-h">Verify your account</h1>
-    <p class="ah-p">One last step to secure your account</p>
+    <h1 class="ah-h">${t('verifyTitle')}</h1>
+    <p class="ah-p">${t('verifySub')}</p>
     <div class="ah-form">
-      <button class="ah-btn sec" type="button" id="ahEmailWay">Continue with Email Verification</button>
-      <button class="ah-btn" type="button" id="ahPasskey">Continue with Passkey</button>
-      <p class="ah-hint">Choose whichever is more convenient for you.</p>
+      <button class="ah-btn sec" type="button" id="ahEmailWay">${t('emailWay')}</button>
+      <button class="ah-btn" type="button" id="ahPasskey">${t('passkey')}</button>
+      <p class="ah-hint">${t('hint')}</p>
       ${errBox('ahErr')}
     </div>
   </section>`);
@@ -183,12 +221,12 @@
   const emailVerify = () => {
     paint(`<section class="ah-screen ah-light">
     <button class="ah-back" type="button" data-go="verify" aria-label="Back">${ico('back')}</button>
-    <h1 class="ah-h">Verify your email</h1>
-    <p class="ah-p">We'll send a verification link</p>
+    <h1 class="ah-h">${t('emailTitle')}</h1>
+    <p class="ah-p">${t('emailSub')}</p>
     <div class="ah-form">
-      <label class="ah-lab">Email</label>
-      <input class="ah-inp" id="ahId" placeholder="Email" value="${esc(draft.id)}" autocomplete="email" inputmode="email">
-      <button class="ah-btn" type="button" id="ahDoSignup">Send verification link</button>
+      <label class="ah-lab">${t('email')}</label>
+      <input class="ah-inp" id="ahId" placeholder="${t('email')}" value="${esc(draft.id)}" autocomplete="email" inputmode="email">
+      <button class="ah-btn" type="button" id="ahDoSignup">${t('sendLink')}</button>
       ${errBox('ahErr')}
     </div>
   </section>`);
@@ -298,6 +336,15 @@
     setupOtpInputs();
     startOtpCountdown();
     bindTilt();
+    lockAuthGestures();
+  }
+  function lockAuthGestures() {
+    const g = gateEl(); if (!g || g.dataset.zoomLock) return;
+    g.dataset.zoomLock = '1';
+    const stop = e => { if (e.touches && e.touches.length > 1) e.preventDefault(); };
+    g.addEventListener('touchstart', stop, { passive: false });
+    g.addEventListener('touchmove', stop, { passive: false });
+    g.addEventListener('gesturestart', e => e.preventDefault());
   }
   function glyphs(s) {
     try {
@@ -307,18 +354,19 @@
     } catch (_) {}
     return Array.from(s);
   }
-  function startWelcomeType(lang) {
-    lang = lang === 'en' ? 'en' : 'bn';
+  function startWelcomeType(next) {
+    lang = next === 'bn' ? 'bn' : 'en';
     try { localStorage.setItem('ahLang', lang); } catch (_) {}
-    const btns = document.getElementById('ahLangBtns');
-    const box = document.getElementById('ahType');
+    document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('on', b.getAttribute('data-lang') === lang));
+    const tag = document.querySelector('.ah-welcome .ah-tag');
+    const gs = document.querySelector('.ah-getstarted');
+    if (tag) tag.textContent = t('tag');
+    if (gs) gs.textContent = t('start');
     const l1 = document.getElementById('ahType1');
     const l2 = document.getElementById('ahType2');
-    if (!box || !l1 || !l2) return;
-    if (btns) btns.hidden = true;
-    box.hidden = false;
-    l1.innerHTML = '';
-    l2.innerHTML = '';
+    if (!l1 || !l2) return;
+    l1.textContent = '';
+    l2.textContent = '';
     const lines = LINES[lang];
     const g1 = glyphs(lines[0]);
     const g2 = glyphs(lines[1]);
@@ -326,8 +374,10 @@
     const gen = ++typeGen;
     const add = (el, ch) => {
       el.querySelector('.ah-caret')?.remove();
-      el.insertAdjacentHTML('beforeend', ch === ' ' ? ' ' : `<span class="ah-ch">${esc(ch)}</span>`);
-      el.insertAdjacentHTML('beforeend', '<i class="ah-caret"></i>');
+      el.appendChild(document.createTextNode(ch));
+      const c = document.createElement('i');
+      c.className = 'ah-caret';
+      el.appendChild(c);
     };
     if (instant) {
       l1.textContent = lines[0];
@@ -337,10 +387,10 @@
     let i = 0;
     const tick = () => {
       if (gen !== typeGen) return;
-      if (i < g1.length) { add(l1, g1[i]); i += 1; setTimeout(tick, 24); return; }
+      if (i < g1.length) { add(l1, g1[i]); i += 1; setTimeout(tick, 22); return; }
       l1.querySelector('.ah-caret')?.remove();
       const j = i - g1.length;
-      if (j < g2.length) { add(l2, g2[j]); i += 1; setTimeout(tick, 24); return; }
+      if (j < g2.length) { add(l2, g2[j]); i += 1; setTimeout(tick, 22); return; }
       l2.querySelector('.ah-caret')?.remove();
     };
     tick();

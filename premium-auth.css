@@ -6,12 +6,14 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
   --ah-display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
   position:fixed;inset:0;z-index:6000;background:#f3f7f5;color:var(--ah-text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif;
-  overflow:auto;-webkit-overflow-scrolling:touch
+  overflow:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+  touch-action:pan-y;overscroll-behavior-x:none
 }
 .ah-screen{
   width:min(100vw,430px);margin:0 auto;min-height:100%;min-height:100dvh;
   position:relative;display:flex;flex-direction:column;
-  padding:calc(18px + env(safe-area-inset-top,0px)) 24px calc(22px + env(safe-area-inset-bottom,0px))
+  padding:calc(18px + env(safe-area-inset-top,0px)) 24px calc(22px + env(safe-area-inset-bottom,0px));
+  overflow-x:hidden;touch-action:pan-y
 }
 .ah-welcome.ah-glass{
   text-align:center;color:#122018;padding-bottom:12px;
@@ -48,27 +50,20 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
   letter-spacing:.01em
 }
 .ah-lang-stage{
-  position:absolute;left:24px;right:24px;top:46%;z-index:5;
-  display:flex;flex-direction:column;align-items:center;transform:translateY(-40%)
+  position:absolute;left:22px;right:22px;top:42%;z-index:5;
+  display:flex;flex-direction:column;align-items:center;gap:14px;transform:translateY(-36%)
 }
-.ah-lang-btns{display:flex;gap:12px;width:min(100%,340px)}
+.ah-lang-btns{display:flex;gap:10px;width:min(100%,300px)}
 .ah-lang{
-  flex:1;height:48px;border-radius:16px;font-weight:700;font-size:16px;letter-spacing:.01em
+  flex:1;height:44px;border-radius:14px;font-weight:700;font-size:15px;
+  background:#fff;color:var(--ah-em);border:1.5px solid var(--ah-em)
 }
-.ah-lang.en{background:#fff;color:var(--ah-em);border:1.5px solid var(--ah-em)}
-.ah-lang.bn{background:var(--ah-em);color:#fff;border:1.5px solid var(--ah-em)}
-.ah-type{width:min(100%,340px);min-height:92px;text-align:center}
+.ah-lang.on{background:var(--ah-em);color:#fff}
+.ah-type{width:min(100%,320px);min-height:84px;text-align:center}
 .ah-type-l{
-  margin:0 0 10px;font-family:var(--ah-display);font-size:clamp(16px,4.6vw,19px);
-  line-height:1.45;color:#122018;font-weight:600;letter-spacing:.01em
-}
-.ah-ch{
-  display:inline-block;animation:ahTypeIn .2s cubic-bezier(.2,.85,.25,1) both;
-  will-change:transform,opacity
-}
-@keyframes ahTypeIn{
-  from{opacity:0;transform:scale(.72) translateY(5px)}
-  to{opacity:1;transform:none}
+  margin:0 0 8px;font-family:var(--ah-display);font-size:16px;
+  line-height:1.5;color:#122018;font-weight:600;letter-spacing:.01em;
+  white-space:normal;overflow-wrap:break-word;word-break:normal
 }
 .ah-caret{
   display:inline-block;width:2px;height:.9em;margin-left:2px;background:var(--ah-em);
@@ -95,9 +90,15 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
 .ah-lab{display:block;font-size:12px;color:#8b948e;margin:10px 0 6px;font-weight:600}
 .ah-opt{font-weight:500;color:#9aa39d;text-transform:none}
 .ah-hint{text-align:center;color:#8b948e;font-size:13px;margin:16px 0 0;line-height:1.4}
-.ah-inp[type=date]{color:var(--ah-text)}
 .ah-field{position:relative}
-.ah-inp{width:100%;height:50px;border-radius:14px;border:1px solid var(--ah-border);background:#fff;color:var(--ah-text);padding:0 44px 0 16px;font-size:15px}
+.ah-inp{width:100%;height:50px;min-height:50px;max-height:50px;box-sizing:border-box;border-radius:14px;border:1px solid var(--ah-border);background:#fff;color:var(--ah-text);padding:0 44px 0 16px;font-size:16px;line-height:50px;-webkit-text-size-adjust:100%}
+.ah-inp[type=date]{
+  color:var(--ah-text);padding:0 16px;line-height:normal;
+  -webkit-appearance:none;appearance:none;display:block
+}
+.ah-inp[type=date]::-webkit-date-and-time-value{
+  min-height:48px;height:48px;line-height:48px;text-align:left;padding:0;margin:0
+}
 .ah-inp::placeholder{color:#b0b8b3}
 .ah-inp:focus{outline:none;border-color:var(--ah-em);box-shadow:0 0 0 3px rgba(30,122,76,.12)}
 .ah-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;color:#8b948e;width:36px;height:36px;display:grid;place-items:center;padding:0}
