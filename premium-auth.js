@@ -907,16 +907,31 @@
     const wrapped = function () {
       if (document.documentElement.dataset.ah === 'out') return;
       const p = routePath();
-      if (p === 'profile') return renderProfile();
-      if (p === 'profile/edit') return renderEdit();
-      if (p === 'profile/security') return renderSecurity();
+      if (p === 'profile' || p.startsWith('profile/')) return renderProfileRoute();
       return cur.apply(this, arguments);
     };
     wrapped.__ahAuthWrap = true;
     window.render = wrapped;
   }
 
-  function injectAvatar() {}
+  function injectAvatar() {
+    const paint = () => {
+      if (document.documentElement.dataset.ah === 'out') return;
+      const u = user() || {};
+      document.querySelectorAll('#navRoot .navbtn').forEach(b => {
+        const spans = b.querySelectorAll('span');
+        const label = spans.length ? (spans[spans.length - 1].textContent || '') : '';
+        const ic = b.querySelector('.ic');
+        if (label === 'Profile' && ic) {
+          const s = 21;
+          if (u.photo) ic.innerHTML = `<img src="${u.photo}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;vertical-align:-6px;border:1.5px solid var(--emerald)">`;
+          else ic.innerHTML = `<span class="ah-navmono" style="width:${s}px;height:${s}px;display:inline-grid;place-items:center;border-radius:50%;background:var(--emerald);color:#fff;font-size:${Math.round(s * 0.5)}px;font-weight:800;vertical-align:-6px;margin:0 auto">${esc(String(u.name || 'S').trim().charAt(0).toUpperCase())}</span>`;
+        }
+      });
+    };
+    if (document.readyState !== 'loading') setTimeout(paint, 60);
+    document.addEventListener('admission:route-rendered', paint);
+  }
 
   function completion(u) {
     const keys = ['name', 'email', 'mobile', 'photo', 'institution', 'targetUniversity', 'targetUnit', 'admissionYear', 'bio', 'dob'];
@@ -924,128 +939,785 @@
     return Math.round(n / keys.length * 100);
   }
 
-  function renderProfile() {
-    const u = user() || {};
-    const pct = completion(u);
-    const stats = (typeof computeLifetimeStats === 'function') ? computeLifetimeStats() : { exams: 0 };
-    const exams = (window.CACHE && CACHE.examResults) ? CACHE.examResults.length : (stats.exams || 0);
-    const avg = (window.CACHE && CACHE.examResults && CACHE.examResults.length)
-      ? Math.round(CACHE.examResults.reduce((s, x) => s + (Number(x.pct || x.percent || 0)), 0) / CACHE.examResults.length) : 0;
-    const html = `<div class="ah-prof" style="padding:8px 4px 24px;text-align:center">
-      <div style="position:relative;display:inline-block;margin:8px 0 10px">
-        ${u.photo ? `<img class="ah-av" src="${u.photo}" style="width:92px;height:92px">` : `<div class="ah-av" style="width:92px;height:92px;display:grid;place-items:center;font-size:32px;color:#fff">${esc((u.name || 'S')[0])}</div>`}
-      </div>
-      <div style="font-size:22px;font-weight:800">${esc(u.name || 'Scholar')}</div>
-      <div class="muted" style="margin:4px 0 14px">${esc(u.bio || 'Dream Big, Achieve Bigger')} ${u.verified ? '✓' : ''}</div>
-      <div class="card" style="text-align:left;font-size:13px">
-        <div class="row between" style="padding:8px 0"><span class="muted">User ID</span><b>${esc(String(u.uid || '').slice(0, 14))}</b></div>
-        <div class="row between" style="padding:8px 0"><span class="muted">Email</span><span>${esc(u.email || '—')} ${u.emailVerified ? '<span style="color:#0f6b4f">Verified</span>' : ''}</span></div>
-        <div class="row between" style="padding:8px 0"><span class="muted">Mobile</span><span>${esc(u.mobile || '—')} ${u.mobileVerified ? '<span style="color:#0f6b4f">Verified</span>' : ''}</span></div>
-        <div class="row between" style="padding:8px 0"><span class="muted">Member Since</span><b>${u.created ? new Date(u.created).toLocaleDateString() : '—'}</b></div>
-        <div class="row between" style="padding:8px 0"><span class="muted">Account Status</span><b style="color:#0f6b4f">${esc(u.status || 'active')}</b></div>
-      </div>
-      <div class="card" style="text-align:left;margin-top:10px">
-        <div class="row between"><span>Profile Completion</span><b>${pct}%</b></div>
-        <div class="ah-bar" style="margin-top:8px"><i style="width:${pct}%"></i></div>
-      </div>
-      <div class="stat">
-        <div><b>${exams}</b><span class="muted">Tests Taken</span></div>
-        <div><b>${avg}%</b><span class="muted">Avg. Score</span></div>
-        <div><b>—</b><span class="muted">Study Time</span></div>
-      </div>
-      <button class="btn" style="width:100%;margin-top:16px" type="button" onclick="navigate('profile/edit')">Edit Profile</button>
-      <button class="btn ghost" style="width:100%;margin-top:8px" type="button" onclick="navigate('profile/security')">Security</button>
-      <button class="btn ghost" style="width:100%;margin-top:8px;color:#c0392b" type="button" id="ahLogoutBtn">Logout</button>
+  /* ═══════════ PREMIUM PROFILE SYSTEM (blueprint A–Z) ═══════════ */
+  function profTime(ts) {
+    if (!ts) return '—';
+    const d = new Date(ts), now = new Date();
+    const diff = now - d;
+    if (diff < 60000) return 'এইমাত্র';
+    if (diff < 3600000) return Math.floor(diff / 60000) + ' মিনিট আগে';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + ' ঘণ্টা আগে';
+    if (diff < 604800000) return Math.floor(diff / 86400000) + ' দিন আগে';
+    return d.toLocaleDateString('bn-BD', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function goalLabel(g) {
+    return ({ uni: 'বিশ্ববিদ্যালয় ভর্তি', hsc: 'HSC / আলিম', ssc: 'SSC / দাখিল', bcs: 'বিসিএস / চাকরি' })[g] || '';
+  }
+  function aimLabel(s) {
+    return ({ top: 'টপ র‍্যাংক', good: 'ভালো প্রস্তুতি', fast: 'স্মার্ট ও ফাস্ট' })[s] || '';
+  }
+  function computeAchievements(stats, streak) {
+    const tq = (stats && stats.totalQuestions) || 0, ex = (stats && stats.exams) || 0, ba = (stats && stats.bestAcc) || 0;
+    return [
+      { id: 'first', icon: '🎯', t: 'প্রথম পরীক্ষা', d: 'একটি পরীক্ষা সম্পন্ন করো', done: ex >= 1, p: Math.min(1, ex / 1), cur: ex, goal: 1 },
+      { id: 'q100', icon: '📚', t: '১০০ প্রশ্ন', d: 'মোট ১০০ প্রশ্নের সমাধান', done: tq >= 100, p: Math.min(1, tq / 100), cur: tq, goal: 100 },
+      { id: 'q1000', icon: '📚', t: '১০০০ প্রশ্ন', d: 'মোট ১০০০ প্রশ্নের সমাধান', done: tq >= 1000, p: Math.min(1, tq / 1000), cur: tq, goal: 1000 },
+      { id: 'ex10', icon: '📝', t: '১০টি পরীক্ষা', d: '১০টি পরীক্ষা সম্পন্ন করো', done: ex >= 10, p: Math.min(1, ex / 10), cur: ex, goal: 10 },
+      { id: 's7', icon: '🔥', t: '৭ দিনের ধারা', d: 'টানা ৭ দিন প্রস্তুতি', done: streak >= 7, p: Math.min(1, streak / 7), cur: streak, goal: 7 },
+      { id: 's30', icon: '🏆', t: '৩০ দিনের ধারা', d: 'টানা ৩০ দিন প্রস্তুতি', done: streak >= 30, p: Math.min(1, streak / 30), cur: streak, goal: 30 },
+      { id: 'pb', icon: '⭐', t: 'ব্যক্তিগত সেরা', d: 'এক পরীক্ষায় ৯০%+ নির্ভুলতা', done: ba >= 90, p: Math.min(1, ba / 90), cur: Math.round(ba), goal: 90 }
+    ];
+  }
+  function prepPercent(u, stats) {
+    const tq = (stats && stats.totalQuestions) || 0, ex = (stats && stats.exams) || 0;
+    const academic = (u && u.onboardingCompleted) ? 40 : 0;
+    const q = Math.round(30 * Math.min(1, tq / 1000));
+    const e = Math.round(30 * Math.min(1, ex / 10));
+    return { pct: Math.min(100, academic + q + e), academic, q, e };
+  }
+  function profAvatar(u, size, cls) {
+    const monogram = esc(String(u.name || 'S').trim().charAt(0).toUpperCase());
+    return u.photo
+      ? `<img class="ah-pf-av ${cls || ''}" src="${u.photo}" alt="" style="width:${size}px;height:${size}px">`
+      : `<div class="ah-pf-av ah-pf-mono ${cls || ''}" style="width:${size}px;height:${size}px;font-size:${Math.round(size * 0.42)}px">${monogram}</div>`;
+  }
+  function secRow(icon, label, sub, status, href, act) {
+    const stHtml = status === true ? '<span class="ah-pf-ok">● সুরক্ষিত</span>' : (status === false ? '<span class="ah-pf-warn">● প্রয়োজন</span>' : `<span class="muted">${status || ''}</span>`);
+    return `<div class="ah-pf-row" onclick="${href ? `navigate('${href}')` : (act || '')}">
+      <span class="ah-pf-ri">${icon}</span>
+      <span class="ah-pf-rt"><b>${label}</b><i>${sub || ''}</i></span>
+      <span class="ah-pf-rv">${stHtml}</span>
+      <span class="ah-pf-chev">›</span>
     </div>`;
-    if (typeof renderShell === 'function') renderShell(html, { title: '', back: "navigate('dashboard')", actions: ['<button class="iconbtn" onclick="navigate(\'profile/edit\')" aria-label="Edit">✎</button>'] });
-    document.getElementById('ahLogoutBtn')?.addEventListener('click', logout);
+  }
+  function shellProfile(html, opts) {
+    if (typeof renderShell === 'function') renderShell(html, Object.assign({ title: 'Profile', back: "navigate('dashboard')" }, opts || {}));
+  }
+  function passField(id, ph) {
+    return `<div class="ah-field"><input class="ah-inp" id="${id}" type="password" placeholder="${ph}" autocomplete="new-password"><button class="ah-eye" type="button" data-eye="${id}" aria-label="Show password">👁</button></div>`;
   }
 
+  function renderProfile() {
+    const u = user() || {};
+    const stats = (typeof computeLifetimeStats === 'function') ? computeLifetimeStats() : { exams: 0, totalQuestions: 0, attempted: 0, accuracy: 0, bestAcc: 0, correct: 0 };
+    const streak = (typeof computeStreak === 'function') ? computeStreak() : 0;
+    const ach = computeAchievements(stats, streak);
+    const doneAch = ach.filter(a => a.done).length;
+    const prep = prepPercent(u, stats);
+    const providers = u.providers || [];
+    const hasPw = providers.includes('password') || providers.includes('email') || (!providers.length && !!u.email);
+    const hasPk = providers.includes('passkey');
+    const hasG = providers.includes('google');
+    const onb = !!(u.onboardingCompleted);
+    const uniGoal = u.goal === 'uni' ? (u.targetUniversity || 'বিশ্ববিদ্যালয়') : (goalLabel(u.goal) || 'প্রস্তুতি লক্ষ্য');
+    const goalChip = onb ? uniGoal : '<span class="ah-pf-chip ghost" onclick="navigate(\'profile/academic\')">🎯 লক্ষ্য ঠিক করো</span>';
+    const memberSince = u.created ? new Date(u.created).toLocaleDateString('bn-BD', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+    const accId = String(u.uid || u.id || '');
+    const accShort = accId.length > 20 ? accId.slice(0, 5) + '…' + accId.slice(-4) : accId;
+    const html = `<div class="ah-pf">
+      <div class="ah-pf-hero">
+        <div class="ah-pf-orb" aria-hidden="true"></div>
+        <div class="ah-pf-orb o2" aria-hidden="true"></div>
+        <div class="ah-pf-avatar">
+          <span class="ah-pf-ring" aria-hidden="true"></span>
+          <span class="ah-pf-ring r2" aria-hidden="true"></span>
+          ${profAvatar(u, 92)}
+        </div>
+        <div class="ah-pf-name">${esc(u.name || 'Scholar')} ${u.verified ? '<span class="ah-pf-vbadge" title="যাচাইকৃত">✓</span>' : ''}</div>
+        <div class="ah-pf-tag">${esc(u.bio || (lang === 'bn' ? 'স্বপ্ন দেখো, বড় কিছু অর্জন করো' : 'Dream big, achieve bigger'))}</div>
+        <div class="ah-pf-goal">${goalChip}</div>
+        <div class="ah-pf-meta"><span>সদস্য ${memberSince}</span><span class="dot">·</span><span>Account ID: <b>${esc(accShort)}</b></span></div>
+      </div>
+
+      <div class="ah-pf-body">
+        <section class="ah-pf-sec" id="pfAcademicSlot">
+          <div class="ah-pf-sec-h"><h2>একাডেমিক প্রোফাইল</h2><button class="ah-pf-linkbtn" onclick="navigate('profile/academic')">বিস্তারিত ›</button></div>
+          <div class="ah-pf-acad">
+            ${onb ? `<div class="ah-pf-acad-grid">
+              <div class="ah-pf-acad-i"><span class="ic">🎯</span><div><b>লক্ষ্য</b><i>${esc(goalLabel(u.goal) || u.goal || 'বিশ্ববিদ্যালয় ভর্তি')}</i></div></div>
+              <div class="ah-pf-acad-i"><span class="ic">🏛</span><div><b>বিশ্ববিদ্যালয়</b><i>${esc(u.targetUniversity || '—')}</i></div></div>
+              <div class="ah-pf-acad-i"><span class="ic">📋</span><div><b>ইউনিট</b><i>${esc(String(u.targetUnit || '').split(',').filter(Boolean).join(' · ') || '—')}</i></div></div>
+              <div class="ah-pf-acad-i"><span class="ic">🎯</span><div><b>প্রস্তুতির লক্ষ্য</b><i>${esc(aimLabel(u.studyGoal) || u.studyGoal || '—')}</i></div></div>
+            </div>
+            <div class="ah-pf-acad-lv"><b>প্রস্তুতি স্তর</b><div class="ah-pf-bar"><i style="width:${Math.max(4, Math.min(100, Number(u.currentLevel) || 0))}%"></i></div><span>${Number(u.currentLevel) || 0}%</span></div>`
+            : `<div class="ah-pf-empty"><span class="ic">🎓</span><b>একাডেমিক প্রোফাইল এখনো তৈরি হয়নি</b><p>তোমার লক্ষ্য, পছন্দের বিশ্ববিদ্যালয় ও ইউনিট জানালে প্রস্তুতির রোডম্যাপ তৈরি হবে।</p><button class="ah-pf-cta" onclick="navigate('profile/academic')">Start Preparing →</button></div>`}
+          </div>
+        </section>
+
+        <section class="ah-pf-sec">
+          <div class="ah-pf-sec-h"><h2>স্ন্যাপশট</h2><span class="ah-pf-live">লাইভ</span></div>
+          <div class="ah-pf-snap">
+            <div class="t"><b>${stats.exams}</b><span>পরীক্ষা</span></div>
+            <div class="t"><b>${(stats.totalQuestions || 0).toLocaleString('bn-BD')}</b><span>প্রশ্ন</span></div>
+            <div class="t"><b>${(stats.accuracy || 0)}%</b><span>নির্ভুলতা</span></div>
+            <div class="t"><b>${streak}</b><span>দিনের ধারা</span></div>
+          </div>
+        </section>
+
+        <section class="ah-pf-sec">
+          <div class="ah-pf-sec-h"><h2>প্রস্তুতি অগ্রগতি</h2></div>
+          <div class="ah-pf-prep">
+            <div class="ah-pf-ringwrap">
+              <svg viewBox="0 0 120 120" class="ah-pf-ringsvg">
+                <circle class="bg" cx="60" cy="60" r="52"/>
+                <circle class="fg" cx="60" cy="60" r="52" style="stroke-dasharray:${2 * Math.PI * 52 * (prep.pct / 100)} ${2 * Math.PI * 52}"/>
+              </svg>
+              <div class="ah-pf-ringnum"><b>${prep.pct}%</b><span>প্রস্তুত</span></div>
+            </div>
+            <div class="ah-pf-prep-side">
+              <div class="li"><span>একাডেমিক</span><div class="ah-pf-bar"><i style="width:${prep.academic}%"></i></div><b>${prep.academic}%</b></div>
+              <div class="li"><span>প্রশ্ন সমাধান</span><div class="ah-pf-bar"><i style="width:${prep.q}%"></i></div><b>${prep.q}%</b></div>
+              <div class="li"><span>পরীক্ষা</span><div class="ah-pf-bar"><i style="width:${prep.e}%"></i></div><b>${prep.e}%</b></div>
+              <div class="muted" style="font-size:11.5px;line-height:1.5;margin-top:8px">আসল অগ্রগতি ডেটা থেকে হিসাব করা। একাডেমিক ৪০% · প্রশ্ন ৩০% · পরীক্ষা ৩০%।</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="ah-pf-sec">
+          <div class="ah-pf-sec-h"><h2>অর্জন</h2><span class="ah-pf-count">${doneAch}/${ach.length}</span></div>
+          <div class="ah-pf-ach">
+            ${ach.map(a => `
+              <div class="ah-pf-achi ${a.done ? 'done' : 'lock'}">
+                <span class="ic">${a.icon}</span>
+                <b>${a.t}</b>
+                <i>${a.done ? a.d : (Math.min(a.cur, a.goal).toLocaleString('bn-BD') + ' / ' + a.goal.toLocaleString('bn-BD'))}</i>
+                ${a.done ? '<em>✓ অর্জিত</em>' : `<div class="ah-pf-bar"><i style="width:${Math.max(3, Math.round(a.p * 100))}%"></i></div>`}
+              </div>`).join('')}
+          </div>
+        </section>
+
+        <section class="ah-pf-sec">
+          <div class="ah-pf-sec-h"><h2>সিকিউরিটি সেন্টার</h2><button class="ah-pf-linkbtn" onclick="navigate('profile/security')">সব ›</button></div>
+          <div class="ah-pf-card">
+            ${secRow('🔑', 'পাসওয়ার্ড', hasPw ? 'সেট করা আছে' : 'সেট করা নেই', hasPw, 'profile/security/password')}
+            ${secRow('🪪', 'পাসকি (Passkey)', hasPk ? 'এই ডিভাইসে যুক্ত' : 'যুক্ত করা যায়', hasPk, 'profile/security/passkeys')}
+            ${secRow('🔗', 'গুগল অ্যাকাউন্ট', hasG ? (u.email || 'যুক্ত') : 'সংযোগ করা যায়', hasG, 'profile/security/google')}
+            ${secRow('✉️', 'ইমেইল', u.email || '—', !!u.emailVerified, 'profile/edit')}
+            ${secRow('📱', 'মোবাইল', u.mobile || '—', !!u.mobileVerified, 'profile/edit')}
+            <button class="ah-pf-securebtn" onclick="AHProf.secureNow()">🛡 Secure My Account</button>
+          </div>
+        </section>
+
+        <section class="ah-pf-sec">
+          <div class="ah-pf-sec-h"><h2>ডিভাইস ও সেশন</h2><button class="ah-pf-linkbtn" onclick="navigate('profile/devices')">সব ›</button></div>
+          <div class="ah-pf-card" id="pfDevicesSlot">
+            <div class="ah-pf-row" onclick="navigate('profile/devices')">
+              <span class="ah-pf-ri">📱</span>
+              <span class="ah-pf-rt"><b>সক্রিয় সেশন</b><i>লোড হচ্ছে…</i></span>
+              <span class="ah-pf-rv"><span class="muted">—</span></span>
+              <span class="ah-pf-chev">›</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="ah-pf-sec">
+          <div class="ah-pf-sec-h"><h2>সাম্প্রতিক সিকিউরিটি অ্যাক্টিভিটি</h2><button class="ah-pf-linkbtn" onclick="navigate('profile/activity')">সব ›</button></div>
+          <div class="ah-pf-card" id="pfActivitySlot">
+            <div class="ah-pf-act-empty muted">লোড হচ্ছে…</div>
+          </div>
+        </section>
+
+        <section class="ah-pf-sec">
+          <div class="ah-pf-sec-h"><h2>পছন্দসমূহ</h2></div>
+          <div class="ah-pf-card">
+            <div class="ah-pf-row" onclick="navigate('profile/notifications')"><span class="ah-pf-ri">🔔</span><span class="ah-pf-rt"><b>নোটিফিকেশন</b><i>পড়াশোনা + সিকিউরিটি সতর্কতা</i></span><span class="ah-pf-chev">›</span></div>
+            <div class="ah-pf-row" onclick="navigate('profile/appearance')"><span class="ah-pf-ri">🎨</span><span class="ah-pf-rt"><b>চেহারা (Appearance)</b><i>থিম, অ্যাকসেন্ট, ঘনত্ব</i></span><span class="ah-pf-chev">›</span></div>
+            <div class="ah-pf-row" onclick="navigate('profile/language')"><span class="ah-pf-ri">🌐</span><span class="ah-pf-rt"><b>ভাষা</b><i>${lang === 'bn' ? 'বাংলা' : 'English'}</i></span><span class="ah-pf-chev">›</span></div>
+          </div>
+        </section>
+
+        <section class="ah-pf-sec">
+          <div class="ah-pf-sec-h"><h2>ডেটা ও গোপনীয়তা</h2></div>
+          <div class="ah-pf-card">
+            <div class="ah-pf-row" onclick="navigate('profile/data')"><span class="ah-pf-ri">📦</span><span class="ah-pf-rt"><b>ডেটা এক্সপোর্ট</b><i>সম্পূর্ণ কাঠামোবদ্ধ অনুলিপি</i></span><span class="ah-pf-chev">›</span></div>
+            <div class="ah-pf-row danger" onclick="navigate('profile/delete')"><span class="ah-pf-ri">🗑</span><span class="ah-pf-rt"><b>অ্যাকাউন্ট মুছো</b><i>স্থায়ীভাবে ডেটা সরিয়ে ফেলা</i></span><span class="ah-pf-chev">›</span></div>
+          </div>
+        </section>
+
+        <button class="ah-pf-logout" onclick="AHProf.logout()">লগ আউট</button>
+        <div class="ah-pf-foot muted">Admission Hub · সংস্করণ ১২</div>
+      </div>
+    </div>`;
+    shellProfile(html);
+    loadProfileExtras();
+  }
+
+  async function loadProfileExtras() {
+    try {
+      const [onb, sess] = await Promise.all([
+        api('/onboarding', { headers: authH() }).catch(() => null),
+        api('/sessions', { headers: authH() }).catch(() => null)
+      ]);
+      if (onb && onb.onboarding) {
+        const o = onb.onboarding;
+        const slot = document.getElementById('pfAcademicSlot');
+        if (slot && o.completed) {
+          const weak = Array.isArray(o.weakSubjects) && o.weakSubjects.length ? o.weakSubjects.slice(0, 4).map(esc).join(' · ') : '';
+          const unis = Array.isArray(o.targetUniversities) && o.targetUniversities.length ? esc(o.targetUniversities.join(', ')) : (user().targetUniversity ? esc(user().targetUniversity) : '');
+          const units = Array.isArray(o.targetUnits) && o.targetUnits.length ? esc(o.targetUnits.join(' · ')) : '';
+          const goal = o.goal ? esc(goalLabel(o.goal) || o.goal) : 'বিশ্ববিদ্যালয় ভর্তি';
+          slot.querySelector('.ah-pf-acad').innerHTML =
+            `<div class="ah-pf-acad-grid">
+              <div class="ah-pf-acad-i"><span class="ic">🎯</span><div><b>লক্ষ্য</b><i>${goal}</i></div></div>
+              <div class="ah-pf-acad-i"><span class="ic">🏛</span><div><b>বিশ্ববিদ্যালয়</b><i>${unis || '—'}</i></div></div>
+              <div class="ah-pf-acad-i"><span class="ic">📋</span><div><b>ইউনিট</b><i>${units || '—'}</i></div></div>
+              <div class="ah-pf-acad-i"><span class="ic">📖</span><div><b>দুর্বল বিষয়</b><i>${weak || '—'}</i></div></div>
+            </div>
+            <div class="ah-pf-acad-lv"><b>প্রস্তুতি স্তর</b><div class="ah-pf-bar"><i style="width:${Math.max(4, Math.min(100, Number(o.currentLevel) || 0))}%"></i></div><span>${Number(o.currentLevel) || 0}%</span></div>`;
+        }
+      }
+      if (sess && Array.isArray(sess.sessions)) {
+        const s = sess.sessions;
+        const cur = s.find(x => x.current) || s[0];
+        const slot = document.getElementById('pfDevicesSlot');
+        if (slot) {
+          const live = s.filter(x => x.live).length;
+          slot.innerHTML = `<div class="ah-pf-row" onclick="navigate('profile/devices')">
+            <span class="ah-pf-ri">${cur ? curIcon(cur) : '📱'}</span>
+            <span class="ah-pf-rt"><b>${s.length}টি ডিভাইস</b><i>${cur ? (cur.browser + ' · ' + profTime(cur.lastSeen)) : ''}</i></span>
+            <span class="ah-pf-rv"><span class="ah-pf-ok">● ${live} সক্রিয়</span></span>
+            <span class="ah-pf-chev">›</span></div>`;
+        }
+      }
+    } catch (_) {}
+    try {
+      const data = await api('/security/activity', { headers: authH() });
+      const arr = Array.isArray(data.activity) ? data.activity : [];
+      const slot = document.getElementById('pfActivitySlot');
+      if (slot) {
+        if (!arr.length) slot.innerHTML = '<div class="ah-pf-act-empty">এখনো কোনো সিকিউরিটি ইভেন্ট নেই</div>';
+        else slot.innerHTML = arr.slice(0, 4).map(a => `<div class="ah-pf-act">
+          <span class="dot"></span>
+          <div><b>${esc(a.detail || a.type)}</b><i>${profTime(a.at)}</i></div>
+        </div>`).join('');
+      }
+    } catch (_) {}
+  }
+  function curIcon(s) {
+    if (s.mobile) return '📱';
+    if (s.device === 'iPhone' || s.device === 'iPad') return '📱';
+    if (s.device === 'Windows' || s.device === 'Mac' || s.device === 'Linux') return '💻';
+    return '🖥';
+  }
+
+  /* ─────────── Edit profile ─────────── */
   function renderEdit() {
     const u = user() || {};
-    const html = `<div style="padding:4px 2px 28px">
-      <div style="text-align:center;margin:8px 0 14px">
-        ${u.photo ? `<img class="ah-av" src="${u.photo}" style="width:88px;height:88px">` : `<div class="ah-av" style="width:88px;height:88px;margin:0 auto;display:grid;place-items:center;color:#fff;font-size:28px">${esc((u.name || 'S')[0])}</div>`}
-        <div><button class="ah-link" type="button" id="ahPhotoBtn">Change Photo</button></div>
+    const html = `<div class="ah-pf" style="padding:6px 0 30px">
+      <div class="ah-pf-editav">
+        <div class="ah-pf-avatar sm">${profAvatar(u, 84)}</div>
+        <button class="ah-pf-linkbtn" onclick="AHProf.photo()">ছবি পরিবর্তন</button>
       </div>
-      <label class="ah-lab">Full Name</label><input class="ah-inp" id="pfName" value="${esc(u.name || '')}">
-      <label class="ah-lab">Display Name</label><input class="ah-inp" id="pfDisplay" value="${esc(u.displayName || '')}">
-      <label class="ah-lab">Email</label><input class="ah-inp" id="pfEmail" value="${esc(u.email || '')}" disabled>
-      <label class="ah-lab">Mobile</label><input class="ah-inp" id="pfMobile" value="${esc(u.mobile || '')}" disabled>
-      <label class="ah-lab">Date of Birth (optional)</label><input class="ah-inp" id="pfDob" value="${esc(u.dob || '')}" placeholder="12 May 2003">
-      <label class="ah-lab">Institution / College (optional)</label><input class="ah-inp" id="pfInst" value="${esc(u.institution || '')}">
-      <label class="ah-lab">Target University (optional)</label><input class="ah-inp" id="pfUni" value="${esc(u.targetUniversity || '')}">
-      <label class="ah-lab">Target Unit (optional)</label><input class="ah-inp" id="pfUnit" value="${esc(u.targetUnit || '')}">
-      <label class="ah-lab">Admission Year (optional)</label><input class="ah-inp" id="pfYear" value="${esc(u.admissionYear || '')}">
-      <label class="ah-lab">Short Bio (optional)</label><input class="ah-inp" id="pfBio" value="${esc(u.bio || '')}" maxlength="200">
-      <button class="ah-btn" type="button" id="pfSave">Save Changes</button>
+      <label class="ah-pf-lab">পূর্ণ নাম</label><input class="ah-inp" id="pfName" value="${esc(u.name || '')}" autocomplete="name">
+      <label class="ah-pf-lab">প্রদর্শন নাম</label><input class="ah-inp" id="pfDisplay" value="${esc(u.displayName || '')}" placeholder="ছোট নাম">
+      <label class="ah-pf-lab">জন্ম তারিখ <span class="ah-pf-opt">(ঐচ্ছিক)</span></label><input class="ah-inp" id="pfDob" value="${esc(u.dob || '')}" placeholder="12 May 2003" inputmode="text">
+      <label class="ah-pf-lab">বিদ্যালয় <span class="ah-pf-opt">(ঐচ্ছিক)</span></label><input class="ah-inp" id="pfSchool" value="${esc(u.institution || '')}" placeholder="বিদ্যালয়ের নাম">
+      <label class="ah-pf-lab">কলেজ <span class="ah-pf-opt">(ঐচ্ছিক)</span></label><input class="ah-inp" id="pfCollege" value="${esc(u.institution || '')}" placeholder="কলেজের নাম">
+      <label class="ah-pf-lab">সংক্ষিপ্ত পরিচিতি <span class="ah-pf-opt">(ঐচ্ছিক)</span></label><input class="ah-inp" id="pfBio" value="${esc(u.bio || '')}" maxlength="200">
+      <label class="ah-pf-lab">ইমেইল <span class="ah-pf-locknote">🔒 পরিবর্তনে পাসওয়ার্ড লাগবে</span></label>
+      <div class="ah-field"><input class="ah-inp" id="pfEmail" value="${esc(u.email || '')}" type="email" autocomplete="email">${u.emailVerified ? '<span class="ah-pf-verify-badge">✓</span>' : ''}</div>
+      <label class="ah-pf-lab">মোবাইল <span class="ah-pf-locknote">🔒 পরিবর্তনে পাসওয়ার্ড লাগবে</span></label>
+      <div class="ah-field"><input class="ah-inp" id="pfMobile" value="${esc(u.mobile || '')}" type="tel" autocomplete="tel">${u.mobileVerified ? '<span class="ah-pf-verify-badge">✓</span>' : ''}</div>
+      <button class="ah-btn" id="pfSave">সংরক্ষণ করো</button>
     </div>`;
-    if (typeof renderShell === 'function') renderShell(html, { title: 'Edit Profile', back: "navigate('profile')" });
-    document.getElementById('ahPhotoBtn')?.addEventListener('click', openPhotoSheet);
-    document.getElementById('pfSave')?.addEventListener('click', async () => {
-      try {
-        const body = {
-          name: document.getElementById('pfName').value,
-          displayName: document.getElementById('pfDisplay').value,
-          dob: document.getElementById('pfDob').value,
-          institution: document.getElementById('pfInst').value,
-          targetUniversity: document.getElementById('pfUni').value,
-          targetUnit: document.getElementById('pfUnit').value,
-          admissionYear: document.getElementById('pfYear').value,
-          bio: document.getElementById('pfBio').value
-        };
-        const data = await api('/profile', { method: 'PUT', headers: authH(), body: JSON.stringify(body) });
+    shellProfile(html, { title: 'Edit Profile', back: "navigate('profile')" });
+    document.getElementById('pfSave').addEventListener('click', AHProf.saveEdit);
+  }
+  async function saveEdit() {
+    const g = id => document.getElementById(id);
+    const email = g('pfEmail').value.trim();
+    const mobile = g('pfMobile').value.trim();
+    const base = {
+      name: g('pfName').value.trim(),
+      displayName: g('pfDisplay').value.trim(),
+      dob: g('pfDob').value.trim(),
+      institution: g('pfSchool').value.trim() || g('pfCollege').value.trim(),
+      bio: g('pfBio').value.trim(),
+      targetUniversity: (user() || {}).targetUniversity || '',
+      targetUnit: (user() || {}).targetUnit || '',
+      admissionYear: (user() || {}).admissionYear || ''
+    };
+    const emailChanged = email !== String((user() || {}).email || '').toLowerCase();
+    const mobileChanged = mobile !== String((user() || {}).mobile || '');
+    try {
+      if (emailChanged || mobileChanged) {
+        const pw = await reauthPrompt('পরিচিতি (ইমেইল/মোবাইল) পরিবর্তন নিশ্চিত করতে পাসওয়ার্ড দাও');
+        if (pw === null) return;
+        const data = await api('/profile', { method: 'PUT', headers: authH(), body: JSON.stringify(Object.assign({}, base, { email, mobile, password: pw })) });
         setSession(token(), data.user);
         toast('প্রোফাইল আপডেট হয়েছে');
         navigate('profile');
-      } catch (e) { toast(e.message); }
-    });
+      } else {
+        const data = await api('/profile', { method: 'PUT', headers: authH(), body: JSON.stringify(base) });
+        setSession(token(), data.user);
+        toast('প্রোফাইল আপডেট হয়েছে');
+        navigate('profile');
+      }
+    } catch (e) { toast(e.message); }
   }
 
+  /* ─────────── Security center ─────────── */
   function renderSecurity() {
-    const html = `<div style="padding:8px 2px 28px">
-      <div class="ah-kicker" style="font-size:22px">Security</div>
-      <label class="ah-lab">Current Password</label>${passField('curPass', 'Current Password')}
-      <label class="ah-lab">New Password</label>${passField('newPass', 'New Password')}
-      <label class="ah-lab">Confirm New Password</label>${passField('newPass2', 'Confirm')}
-      ${errBox('ahErr')}
-      <button class="ah-btn" type="button" id="ahChPass">Change Password</button>
-      <button class="btn ghost" style="width:100%;margin-top:24px;color:#c0392b" type="button" id="ahDel">Delete Account</button>
+    const u = user() || {};
+    const providers = u.providers || [];
+    const hasPw = providers.includes('password') || providers.includes('email') || (!providers.length && !!u.email);
+    const hasPk = providers.includes('passkey');
+    const hasG = providers.includes('google');
+    const html = `<div class="ah-pf" style="padding:6px 0 30px">
+      <div class="ah-pf-sec-h"><h2>লগইন পদ্ধতি</h2></div>
+      <div class="ah-pf-card">
+        ${secRow('🔑', 'পাসওয়ার্ড', hasPw ? 'সেট করা আছে · শেষ আপডেট অজানা' : 'এখনো সেট করা নেই', hasPw, 'profile/security/password')}
+        ${secRow('🪪', 'পাসকি (Passkey)', hasPk ? 'এই ডিভাইসে যুক্ত' : 'যোগ করা যায়নি', hasPk, 'profile/security/passkeys')}
+        ${secRow('🔗', 'গুগল অ্যাকাউন্ট', hasG ? (u.email || 'যুক্ত') : 'সংযোগ করা যায়', hasG, 'profile/security/google')}
+      </div>
+      <div class="ah-pf-sec-h" style="margin-top:22px"><h2>যোগাযোগ যাচাইকরণ</h2></div>
+      <div class="ah-pf-card">
+        ${secRow('✉️', 'ইমেইল', u.email || 'যোগ করা হয়নি', !!u.emailVerified, 'profile/edit')}
+        ${secRow('📱', 'মোবাইল', u.mobile || 'যোগ করা হয়নি', !!u.mobileVerified, 'profile/edit')}
+      </div>
+      <div class="ah-pf-sec-h" style="margin-top:22px"><h2>নিরাপত্তা স্কোর</h2></div>
+      <div class="ah-pf-card">
+        <div class="ah-pf-score">
+          <div class="ah-pf-score-ring">
+            <svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="52"/><circle class="fg" cx="60" cy="60" r="52" style="stroke-dasharray:${2 * Math.PI * 52 * (secScore(u) / 100)} ${2 * Math.PI * 52}"/></svg>
+            <b>${secScore(u)}%</b>
+          </div>
+          <div class="ah-pf-score-list">
+            ${scoreItem('পাসওয়ার্ড সেট', hasPw)}
+            ${scoreItem('ইমেইল যাচাইকৃত', !!u.emailVerified)}
+            ${scoreItem('পাসকি সক্রিয়', hasPk)}
+            ${scoreItem('গুগল ব্যাকআপ', hasG)}
+          </div>
+        </div>
+        <button class="ah-pf-securebtn" onclick="AHProf.secureNow()">🛡 Secure My Account</button>
+      </div>
+      <button class="ah-pf-dangerbtn" onclick="navigate('profile/delete')">অ্যাকাউন্ট মুছে ফেলো</button>
     </div>`;
-    if (typeof renderShell === 'function') renderShell(html, { title: 'Security', back: "navigate('profile')" });
+    shellProfile(html, { title: 'Security', back: "navigate('profile')" });
+  }
+  function scoreItem(label, ok) {
+    return `<div class="li ${ok ? 'ok' : ''}"><span>${ok ? '✓' : '○'} ${label}</span><i>${ok ? 'সম্পন্ন' : 'বাকি'}</i></div>`;
+  }
+  function secScore(u) {
+    const providers = u.providers || [];
+    const hasPw = providers.includes('password') || providers.includes('email') || (!providers.length && !!u.email);
+    const hasPk = providers.includes('passkey');
+    const hasG = providers.includes('google');
+    let s = 0;
+    if (hasPw) s += 35;
+    if (u.emailVerified) s += 25;
+    if (hasPk) s += 25;
+    if (hasG) s += 15;
+    return s;
+  }
+  function renderPassword() {
+    const html = `<div class="ah-pf" style="padding:6px 0 30px">
+      <p class="muted" style="font-size:13px;line-height:1.55;margin:0 0 14px">নতুন পাসওয়ার্ডে কমপক্ষে ৮ অক্ষর, একটি বড় হাতের অক্ষর ও একটি সংখ্যা থাকা উচিত। পাসওয়ার্ড কখনো কারো সাথে শেয়ার করো না।</p>
+      <label class="ah-pf-lab">বর্তমান পাসওয়ার্ড</label>${passField('curPass', 'বর্তমান পাসওয়ার্ড')}
+      <label class="ah-pf-lab">নতুন পাসওয়ার্ড</label>${passField('newPass', 'নতুন পাসওয়ার্ড')}
+      <label class="ah-pf-lab">নতুন পাসওয়ার্ড আবার</label>${passField('newPass2', 'নিশ্চিত করো')}
+      ${errBox('ahErr')}
+      <button class="ah-btn" id="ahChPass">পাসওয়ার্ড বদলাও</button>
+      <button class="ah-btn sec" style="margin-top:10px" onclick="navigate('profile/security')">ফিরে যাও</button>
+    </div>`;
+    shellProfile(html, { title: 'Password', back: "navigate('profile/security')" });
     document.querySelectorAll('[data-eye]').forEach(b => b.onclick = () => {
       const inp = document.getElementById(b.getAttribute('data-eye'));
       if (inp) inp.type = inp.type === 'password' ? 'text' : 'password';
     });
-    document.getElementById('ahChPass')?.addEventListener('click', async () => {
+    document.getElementById('ahChPass').addEventListener('click', async () => {
       try {
         await api('/auth/password', { method: 'POST', headers: authH(), body: JSON.stringify({ current: document.getElementById('curPass').value, password: document.getElementById('newPass').value, confirm: document.getElementById('newPass2').value }) });
         toast('পাসওয়ার্ড বদলেছে');
+        navigate('profile/security');
       } catch (e) { showErr('ahErr', e.message); }
     });
-    document.getElementById('ahDel')?.addEventListener('click', async () => {
-      if (!confirm('অ্যাকাউন্ট মুছে যাবে। নিশ্চিত?')) return;
-      const password = prompt('পাসওয়ার্ড লেখো') || '';
-      try {
-        await api('/auth/delete', { method: 'POST', headers: authH(), body: JSON.stringify({ password }) });
-        await logout();
-      } catch (e) { toast(e.message); }
+  }
+  function renderPasskeys() {
+    const u = user() || {};
+    const hasPk = (u.providers || []).includes('passkey');
+    const html = `<div class="ah-pf" style="padding:6px 0 30px">
+      <div class="ah-pf-card">
+        <div class="ah-pf-row-static">
+          <span class="ah-pf-ri">🪪</span>
+          <span class="ah-pf-rt"><b>এই ডিভাইসের পাসকি</b><i>${hasPk ? 'Face ID / Touch ID / পিন দিয়ে দ্রুত লগইন' : 'কোনো পাসকি নেই'}</i></span>
+          <span class="ah-pf-ok">${hasPk ? '● সক্রিয়' : '—'}</span>
+        </div>
+        ${hasPk ? `<button class="ah-btn sec" style="margin-top:12px" onclick="AHProf.removePasskey()">পাসকি সরাও</button>` : ''}
+      </div>
+      ${hasPk ? '' : `<div class="ah-pf-empty" style="margin-top:14px"><span class="ic">🪪</span><b>পাসকি এখনো নেই</b><p>পাসওয়ার্ড টাইপ না করেই Face ID / Touch ID দিয়ে ঢুকতে পারবে।</p><button class="ah-pf-cta" onclick="AHProf.addPasskey()">পাসকি যোগ করো</button></div>`}
+      <p class="muted" style="font-size:12px;line-height:1.55;margin-top:14px">পাসকি শুধু এই ডিভাইসে থাকে, Admission Hub-এ পাসওয়ার্ড হিসেবে সংরক্ষিত হয় না।</p>
+    </div>`;
+    shellProfile(html, { title: 'Passkeys', back: "navigate('profile/security')" });
+  }
+  async function addPasskey() {
+    try {
+      if (!window.PublicKeyCredential) return toast('এই ডিভাইসে পাসকি নেই');
+      const begin = await api('/auth/passkey/add/begin', { method: 'POST', headers: authH() });
+      const opt = begin.options;
+      opt.challenge = b64urlToBuf(opt.challenge);
+      opt.user.id = b64urlToBuf(opt.user.id);
+      const cred = await navigator.credentials.create({ publicKey: opt });
+      const att = cred.response;
+      const data = await api('/auth/passkey/add/finish', {
+        method: 'POST', headers: authH(),
+        body: JSON.stringify({
+          chalId: begin.chalId, id: cred.id, rawId: bufToB64url(cred.rawId),
+          clientDataJSON: bufToB64url(att.clientDataJSON), attestationObject: bufToB64url(att.attestationObject),
+          publicKey: att.getPublicKey ? bufToB64url(att.getPublicKey()) : '',
+          publicKeyAlgorithm: att.getPublicKeyAlgorithm ? att.getPublicKeyAlgorithm() : -7
+        })
+      });
+      setSession(token(), data.user);
+      toast('পাসকি যোগ হয়েছে');
+      navigate('profile/security/passkeys');
+    } catch (e) { toast(e.name === 'NotAllowedError' ? 'পাসকি বাতিল' : (e.message || 'পাসকি ব্যর্থ')); }
+  }
+  async function removePasskey() {
+    if (!window.confirm('এই ডিভাইসের পাসকি সরানো হবে। নিশ্চিত?')) return;
+    try {
+      const data = await api('/auth/passkey/remove', { method: 'POST', headers: authH() });
+      setSession(token(), data.user);
+      toast('পাসকি সরানো হয়েছে');
+      navigate('profile/security/passkeys');
+    } catch (e) { toast(e.message); }
+  }
+  function renderGoogle() {
+    const u = user() || {};
+    const hasG = (u.providers || []).includes('google');
+    const html = `<div class="ah-pf" style="padding:6px 0 30px">
+      <div class="ah-pf-card">
+        <div class="ah-pf-row-static">
+          <span class="ah-pf-ri">🔗</span>
+          <span class="ah-pf-rt"><b>গুগল অ্যাকাউন্ট</b><i>${hasG ? esc(u.email || 'যুক্ত') : 'সংযোগ করা হয়নি'}</i></span>
+          <span class="ah-pf-ok">${hasG ? '● যুক্ত' : '—'}</span>
+        </div>
+        ${hasG
+          ? `<button class="ah-btn sec" style="margin-top:12px" onclick="AHProf.unlinkGoogle()">গুগল লিংক সরাও</button>`
+          : `<button class="ah-btn" style="margin-top:12px" id="ahGLink">গুগল দিয়ে সংযোগ করো</button>`}
+      </div>
+      <p class="muted" style="font-size:12px;line-height:1.55;margin-top:14px">গুগল যুক্ত থাকলে পাসওয়ার্ড ভুলে গেলেও গুগল দিয়ে ঢোকা যায়। শুধু যাচাইকৃত গুগল অ্যাকাউন্টই যুক্ত হয়।</p>
+    </div>`;
+    shellProfile(html, { title: 'Google', back: "navigate('profile/security')" });
+    const btn = document.getElementById('ahGLink');
+    if (btn) btn.addEventListener('click', () => linkGoogle());
+  }
+  async function linkGoogle() {
+    try {
+      if (!window.google || !window.google.accounts) return toast('গুগল সংযোগ লোড হয়নি — একটু পরে আবার চেষ্টা করো');
+      await new Promise((res, rej) => {
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: (window.AH_AUTH_CONFIG && window.AH_AUTH_CONFIG.googleClientId) || '',
+          scope: 'email profile openid',
+          callback: async (resp) => {
+            if (resp && resp.access_token) {
+              try {
+                const data = await api('/auth/google/link', { method: 'POST', headers: authH(), body: JSON.stringify({ accessToken: resp.access_token }) });
+                setSession(token(), data.user);
+                toast('গুগল যুক্ত হয়েছে');
+                res(navigate('profile/security/google'));
+              } catch (e) { rej(e); }
+            } else rej(new Error('গুগল লগইন বাতিল হয়েছে'));
+          }
+        });
+        tokenClient.requestAccessToken();
+      });
+    } catch (e) { toast(e.message); }
+  }
+  async function unlinkGoogle() {
+    if (!window.confirm('গুগল লিংক সরানো হবে? পাসওয়ার্ড দিয়ে ঢোকা যাবে।')) return;
+    try {
+      const data = await api('/auth/google/unlink', { method: 'POST', headers: authH() });
+      setSession(token(), data.user);
+      toast('গুগল লিংক সরানো হয়েছে');
+      navigate('profile/security/google');
+    } catch (e) { toast(e.message); }
+  }
+  async function secureNow() {
+    const u = user() || {};
+    const providers = u.providers || [];
+    const hasPw = providers.includes('password') || providers.includes('email') || (!providers.length && !!u.email);
+    const steps = [];
+    if (!hasPw) steps.push({ icon: '🔑', t: 'পাসওয়ার্ড সেট করো', a: 'navigate(\'profile/security/password\')' });
+    if (!u.emailVerified) steps.push({ icon: '✉️', t: 'ইমেইল যাচাই করো', a: 'navigate(\'profile/edit\')' });
+    if (!providers.includes('passkey')) steps.push({ icon: '🪪', t: 'পাসকি যোগ করো', a: 'navigate(\'profile/security/passkeys\')' });
+    if (steps.length === 0) return toast('🛡 তোমার অ্যাকাউন্ট ভালোভাবে সুরক্ষিত!');
+    const html = `<div class="ah-pf" style="padding:6px 0 30px">
+      <div class="ah-pf-score-banner">🛡 অ্যাকাউন্ট আরও সুরক্ষিত করতে এই ধাপগুলো করো</div>
+      ${steps.map((s, i) => `<div class="ah-pf-row" onclick="${s.a}"><span class="ah-pf-ri">${s.icon}</span><span class="ah-pf-rt"><b>${s.t}</b></span><span class="ah-pf-chev">›</span></div>`).join('')}
+    </div>`;
+    shellProfile(html, { title: 'Secure My Account', back: "navigate('profile/security')" });
+  }
+
+  /* ─────────── Devices & sessions ─────────── */
+  function renderDevices() {
+    const html = `<div class="ah-pf" style="padding:6px 0 30px" id="devRoot">
+      <div class="muted" style="text-align:center;padding:40px 0">সেশন লোড হচ্ছে…</div>
+    </div>`;
+    shellProfile(html, { title: 'Devices & Sessions', back: "navigate('profile')" });
+    loadDevices();
+  }
+  async function loadDevices() {
+    const root = document.getElementById('devRoot');
+    if (!root) return;
+    try {
+      const data = await api('/sessions', { headers: authH() });
+      const s = Array.isArray(data.sessions) ? data.sessions : [];
+      const live = s.filter(x => x.live);
+      const cur = s.find(x => x.current);
+      root.innerHTML = `<div class="ah-pf-card">
+        <div class="ah-pf-row-static">
+          <span class="ah-pf-ri">📊</span>
+          <span class="ah-pf-rt"><b>${s.length}টি ডিভাইস · ${live.length}টি সক্রিয়</b><i>সব সেশন যেখানে লগইন আছে</i></span>
+        </div>
+      </div>
+      ${s.map(x => `
+        <div class="ah-pf-card dev">
+          <div class="ah-pf-row-static">
+            <span class="ah-pf-ri">${curIcon(x)}</span>
+            <span class="ah-pf-rt">
+              <b>${esc(x.device || 'ডিভাইস')}${x.current ? ' <em class="ah-pf-cur">এই ডিভাইস</em>' : ''}</b>
+              <i>${esc(x.browser || '')} · প্রথম দেখা ${profTime(x.firstSeen)} · শেষ সক্রিয় ${profTime(x.lastSeen)}</i>
+              <span class="ah-pf-sessid">সেশন ID: ${esc(x.id || '—')}</span>
+            </span>
+          </div>
+          ${x.current ? '' : `<button class="ah-btn sec sm" style="margin-top:10px" onclick="AHProf.revokeSession('${esc(x.id)}')">এই সেশন বন্ধ করো</button>`}
+        </div>`).join('')}
+      <button class="ah-btn sec" style="margin-top:16px" onclick="AHProf.revokeOthers()">অন্য সব ডিভাইস থেকে লগ আউট</button>`;
+    } catch (e) { root.innerHTML = '<div class="ah-pf-empty"><span class="ic">⚠️</span><b>সেশন লোড হয়নি</b><p>' + esc(e.message) + '</p></div>'; }
+  }
+  async function revokeSession(id) {
+    if (!window.confirm('এই ডিভাইসের সেশন বন্ধ করবে?')) return;
+    try {
+      await api('/sessions/revoke', { method: 'POST', headers: authH(), body: JSON.stringify({ token: id }) });
+      toast('সেশন বন্ধ হয়েছে');
+      loadDevices();
+    } catch (e) { toast(e.message); }
+  }
+  async function revokeOthers() {
+    if (!window.confirm('এই ডিভাইস ছাড়া সব জায়গা থেকে লগ আউট হবে। নিশ্চিত?')) return;
+    try {
+      await api('/sessions/revoke-others', { method: 'POST', headers: authH() });
+      toast('অন্য সব সেশন বন্ধ হয়েছে');
+      loadDevices();
+    } catch (e) { toast(e.message); }
+  }
+
+  /* ─────────── Security activity ─────────── */
+  function renderActivity() {
+    const html = `<div class="ah-pf" style="padding:6px 0 30px" id="actRoot">
+      <div class="muted" style="text-align:center;padding:40px 0">লোড হচ্ছে…</div>
+    </div>`;
+    shellProfile(html, { title: 'Security Activity', back: "navigate('profile')" });
+    loadActivity();
+  }
+  async function loadActivity() {
+    const root = document.getElementById('actRoot');
+    if (!root) return;
+    try {
+      const data = await api('/security/activity', { headers: authH() });
+      const arr = Array.isArray(data.activity) ? data.activity : [];
+      if (!arr.length) {
+        root.innerHTML = '<div class="ah-pf-empty"><span class="ic">🛡</span><b>কোনো ইভেন্ট নেই</b><p>লগইন, পাসওয়ার্ড পরিবর্তন বা সেশন কার্যকলাপ এখানে দেখাবে।</p></div>';
+        return;
+      }
+      root.innerHTML = `<div class="ah-pf-card">${arr.map(a => `<div class="ah-pf-act">
+        <span class="dot"></span>
+        <div><b>${esc(a.detail || a.type)}</b><i>${profTime(a.at)}</i></div>
+      </div>`).join('')}</div>`;
+    } catch (e) { root.innerHTML = '<div class="ah-pf-empty"><span class="ic">⚠️</span><b>লোড হয়নি</b><p>' + esc(e.message) + '</p></div>'; }
+  }
+
+  /* ─────────── Academic profile ─────────── */
+  function renderAcademic() {
+    const u = user() || {};
+    const html = `<div class="ah-pf" style="padding:6px 0 30px" id="acadRoot">
+      <div class="muted" style="text-align:center;padding:40px 0">লোড হচ্ছে…</div>
+    </div>`;
+    shellProfile(html, { title: 'Academic Profile', back: "navigate('profile')" });
+    (async () => {
+      const root = document.getElementById('acadRoot');
+      if (!root) return;
+      let onb = null;
+      try { const d = await api('/onboarding', { headers: authH() }); onb = d.onboarding; } catch (_) {}
+      const o = onb || {};
+      const completed = !!(o.completed || u.onboardingCompleted);
+      if (!completed) {
+        root.innerHTML = `<div class="ah-pf-empty"><span class="ic">🎓</span><b>একাডেমিক প্রোফাইল এখনো তৈরি হয়নি</b>
+          <p>লক্ষ্য, পছন্দের বিশ্ববিদ্যালয়, ইউনিট আর দুর্বল বিষয় ঠিক করলে প্রস্তুতির রোডম্যাপ তৈরি হবে।</p>
+          <button class="ah-pf-cta" onclick="AHProf.startOnboarding()">Start Preparing →</button></div>`;
+        return;
+      }
+      const goal = o.goal ? (goalLabel(o.goal) || o.goal) : (u.goal ? (goalLabel(u.goal) || u.goal) : 'বিশ্ববিদ্যালয় ভর্তি');
+      const unis = (Array.isArray(o.targetUniversities) && o.targetUniversities.length) ? o.targetUniversities : ((u.targetUniversity ? [u.targetUniversity] : []));
+      const units = (Array.isArray(o.targetUnits) && o.targetUnits.length) ? o.targetUnits : (u.targetUnit ? String(u.targetUnit).split(',').filter(Boolean) : []);
+      const weak = (Array.isArray(o.weakSubjects) && o.weakSubjects.length) ? o.weakSubjects : [];
+      const aim = o.studyGoal ? (aimLabel(o.studyGoal) || o.studyGoal) : (u.studyGoal ? (aimLabel(u.studyGoal) || u.studyGoal) : '');
+      root.innerHTML = `<div class="ah-pf-card">
+        <div class="ah-pf-acad-big"><span class="ic">🎯</span><div><b>লক্ষ্য</b><i>${esc(goal)}</i></div></div>
+        <div class="ah-pf-acad-big"><span class="ic">🏛</span><div><b>বিশ্ববিদ্যালয়</b><i>${unis.map(esc).join(', ') || '—'}</i></div></div>
+        <div class="ah-pf-acad-big"><span class="ic">📋</span><div><b>ইউনিট</b><i>${units.map(esc).join(' · ') || '—'}</i></div></div>
+        <div class="ah-pf-acad-big"><span class="ic">🎯</span><div><b>প্রস্তুতির লক্ষ্য</b><i>${esc(aim) || '—'}</i></div></div>
+        <div class="ah-pf-acad-big"><span class="ic">📖</span><div><b>দুর্বল বিষয়</b><i>${weak.map(esc).join(' · ') || '—'}</i></div></div>
+        <div class="ah-pf-acad-big"><span class="ic">📊</span><div><b>প্রস্তুতি স্তর</b><i>${Number(o.currentLevel) || Number(u.currentLevel) || 0}%</i></div></div>
+      </div>
+      <button class="ah-btn sec" style="margin-top:14px" onclick="AHProf.startOnboarding()">একাডেমিক প্রোফাইল আপডেট করো</button>`;
+    })();
+  }
+  async function startOnboarding() {
+    try {
+      if (window.AHOnboard && typeof AHOnboard.start === 'function') { AHOnboard.start(); return; }
+      if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') { await AHOnboard.maybeStart(true); return; }
+      toast('অনবোর্ডিং চালু করা যায়নি');
+    } catch (e) { toast(e.message); }
+  }
+
+  /* ─────────── Preferences ─────────── */
+  function renderNotifications() {
+    const html = `<div class="ah-pf" style="padding:6px 0 30px">
+      <div class="ah-pf-card">
+        <div class="ah-pf-row-static"><span class="ah-pf-ri">📖</span><span class="ah-pf-rt"><b>পড়াশোনার রিমাইন্ডার</b><i>দৈনিক লক্ষ্য, ধারা, পরীক্ষার স্মরণ</i></span></div>
+        <div class="ah-pf-row-static"><span class="ah-pf-ri">🛡</span><span class="ah-pf-rt"><b>সিকিউরিটি সতর্কতা</b><i>নতুন ডিভাইস, লগইন, পাসওয়ার্ড পরিবর্তন — সবসময় চালু</i></span><span class="ah-pf-ok">● চালু</span></div>
+      </div>
+      <button class="ah-btn sec" style="margin-top:14px" onclick="if(window.NotificationHub)NotificationHub.openSettings();else toast('নোটিফিকেশন সেটিংস এখানে নেই')">⚙️ নোটিফিকেশন সেটিংস খোলো</button>
+      <p class="muted" style="font-size:12px;line-height:1.55;margin-top:12px">সিকিউরিটি সতর্কতা বন্ধ করা যায় না — অ্যাকাউন্টের নিরাপত্তার জন্য এগুলো সবসময় সক্রিয় থাকে।</p>
+    </div>`;
+    shellProfile(html, { title: 'Notifications', back: "navigate('profile')" });
+  }
+  function renderAppearance() {
+    const s = (window.CACHE && CACHE.settings) || {};
+    const theme = s.theme || 'light', accent = s.accent || 'emerald';
+    const themes = [['light', 'Emerald Light'], ['dark', 'Soft Dark'], ['midnight', 'Midnight'], ['focus', 'Focus Mode']];
+    const accents = [['emerald', 'Emerald'], ['blue', 'Blue'], ['violet', 'Violet'], ['amber', 'Amber']];
+    const html = `<div class="ah-pf" style="padding:6px 0 30px">
+      <div class="ah-pf-sec-h"><h2>থিম</h2></div>
+      <div class="ah-pf-chipgrid">${themes.map(([v, l]) => `<button class="ah-pf-chip ${theme === v ? 'on' : ''}" onclick="AHProf.theme('${v}')">${l}</button>`).join('')}</div>
+      <div class="ah-pf-sec-h" style="margin-top:22px"><h2>অ্যাকসেন্ট</h2></div>
+      <div class="ah-pf-chipgrid">${accents.map(([v, l]) => `<button class="ah-pf-chip ${accent === v ? 'on' : ''}" onclick="AHProf.accent('${v}')">${l}</button>`).join('')}</div>
+      <div class="ah-pf-sec-h" style="margin-top:22px"><h2>সিস্টেম</h2></div>
+      <div class="ah-pf-card">
+        <label class="ah-pf-lab">UI ঘনত্ব</label>
+        <select class="ah-inp" onchange="AHProf.density(this.value)"><option value="comfortable" ${(s.density || 'comfortable') === 'comfortable' ? 'selected' : ''}>Comfortable</option><option value="compact" ${s.density === 'compact' ? 'selected' : ''}>Compact</option></select>
+        <label class="ah-pf-lab" style="margin-top:14px">কার্ড স্টাইল</label>
+        <select class="ah-inp" onchange="AHProf.cardStyle(this.value)"><option value="soft" ${(s.cardStyle || 'soft') === 'soft' ? 'selected' : ''}>Soft</option><option value="minimal" ${s.cardStyle === 'minimal' ? 'selected' : ''}>Minimal</option><option value="elevated" ${s.cardStyle === 'elevated' ? 'selected' : ''}>Elevated</option></select>
+      </div>
+      <p class="muted" style="font-size:12px;line-height:1.55;margin-top:12px">থিম পছন্দ তোমার ডিভাইসে সংরক্ষিত থাকে এবং সব স্ক্রিনে প্রযোজ্য।</p>
+    </div>`;
+    shellProfile(html, { title: 'Appearance', back: "navigate('profile')" });
+  }
+  function renderLanguage() {
+    const html = `<div class="ah-pf" style="padding:6px 0 30px">
+      <div class="ah-pf-chipgrid" style="margin-top:8px">
+        <button class="ah-pf-chip big ${lang === 'bn' ? 'on' : ''}" onclick="AHProf.lang('bn')">বাংলা</button>
+        <button class="ah-pf-chip big ${lang === 'en' ? 'on' : ''}" onclick="AHProf.lang('en')">English</button>
+      </div>
+      <p class="muted" style="font-size:12px;line-height:1.55;margin-top:14px">আবেদন, প্রশ্ন ও অ্যাপের ভাষা। কিছু স্ক্রিনে ইংরেজি/বাংলা দুটোই দেখানো হয়।</p>
+    </div>`;
+    shellProfile(html, { title: 'Language', back: "navigate('profile')" });
+  }
+
+  /* ─────────── Data & privacy ─────────── */
+  function renderData() {
+    const u = user() || {};
+    const html = `<div class="ah-pf" style="padding:6px 0 30px">
+      <div class="ah-pf-card">
+        <div class="ah-pf-row-static"><span class="ah-pf-ri">📦</span><span class="ah-pf-rt"><b>সম্পূর্ণ ডেটা এক্সপোর্ট</b><i>অ্যাকাউন্ট, প্রোফাইল, সেশন, কার্যকলাপ, পরীক্ষার ফলাফল — কাঠামোবদ্ধ JSON</i></span></div>
+        <button class="ah-btn" style="margin-top:12px" onclick="AHProf.exportData()">এক্সপোর্ট ডাউনলোড করো</button>
+      </div>
+      <div class="ah-pf-sec-h" style="margin-top:22px"><h2>তোমার ডেটা সম্পর্কে</h2></div>
+      <div class="ah-pf-card">
+        <div class="ah-pf-row-static"><span class="ah-pf-ri">☁️</span><span class="ah-pf-rt"><b>ক্লাউড স্টোরেজ</b><i>তোমার ডেটা শুধু তোমার অ্যাকাউন্টেই থাকে — অন্য ব্যবহারকারী দেখতে পায় না</i></span></div>
+        <div class="ah-pf-row-static"><span class="ah-pf-ri">🔐</span><span class="ah-pf-rt"><b>HTTPS + যাচাই</b><i>সব যোগাযোগ সুরক্ষিত চ্যানেলে হয়</i></span></div>
+        <div class="ah-pf-row-static"><span class="ah-pf-ri">🗑</span><span class="ah-pf-rt"><b>মুছে ফেলা</b><i>অ্যাকাউন্ট মুছলে সব ডেটা স্থায়ীভাবে সরানো হয়</i></span></div>
+      </div>
+    </div>`;
+    shellProfile(html, { title: 'Data & Privacy', back: "navigate('profile')" });
+  }
+  async function exportData() {
+    try {
+      const data = await api('/export', { headers: authH() });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'admission-hub-export-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+      toast('এক্সপোর্ট ডাউনলোড শুরু হয়েছে');
+    } catch (e) { toast(e.message); }
+  }
+  function renderDelete() {
+    const html = `<div class="ah-pf" style="padding:6px 0 30px">
+      <div class="ah-pf-dangercard">
+        <div class="ah-pf-dangerhead">🗑 অ্যাকাউন্ট মুছে ফেলা</div>
+        <p>অ্যাকাউন্ট মুছে ফেললে যা যা স্থায়ীভাবে হারাবে:</p>
+        <ul>
+          <li>প্রোফাইল, ছবি ও একাডেমিক তথ্য</li>
+          <li>সব পরীক্ষার ফলাফল ও ইতিহাস</li>
+          <li>ভোকাবুলারি, নোট ও প্রস্তুতি ডেটা</li>
+          <li>সেশন, পাসকি ও গুগল লিংক</li>
+        </ul>
+        <p class="muted" style="font-size:12.5px">এই কাজটি ফেরানো যাবে না। আগে চাইলে <a class="ah-pf-linkbtn" onclick="AHProf.exportData()">ডেটা এক্সপোর্ট</a> করে নাও।</p>
+        <button class="ah-pf-dangerbtn big" onclick="AHProf.requestDelete()">অ্যাকাউন্ট মুছে ফেলো</button>
+      </div>
+    </div>`;
+    shellProfile(html, { title: 'Delete Account', back: "navigate('profile')" });
+  }
+  async function requestDelete() {
+    try {
+      const pw = await reauthPrompt('অ্যাকাউন্ট মুছে ফেলতে পাসওয়ার্ড দাও');
+      if (pw === null) return;
+      if (!window.confirm('সত্যিই কি তোমার অ্যাকাউন্ট স্থায়ীভাবে মুছে ফেলবে? এটি ফেরানো যাবে না।')) return;
+      await api('/auth/delete', { method: 'POST', headers: authH(), body: JSON.stringify({ password: pw }) });
+      await logout();
+      toast('অ্যাকাউন্ট মুছে ফেলা হয়েছে');
+    } catch (e) { toast(e.message); }
+  }
+
+  /* ─────────── Re-auth sheet ─────────── */
+  function reauthPrompt(title) {
+    return new Promise(resolve => {
+      const wrap = document.createElement('div');
+      wrap.className = 'ah-sheet ah-reauth';
+      wrap.innerHTML = `<div class="box">
+        <div style="font-weight:800;margin-bottom:6px">${esc(title)}</div>
+        <p class="muted" style="font-size:12.5px;margin:0 0 10px">নিরাপত্তার জন্য তোমার বর্তমান পাসওয়ার্ড নিশ্চিত করতে হবে।</p>
+        <div class="ah-field"><input class="ah-inp" id="raPass" type="password" placeholder="বর্তমান পাসওয়ার্ড" autocomplete="current-password"><button class="ah-eye" type="button" data-eye="raPass">👁</button></div>
+        <div class="ah-err" id="raErr" style="min-height:18px"></div>
+        <button class="ah-btn" id="raOk">নিশ্চিত করো</button>
+        <button class="ah-btn sec" id="raNo" style="margin-top:10px">বাতিল</button>
+      </div>`;
+      wrap.addEventListener('click', e => { if (e.target === wrap) { wrap.remove(); resolve(null); } });
+      document.body.appendChild(wrap);
+      wrap.querySelector('[data-eye]').onclick = () => { const i = document.getElementById('raPass'); i.type = i.type === 'password' ? 'text' : 'password'; };
+      wrap.querySelector('#raNo').onclick = () => { wrap.remove(); resolve(null); };
+      const ok = async () => {
+        const pw = document.getElementById('raPass').value;
+        try {
+          await api('/re-auth', { method: 'POST', headers: authH(), body: JSON.stringify({ password: pw }) });
+          wrap.remove();
+          resolve(pw);
+        } catch (e) {
+          document.getElementById('raErr').textContent = e.message;
+        }
+      };
+      wrap.querySelector('#raOk').onclick = ok;
+      wrap.querySelector('#raPass').addEventListener('keydown', e => { if (e.key === 'Enter') ok(); });
+      setTimeout(() => { const i = document.getElementById('raPass'); if (i) i.focus(); }, 80);
     });
   }
 
-  function passField(id, ph) {
-    return `<div class="ah-field"><input class="ah-inp" id="${id}" type="password" placeholder="${ph}"><button class="ah-eye" type="button" data-eye="${id}" aria-label="Show password">👁</button></div>`;
-  }
-
+  /* ─────────── Photo (crop + compress) ─────────── */
   function openPhotoSheet() {
     const wrap = document.createElement('div');
     wrap.className = 'ah-sheet';
     wrap.innerHTML = `<div class="box">
-      <div style="font-weight:800;margin-bottom:8px">Change Profile Photo</div>
-      <button class="row" type="button" id="ahCam">📷 Take Photo</button>
-      <button class="row" type="button" id="ahGal">🖼 Choose from Gallery</button>
-      <button class="row" type="button" id="ahRem">🗑 Remove Photo</button>
-      <button class="ah-btn sec" type="button" id="ahCan">Cancel</button>
+      <div style="font-weight:800;margin-bottom:8px">প্রোফাইল ছবি</div>
+      <button class="row" type="button" id="ahCam">📷 ছবি তুলো</button>
+      <button class="row" type="button" id="ahGal">🖼 গ্যালারি থেকে বেছে নাও</button>
+      ${(user() || {}).photo ? '<button class="row" type="button" id="ahRem">🗑 ছবি সরাও</button>' : ''}
+      <button class="ah-btn sec" type="button" id="ahCan" style="margin-top:14px">বাতিল</button>
       <input id="ahFileCam" type="file" accept="image/*" capture="environment" hidden>
       <input id="ahFileGal" type="file" accept="image/*" hidden>
     </div>`;
@@ -1054,43 +1726,107 @@
     wrap.querySelector('#ahCan').onclick = () => wrap.remove();
     wrap.querySelector('#ahCam').onclick = () => wrap.querySelector('#ahFileCam').click();
     wrap.querySelector('#ahGal').onclick = () => wrap.querySelector('#ahFileGal').click();
-    wrap.querySelector('#ahRem').onclick = async () => {
+    const rem = wrap.querySelector('#ahRem');
+    if (rem) rem.onclick = async () => {
       try {
         const data = await api('/profile/photo', { method: 'POST', headers: authH(), body: JSON.stringify({ remove: true }) });
-        setSession(token(), data.user); wrap.remove(); renderEdit();
+        setSession(token(), data.user); wrap.remove();
+        toast('ছবি সরানো হয়েছে');
+        const p = routePath();
+        if (p === 'profile/edit') renderEdit(); else renderProfile();
       } catch (e) { toast(e.message); }
     };
     const onFile = async ev => {
       const f = ev.target.files && ev.target.files[0]; if (!f) return;
-      if (!/^image\//.test(f.type)) return toast('শুধু ছবি');
-      if (f.size > 8 * 1024 * 1024) return toast('ছবি খুব বড়');
-      const dataUrl = await compressImage(f);
-      try {
-        const data = await api('/profile/photo', { method: 'POST', headers: authH(), body: JSON.stringify({ dataUrl }) });
-        setSession(token(), data.user); wrap.remove(); renderEdit();
-      } catch (e) { toast(e.message); }
+      if (!/^image\//.test(f.type)) return toast('শুধু ছবি দাও');
+      if (f.size > 10 * 1024 * 1024) return toast('ছবি খুব বড় (সর্বোচ্চ ১০MB)');
+      wrap.remove();
+      cropPreview(f);
     };
     wrap.querySelector('#ahFileCam').onchange = onFile;
     wrap.querySelector('#ahFileGal').onchange = onFile;
   }
-
-  function compressImage(file) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const s = 256;
-        const c = document.createElement('canvas');
-        c.width = s; c.height = s;
-        const ctx = c.getContext('2d');
-        const m = Math.min(img.width, img.height);
-        ctx.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, s, s);
-        resolve(c.toDataURL('image/jpeg', 0.72));
+  function cropPreview(file) {
+    const wrap = document.createElement('div');
+    wrap.className = 'ah-sheet';
+    wrap.innerHTML = `<div class="box">
+      <div style="font-weight:800;margin-bottom:10px">ছবি ঠিক করে নাও</div>
+      <div class="ah-cropstage"><img id="ahCropImg" alt="preview"></div>
+      <div class="muted" style="font-size:12px;text-align:center;margin:8px 0">বর্গাকার ক্রপ স্বয়ংক্রিয় — ছবি কমপ্রেস হয়ে সংরক্ষণ হবে</div>
+      <button class="ah-btn" id="ahCropOk">এটাই রাখো</button>
+      <button class="ah-btn sec" id="ahCropNo" style="margin-top:10px">আবার বেছে নাও</button>
+    </div>`;
+    document.body.appendChild(wrap);
+    const img = wrap.querySelector('#ahCropImg');
+    img.onload = () => {
+      const s = 256;
+      const c = document.createElement('canvas');
+      c.width = s; c.height = s;
+      const ctx = c.getContext('2d');
+      const m = Math.min(img.naturalWidth, img.naturalHeight);
+      ctx.drawImage(img, (img.naturalWidth - m) / 2, (img.naturalHeight - m) / 2, m, m, 0, 0, s, s);
+      const dataUrl = c.toDataURL('image/jpeg', 0.72);
+      if (dataUrl.length > 220000) return toast('ছবি খুব ভারী — অন্য ছবি দাও');
+      wrap.querySelector('#ahCropOk').onclick = async () => {
+        try {
+          const data = await api('/profile/photo', { method: 'POST', headers: authH(), body: JSON.stringify({ dataUrl }) });
+          setSession(token(), data.user);
+          wrap.remove();
+          toast('ছবি আপলোড হয়েছে');
+          const p = routePath();
+          if (p === 'profile/edit') renderEdit(); else renderProfile();
+        } catch (e) { toast(e.message); }
       };
-      img.onerror = reject;
-      img.src = URL.createObjectURL(file);
-    });
+    };
+    img.onerror = () => { wrap.remove(); toast('ছবি পড়া যায়নি'); };
+    img.src = URL.createObjectURL(file);
+    wrap.querySelector('#ahCropNo').onclick = () => { wrap.remove(); openPhotoSheet(); };
+    wrap.addEventListener('click', e => { if (e.target === wrap) { URL.revokeObjectURL(img.src); wrap.remove(); } });
   }
 
+  function renderProfileRoute() {
+    const p = routePath();
+    if (p === 'profile') return renderProfile();
+    if (p === 'profile/edit') return renderEdit();
+    if (p === 'profile/security') return renderSecurity();
+    if (p === 'profile/security/password') return renderPassword();
+    if (p === 'profile/security/passkeys') return renderPasskeys();
+    if (p === 'profile/security/google') return renderGoogle();
+    if (p === 'profile/devices') return renderDevices();
+    if (p === 'profile/activity') return renderActivity();
+    if (p === 'profile/academic') return renderAcademic();
+    if (p === 'profile/notifications') return renderNotifications();
+    if (p === 'profile/appearance') return renderAppearance();
+    if (p === 'profile/language') return renderLanguage();
+    if (p === 'profile/data') return renderData();
+    if (p === 'profile/delete') return renderDelete();
+    return renderProfile();
+  }
+  window.AHProf = {
+    photo: () => openPhotoSheet(),
+    saveEdit,
+    logout,
+    secureNow,
+    addPasskey,
+    removePasskey,
+    linkGoogle,
+    unlinkGoogle,
+    revokeSession,
+    revokeOthers,
+    exportData,
+    requestDelete,
+    theme: t => { if (typeof setTheme === 'function') setTheme(t); else toast('থিম বদলানো যায়নি'); },
+    accent: a => { if (typeof setAccent === 'function') setAccent(a); else toast('অ্যাকসেন্ট বদলানো যায়নি'); },
+    density: v => { if (window.CACHE) { CACHE.settings = CACHE.settings || {}; CACHE.settings.density = v; if (typeof persistUpgradeSetting === 'function') persistUpgradeSetting(); } },
+    cardStyle: v => { if (window.CACHE) { CACHE.settings = CACHE.settings || {}; CACHE.settings.cardStyle = v; if (typeof persistUpgradeSetting === 'function') persistUpgradeSetting(); } },
+    lang: l => {
+      lang = l === 'bn' ? 'bn' : 'en';
+      try { localStorage.setItem('ahLang', lang); } catch (_) {}
+      toast(lang === 'bn' ? 'ভাষা বাংলা হয়েছে' : 'Language set to English');
+      renderProfileRoute();
+    },
+    startOnboarding
+  };
   function hookPersonalWrites() {
     if (window.__ahAuthWriteHook) return;
     window.__ahAuthWriteHook = true;
@@ -1175,8 +1911,9 @@
   }
 
   document.addEventListener('ah-get-started', () => { setGate(true); go('signup'); });
-  window.AHAuth = { isAuthed: authed, user, token, logout, pushState, pullState, openLogin: () => { setGate(true); go('login'); }, renderProfile, renderEdit };
+  window.AHAuth = { isAuthed: authed, user, token, logout, pushState, pullState, openLogin: () => { setGate(true); go('login'); }, renderProfile, renderProfileRoute };
   window.AdmissionAccount = window.AHAuth;
+  injectAvatar();
   handleVerifyReturn();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(boot, 20));
   else setTimeout(boot, 20);
