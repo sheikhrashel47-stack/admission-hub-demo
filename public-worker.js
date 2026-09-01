@@ -239,10 +239,6 @@ export default {
       if (p === '/api/auth/passkey/login/begin' && request.method === 'POST') return await pkLoginBegin(request, env);
       if (p === '/api/auth/passkey/login/finish' && request.method === 'POST') return await pkLoginFinish(request, env);
       if (p === '/api/auth/passkey/remove' && request.method === 'POST') return await authRemovePasskey(request, env);
-      if (p === '/api/auth/passkey/add/begin' && request.method === 'POST') return await pkAddBegin(request, env, uid);
-      if (p === '/api/auth/passkey/add/finish' && request.method === 'POST') return await pkAddFinish(request, env, uid);
-      if (p === '/api/auth/google/link' && request.method === 'POST') return await authGoogleLink(request, env, uid);
-      if (p === '/api/auth/google/unlink' && request.method === 'POST') return await authGoogleUnlink(request, env, uid);
       if (p === '/api/auth/verify-link' && request.method === 'POST') return await authVerifyLink(request, env);
       if (p === '/api/auth/confirm' && (request.method === 'GET' || request.method === 'POST')) return await authConfirm(request, env);
       if (p === '/api/auth/otp/send' && request.method === 'POST') return await otpSend(request, env);
@@ -254,6 +250,10 @@ export default {
       if (p === '/api/auth/logout' && request.method === 'POST') return await authLogout(request, env);
       if (p.startsWith('/api/admin/')) return await admin(request, env, p);
       const uid = await authUser(request, env);
+      if (p === '/api/auth/passkey/add/begin' && request.method === 'POST') return await pkAddBegin(request, env, uid);
+      if (p === '/api/auth/passkey/add/finish' && request.method === 'POST') return await pkAddFinish(request, env, uid);
+      if (p === '/api/auth/google/link' && request.method === 'POST') return await authGoogleLink(request, env, uid);
+      if (p === '/api/auth/google/unlink' && request.method === 'POST') return await authGoogleUnlink(request, env, uid);
       if (p === '/api/auth/me' && request.method === 'GET') {
         const u = JSON.parse((await env.PUB_KV.get('user:' + uid)) || 'null');
         const pf = JSON.parse((await env.PUB_KV.get('profile:' + (u && (u.uid || u.id)))) || '{}');
