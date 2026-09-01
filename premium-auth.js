@@ -625,13 +625,15 @@
     try {
       draft.id = (document.getElementById('ahId') && document.getElementById('ahId').value.trim()) || draft.id;
       if (!draft.id) return showErr('ahErr', lang==='bn'?'ইমেইল লিখুন':'Enter your email');
+      draft.purpose = 'signup';
       if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; btn.innerHTML = '<i class="ah-spin"></i>' + t('processing'); }
       const data = await api('/auth/register-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, dob: draft.dob, school: draft.school, college: draft.college, password: draft.password, confirm: draft.confirm }) });
       draft.masked = data.masked;
       draft.waitId = data.waitId || '';
-      draft.linkSec = Number(data.expiresIn || 900);
+      draft.wait = Number(data.wait || 120);
+      draft.linkSec = Number(data.expiresIn || 120);
       persistWait();
-      go('checkmail');
+      go('otp');
     } catch (e) {
       if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('sendLink'); }
       showErr('ahErr', e.message);
@@ -645,9 +647,10 @@
       const data = await api('/auth/register-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, dob: draft.dob, school: draft.school, college: draft.college, password: draft.password, confirm: draft.confirm }) });
       draft.masked = data.masked || draft.masked;
       draft.waitId = data.waitId || '';
-      draft.linkSec = Number(data.expiresIn || 900);
+      draft.wait = Number(data.wait || 120);
+      draft.linkSec = Number(data.expiresIn || 120);
       persistWait();
-      go('checkmail');
+      go('otp');
     } catch (e) {
       if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('resendLink'); }
       showErr('ahErr', e.message);
@@ -659,7 +662,7 @@
         waitId: draft.waitId, id: draft.id, masked: draft.masked, name: draft.name,
         dob: draft.dob, school: draft.school, college: draft.college,
         password: draft.password, confirm: draft.confirm,
-        until: Date.now() + 15 * 60 * 1000
+        until: Date.now() + (draft.linkSec || 120) * 1000
       }));
       // Same-browser marker: persists across tabs so the verify link can detect
       // "same browser" and skip the return-to-device message.

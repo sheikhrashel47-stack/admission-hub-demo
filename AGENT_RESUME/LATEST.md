@@ -1,10 +1,9 @@
 # LATEST — Admission Hub Demo (2026-09-01)
 
-## চলমান কাজ: v11 — AI-বানানো প্রিমিয়াম ডিজাইন বসানো (commit ট্যাগ v11-ai-design)
-- ভাইয়ের AI-কোড (`uploads/index 11.html`) অ্যাপে বসানো হয়েছে — ১০-স্ক্রিন নতুন প্রিমিয়াম ডিজাইন (onboarding.css/js rewrite, `?v=p6-onboard-v11`)
-- আসল লোগো: du/ju/ru/cu.png uni-grid/confirm/unit-hero-এ; KU/BAU → ডিফল্ট SVG (অফিসিয়াল লোগো নেই)
-- jsdom টেস্ট পাস; GH Pages deploy চলছে → live চেক pending
-- v1 ডিজাইন (d977a11) git-এ আছেই — ফেরত আনা যাবে
+## চলমান কাজ: Signup OTP (commit ট্যাগ otp-signup)
+- ভাইয়ের নির্দেশে email verify-এ লিংক বাদ → **৬-ডিজিট OTP** (worker register-email + frontend OTP স্ক্রিন, ২ মিনিট মেয়াদ)
+- Worker redeploy `555600bf`; লাইভ টেস্ট পাস (otp channel, ভুল-কোড 401, cooldown 429)
+- v11 AI ডিজাইন onboarding চলছে (আগের ধাপ)
 ## পরের ধাপ
 1. GH Pages deploy → live চেক (onboarding.css marker v4, icons/uni ২০০, TOTAL=10)
 2. control repo-তে resume sync

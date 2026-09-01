@@ -251,8 +251,8 @@ function officialLetter(kind, extra) {
   const bnLead = isReset
     ? 'Admission Hub-এ এই ইমেইল ঠিকানায় নিবন্ধিত অ্যাকাউন্টের পাসওয়ার্ড পুনরুদ্ধারের অনুরোধ এই পত্রের মাধ্যমে নিশ্চিত করা হচ্ছে।'
     : 'Admission Hub-এ নিবন্ধনের জন্য প্রদত্ত ইমেইল ঠিকানা যাচাইয়ের অনুরোধ এই পত্রের মাধ্যমে নিশ্চিত করা হচ্ছে।';
-  const enTime = 'This verification remains valid for fifteen (15) minutes only.';
-  const bnTime = 'এই যাচাইকরণ মাত্র দুই (২) মিনিটের জন্য কার্যকর থাকবে।';
+  const enTime = code ? 'This verification code remains valid for two (2) minutes only.' : 'This verification remains valid for fifteen (15) minutes only.';
+  const bnTime = code ? 'এই যাচাইকরণ কোড মাত্র দুই (২) মিনিটের জন্য কার্যকর থাকবে।' : 'এই যাচাইকরণ মাত্র পনেরো (১৫) মিনিটের জন্য কার্যকর থাকবে।';
   const enIgn = 'If you did not initiate this request, please disregard this message. No further action is required.';
   const bnIgn = 'আপনি এই অনুরোধ না করে থাকলে এই বার্তাটি উপেক্ষা করুন। কোনো অতিরিক্ত পদক্ষেপ প্রয়োজন নেই।';
   const text = ['Dear Student / প্রিয় শিক্ষার্থী,', '', enLead, bnLead, '', enTime, bnTime, '',
@@ -264,8 +264,8 @@ function officialLetter(kind, extra) {
   const html = '<div style="background:#f3f5f4;padding:24px;font-family:Georgia,Times,serif;color:#1a2420"><div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #dce6e0;padding:32px 28px"><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:.16em;color:#1e7a4c;font-weight:700">ADMISSION HUB</p><p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:12px;color:#66756e">Office of Student Accounts</p><p>Dear Student / প্রিয় শিক্ষার্থী,</p><p>' + enLead + '</p><p>' + bnLead + '</p><p>' + enTime + '<br>' + bnTime + '</p>' + action + '<p style="color:#5b675f;font-size:14px">' + enIgn + '<br>' + bnIgn + '</p><p style="margin:28px 0 0">Yours sincerely,<br>Office of Student Accounts<br>Admission Hub</p></div></div>';
   return { subject, text, html };
 }
-async function sendOtpMessage(env, destId, code) {
-  const letter = officialLetter('reset', { code });
+async function sendOtpMessage(env, destId, code, kind) {
+  const letter = officialLetter(kind === 'reset' ? 'reset' : 'verify', { code });
   const text = letter.text;
   const html = letter.html;
   const subject = letter.subject;
@@ -354,7 +354,7 @@ async function issueOtp(env, destId, purpose, ip) {
   const prev = JSON.parse((await env.PUB_KV.get(key)) || 'null');
   if (prev && prev.sentAt && Date.now() - prev.sentAt < 12000) return { error: 'কয়েক সেকেন্ড পর আবার প্রেরণ করুন', status: 429, wait: Math.max(1, 12 - Math.floor((Date.now() - prev.sentAt) / 1000)) };
   const code = String(Math.floor(100000 + Math.random() * 900000));
-  const sent = await sendOtpMessage(env, destId, code);
+  const sent = await sendOtpMessage(env, destId, code, purpose);
   if (!sent.ok) return { error: sent.error, status: 503 };
   await env.PUB_KV.put(key, JSON.stringify({ hash: await shaHex(code), exp: Date.now() + 120000, tries: 0, sentAt: Date.now(), purpose }), { expirationTtl: 150 });
   return { sent: true, channel: sent.channel, masked: maskDest(destId), wait: 120 };
@@ -668,9 +668,9 @@ const authRegisterEmail = async (request, env) => {
   };
   await env.PUB_KV.put('pending:' + id, JSON.stringify(pending), { expirationTtl: 900 });
   await env.PUB_KV.put('wait:' + waitId, JSON.stringify({ id, status: 'pending' }), { expirationTtl: 150 });
-  const sent = await issueVerifyLink(env, id, 'signup', ip);
+  const sent = await issueOtp(env, id, 'signup', ip);
   if (sent.error) return json({ error: sent.error }, sent.status || 503);
-  return json({ pending: true, sent: true, channel: 'link', masked: sent.masked, purpose: 'signup', waitId, expiresIn: 900 });
+  return json({ pending: true, sent: true, channel: 'otp', masked: sent.masked, purpose: 'signup', waitId, expiresIn: 120, wait: 120 });
 };
 const authRegister = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';
@@ -698,9 +698,9 @@ const authRegister = async (request, env) => {
   };
   if (!id.startsWith('em:')) return json({ error: 'ইমেইল লিংক ভেরিফাই শুধু Gmail/ইমেইলে — মোবাইলে Google বা Passkey ব্যবহার করো' }, 400);
   await env.PUB_KV.put('pending:' + id, JSON.stringify(pending), { expirationTtl: 1800 });
-  const sent = await issueVerifyLink(env, id, 'signup', ip);
+  const sent = await issueOtp(env, id, 'signup', ip);
   if (sent.error) return json({ error: sent.error }, sent.status || 503);
-  return json({ pending: true, sent: true, channel: 'link', masked: sent.masked, purpose: 'signup' });
+  return json({ pending: true, sent: true, channel: 'otp', masked: sent.masked, purpose: 'signup', wait: 120, expiresIn: 120 });
 };
 
 const otpSend = async (request, env) => {
