@@ -15,7 +15,7 @@ Read this first. Continue; do not redesign Phase 1.
 - Control: https://sheikhrashel47-stack.github.io/admission-hub/
 - Public: https://sheikhrashel47-stack.github.io/admission-hub-demo/
 - Worker: `admission-gk` + `ah-public` (`/pub`)
-- Demo git: latest `p3-auth-ui-v9` / SW `v143-auth3d-ref-20260901`
+- Demo git: latest `p3-auth-ui-v11` / SW `v145-coded-mock-20260901`
 
 ## Phase 3 — locked visual contract
 User chose **Option 1 — Emerald Academic 3D** (`auth-options/option-1.jpg`) as the look to reproduce হুবহু. Screens 1–5 only. Screen 6 dashboard forbidden.
@@ -23,9 +23,10 @@ User chose **Option 1 — Emerald Academic 3D** (`auth-options/option-1.jpg`) as
 **Current implementation:**
 - Recreate Option 1 with **CSS 3D + SVG** (`auth-svg.js` + `premium-auth.css` + `premium-auth.js`)
 - Green mortarboard, mint forms, backpack-on-plinth, gold lock shield, success pedestal
+- User: কেঁটে বসাবে না — do not crop mockup phones onto the page.
 - **No** stock images, **no** cropped mockup as the live UI
 - Real Google / email OTP still wired to `/pub`
-- SW `v144-option1-20260901` / `p3-auth-ui-v10`
+- SW `v145-coded-mock-20260901` / `p3-auth-ui-v11`
 - Bottom nav public: Home · Bank · Exam · History · Profile (no floating M)
 - Get Started is a real button
 

@@ -1,182 +1,152 @@
-/* Option 1 — Emerald Academic 3D. CSS/SVG only. */
+/* Auth illustrations — coded SVG matching locked 5-screen mockup. No crops, no CSS-3D. */
 (() => {
   'use strict';
 
-  function wreath(cx, cy, r, n, gap, gid) {
+  function cap() {
+    return `<svg class="ah-illu ah-cap-svg" viewBox="0 0 240 170" aria-hidden="true">
+      <defs>
+        <linearGradient id="capB" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#3a3a3a"/><stop offset="45%" stop-color="#161616"/><stop offset="100%" stop-color="#050505"/>
+        </linearGradient>
+        <linearGradient id="capS" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2a2a2a"/><stop offset="100%" stop-color="#0a0a0a"/>
+        </linearGradient>
+        <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f3e0a0"/><stop offset="50%" stop-color="#c9a227"/><stop offset="100%" stop-color="#8a6a18"/>
+        </linearGradient>
+      </defs>
+      <ellipse cx="120" cy="148" rx="48" ry="8" fill="rgba(0,0,0,.28)"/>
+      <path d="M78 108c0 22 18 34 42 34s42-12 42-34" fill="url(#capS)"/>
+      <ellipse cx="120" cy="108" rx="42" ry="12" fill="#1c1c1c"/>
+      <path d="M28 78 L120 42 L212 78 L120 114 Z" fill="url(#capB)"/>
+      <path d="M212 78 L212 86 L120 122 L120 114 Z" fill="#0b0b0b"/>
+      <path d="M28 78 L28 86 L120 122 L120 114 Z" fill="#1a1a1a"/>
+      <circle cx="120" cy="78" r="5" fill="url(#gold)"/>
+      <path d="M120 78 C148 70 168 92 172 118" fill="none" stroke="url(#gold)" stroke-width="2.4"/>
+      <path d="M166 118 h14 l-3 22 h-8 z" fill="url(#gold)"/>
+    </svg>`;
+  }
+
+  function wreathLeaves() {
     let s = '';
-    for (let i = 0; i < n; i++) {
-      const t = i / (n - 1);
-      const ang = -128 + t * 256;
-      if (Math.abs(ang) < gap) continue;
-      const rad = (ang * Math.PI) / 180;
-      const x = cx + Math.cos(rad - Math.PI / 2) * r;
-      const y = cy + Math.sin(rad - Math.PI / 2) * r;
-      const flip = i % 2 ? 1 : -1;
-      s += `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${ang.toFixed(1)})">
-        <ellipse cx="0" cy="${-10 * flip}" rx="5.4" ry="12.2" fill="url(#${gid})"/>
-        <ellipse cx="${1.4 * flip}" cy="${-8 * flip}" rx="2" ry="7" fill="#eafff2" opacity=".3"/>
+    for (let i = 0; i < 18; i++) {
+      const a = -140 + (i * 280) / 17;
+      if (Math.abs(a) < 18) continue;
+      s += `<g transform="rotate(${a.toFixed(1)} 100 108)">
+        <path d="M100 48 C94 56 94 66 100 74 C106 66 106 56 100 48Z" fill="url(#lf)"/>
       </g>`;
     }
     return s;
   }
 
-  function backpack(opts = {}) {
-    const person = opts.person
-      ? `<div class="ah-bust" aria-hidden="true">
-           <i class="hd"></i><i class="bd"></i>
-         </div>
-         <div class="ah-plinth p3"></div>`
-      : '';
-    return `<div class="ah-comp ah-comp-bag" data-tilt>
-      <div class="ah-plinth p1"></div>
-      <div class="ah-plinth p2"></div>
-      ${person}
-      <div class="ah-globe" aria-hidden="true"><span></span></div>
-      <div class="ah-cube c1"><i class="ft"></i><i class="bk"></i><i class="rt"></i><i class="lt"></i><i class="tp"></i><i class="bt"></i></div>
-      <div class="ah-cube c2"><i class="ft"></i><i class="bk"></i><i class="rt"></i><i class="lt"></i><i class="tp"></i><i class="bt"></i></div>
-      <svg class="ah-bag" viewBox="0 0 160 200" aria-hidden="true">
-        <defs>
-          <linearGradient id="bagB" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#7fe0a8"/><stop offset="32%" stop-color="#2f9a5a"/>
-            <stop offset="72%" stop-color="#146b3d"/><stop offset="100%" stop-color="#0b4a2a"/>
-          </linearGradient>
-          <linearGradient id="bagH" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#fff" stop-opacity=".5"/><stop offset="50%" stop-color="#fff" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        <path d="M58 58c0-18 44-18 44 0" stroke="#0e5a38" stroke-width="8" fill="none" stroke-linecap="round"/>
-        <path d="M38 70c0-22 84-22 84 0l6 96c0 18-96 18-96 0z" fill="url(#bagB)"/>
-        <path d="M50 78c16-12 52-12 70 2v36c-20-14-52-12-70 4z" fill="url(#bagH)"/>
-        <rect x="52" y="108" width="56" height="48" rx="12" fill="#0e5a38" opacity=".28"/>
-        <path d="M56 118h48" stroke="#c9a227" stroke-width="2.2" stroke-linecap="round" opacity=".85"/>
-        <circle cx="80" cy="96" r="14" fill="#eaf7ef"/>
-        <path d="M74 100v-7c0-4 12-4 12 0v7" fill="#1e7a4c"/>
-      </svg>
-    </div>`;
-  }
-
   function emblem() {
-    return `<svg class="ah-emblem" viewBox="0 0 200 200" aria-hidden="true">
+    return `<svg class="ah-illu ah-emblem" viewBox="0 0 200 200" aria-hidden="true">
       <defs>
-        <linearGradient id="wL" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#d4ffe4"/><stop offset="45%" stop-color="#4ad68a"/>
-          <stop offset="100%" stop-color="#0e6b42"/>
+        <linearGradient id="lf" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#c8ffd8"/><stop offset="55%" stop-color="#3dcf7a"/><stop offset="100%" stop-color="#0e6b42"/>
         </linearGradient>
-        <filter id="wGlow" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="5" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <linearGradient id="bookPg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#f7fff9"/><stop offset="100%" stop-color="#bfe8cc"/>
+        <linearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#f4fff8"/><stop offset="100%" stop-color="#c5e6d2"/>
         </linearGradient>
+        <filter id="eg"><feGaussianBlur stdDeviation="3.5"/></filter>
       </defs>
-      <circle cx="100" cy="110" r="80" fill="none" stroke="rgba(140,255,190,.22)" stroke-width="2" filter="url(#wGlow)"/>
-      ${wreath(100, 114, 66, 28, 15, 'wL')}
-      <path d="M88 40 l12-16 12 16 h-7 v11 h-10 v-11z" fill="#eefbf3"/>
-      <path d="M100 58 l-24 8 v30 c0 18 24 26 24 26s24-8 24-26 v-30z" fill="url(#bookPg)"/>
-      <path d="M100 66 v48" stroke="#2f7a52" stroke-width="1.8"/>
-      <path d="M84 80h12M84 90h12M84 100h10M104 80h12M104 90h12M104 100h10" stroke="#1e7a4c" stroke-width="1.4" opacity=".55"/>
+      <circle cx="100" cy="108" r="72" fill="none" stroke="rgba(130,255,190,.22)" stroke-width="2" filter="url(#eg)"/>
+      ${wreathLeaves()}
+      <path d="M90 44 l10-14 10 14 h-6 v8 h-8 z" fill="#e8f8ee"/>
+      <path d="M100 62 l-20 7 v26 c0 14 20 22 20 22s20-8 20-22 v-26z" fill="url(#pg)" stroke="#b7e0c6" stroke-width="1"/>
+      <path d="M100 70 v40" stroke="#2f7a52" stroke-width="1.6"/>
+      <path d="M86 82h11M86 92h11M86 102h9M103 82h11M103 92h11M103 102h9" stroke="#1e7a4c" stroke-width="1.2" opacity=".5"/>
     </svg>`;
   }
 
   function openBook() {
-    return `<svg class="ah-openbook" viewBox="0 0 160 90" aria-hidden="true">
+    return `<svg class="ah-illu ah-openbook" viewBox="0 0 140 80" aria-hidden="true">
       <defs>
-        <linearGradient id="pgL" x1="1" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#f6fff9"/><stop offset="100%" stop-color="#b7d4c2"/>
-        </linearGradient>
-        <linearGradient id="pgR" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#cfe6d8"/>
-        </linearGradient>
-        <linearGradient id="spine" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#1a6b40"/><stop offset="100%" stop-color="#0b3d26"/>
-        </linearGradient>
+        <linearGradient id="bL" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f7fff9"/><stop offset="100%" stop-color="#b7d4c2"/></linearGradient>
+        <linearGradient id="bR" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#cfe6d8"/></linearGradient>
       </defs>
-      <ellipse cx="80" cy="82" rx="54" ry="7" fill="rgba(0,0,0,.3)"/>
-      <path d="M18 70c8-40 50-52 62-54v58c-18-8-44-6-62-4z" fill="url(#pgL)"/>
-      <path d="M142 70c-8-40-50-52-62-54v58c18-8 44-6 62-4z" fill="url(#pgR)"/>
-      <path d="M80 16 v56" stroke="url(#spine)" stroke-width="6" stroke-linecap="round"/>
+      <ellipse cx="70" cy="72" rx="46" ry="6" fill="rgba(0,0,0,.25)"/>
+      <path d="M70 16 C30 22 18 30 14 62 c20-8 40-6 56 0z" fill="url(#bL)"/>
+      <path d="M70 16 C110 22 122 30 126 62 c-20-8-40-6-56 0z" fill="url(#bR)"/>
+      <path d="M70 16 v48" stroke="#1a5c3c" stroke-width="3"/>
     </svg>`;
   }
 
-  function otpShield() {
-    return `<div class="ah-comp ah-comp-otp" data-tilt>
-      <svg class="ah-hex" viewBox="0 0 220 220" aria-hidden="true">
-        <defs>
-          <linearGradient id="hx" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#c6ffd9"/><stop offset="30%" stop-color="#4ecf86"/>
-            <stop offset="70%" stop-color="#1b8a50"/><stop offset="100%" stop-color="#0b4a2c"/>
-          </linearGradient>
-          <linearGradient id="lockM" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#ffe9a8"/><stop offset="45%" stop-color="#e0b84a"/><stop offset="100%" stop-color="#8a6a18"/>
-          </linearGradient>
-          <filter id="hxSh"><feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#0b3a28" flood-opacity=".26"/></filter>
-        </defs>
-        <path d="M110 16 L186 48 L176 132 C170 176 110 204 110 204 C110 204 50 176 44 132 L34 48 Z" fill="url(#hx)" filter="url(#hxSh)"/>
-        <path d="M110 28 L170 54 L162 128 C158 164 110 188 110 188 C110 188 62 164 58 128 L50 54 Z" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/>
-        <rect x="82" y="108" width="56" height="42" rx="8" fill="url(#lockM)"/>
-        <path d="M94 112 v-18 c0-16 32-16 32 0 v18" fill="none" stroke="url(#lockM)" stroke-width="8" stroke-linecap="round"/>
-        <circle cx="110" cy="128" r="5.5" fill="#5a4310"/>
-      </svg>
-      <div class="ah-checkbadge" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 17 l6 6 10-12" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    </div>`;
+  function backpack(person) {
+    const extra = person ? `
+      <g transform="translate(118 70)">
+        <ellipse cx="22" cy="62" rx="20" ry="6" fill="rgba(20,40,30,.1)"/>
+        <rect x="8" y="22" width="28" height="34" rx="12" fill="#eef3ef"/>
+        <circle cx="22" cy="12" r="11" fill="#f4f7f5"/>
+        <circle cx="22" cy="11" r="8" fill="#e4ebe6"/>
+      </g>` : '';
+    return `<svg class="ah-illu ah-bag-svg" viewBox="0 0 180 200" aria-hidden="true">
+      <defs>
+        <linearGradient id="bag" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#6fd59a"/><stop offset="40%" stop-color="#2f9a5f"/>
+          <stop offset="100%" stop-color="#0e5a38"/>
+        </linearGradient>
+      </defs>
+      <ellipse cx="78" cy="188" rx="54" ry="8" fill="rgba(20,40,30,.12)"/>
+      <rect x="48" y="168" width="60" height="22" rx="6" fill="#eef3ef"/>
+      <path d="M62 62c0-18 36-18 36 0" stroke="#0e5a38" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <path d="M42 70c0-18 76-18 76 0l5 88c0 16-86 16-86 0z" fill="url(#bag)"/>
+      <path d="M52 82c14-8 44-8 58 4v28c-16-12-44-10-58 2z" fill="#fff" opacity=".22"/>
+      <circle cx="80" cy="118" r="16" fill="#eaf7ef"/>
+      <path d="M74 122 v-8 c0-4 12-4 12 0 v8" fill="#1e7a4c"/>
+      <circle cx="132" cy="78" r="16" fill="url(#bag)"/>
+      <circle cx="132" cy="78" r="16" fill="none" stroke="#cfe8d8" stroke-width="1.4"/>
+      <path d="M132 64 v28 M120 78 h24" stroke="#eaf7ef" stroke-width="1.2" opacity=".7"/>
+      ${extra}
+    </svg>`;
   }
 
-  function successShield() {
-    const bits = [];
-    const cols = ['#2f9a5f', '#7fe0a8', '#e0b84a', '#c6ffd9', '#1b8a50', '#f2d36b'];
-    for (let i = 0; i < 26; i++) {
-      const x = 6 + (i * 19) % 88;
-      const y = 2 + (i * 11) % 72;
-      const r = 3 + (i % 6);
-      bits.push(`<i class="ah-bit b${i % 6}" style="left:${x}%;top:${y}%;width:${r}px;height:${r + (i % 4) + 4}px;background:${cols[i % cols.length]};animation-delay:${(i % 8) * 0.16}s"></i>`);
-    }
-    return `<div class="ah-comp ah-comp-ok" data-tilt>
-      <div class="ah-confetti">${bits.join('')}</div>
-      <div class="ah-ped big"><i class="t"></i><i class="s"></i><i class="b"></i></div>
-      <svg class="ah-okshield" viewBox="0 0 200 220" aria-hidden="true">
-        <defs>
-          <linearGradient id="okG" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#c6ffd8"/><stop offset="32%" stop-color="#4ecf86"/>
-            <stop offset="68%" stop-color="#1e8a52"/><stop offset="100%" stop-color="#0b4a2e"/>
-          </linearGradient>
-          <linearGradient id="okHi" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#fff" stop-opacity=".62"/><stop offset="42%" stop-color="#fff" stop-opacity="0"/>
-          </linearGradient>
-          <filter id="okSh"><feDropShadow dx="0" dy="16" stdDeviation="12" flood-color="#0b3a28" flood-opacity=".3"/></filter>
-        </defs>
-        <path d="M100 12 L178 40 L170 118 C164 168 100 198 100 198 C100 198 36 168 30 118 L22 40 Z" fill="url(#okG)" filter="url(#okSh)"/>
-        <path d="M100 12 L178 40 L166 48 L100 24 Z" fill="url(#okHi)"/>
-        <path d="M68 108 l22 22 44-48" fill="none" stroke="#f4fff8" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>`;
-  }
-
-  function cap() {
-    return `<div class="ah-cap" aria-hidden="true">
-      <div class="ah-cap-board"></div>
-      <div class="ah-cap-edge"></div>
-      <div class="ah-cap-head"></div>
-      <div class="ah-cap-str"></div>
-      <div class="ah-cap-tassel"></div>
-    </div>`;
+  function shield(opts) {
+    const lock = opts.lock ? `
+      <rect x="78" y="108" width="44" height="34" rx="7" fill="url(#gd)"/>
+      <path d="M88 110 v-14 c0-12 24-12 24 0 v14" fill="none" stroke="url(#gd)" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="100" cy="124" r="4" fill="#5a4310"/>` : `
+      <path d="M72 108 l20 20 40-44" fill="none" stroke="#f4fff8" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const badge = opts.lock ? `<g transform="translate(138 128)"><circle r="16" fill="#2f9a5f"/><path d="M-6 0 l5 5 9-10" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></g>` : '';
+    const ped = opts.ped ? `<ellipse cx="100" cy="208" rx="70" ry="10" fill="rgba(20,40,30,.1)"/>
+      <rect x="48" y="186" width="104" height="18" fill="#e8eee9"/>
+      <ellipse cx="100" cy="186" rx="52" ry="12" fill="#fff"/>
+      <ellipse cx="100" cy="204" rx="52" ry="10" fill="#d5ddd8"/>` : '';
+    return `<svg class="ah-illu ah-shield-svg" viewBox="0 0 200 220" aria-hidden="true">
+      <defs>
+        <linearGradient id="sh" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#c6ffd8"/><stop offset="35%" stop-color="#4ecf86"/>
+          <stop offset="70%" stop-color="#1e8a52"/><stop offset="100%" stop-color="#0b4a2e"/>
+        </linearGradient>
+        <linearGradient id="gd" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffe9a8"/><stop offset="100%" stop-color="#8a6a18"/>
+        </linearGradient>
+      </defs>
+      ${ped}
+      <path d="M100 16 L176 44 L168 118 C162 164 100 196 100 196 C100 196 38 164 32 118 L24 44 Z" fill="url(#sh)"/>
+      <path d="M100 16 L176 44 L164 52 L100 28 Z" fill="#fff" opacity=".28"/>
+      ${lock}${badge}
+    </svg>`;
   }
 
   window.AHAuth3D = {
     welcomeScene() {
-      return `<div class="ah-scene ah-scene-welcome" data-tilt>
+      return `<div class="ah-scene ah-scene-welcome">
         <div class="ah-orb o1"></div><div class="ah-orb o2"></div><div class="ah-orb o3"></div>
         <div class="ah-orb o4"></div><div class="ah-orb o5"></div><div class="ah-orb o6"></div>
-        <div class="ah-orb o7"></div>
-        ${cap()}
-        ${emblem()}
-        ${openBook()}
+        ${cap()}${emblem()}${openBook()}
       </div>`;
     },
-    loginHero() { return backpack({}); },
-    signupHero() { return backpack({ person: true }); },
-    otpHero() { return otpShield(); },
-    successHero() { return successShield(); },
+    loginHero() { return `<div class="ah-hero-illu">${backpack(false)}</div>`; },
+    signupHero() { return `<div class="ah-hero-illu">${backpack(true)}</div>`; },
+    otpHero() { return `<div class="ah-hero-illu center">${shield({ lock: true })}</div>`; },
+    successHero() {
+      const bits = Array.from({ length: 18 }, (_, i) => {
+        const cols = ['#3dcf7a', '#f2d36b', '#f2a3a0', '#7fd3f0', '#8be0b0'];
+        return `<i class="ah-bit" style="left:${8 + (i * 17) % 84}%;top:${4 + (i * 13) % 60}%;background:${cols[i % cols.length]}"></i>`;
+      }).join('');
+      return `<div class="ah-hero-illu center">${bits}<div class="ah-confetti"></div>${shield({ ped: true })}</div>`;
+    },
     ico: {
       back: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
       eye: '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
