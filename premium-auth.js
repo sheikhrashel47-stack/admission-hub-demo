@@ -100,7 +100,16 @@
   const toast = m => { if (typeof window.toast === 'function') window.toast(m); };
 
   const api = async (path, opts = {}) => {
-    const res = await fetch(PUB + path, opts);
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 15000);
+    let res;
+    try {
+      res = await fetch(PUB + path, Object.assign({}, opts, { signal: ctl.signal }));
+    } catch (e) {
+      clearTimeout(t);
+      throw new Error(lang === 'bn' ? 'ইন্টারনেট সংযোগ নেই — আবার চেষ্টা করো' : 'No internet connection — try again');
+    }
+    clearTimeout(t);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || ('http-' + res.status));
     return data;
@@ -915,7 +924,18 @@
     }
   }
   async function doGoogle() {
-    if (!cfg.googleClientId) return showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এখন সেটআপ নেই' : 'Google login is not set up');
+    // config লোড না হলে আবার আনার চেষ্টা — নেটওয়ার্ক ফিরে এলে গুগল কাজ করবেই
+    if (!cfg || !cfg.googleClientId) {
+      try {
+        const fresh = await api('/auth/config');
+        if (fresh && fresh.googleClientId) { cfg = fresh; window.AH_AUTH_CONFIG = fresh; }
+      } catch (_) {}
+    }
+    if (!cfg || !cfg.googleClientId) {
+      return showErr('ahErr', lang === 'bn'
+        ? 'গুগল লগইন লোড হচ্ছে না — ইন্টারনেট সংযোগ দেখে একটু পরে আবার চাপো, নয়তো নিচের ফর্মে ইমেইল/পাসওয়ার্ড দিয়ে ঢুকো'
+        : 'Google login is loading — check internet and try again, or use email/password below');
+    }
     // signup স্ক্রিনে নাম/জন্মতারিখ ভরা থাকলে গুগল অ্যাকাউন্টে সেগুলো চলে যাবে
     try {
       const nn = document.getElementById('ahName');
@@ -1925,7 +1945,14 @@
         return;
       }
     } catch (e) { showErr('ahErr', e.message); }
-    try { cfg = await api('/auth/config'); hideOfflineNote(); } catch (_) { showOfflineNote(); }
+    try { cfg = await api('/auth/config'); hideOfflineNote(); } catch (_) {
+      // নেটওয়ার্ক সাময়িক থাকলে ৩ বার চেষ্টা — গুগল/লগইন সেটআপ হারাবে না
+      let got = false;
+      for (let i = 0; i < 3 && !got; i++) {
+        try { await new Promise(r => setTimeout(r, 700 * (i + 1))); cfg = await api('/auth/config'); got = true; } catch (_) {}
+      }
+      if (got) hideOfflineNote(); else showOfflineNote();
+    }
     if (cfg && cfg.googleClientId) loadGis().catch(() => {});
     window.AH_AUTH_CONFIG = cfg;
     const held = readWait();
