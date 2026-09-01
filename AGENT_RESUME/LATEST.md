@@ -1,6 +1,6 @@
 # 📍 LATEST — Admission Hub (Public) · সর্বশেষ অবস্থা
 
-**আপডেট:** 2026-09-01 (Email fix + Glass design + 3D loader) · **এজেন্ট:** জুজু
+**আপডেট:** 2026-09-01 (10-screen flow + 3D splash) · **এজেন্ট:** জুজু
 > নতুন এজেন্ট: প্রথমে এটা পড়ো, তারপর `AGENT_RESUME/`-এর সবচেয়ে নতুন ডেটেড resume।
 
 ---
@@ -18,7 +18,8 @@
 
 ## 📌 বর্তমান অবস্থা
 
-- **Onboarding v3 (Glass Daylight)** — ছবির মতো light glass + 3D সিন + গেম সিলেকশন + ইউনিভার্সিটি লোগো
+- **Onboarding ১০-স্ক্রিন ফ্লো** (Screen 01–10 per user spec) — auth শেষে সরাসরি dashboard নয়; ১০ স্ক্রিন → 3D লোগো স্প্ল্যাশ → dashboard
+- **Onboarding v3 (Glass Daylight)** — light glass + 3D সিন + গেম সিলেকশন + ইউনিভার্সিটি লোগো
 - **3D Loading System** — boot/verify/plan-এ pure-CSS 3D emerald loader (`3d-loader.css`)
 - **Email verify fix** — MAIL_HOOK body-check, লিংক মেয়াদ ১৫ মিনিট, countdown 15:00
 - **Same-Browser Verify** — live-ready: একই ব্রাউজারে verify = সরাসরি প্রবেশ (কোনো বার্তা নয়); ভিন্ন ব্রাউজার = শুধু তখনই বার্তা
