@@ -332,3 +332,4 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
 .ah-on-btn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:#0f6b4f;color:#fff !important;text-decoration:none !important;
   font-weight:800;font-size:13px;border-radius:12px;padding:11px 16px;box-shadow:0 8px 18px rgba(15,107,79,.25)}
 .ah-on-btn:active{transform:scale(.97)}
+.ah-google-tip{text-align:center;font-size:11.5px;color:#8b948e;margin:8px 0 0;line-height:1.5}

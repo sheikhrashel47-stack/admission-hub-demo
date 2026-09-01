@@ -29,8 +29,8 @@
       noAcc: "Don't have an account?", signup: 'Sign Up',
       verifyTitle: 'Verify your account', verifySub: 'One last step to secure your account',
       emailWay: 'Continue with Email Verification', hint: 'Choose whichever is more convenient for you.',
-      emailTitle: 'Verify your email', emailSub: "We'll send a verification link",
-      sendLink: 'Send verification link', checkEmail: 'Confirm your email',
+      emailTitle: 'Verify your email', emailSub: "We'll send a 6-digit code to this email",
+      sendLink: 'Send verification code', checkEmail: 'Confirm your email',
       linkSent: 'A verification message has been sent to',
       linkTap: 'Open the link in that message to activate your account.',
       processing: 'Processing…', waitingMail: 'Please keep this page open. Once the link is confirmed, this device will sign you in.',
@@ -55,8 +55,8 @@
       noAcc: 'অ্যাকাউন্ট নেই?', signup: 'নিবন্ধন করুন',
       verifyTitle: 'অ্যাকাউন্ট যাচাইকরণ', verifySub: 'নিরাপত্তার জন্য শেষ ধাপ',
       emailWay: 'ইমেইল যাচাইকরণ', hint: 'আপনার সুবিধামতো পদ্ধতি বেছে নিন।',
-      emailTitle: 'ইমেইল যাচাইকরণ', emailSub: 'যাচাইকরণ লিংক প্রেরণ করা হবে',
-      sendLink: 'যাচাইকরণ লিংক পাঠান', checkEmail: 'ইমেইল নিশ্চিতকরণ',
+      emailTitle: 'ইমেইল যাচাইকরণ', emailSub: 'এই ইমেইলে একটি ৬-অঙ্কের কোড পাঠানো হবে',
+      sendLink: 'কোড পাঠান', checkEmail: 'ইমেইল নিশ্চিতকরণ',
       linkSent: 'যাচাইকরণ বার্তা প্রেরণ করা হয়েছে',
       linkTap: 'বার্তার লিংক খুললে আপনার অ্যাকাউন্ট সক্রিয় হবে।',
       processing: 'প্রক্রিয়াকরণ চলছে…', waitingMail: 'এই পাতা খোলা রাখুন। লিংক নিশ্চিত হলে এই ডিভাইসে স্বয়ংক্রিয়ভাবে প্রবেশ করবে।',
@@ -192,7 +192,7 @@
       <p class="ah-p">${t('loginSub')}</p>
       <div class="ah-form">
         <button class="ah-btn" type="button" id="ahPasskey">${t('passkey')}</button>
-        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button></div>
+        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button><p class="ah-google-tip">${lang === 'bn' ? 'প্রথমবার গুগলে Continue/Allow চাপতে হতে পারে' : 'Google may ask you to Continue / Allow on first use'}</p></div>
         <div class="ah-or">${t('orPass')}</div>
         <label class="ah-lab">${t('email')}</label>
         <input class="ah-inp" id="ahId" placeholder="${t('email')}" value="${esc(draft.id)}" autocomplete="username">
@@ -225,7 +225,7 @@
       <label class="ah-lab">${t('confirm')}</label>${passRow('ahPass2', t('confirm'), 'new-password')}
       <button class="ah-btn" type="button" id="ahContinue">${t('cont')}</button>
       <div class="ah-or">${t('or')}</div>
-      <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button></div>
+      <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button><p class="ah-google-tip">${lang === 'bn' ? 'প্রথমবার গুগলে Continue/Allow চাপতে হতে পারে' : 'Google may ask you to Continue / Allow on first use'}</p></div>
       ${errBox('ahErr')}
       <div class="ah-foot">${t('haveAcc')} <button type="button" data-go="login">${t('login')}</button></div>
     </div>
@@ -873,9 +873,14 @@
       prompt: 'select_account',
       callback: async (resp) => {
         if (!resp || resp.error || !resp.access_token) {
-          const msg = String((resp && (resp.error_description || resp.error)) || '');
-          if (/origin|not allowed|client_id/i.test(msg)) showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এই ঠিকানায় অনুমোদিত নয় — লাইভ সাইট https://sheikhrashel47-stack.github.io/admission-hub-demo/ থেকে খুলো' : 'Google login is not allowed on this address — open the live site https://sheikhrashel47-stack.github.io/admission-hub-demo/');
-          else showErr('ahErr', lang === 'bn' ? 'গুগল লগইন বাতিল হয়েছে' : 'Google sign-in cancelled');
+          const code = String((resp && (resp.error || '')) || '');
+          const msg = String((resp && (resp.error_description || '')) || code);
+          let err = lang === 'bn' ? 'গুগল লগইন ব্যর্থ — আবার চেষ্টা করো' : 'Google sign-in failed — try again';
+          if (/popup_closed_by_user|user_cancelled/i.test(code)) err = lang === 'bn' ? 'গুগল উইন্ডো বন্ধ হয়েছে — আবার চেষ্টা করো' : 'Google window closed — try again';
+          else if (/access_denied/i.test(code)) err = lang === 'bn' ? 'গুগল অ্যাকাউন্ট অনুমতি দেয়নি — অন্য গুগল অ্যাকাউন্ট বা Allow চাপো' : 'Google account did not grant permission';
+          else if (/origin|not allowed|client_id/i.test(msg)) err = lang === 'bn' ? 'গুগল লগইন এই ঠিকানায় অনুমোদিত নয় — লাইভ সাইট https://sheikhrashel47-stack.github.io/admission-hub-demo/ থেকে খুলো' : 'Google login is not allowed on this address — open the live site https://sheikhrashel47-stack.github.io/admission-hub-demo/';
+          else if (/consent|interaction|continue/i.test(code + msg)) err = lang === 'bn' ? 'গুগলে Continue/Allow চাপতে হবে — প্রথমবার গুগল সতর্কবার্তা দেখাতে পারে' : 'Press Continue / Allow in the Google window — Google may show a warning on first use';
+          showErr('ahErr', err);
           return;
         }
         try { await finishGoogle({ accessToken: resp.access_token }); }
@@ -885,7 +890,7 @@
     try {
       client.requestAccessToken({ prompt: 'select_account' });
     } catch (e) {
-      showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এই ঠিকানায় অনুমোদিত নয় — লাইভ সাইট https://sheikhrashel47-stack.github.io/admission-hub-demo/ থেকে খুলো' : 'Google login is not allowed on this address — open the live site');
+      showErr('ahErr', lang === 'bn' ? 'গুগল লগইন খুলতে পারিনি — পপ-আপ ব্লক থাকলে অনুমতি দাও, নয়তো ইমেইল/পাসওয়ার্ড দিয়ে ঢুকো' : 'Could not open Google — allow pop-ups, or sign in with email/password');
     }
   }
   async function doGoogle() {
