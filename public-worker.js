@@ -153,6 +153,7 @@ export default {
       }
       if (p === '/api/auth/register' && request.method === 'POST') return await authRegister(request, env);
       if (p === '/api/auth/register-email' && request.method === 'POST') return await authRegisterEmail(request, env);
+      if (p === '/api/auth/wait' && request.method === 'POST') return await authWait(request, env);
       if (p === '/api/auth/login' && request.method === 'POST') return await authLogin(request, env);
       if (p === '/api/auth/google' && request.method === 'POST') return await authGoogle(request, env);
       if (p === '/api/auth/passkey/register/begin' && request.method === 'POST') return await pkRegBegin(request, env);
@@ -429,7 +430,19 @@ const authVerifyLink = async (request, env) => {
   await env.PUB_KV.delete('vlink:' + hash);
   const issued = await issueToken(env, pending);
   issued.user = await fullUser(env, pending);
+  if (pending.waitId) {
+    await env.PUB_KV.put('wait:' + pending.waitId, JSON.stringify({ status: 'ready', token: issued.token, user: issued.user }), { expirationTtl: 600 });
+  }
   return json(issued);
+};
+const authWait = async (request, env) => {
+  const b = await request.json().catch(() => ({}));
+  const waitId = String(b.waitId || '');
+  if (waitId.length < 16) return json({ error: 'অপেক্ষা অবৈধ' }, 400);
+  const row = JSON.parse((await env.PUB_KV.get('wait:' + waitId)) || 'null');
+  if (!row) return json({ error: 'সময় শেষ — আবার লিংক পাঠান' }, 410);
+  if (row.status === 'ready' && row.token) return json({ token: row.token, user: row.user, ready: true });
+  return json({ waiting: true });
 };
 const pkRegBegin = async (request, env) => {
   const uid = crypto.randomUUID();
@@ -553,19 +566,21 @@ const authRegisterEmail = async (request, env) => {
   if (weak) return json({ error: weak }, 400);
   if (password !== confirm) return json({ error: 'পাসওয়ার্ড দুটো মিলছে না' }, 400);
   const hp = await hashPassword(password);
+  const waitId = b64url(crypto.getRandomValues(new Uint8Array(24)));
   const pending = {
     id, uid: (existing && existing.uid) || crypto.randomUUID(),
     name, email: id.slice(3), mobile: '', contact: id.slice(3),
     dob: String(b.dob || '').slice(0, 12),
     school: String(b.school || '').slice(0, 80),
     college: String(b.college || '').slice(0, 80),
-    passHash: hp.hash, passSalt: hp.salt,
+    passHash: hp.hash, passSalt: hp.salt, waitId,
     created: Date.now(), providers: ['email', 'password'], verified: false, emailVerified: false, status: 'pending'
   };
   await env.PUB_KV.put('pending:' + id, JSON.stringify(pending), { expirationTtl: 1800 });
+  await env.PUB_KV.put('wait:' + waitId, JSON.stringify({ id, status: 'pending' }), { expirationTtl: 1800 });
   const sent = await issueVerifyLink(env, id, 'signup', ip);
   if (sent.error) return json({ error: sent.error }, sent.status || 503);
-  return json({ pending: true, sent: true, channel: 'link', masked: sent.masked, purpose: 'signup' });
+  return json({ pending: true, sent: true, channel: 'link', masked: sent.masked, purpose: 'signup', waitId });
 };
 const authRegister = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';

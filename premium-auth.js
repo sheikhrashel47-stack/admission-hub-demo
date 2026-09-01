@@ -31,7 +31,8 @@
       emailWay: 'Continue with Email Verification', hint: 'Choose whichever is more convenient for you.',
       emailTitle: 'Verify your email', emailSub: "We'll send a verification link",
       sendLink: 'Send verification link', checkEmail: 'Check your email',
-      linkSent: 'Verification link sent to', linkTap: 'Open the link to activate your account.'
+      linkSent: 'Verification link sent to', linkTap: 'Open the link to activate your account.',
+      processing: 'Processing…', waitingMail: 'Keep this page open. After you confirm the link, this device will sign in automatically.'
     },
     bn: {
       tag: 'জ্ঞান অর্জন করুন, লক্ষ্যে পৌঁছান', start: 'শুরু করুন',
@@ -46,13 +47,15 @@
       emailWay: 'ইমেইল যাচাইকরণ', hint: 'আপনার সুবিধামতো পদ্ধতি বেছে নিন।',
       emailTitle: 'ইমেইল যাচাইকরণ', emailSub: 'যাচাইকরণ লিংক প্রেরণ করা হবে',
       sendLink: 'যাচাইকরণ লিংক পাঠান', checkEmail: 'ইমেইল পরীক্ষা করুন',
-      linkSent: 'যাচাইকরণ লিংক প্রেরণ করা হয়েছে', linkTap: 'লিংক খুললে অ্যাকাউন্ট সক্রিয় হবে।'
+      linkSent: 'যাচাইকরণ লিংক প্রেরণ করা হয়েছে', linkTap: 'লিংক খুললে অ্যাকাউন্ট সক্রিয় হবে।',
+      processing: 'প্রক্রিয়াকরণ চলছে…', waitingMail: 'এই পাতা খোলা রাখুন। লিংক নিশ্চিত হলে এই ডিভাইসে স্বয়ংক্রিয়ভাবে প্রবেশ করবে।'
     }
   };
   const t = k => (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k;
   let draft = { name: '', dob: '', school: '', college: '', id: '', password: '', purpose: 'signup', masked: '', wait: 45 };
   let syncing = false;
   let otpTimer = 0;
+  let waitPoll = 0;
 
   const readStore = (k) => {
     try { return localStorage.getItem(k) || sessionStorage.getItem(k) || ''; } catch (_) { return ''; }
@@ -279,6 +282,7 @@
 
   function go(name) {
     typeGen += 1;
+    waitPoll += 1;
     view = name;
     if (name === 'welcome') return welcome();
     if (name === 'login' || name === 'loginOtp' || name === 'forgot' || name === 'otp' || name === 'reset') return login();
@@ -499,9 +503,12 @@
     go('verify');
   }
   async function doSignup() {
+    const btn = document.getElementById('ahDoSignup');
+    const prev = btn ? btn.innerHTML : '';
     try {
       draft.id = (document.getElementById('ahId') && document.getElementById('ahId').value.trim()) || draft.id;
       if (!draft.id) return showErr('ahErr', lang==='bn'?'ইমেইল লিখুন':'Enter your email');
+      if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; btn.innerHTML = '<i class="ah-spin"></i>' + t('processing'); }
       const data = await api('/auth/register-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: draft.name, id: draft.id, dob: draft.dob, school: draft.school, college: draft.college, password: draft.password, confirm: draft.confirm }) });
       draft.masked = data.masked;
       paint(`<section class="ah-screen ah-light ah-center">
@@ -509,9 +516,29 @@
         <h1 class="ah-h">${t('checkEmail')}</h1>
         <p class="ah-p">${t('linkSent')}<br><b>${esc(data.masked || draft.id)}</b></p>
         <p class="ah-p">${t('linkTap')}</p>
+        <p class="ah-p" id="ahWaitNote">${t('waitingMail')}</p>
         ${errBox('ahErr')}
       </section>`);
-    } catch (e) { showErr('ahErr', e.message); }
+      if (data.waitId) pollWait(data.waitId);
+    } catch (e) {
+      if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('sendLink'); }
+      showErr('ahErr', e.message);
+    }
+  }
+  async function pollWait(waitId) {
+    const n = ++waitPoll;
+    while (n === waitPoll) {
+      await new Promise(r => setTimeout(r, 2000));
+      if (n !== waitPoll) return;
+      if (!document.getElementById('ahWaitNote')) return;
+      try {
+        const data = await api('/auth/wait', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ waitId }) });
+        if (data && data.token) { await afterAuth(data); return; }
+      } catch (e) {
+        showErr('ahErr', e.message);
+        return;
+      }
+    }
   }
   async function doVerify() {
     try {

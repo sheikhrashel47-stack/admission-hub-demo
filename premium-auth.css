@@ -113,7 +113,9 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
 .ah-check{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--ah-muted);margin-top:14px}
 .ah-check input{accent-color:var(--ah-em);width:18px;height:18px;margin-top:1px}
 .ah-g{width:18px;height:18px}
-.ah-busy{opacity:.7;pointer-events:none}
+.ah-busy{opacity:.85;pointer-events:none}
+.ah-spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;display:inline-block;margin-right:8px;animation:ahSpin .7s linear infinite;vertical-align:-3px}
+@keyframes ahSpin{to{transform:rotate(360deg)}}
 .ah-center .ah-h,.ah-center .ah-p{max-width:100%;text-align:center}
 .ah-center .ah-hero-slot{position:relative;width:100%;height:210px;right:auto;top:auto;margin:8px auto}
 .ah-center.ah-ok .ah-hero-slot{height:250px}
