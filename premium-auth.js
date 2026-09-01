@@ -27,8 +27,8 @@
       welcomeBack: 'Welcome Back,<br>Scholar! 👋', loginSub: 'Passkey, Google, or email',
       passkey: 'Continue with Passkey', orPass: 'or password', email: 'Email', password: 'Password',
       noAcc: "Don't have an account?", signup: 'Sign Up',
-      verifyTitle: 'Verify your account', verifySub: 'One last step to secure your account',
-      emailWay: 'Continue with Email Verification', hint: 'Choose whichever is more convenient for you.',
+      verifyTitle: 'Verify your email', verifySub: 'We will send a 6-digit code to your email. Enter it to activate your account.',
+      emailWay: 'Send code to my email', hint: 'Choose whichever is more convenient for you.',
       emailTitle: 'Verify your email', emailSub: "We'll send a 6-digit code to this email",
       sendLink: 'Send verification code', checkEmail: 'Confirm your email',
       linkSent: 'A verification message has been sent to',
@@ -53,8 +53,8 @@
       welcomeBack: 'স্বাগতম,<br>শিক্ষার্থী', loginSub: 'পাসকি, গুগল অথবা ইমেইল',
       passkey: 'পাসকি দিয়ে এগিয়ে যান', orPass: 'অথবা পাসওয়ার্ড', email: 'ইমেইল', password: 'পাসওয়ার্ড',
       noAcc: 'অ্যাকাউন্ট নেই?', signup: 'নিবন্ধন করুন',
-      verifyTitle: 'অ্যাকাউন্ট যাচাইকরণ', verifySub: 'নিরাপত্তার জন্য শেষ ধাপ',
-      emailWay: 'ইমেইল যাচাইকরণ', hint: 'আপনার সুবিধামতো পদ্ধতি বেছে নিন।',
+      verifyTitle: 'ইমেইল যাচাই করুন', verifySub: 'আপনার ইমেইলে ৬-অঙ্কের কোড পাঠানো হবে। কোডটি লিখে অ্যাকাউন্ট সক্রিয় করুন।',
+      emailWay: 'ইমেইলে কোড পাঠান', hint: 'আপনার সুবিধামতো পদ্ধতি বেছে নিন।',
       emailTitle: 'ইমেইল যাচাইকরণ', emailSub: 'এই ইমেইলে একটি ৬-অঙ্কের কোড পাঠানো হবে',
       sendLink: 'কোড পাঠান', checkEmail: 'ইমেইল নিশ্চিতকরণ',
       linkSent: 'যাচাইকরণ বার্তা প্রেরণ করা হয়েছে',
@@ -239,9 +239,7 @@
     <h1 class="ah-h">${t('verifyTitle')}</h1>
     <p class="ah-p">${t('verifySub')}</p>
     <div class="ah-form">
-      <button class="ah-btn sec" type="button" id="ahEmailWay">${t('emailWay')}</button>
-      <button class="ah-btn" type="button" id="ahPasskey">${t('passkey')}</button>
-      <p class="ah-hint">${t('hint')}</p>
+      <button class="ah-btn" type="button" id="ahEmailWay">📧 ${t('emailWay')}</button>
       ${errBox('ahErr')}
     </div>
   </section>`);
@@ -819,7 +817,7 @@
       });
       await afterAuth(data);
     } catch (e) {
-      showErr('ahErr', e.name === 'NotAllowedError' ? 'Passkey বাতিল' : (e.message || 'Passkey ব্যর্থ'));
+      showErr('ahErr', e.name === 'NotFoundError' ? (lang === 'bn' ? 'এই ডিভাইসে পাসকি পাওয়া যায়নি — ইমেইল/পাসওয়ার্ড বা গুগল দিয়ে ঢুকো' : 'No passkey found on this device — use email/password or Google') : (e.name === 'NotAllowedError' ? 'Passkey বাতিল' : (e.message || 'Passkey ব্যর্থ')));
     }
   }
 
@@ -918,6 +916,17 @@
   }
   async function doGoogle() {
     if (!cfg.googleClientId) return showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এখন সেটআপ নেই' : 'Google login is not set up');
+    // signup স্ক্রিনে নাম/জন্মতারিখ ভরা থাকলে গুগল অ্যাকাউন্টে সেগুলো চলে যাবে
+    try {
+      const nn = document.getElementById('ahName');
+      const dd = document.getElementById('ahDob');
+      const ss = document.getElementById('ahSchool');
+      const cc = document.getElementById('ahCollege');
+      if (nn && nn.value.trim()) draft.name = nn.value.trim();
+      if (dd && dd.value) draft.dob = dd.value;
+      if (ss && ss.value.trim()) draft.school = ss.value.trim();
+      if (cc && cc.value.trim()) draft.college = cc.value.trim();
+    } catch (_) {}
     const btn = document.getElementById('ahGoogle');
     if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; }
     try {

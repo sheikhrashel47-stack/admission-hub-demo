@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v162-auth-fix-20260902';
+const BUILD_ID = 'v163-auth-fix-20260902';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -73,12 +73,12 @@ const APP_SHELL = [
   './source-course-tool.js?v=bangla-only-courses-v23-freshfetch',
   './cloud-content-sync.js?v=p2-cloud-v2',
   './auth-svg.js?v=p3-auth-ui-v25',
-  './premium-auth.js?v=p3-auth-prof-v32',
+  './premium-auth.js?v=p3-auth-prof-v33',
   './android-runtime-fix.js?v=and-scroll-v1',
   '',
-  './premium-auth.css?v=p3-auth-prof-v32',
+  './premium-auth.css?v=p3-auth-prof-v33',
   './auth-svg.js?v=p3-auth-ui-v25',
-  './premium-auth.js?v=p3-auth-prof-v32',
+  './premium-auth.js?v=p3-auth-prof-v33',
   './onboarding.js?v=p6-onboard-v1',
   './onboarding.css?v=p6-onboard-v1',
   './app-seed.js?v=p1',
