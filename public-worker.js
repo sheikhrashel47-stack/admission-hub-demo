@@ -482,7 +482,7 @@ async function completeVerify(env, raw) {
   const ready = JSON.stringify({ status: 'ready', token: issued.token, user: issued.user, id: pending.id });
   if (pending.waitId) await env.PUB_KV.put('wait:' + pending.waitId, ready, { expirationTtl: 900 });
   await env.PUB_KV.put('waitid:' + pending.id, ready, { expirationTtl: 900 });
-  return { ok: true, issued };
+  return { ok: true, issued, waitId: pending.waitId || '' };
 }
 const authVerifyLink = async (request, env) => {
   const b = await request.json().catch(() => ({}));
@@ -499,22 +499,24 @@ const authConfirm = async (request, env) => {
   }
   const out = await completeVerify(env, raw);
   const ok = out.ok;
-  const msg = ok
-    ? 'Your email has been verified. Return to the original device — it will sign you in automatically.'
-    : (out.error || 'Verification failed');
-  const bn = ok
-    ? 'আপনার ইমেইল যাচাই সম্পন্ন হয়েছে। যে ডিভাইসে অ্যাকাউন্ট খুলছিলেন সেখানে ফিরে যান — সেটি স্বয়ংক্রিয়ভাবে প্রবেশ করাবে।'
-    : (out.error || 'যাচাই ব্যর্থ');
+  if (ok) {
+    // Same-device smart redirect: app decides same vs other browser via localStorage ahWaitId.
+    const w = String(out.waitId || '');
+    const app = 'https://sheikhrashel47-stack.github.io/admission-hub-demo/?verified=1&w=' + encodeURIComponent(w);
+    return Response.redirect(app, 302);
+  }
+  const msg = out.error || 'Verification failed';
+  const bn = out.error || 'যাচাই ব্যর্থ';
   const html = `<!doctype html><html lang="bn"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admission Hub</title>
 <body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f3f5f4;font-family:Georgia,Times,serif;color:#1a2420">
 <div style="max-width:440px;margin:24px;background:#fff;border:1px solid #dce6e0;padding:36px 28px;text-align:center">
 <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:.16em;color:#1e7a4c;font-weight:700">ADMISSION HUB</p>
 <p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:12px;color:#66756e">Office of Student Accounts</p>
-<h1 style="font-size:26px;margin:0 0 14px">${ok ? 'Verified' : 'Unable to verify'}</h1>
+<h1 style="font-size:26px;margin:0 0 14px">Unable to verify</h1>
 <p style="line-height:1.55">${msg}</p>
 <p style="line-height:1.55;color:#44524c">${bn}</p>
 </div></body></html>`;
-  return new Response(html, { status: ok ? 200 : (out.status || 400), headers: { 'Content-Type': 'text/html; charset=utf-8', 'Access-Control-Allow-Origin': '*' } });
+  return new Response(html, { status: out.status || 400, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Access-Control-Allow-Origin': '*' } });
 };
 const authWait = async (request, env) => {
   const b = await request.json().catch(() => ({}));

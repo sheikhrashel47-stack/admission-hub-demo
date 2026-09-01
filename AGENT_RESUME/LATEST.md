@@ -1,6 +1,6 @@
 # 📍 LATEST — Admission Hub (Public) · সর্বশেষ অবস্থা
 
-**আপডেট:** 2026-09-01 · **এজেন্ট:** জুজু
+**আপডেট:** 2026-09-01 (Onboarding v2) · **এজেন্ট:** জুজু
 > নতুন এজেন্ট: প্রথমে এটা পড়ো, তারপর `AGENT_RESUME/`-এর সবচেয়ে নতুন ডেটেড resume।
 
 ---
@@ -18,39 +18,39 @@
 
 ## 📌 বর্তমান অবস্থা
 
-- **HEAD:** `d977a11` (Phase 6 personalized onboarding after auth, persisted per user) — main, pushed
-- **Phase 1** Exact Clone — frozen (রিডিজাইন করো না)
-- **Phase 2** Central cloud content — live
-- **Phase 3** auth — **live** (workers deployed): config `google + passkey + email` (sms false)
-- **Phase 6** onboarding — **live** (auth-এর পরে `#ahOnboardGate`, per-user persisted, ৯ ধাপ)
+- **Onboarding v2 (Premium Game Style)** — live-ready: ৩D সিন, গেম-স্টাইল সিলেকশন, ইউনিভার্সিটি লোগো, অ্যানিমেশন
+- **Same-Browser Verify** — live-ready: একই ব্রাউজারে verify = সরাসরি প্রবেশ (কোনো বার্তা নয়); ভিন্ন ব্রাউজার = শুধু তখনই বার্তা
+- **Loading অপ্টিমাইজড** — ১৫টা ভারী script defer (parse-ব্লকিং ~৩MB কম)
+- **Worker deployed:** `admission-gk` Version `679b071b` (wrangler, ১৩ সিক্রেট intact) — `/pub/health` ✅
+- Phase 1 frozen · Phase 2 live · Phase 3 auth live (google+passkey+email) · Phase 6 onboarding live
 - **🛑 STOP:** `PHASE 3 APPROVED` না বলা পর্যন্ত **Phase 4 শুরু করবে না**
-- Demo SW: `v158-mail-reset-20260901` / auth UI `p3-auth-ui-v24`
-- Onboarding catalog: ডেমোতে `onboarding.js`-এ `FALLBACK_UNI` + worker-এ catalog
 
 ## ⚠️ পেন্ডিং / জানা ঝুলন্ত কাজ (এই repo)
 
-1. **`auth-options/` — ৩৮টা AI-জেনারেটেড ছবি (bg-*, welcome-*, option-*, pro-*, langcat-*, np-*, demo-*), আনট্র্যাকড, কোডে কোথাও reference নেই** — আগের এজেন্ট auth screen-এর ভিজ্যুয়াল অপশন হিসেবে বানাচ্ছিল; কী করতে হবে ঠিক হয়নি।
-2. **`brand/` (লোগো) + নতুন আইকন** (icon-192/512 আপডেট, icon-1024, apple-touch-icon) — আনট্র্যাকড; manifest/index.html-এ ঠিকমতো বসানো হয়নি (manifest-এ এখনো শুধু icon-192 + icon-512)।
-3. Gmail "Send-as" নাম এখনো `mahmudrashel1034`-এ সেট করতে হবে (user-এর কাজ)।
+1. **`auth-options/` — ৩৮টা AI ছবি, আনট্র্যাকড, কোডে ব্যবহার হয়নি** — সিদ্ধান্ত নিতে হবে
+2. **`brand/` + নতুন আইকন** (icon-1024, apple-touch-icon) — manifest/index.html-এ বসানো হয়নি
+3. Gmail "Send-as" নাম `mahmudrashel1034`-এ সেট (user-এর কাজ)
+4. নতুন ডিজাইন + verify ফ্লো লাইভ QA (মোবাইলে)
 
 ## 🔑 Auth ফ্লো (Phase 3, locked)
 
-- Welcome: Glass Daylight, English/বাংলা toggle → clean letter typing
-- Signup: Full Name + DOB + School/College (optional) → Continue; Google আলাদা button
-- Verify: **Email verification link** অথবা **Passkey** (native Face ID/Touch ID/PIN); Google = verified
-- OTP product path বাদ (legacy `/otp/*` worker route আছে)
-- Bottom nav: Home · Bank · Exam · History · Profile (floating M নাই)
-- Backend: `admission-gk` worker → `/pub/*` → `public-worker.js` (`/api/auth/*`, `/api/onboarding/*`, `/api/profile/*`, `/api/state`, `/api/ai`, `/api/admin/*`)
+- Welcome: Glass Daylight, English/বাংলা toggle
+- Signup: Full Name + DOB + School/College (optional) → Continue; Google আলাদা
+- Verify: Email link অথবা Passkey; Google = verified
+- **Same-browser verify:** সাইনআপে `ahWaitId` localStorage → লিংক ক্লিকে অ্যাপ `?verified=1&w=` → একই browser = অটো-প্রবেশ, ভিন্ন = বার্তা
+- Bottom nav: Home · Bank · Exam · History · Profile
+- Backend: `admission-gk` → `/pub/*` → `public-worker.js`
 
 ## ☁️ Backend
 
-- Main worker: `admission-gk.rashelzayan213.workers.dev` (`/pub/health`, `/pub/auth/config` live)
-- Worker modules: `gk-agent-worker.js` (main) + `public-worker.js`
-- KV: GK `b9353515b098427687afcfb8654ed359` · PUB `942828aa82e546d4af11796ef92ab134`
-- MAIL_HOOK = Gmail Apps Script (plain Gmail draft send, secret `AdmissionHubMail1`, spam-safe)
-- Sealed secrets (worker-এ): RESEND_KEY/_2, GOOGLE_CLIENT_ID, MAIL_FROM, MAIL_HOOK, MAIL_HOOK_SECRET, ADMIN_TOKEN, GEMINI_KEYS...
+- Main worker: `admission-gk.rashelzayan213.workers.dev` (Version `679b071b`, wrangler-deployed)
+- Modules: `gk-agent-worker.js` + `public-worker.js` · KV: GK `b9353515b098427687afcfb8654ed359` · PUB `942828aa82e546d4af11796ef92ab134`
+- Secrets (১৩টা, intact): ADMIN_TOKEN, ASK_API_KEY, BROWSER_USE_API_KEYS, GEMINI_KEYS, GOOGLE_CLIENT_ID/_SECRET, MAIL_FROM, MAIL_HOOK, MAIL_HOOK_SECRET, RESEND_KEY/_2, TG_BOT_TOKEN, TG_CHAT_ID
+- **⚠️ Worker redeploy:** CF API PUT-এ secret text value লাগে (ভ্যালু জানা নেই) — **wrangler দিয়ে deploy করলে সিক্রেট অটো থাকে** (গতবার এভাবেই হয়েছে)
 
 ## ⏭️ পরবর্তী কাজ (প্রস্তাবিত)
 
-1. Pending stuff ঠিক করা: `auth-options/` ছবির সিদ্ধান্ত, `brand/`+icons manifest-এ বসানো
-2. User `PHASE 3 APPROVED` বললে **Phase 4** (Connected Lexicon + Smart Memorizing Center — কন্ট্রোল repo-র `phase345.patch.js` blueprint)
+1. কন্ট্রোল repo commit+push (public-worker.js সিঙ্ক + resume) — GitHub-কে deployed state-এর সাথে মেলানো
+2. Live QA: onboarding v2 + same-browser verify (মোবাইল)
+3. `auth-options/` ছবি + icon manifest ঠিক করা
+4. `PHASE 3 APPROVED` পেলে Phase 4 (Connected Lexicon + Smart Memorizing)

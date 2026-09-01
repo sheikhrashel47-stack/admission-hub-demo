@@ -108,25 +108,51 @@
     return m[kind] || '';
   }
 
+  // ── ইউনিভার্সিটি লোগো বেজ (প্রিমিয়াম SVG এমব্লেম) ─────────────
+  const UNI_BRAND = {
+    du:  { c1: '#0f9d63', c2: '#065f3c', icon: 'M12 4l7 4v5l-7-4-7 4V8l7-4zM5 14.5v4L12 22l7-3.5v-4L12 19l-7-4.5z' },
+    cu:  { c1: '#e23b3b', c2: '#8f1d1d', icon: 'M12 4l7 4v5l-7-4-7 4V8l7-4zM5 14.5v4L12 22l7-3.5v-4L12 19l-7-4.5z' },
+    ru:  { c1: '#1fa35c', c2: '#0b5e31', icon: 'M4 7l8-3 8 3-8 3-8-3zM6 9.5V15c0 1.6 2.7 3 6 3s6-1.4 6-3V9.5l-6 2.3-6-2.3z' },
+    ju:  { c1: '#3b82f6', c2: '#1d4fa8', icon: 'M4 7l8-3 8 3-8 3-8-3zM6 9.5V15c0 1.6 2.7 3 6 3s6-1.4 6-3V9.5l-6 2.3-6-2.3z' },
+    ku:  { c1: '#0ea5a5', c2: '#0b5c5c', icon: 'M4 7l8-3 8 3-8 3-8-3zM6 9.5V15c0 1.6 2.7 3 6 3s6-1.4 6-3V9.5l-6 2.3-6-2.3z' },
+    cou: { c1: '#8b5cf6', c2: '#5b21b6', icon: 'M12 4l7 4v5l-7-4-7 4V8l7-4zM5 14.5v4L12 22l7-3.5v-4L12 19l-7-4.5z' },
+    other:{ c1: '#64748b', c2: '#334155', icon: 'M5 12h14M12 5v14' }
+  };
+  function uniLogo(u) {
+    const b = UNI_BRAND[u.id] || UNI_BRAND.other;
+    const short = (u.short || u.id || 'OTH').slice(0, 3).toUpperCase();
+    return `<svg class="ob-logo" width="56" height="56" viewBox="0 0 64 64" aria-hidden="true">
+      <defs><linearGradient id="obg${u.id}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="${b.c1}"/><stop offset="1" stop-color="${b.c2}"/>
+      </linearGradient></defs>
+      <circle cx="32" cy="32" r="29" fill="url(#obg${u.id})" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/>
+      <circle cx="32" cy="32" r="24.5" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1" stroke-dasharray="3 3"/>
+      <path d="${b.icon}" fill="rgba(255,255,255,.92)" transform="translate(10 10) scale(1.85)"/>
+      <text x="32" y="49" text-anchor="middle" font-size="10.5" font-weight="800" font-family="Arial,sans-serif" fill="#fff" letter-spacing="1">${short}</text>
+    </svg>`;
+  }
+
   function world() {
     return `<div class="ob-stage" aria-hidden="true">
-      <div class="ob-world">
-        <svg viewBox="0 0 360 200" width="100%" height="100%">
-          <defs>
-            <linearGradient id="obSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e7f4ec"/><stop offset="1" stop-color="#f3f7f4"/></linearGradient>
-          </defs>
-          <rect width="360" height="200" fill="url(#obSky)"/>
-          <ellipse cx="180" cy="188" rx="160" ry="18" fill="#d7eadf"/>
-          <g transform="translate(118 78)">
-            <rect x="20" y="36" width="84" height="52" rx="4" fill="#1e7a4c"/>
-            <polygon points="12,40 62,8 112,40" fill="#0f6b4f"/>
-            <rect x="52" y="58" width="20" height="30" rx="2" fill="#f4fbf6"/>
-            <rect x="32" y="48" width="12" height="12" rx="2" fill="#cfe6d8"/>
-            <rect x="80" y="48" width="12" height="12" rx="2" fill="#cfe6d8"/>
-          </g>
-        </svg>
+      <i class="ob-orb a"></i><i class="ob-orb b"></i><i class="ob-orb c"></i>
+      ${[0,1,2,3,4,5,6,7,8,9,10,11].map(i => `<i class="ob-part" style="left:${6+i*8}%;animation-delay:${i*.55}s"></i>`).join('')}
+      <div class="ob-scene">
+        <div class="stage3d">
+          <div class="ob-cap">
+            <div class="board"></div>
+            <div class="top"></div>
+            <div class="btn"></div>
+            <div class="tassel"></div>
+          </div>
+          <div class="ob-book b1"></div>
+          <div class="ob-book b2"></div>
+          <div class="ob-book b3"></div>
+          <div class="ob-ring r1"></div>
+          <div class="ob-ring r2"></div>
+          <div class="ob-coin c1"></div>
+          <div class="ob-coin c2"></div>
+        </div>
       </div>
-      ${[0,1,2,3,4,5,6,7].map(i => `<i class="ob-part" style="left:${12+i*11}%;animation-delay:${i*.4}s"></i>`).join('')}
     </div>`;
   }
 
@@ -180,19 +206,23 @@
       <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">চল শুরু করি →</button></div>`);
 
     if (step === 2) return paint(`${progressHtml()}
+      <div class="ob-scroll">
       <h1 class="ob-h">তুমি এখন কোন লক্ষ্যে এগোচ্ছো?</h1>
-      <div class="ob-list">${GOALS.map(g => `<button class="ob-card ${data.goal === g.id ? 'on' : ''}" data-goal="${g.id}" type="button"><span class="ic" style="background:${g.ic}">${ico(g.svg)}</span><span>${g.t}</span></button>`).join('')}</div>
+      <div class="ob-list">${GOALS.map(g => `<button class="ob-card ${data.goal === g.id ? 'on' : ''}" data-goal="${g.id}" type="button"><span class="ic" style="background:${g.ic}">${ico(g.svg)}</span><span>${g.t}</span><span class="ob-tick">✓</span></button>`).join('')}</div>
       <p class="ob-err" id="obErr"></p>
+      </div>
       <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
 
     if (step === 3) {
       const list = unis();
       return paint(`${progressHtml()}
+        <div class="ob-scroll">
         <h1 class="ob-h">কোন বিশ্ববিদ্যালয়ে তোমার লক্ষ্য?</h1>
         <div class="ob-search">${ico('book').replace('width="22"','width="18"')}<input id="obQ" placeholder="বিশ্ববিদ্যালয় খুঁজুন..." value="${esc(q)}"></div>
-        <div class="ob-uni">${list.slice(0, 8).map(u => `<button class="ob-chip ${data.targetUniversityIds.includes(u.id) ? 'on' : ''}" data-uni="${esc(u.id)}" type="button"><b>${esc(u.short || u.id)}</b><br>${esc(u.name)}</button>`).join('')}</div>
-        ${selectedUni() ? `<div class="ob-picked"><b>${esc(selectedUni().short)}</b><div><strong>${esc(selectedUni().name)}</strong><small>নির্বাচিত</small></div></div>` : ''}
+        <div class="ob-uni">${list.slice(0, 8).map(u => `<button class="ob-chip ${data.targetUniversityIds.includes(u.id) ? 'on' : ''}" data-uni="${esc(u.id)}" type="button">${uniLogo(u)}${esc(u.name)}<span class="ob-tick">✓</span></button>`).join('')}</div>
+        ${selectedUni() ? `<div class="ob-picked">${uniLogo(selectedUni())}<div><strong>${esc(selectedUni().name)}</strong><small>✓ নির্বাচিত</small></div></div>` : ''}
         <p class="ob-err" id="obErr"></p>
+        </div>
         <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
     }
 
@@ -200,44 +230,54 @@
       const u = selectedUni() || FALLBACK_UNI[0];
       const units = u.units || ['A', 'B', 'C', 'D'];
       return paint(`${progressHtml()}
+        <div class="ob-scroll">
+        <div class="ob-picked" style="margin-bottom:14px">${uniLogo(u)}<div><strong>${esc(u.name)}</strong><small>${esc(u.short || u.id)}</small></div></div>
         <h1 class="ob-h">কোন ইউনিটের জন্য প্রস্তুতি নিচ্ছো?</h1>
-        <p class="ob-p">${esc(u.name)}</p>
-        <div class="ob-grid">${units.map(x => `<button class="ob-chip ${data.targetUnits.includes(x) ? 'on' : ''}" data-unit="${x}" type="button">${x} ইউনিট</button>`).join('')}</div>
+        <p class="ob-p">এক বা একাধিক বেছে নাও</p>
+        <div class="ob-grid">${units.map(x => `<button class="ob-chip ${data.targetUnits.includes(x) ? 'on' : ''}" data-unit="${x}" type="button">${x} ইউনিট<span class="ob-tick">✓</span></button>`).join('')}</div>
         <p class="ob-err" id="obErr"></p>
+        </div>
         <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
     }
 
     if (step === 5) return paint(`${progressHtml()}
+      <div class="ob-scroll">
       <h1 class="ob-h">তোমার মূল লক্ষ্য কী?</h1>
-      <div class="ob-list">${AIMS.map(a => `<button class="ob-card ${data.studyGoal === a.id ? 'on' : ''}" data-aim="${a.id}" type="button"><span>${a.id === 'top' ? '🏆' : a.id === 'good' ? '📈' : a.id === 'fast' ? '⚡' : '🎯'}</span><span>${a.t}<small>${a.s}</small></span></button>`).join('')}</div>
+      <div class="ob-list">${AIMS.map(a => `<button class="ob-card ${data.studyGoal === a.id ? 'on' : ''}" data-aim="${a.id}" type="button"><span class="ic" style="background:rgba(255,255,255,.12)">${a.id === 'top' ? '🏆' : a.id === 'good' ? '📈' : a.id === 'fast' ? '⚡' : '🎯'}</span><span>${a.t}<br><small style="font-weight:500;color:var(--ob-sub);font-size:12px">${a.s}</small></span><span class="ob-tick">✓</span></button>`).join('')}</div>
       <p class="ob-err" id="obErr"></p>
+      </div>
       <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
 
     if (step === 6) {
       const v = Number(data.currentLevel || 50);
       return paint(`${progressHtml()}
+        <div class="ob-scroll">
         <h1 class="ob-h">তোমার বর্তমান প্রস্তুতি কেমন?</h1>
         <div class="ob-gauge">
           <svg class="ob-gauge-arc" viewBox="0 0 200 110">
-            <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#e5eee8" stroke-width="14" stroke-linecap="round"/>
-            <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#1e7a4c" stroke-width="14" stroke-linecap="round" stroke-dasharray="${Math.max(1, v * 2.5)} 260"/>
+            <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="14" stroke-linecap="round"/>
+            <path id="obGaugeVal" d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="url(#obGaugeGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${Math.max(1, v * 2.5)} 260" style="filter:drop-shadow(0 0 6px rgba(110,242,178,.6))"/>
+            <defs><linearGradient id="obGaugeGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#17d185"/><stop offset="1" stop-color="#ffd166"/></linearGradient></defs>
           </svg>
           <div class="ob-gval">${v}%</div>
           <div class="ob-glab">${esc(levelLabel(v))}</div>
           <input class="ob-range" id="obLvl" type="range" min="0" max="100" step="5" value="${v}">
         </div>
-        <p class="ob-p">কোন বিষয়গুলোতে বেশি মনোযোগ দরকার?</p>
-        <div class="ob-grid">${subjects().map(s => `<button class="ob-chip ${data.weakSubjects.includes(s) ? 'on' : ''}" data-sub="${esc(s)}" type="button">${esc(s)}</button>`).join('')}</div>
+        <p class="ob-p" style="margin-top:14px">কোন বিষয়গুলোতে বেশি মনোযোগ দরকার?</p>
+        <div class="ob-grid">${subjects().map(s => `<button class="ob-chip ${data.weakSubjects.includes(s) ? 'on' : ''}" data-sub="${esc(s)}" type="button">${esc(s)}<span class="ob-tick">✓</span></button>`).join('')}</div>
+        </div>
         <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
     }
 
     if (step === 7) return paint(`${progressHtml()}
+      <div class="ob-scroll">
       <h1 class="ob-h">প্রতিদিন কতক্ষণ পড়তে পারবে?</h1>
-      <div class="ob-grid">${[1,2,3,4,5].map(h => `<button class="ob-chip ${Number(data.dailyHours) === h ? 'on' : ''}" data-hr="${h}" type="button">${h === 5 ? '৫+ ঘণ্টা' : h + ' ঘণ্টা'}</button>`).join('')}</div>
+      <div class="ob-grid">${[1,2,3,4,5].map(h => `<button class="ob-chip ${Number(data.dailyHours) === h ? 'on' : ''}" data-hr="${h}" type="button">${h === 5 ? '৫+ ঘণ্টা' : h + ' ঘণ্টা'}<span class="ob-tick">✓</span></button>`).join('')}</div>
       <p class="ob-p" style="margin-top:18px">সপ্তাহে কয়দিন পড়তে পারবে?</p>
       <div class="ob-days">${[1,2,3,4,5,6,7].map(d => `<button type="button" data-day="${d}" class="${Number(data.weeklyDays) === d ? 'on' : ''}">${d}</button>`).join('')}</div>
       <p class="ob-p" style="margin-top:18px">পড়ার সময় (ঐচ্ছিক)</p>
-      <div class="ob-grid">${[['morning','সকাল'],['afternoon','দুপুর'],['evening','সন্ধ্যা'],['night','রাত'],['flexible','Flexible']].map(([id,t]) => `<button class="ob-chip ${data.preferredTime === id ? 'on' : ''}" data-time="${id}" type="button">${t}</button>`).join('')}</div>
+      <div class="ob-grid">${[['morning','সকাল'],['afternoon','দুপুর'],['evening','সন্ধ্যা'],['night','রাত'],['flexible','Flexible']].map(([id,t]) => `<button class="ob-chip ${data.preferredTime === id ? 'on' : ''}" data-time="${id}" type="button">${t}<span class="ob-tick">✓</span></button>`).join('')}</div>
+      </div>
       <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">এগিয়ে যান</button></div>`);
 
     if (step === 8) return paint(`${progressHtml()}
@@ -246,7 +286,7 @@
         <h1 class="ob-h">আর একটু…</h1>
         <p class="ob-p">তোমার জন্য সেরা প্রস্তুতির পথ তৈরি করা হচ্ছে।</p>
       </div>
-      <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">প্ল্যান তৈরি করুন</button></div>`);
+      <div class="ob-dock"><button class="ob-btn" type="button" id="obNext">প্ল্যান তৈরি করুন →</button></div>`);
 
     if (step === 9) return paint(`${progressHtml()}
       <h1 class="ob-h">তোমার জন্য পার্সোনাল প্ল্যান তৈরি হচ্ছে…</h1>
@@ -263,16 +303,18 @@
     const plan = data.plan || {};
     const uni = (data.targetUniversities || [])[0] || 'লক্ষ্য নির্ধারিত';
     const unit = (data.targetUnits || []).map(x => x + ' ইউনিট').join(', ');
+    const uRec = selectedUni();
     const hour = new Date().getHours();
     const greet = hour < 12 ? 'সুপ্রভাত' : hour < 17 ? 'শুভ অপরাহ্ন' : hour < 20 ? 'শুভ সন্ধ্যা' : 'শুভ রাত্রি';
     return paint(`<div class="ob-center">
+      <div class="ob-burst"><div class="ring"></div><div class="core">🎓</div></div>
       <p class="ob-kicker">ADMISSION HUB</p>
-      <h1 class="ob-h">${greet}, ${esc(userName().split(' ')[0])} </h1>
-      <p class="ob-p">তোমার প্রস্তুতি শুরু হোক এখনই।</p>
-      <div class="ob-ready"><h3>তোমার লক্ষ্য</h3><p>${esc(uni)}${unit ? ' — ' + esc(unit) : ''}</p></div>
-      <div class="ob-ready"><h3>আজকের ফোকাস</h3><p>${esc((plan.focus || data.weakSubjects || []).slice(0, 3).join(' · ') || 'মূল বিষয়সমূহ')}</p>
-        <p>প্রতিদিন ${esc(plan.dailyQuestions || 30)}টি প্রশ্ন · ${esc(plan.dailyMinutes || (data.dailyHours * 60) || 120)} মিনিট</p></div>
-      <div class="ob-ready"><h3>সাপ্তাহিক অগ্রগতি</h3><div class="ob-meter"><i style="width:${Math.max(8, Number(data.currentLevel || 0))}%"></i></div></div>
+      <h1 class="ob-h">${greet}, ${esc(userName().split(' ')[0])} 👋</h1>
+      <p class="ob-p">তোমার পার্সোনাল প্রিপারেশন প্ল্যান তৈরি!</p>
+      <div class="ob-ready ob-target">${uRec ? uniLogo(uRec) : '<div class="ob-burst" style="width:44px;height:44px;margin:0"><div class="core" style="width:44px;height:44px;font-size:18px">🎯</div></div>'}<div><h3>তোমার লক্ষ্য</h3><p>${esc(uni)}${unit ? ' — ' + esc(unit) : ''}</p></div></div>
+      <div class="ob-ready"><h3>🎯 আজকের ফোকাস</h3><p>${esc((plan.focus || data.weakSubjects || []).slice(0, 3).join(' · ') || 'মূল বিষয়সমূহ')}</p>
+        <p><small>প্রতিদিন ${esc(plan.dailyQuestions || 30)}টি প্রশ্ন · ${esc(plan.dailyMinutes || (data.dailyHours * 60) || 120)} মিনিট</small></p></div>
+      <div class="ob-ready"><h3>🔥 প্রস্তুতি অবস্থা</h3><div class="ob-meter"><i style="width:${Math.max(8, Number(data.currentLevel || 0))}%"></i></div><p><small>${esc(levelLabel(Number(data.currentLevel || 0)))} · ${esc(plan.weeklyDays || data.weeklyDays || 5)} দিন/সপ্তাহ</small></p></div>
       <div class="ob-dock"><button class="ob-btn" type="button" id="obGo">আমার প্রস্তুতি শুরু করি →</button></div>
     </div>`);
   }
@@ -297,11 +339,12 @@
 
   async function runPlan() {
     const rows = [...document.querySelectorAll('#obStages li')];
+    const tick = 120;
     for (let i = 0; i < rows.length; i++) {
       rows.forEach(el => el.classList.remove('now'));
       rows[i].classList.add('now');
       if (i) rows[i - 1].classList.add('ok');
-      await new Promise(r => setTimeout(r, 280));
+      await new Promise(r => setTimeout(r, i === rows.length - 1 ? tick * 2 : tick));
     }
     rows.forEach(el => el.classList.add('ok'));
     data.completed = true;
@@ -350,7 +393,12 @@
     gate()?.querySelectorAll('[data-day]').forEach(el => el.onclick = () => { data.weeklyDays = Number(el.getAttribute('data-day')); render(); });
     gate()?.querySelectorAll('[data-time]').forEach(el => el.onclick = () => { data.preferredTime = el.getAttribute('data-time'); render(); });
     const rng = document.getElementById('obLvl');
-    if (rng) rng.oninput = () => { data.currentLevel = Number(rng.value); const v = document.querySelector('.ob-gval'); if (v) v.textContent = rng.value + '%'; const l = document.querySelector('.ob-glab'); if (l) l.textContent = levelLabel(Number(rng.value)); };
+    if (rng) rng.oninput = () => {
+      data.currentLevel = Number(rng.value);
+      const v = document.querySelector('.ob-gval'); if (v) v.textContent = rng.value + '%';
+      const l = document.querySelector('.ob-glab'); if (l) l.textContent = levelLabel(Number(rng.value));
+      const arc = document.getElementById('obGaugeVal'); if (arc) arc.setAttribute('stroke-dasharray', Math.max(1, Number(rng.value) * 2.5) + ' 260');
+    };
     const sq = document.getElementById('obQ');
     if (sq) sq.oninput = () => { q = sq.value; render(); const again = document.getElementById('obQ'); if (again) { again.focus(); again.value = q; again.setSelectionRange(q.length, q.length); } };
   }

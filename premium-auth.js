@@ -317,6 +317,48 @@
 
   function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
+  // অন্য ব্রাউজারে যাচাই করা হলে এই স্ক্রিন
+  const crossBrowser = () => paint(`<section class="ah-screen ah-light ah-center">
+    <p class="ah-kicker">ADMISSION HUB</p>
+    <div style="font-size:46px;margin:6px 0 10px">✅</div>
+    <h1 class="ah-h">${lang==='bn'?'ইমেইল যাচাই সম্পন্ন!':'Email verified!'}</h1>
+    <p class="ah-p">${lang==='bn'
+      ? 'যে ডিভাইস/ব্রাউজারে অ্যাকাউন্ট খুলেছিলে, সেখানে ফিরে গেলেই স্বয়ংক্রিয়ভাবে প্রবেশ হয়ে যাবে।'
+      : 'Return to the browser where you opened the account — it will sign you in automatically.'}</p>
+    <div class="ah-dock">
+      <button class="ah-btn" type="button" id="ahCrossLogin">${lang==='bn'?'এখানে লগইন করো':'Login here'}</button>
+    </div>
+    ${errBox('ahErr')}
+  </section>`);
+
+  // Verify-লিংক থেকে ফেরত: same-browser চেক
+  async function handleVerifyReturn() {
+    let p = null;
+    try { p = new URLSearchParams(location.search); } catch (_) { return; }
+    const w = p.get('w') || '';
+    const v = p.get('verified');
+    if (!v || !w) return;
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (_) {}
+    const same = (() => { try { return localStorage.getItem('ahWaitId') === w; } catch (_) { return false; } })();
+    if (same) {
+      // একই ব্রাউজার → কোনো বার্তা নয়; সরাসরি অটো-প্রবেশ
+      view = 'verifying';
+      paint(`<section class="ah-screen ah-light ah-center">
+        <p class="ah-kicker">ADMISSION HUB</p>
+        <div class="ah-spinbox"><i class="ah-spin"></i></div>
+        <h1 class="ah-h">${lang==='bn'?'যাচাই সম্পন্ন — প্রবেশ করা হচ্ছে…':'Verified — signing you in…'}</h1>
+      </section>`);
+      try {
+        const d = await api('/auth/wait', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ waitId: w }) });
+        if (d && d.token) { await afterAuth(d); return; }
+      } catch (_) {}
+      go('ok');
+      return;
+    }
+    // ভিন্ন ব্রাউজার → শুধু তখনই বার্তা
+    go('crossbrowser');
+  }
+
   function go(name) {
     typeGen += 1;
     waitPoll += 1;
@@ -330,6 +372,7 @@
     if (name === 'otp') return otpScreen();
     if (name === 'forgot') return forgot();
     if (name === 'reset') return reset();
+    if (name === 'crossbrowser') return crossBrowser();
     if (name === 'ok') return success(lang==='bn' ? 'অ্যাকাউন্ট সক্রিয় হয়েছে' : 'Account verified', lang==='bn' ? 'যাচাইকরণ সম্পন্ন হয়েছে।' : 'Verification is complete.', t('goDash'));
     if (name === 'resetOk') return success(t('resetOkTitle'), t('resetOkSub'), t('login'));
   }
@@ -375,6 +418,8 @@
     });
     const enter = document.getElementById('ahEnter');
     if (enter) enter.onclick = () => { if (view === 'resetOk') go('login'); else enterApp(); };
+    const crossL = document.getElementById('ahCrossLogin');
+    if (crossL) crossL.onclick = () => go('login');
     const resend = document.getElementById('ahResend');
     if (resend) resend.onclick = resendOtp;
     const rl = document.getElementById('ahResendLink');
@@ -616,6 +661,9 @@
         password: draft.password, confirm: draft.confirm,
         until: Date.now() + 15 * 60 * 1000
       }));
+      // Same-browser marker: persists across tabs so the verify link can detect
+      // "same browser" and skip the return-to-device message.
+      if (draft.waitId) localStorage.setItem('ahWaitId', draft.waitId);
     } catch (_) {}
   }
   function readWait() {
@@ -1126,6 +1174,7 @@
   document.addEventListener('ah-get-started', () => { setGate(true); go('signup'); });
   window.AHAuth = { isAuthed: authed, user, token, logout, pushState, pullState, openLogin: () => { setGate(true); go('login'); }, renderProfile, renderEdit };
   window.AdmissionAccount = window.AHAuth;
+  handleVerifyReturn();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(boot, 20));
   else setTimeout(boot, 20);
 })();
