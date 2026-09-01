@@ -220,46 +220,73 @@ async function fullUser(env, rec) {
 }
 async function sendOtpMessage(env, destId, code) {
   const text = 'Admission Hub verification code: ' + code + ' (valid 5 minutes). Do not share.';
+  const html = '<div style="font-family:sans-serif;padding:16px"><p>Admission Hub</p><p style="font-size:28px;letter-spacing:6px;font-weight:800">' + code + '</p><p>Valid 5 minutes. Do not share this code.</p></div>';
+  const subject = 'Your Admission Hub code: ' + code;
   if (destId.startsWith('em:')) {
-    if (!env.RESEND_KEY || !env.MAIL_FROM) return { ok: false, error: 'ইমেইল সার্ভিস এখন সেটআপ নেই' };
+    const to = destId.slice(3);
+    if (env.MAIL_HOOK) {
+      const r = await fetch(env.MAIL_HOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret: env.MAIL_HOOK_SECRET || '', to, subject, text, html })
+      });
+      if (r.ok) return { ok: true, channel: 'email' };
+    }
+    if (env.BREVO_KEY) {
+      const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { accept: 'application/json', 'content-type': 'application/json', 'api-key': env.BREVO_KEY },
+        body: JSON.stringify({
+          sender: { name: 'Admission Hub', email: env.BREVO_FROM || env.MAIL_FROM || 'mahmudrashel1034@gmail.com' },
+          to: [{ email: to }],
+          subject,
+          textContent: text,
+          htmlContent: html
+        })
+      });
+      if (r.ok) return { ok: true, channel: 'email' };
+    }
     const from = env.MAIL_FROM || 'Admission Hub <onboarding@resend.dev>';
     const keys = [env.RESEND_KEY, env.RESEND_KEY_2].filter(Boolean);
-    if (!keys.length) return { ok: false, error: 'ইমেইল সার্ভিস এখন সেটআপ নেই' };
     let last = 'ইমেইল পাঠানো যায়নি';
     for (const key of keys) {
       const r = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
-        body: JSON.stringify({
-          from,
-          to: [destId.slice(3)],
-          subject: 'Your Admission Hub code: ' + code,
-          text,
-          html: '<div style="font-family:sans-serif;padding:16px"><p>Admission Hub</p><p style="font-size:28px;letter-spacing:6px;font-weight:800">' + code + '</p><p>Valid 5 minutes. Do not share this code.</p></div>'
-        })
+        body: JSON.stringify({ from, to: [to], subject, text, html })
       });
       if (r.ok) return { ok: true, channel: 'email' };
       const err = await r.json().catch(() => ({}));
       last = String(err.message || err.error || last).slice(0, 180);
     }
     if (/only send testing emails|own email/i.test(last)) {
-      return { ok: false, error: 'এখন শুধু Resend অ্যাকাউন্টের নিজের Gmail-এ OTP যায়। অন্য ইমেইলে পাঠাতে Resend-এ ডোমেইন ভেরিফাই করতে হবে।' };
+      return { ok: false, error: 'এখন শুধু অ্যাকাউন্টের নিজের Gmail-এ OTP যায়। যেকেউ পেতে MAIL_HOOK বা BREVO_KEY লাগবে।' };
     }
     return { ok: false, error: last };
   }
   if (destId.startsWith('ph:')) {
     let num = destId.slice(3).replace(/\D/g, '');
-    if (num.startsWith('0')) num = '88' + num;
-    if (num.length === 11 && num.startsWith('1')) num = '88' + num;
-    const to = '+' + num;
+    if (num.startsWith('88')) num = num.slice(2);
+    if (num.startsWith('0')) num = num.slice(1);
+    const local = '0' + num;
+    const intl = '88' + num;
+    if (env.GREENWEB_TOKEN) {
+      const r = await fetch('https://api.greenweb.com.bd/api.php?token=' + encodeURIComponent(env.GREENWEB_TOKEN) + '&to=' + encodeURIComponent(local) + '&message=' + encodeURIComponent(text));
+      const body = await r.text().catch(() => '');
+      if (r.ok && /ok|success|sent/i.test(body)) return { ok: true, channel: 'sms' };
+    }
+    if (env.BULKSMS_API_KEY) {
+      const r = await fetch('https://bulksmsbd.net/api/smsapi?api_key=' + encodeURIComponent(env.BULKSMS_API_KEY) + '&type=text&number=' + encodeURIComponent(intl) + '&senderid=' + encodeURIComponent(env.SMS_FROM || '8809601000000') + '&message=' + encodeURIComponent(text));
+      if (r.ok) return { ok: true, channel: 'sms' };
+    }
+    const to = '+' + intl;
     if (env.TWILIO_SID && env.TWILIO_TOKEN && env.TWILIO_FROM) {
       const r = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + env.TWILIO_SID + '/Messages.json', {
         method: 'POST',
         headers: { Authorization: 'Basic ' + btoa(env.TWILIO_SID + ':' + env.TWILIO_TOKEN), 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ To: to, From: env.TWILIO_FROM, Body: text })
       });
-      if (!r.ok) return { ok: false, error: 'SMS পাঠানো যায়নি' };
-      return { ok: true, channel: 'sms' };
+      if (r.ok) return { ok: true, channel: 'sms' };
     }
     if (env.SMS_API_URL && env.SMS_API_KEY) {
       const r = await fetch(env.SMS_API_URL, {
@@ -267,10 +294,9 @@ async function sendOtpMessage(env, destId, code) {
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + env.SMS_API_KEY },
         body: JSON.stringify({ to, text, from: env.SMS_FROM || 'AdmissionHub' })
       });
-      if (!r.ok) return { ok: false, error: 'SMS পাঠানো যায়নি' };
-      return { ok: true, channel: 'sms' };
+      if (r.ok) return { ok: true, channel: 'sms' };
     }
-    return { ok: false, error: 'SMS সার্ভিস এখন সেটআপ নেই — ইমেইল দিয়ে সাইন আপ করো' };
+    return { ok: false, error: 'মোবাইল OTP-এর জন্য SMS API লাগবে — আপাতত Gmail দিয়ে সাইন আপ করো' };
   }
   return { ok: false, error: 'সঠিক ইমেইল বা মোবাইল লেখো' };
 }
