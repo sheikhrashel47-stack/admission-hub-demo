@@ -1,4 +1,4 @@
-# AGENT_RESUME — Admission Hub
+# AGENT_RESUME — Admission Hub (public)
 
 Read this first. Continue; do not redesign Phase 1.
 
@@ -6,42 +6,38 @@ Read this first. Continue; do not redesign Phase 1.
 **Date:** 2026-09-01
 
 ## Status
-- Phase 1 Exact Clone — APPROVED (do not change dashboard/bank/exam/history/progress/vocab UI)
+- Phase 1 Exact Clone — frozen
 - Phase 2 Central cloud content — live
-- Phase 3 **rebuilt** as real auth gate + profile (previous modal login was rejected)
-- STOP until user says **PHASE 3 APPROVED**
-- Phase 4+ not started
+- Phase 3 auth **in progress, waiting PHASE 3 APPROVED**
+- Do **not** start Phase 4 until the user says `PHASE 3 APPROVED`
 
 ## Live
 - Control: https://sheikhrashel47-stack.github.io/admission-hub/
 - Public: https://sheikhrashel47-stack.github.io/admission-hub-demo/
-- Worker: `admission-gk` + `ah-public` (`public-worker.js`)
-- KV PUB_KV `942828aa82e546d4af11796ef92ab134`
+- Worker: `admission-gk` + `ah-public` (`/pub`)
+- Demo git: latest `p3-auth-ui-v9` / SW `v143-auth3d-ref-20260901`
 
-## Phase 3 (this update)
-Public app **cannot** show dashboard/bank/exam until a real session token exists.
+## Phase 3 — locked visual contract
+User attached reference collage is the **only** design source of truth (5 phones: welcome, login, signup, OTP, success). Screen 6 dashboard is forbidden.
 
-- Dedicated full-screen auth (welcome / login / signup / OTP / success) matching the emerald 3D mockup (`premium-auth.js` + `premium-auth.css` + `auth-art/*.jpg`)
-- OTP: generated + hashed on worker, sent via Resend (email) or Twilio/SMS_API (mobile). **Never** returned to the client.
-- Register stays `pending:` until OTP verify.
-- Google: GIS + `/pub/auth/google` if `GOOGLE_CLIENT_ID` worker secret is set
-- Forgot/reset password, change password, delete account
-- Profile route `#profile` + header avatar on dashboard (Phase 1 dashboard layout unchanged)
-- Personal cloud still `ustate:{userId}` isolated
-- `/pub/content` now requires Bearer token
+**Current implementation (this turn):**
+- Recreate screens 1–5 with **CSS 3D + SVG + procedural shapes** (`auth-svg.js` + `premium-auth.css` + `premium-auth.js`)
+- **No** stock/Unsplash/Pexels images, **no** cropped mockup JPG as the UI, **no** generated hero JPEG
+- Real Google / email OTP still wired to `/pub`
+- Bottom nav public: Home · Bank · Exam · History · Profile (no floating M)
+- Get Started is a real button
 
-## Worker secrets still needed for full production
-Set on `admission-gk` and `ah-public` (secret_text):
-- `RESEND_KEY` + `MAIL_FROM` — real email OTP
-- `TWILIO_SID` + `TWILIO_TOKEN` + `TWILIO_FROM` **or** `SMS_API_URL` + `SMS_API_KEY` — real SMS OTP
-- `GOOGLE_CLIENT_ID` — real Google login (authorized JS origin = GitHub Pages URL)
-- `ADMIN_TOKEN` — control user list
+**Rejected earlier (do not revive):**
+- CSS-3D that did not match (`1e3a437`)
+- Generated `auth-art/*.jpg` heroes (`3c8eb3c` / `2a25b74`)
+- Amateur coded SVG (`6a398c8`)
+- Mockup-crop overlay (`a3339b9` / `auth-screens/*.jpg`) — user then ordered live 3D recreation of the same 5 screens, not a PNG collage
 
-RESEND_KEY + MAIL_FROM + GOOGLE_CLIENT_ID are set on workers (2026-09-01). SMS still unset. No fake codes.
+## Auth backend
+- OTP hashed on worker, emailed via Resend (`RESEND_KEY` then `RESEND_KEY_2`, `MAIL_FROM`)
+- Resend test-mode delivers only to owner Gmail until a domain is verified
+- Passwords never plaintext; OTP never in frontend
+- Session dual localStorage + sessionStorage
 
-## Files
-Public: `premium-auth.js`, `premium-auth.css`, `auth-art/`, `public-worker.js`, `cloud-content-sync.js`, `index.html`, `sw.js` (`v135-p3-realauth-20260901`)
-Control: `public-worker.js`, `public-users-admin.js`, `AGENT_RESUME.md`
-
-## Do not
-AI backend, domain, SEO, monetization, launch, Phase 1 redesign, demo OTP.
+## STOP
+Wait for user approval of these 5 screens. No Phase 4.

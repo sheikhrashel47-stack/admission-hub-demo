@@ -90,70 +90,102 @@
     el.innerHTML = html;
     bind();
   };
-  const errBox = id => `<div class="ah-errf" id="${id}" style="top:68%"></div>`;
-  const showErr = (id, m) => { const n = document.getElementById(id); if (n) n.textContent = m || ''; };
-  const clone = (name, layer) => `<section class="ah-clone"><img class="ah-bg" src="./auth-screens/${name}.jpg" alt=""><div class="ah-layer">${layer}</div></section>`;
+  const errBox = id => `<div class="ah-err" id="${id}"></div>`;
+  const S = () => window.AHAuth3D || {};
+  const ico = k => (S().ico && S().ico[k]) || '';
+  const passRow = (id, ph, auto) => `<div class="ah-field"><input class="ah-inp" id="${id}" type="password" placeholder="${ph}" autocomplete="${auto||'current-password'}"><button class="ah-eye" type="button" data-eye="${id}" aria-label="Show password">${ico('eye')}</button></div>`;
 
-  const welcome = () => paint(clone('welcome', `
-    <button class="ah-hit" type="button" data-go="login" aria-label="Get Started" style="left:8%;width:84%;top:82%;height:8%"></button>
-  `));
+  const welcome = () => paint(`<section class="ah-screen ah-welcome">
+    ${S().welcomeScene ? S().welcomeScene() : ''}
+    <div class="ah-brand"><h1>ADMISSION HUB</h1><p>Learn Smart, Achieve More</p></div>
+    <button class="ah-getstarted" type="button" data-go="login"><span>Get Started</span><i>→</i></button>
+  </section>`);
 
   const login = (tab) => {
     tab = tab || 'pass';
-    paint(clone('login', `
-      <button class="ah-hit" type="button" data-go="welcome" aria-label="Back" style="left:3%;top:1.8%;width:12%;height:6%"></button>
-      <button class="ah-hit" type="button" data-go="login" aria-label="Login tab" style="left:8%;top:40.5%;width:22%;height:5%"></button>
-      <button class="ah-hit" type="button" data-go="loginOtp" aria-label="OTP tab" style="left:30%;top:40.5%;width:40%;height:5%"></button>
-      <input class="ah-in" id="ahId" placeholder="" value="${esc(draft.id)}" style="left:8%;width:84%;top:47.5%;height:7%" autocomplete="username">
-      ${tab==='pass' ? `<input class="ah-in" id="ahPass" type="password" placeholder="" style="left:8%;width:84%;top:56%;height:7%" autocomplete="current-password">
-      <button class="ah-hit" type="button" data-go="forgot" aria-label="Forgot Password" style="left:50%;width:42%;top:64%;height:4.5%"></button>
-      <button class="ah-hit" type="button" id="ahDoLogin" aria-label="Login" style="left:8%;width:84%;top:69.5%;height:8%"></button>` : `<button class="ah-hit" type="button" id="ahDoLoginOtp" aria-label="Send OTP" style="left:8%;width:84%;top:69.5%;height:8%"></button>`}
-      <div id="ahGoogleSlot" style="position:absolute;left:8%;width:84%;top:83%;height:7%"><button class="ah-hit" type="button" id="ahGoogle" aria-label="Google" style="inset:0;width:100%;height:100%"></button></div>
-      <button class="ah-hit" type="button" data-go="signup" aria-label="Sign Up" style="left:8%;width:84%;top:92%;height:5.5%"></button>
-      ${errBox('ahErr')}
-    `));
+    paint(`<section class="ah-screen ah-light">
+      <button class="ah-back" type="button" data-go="welcome" aria-label="Back">${ico('back')}</button>
+      <div class="ah-hero-slot">${S().loginHero ? S().loginHero() : ''}</div>
+      <h1 class="ah-h">Welcome Back,<br><em>Scholar!</em> 👋</h1>
+      <p class="ah-p">Login to continue your learning journey</p>
+      <div class="ah-form">
+        <div class="ah-tabs">
+          <button type="button" class="${tab==='pass'?'on':''}" data-go="login">Login</button>
+          <button type="button" class="${tab==='otp'?'on':''}" data-go="loginOtp">Login with OTP</button>
+        </div>
+        <label class="ah-lab">Email or Mobile Number</label>
+        <input class="ah-inp" id="ahId" placeholder="Email or Mobile Number" value="${esc(draft.id)}" autocomplete="username">
+        ${tab==='pass' ? `<label class="ah-lab">Password</label>${passRow('ahPass','Password','current-password')}
+        <button class="ah-forgot" type="button" data-go="forgot">Forgot Password?</button>
+        <button class="ah-btn" type="button" id="ahDoLogin">Login</button>` : `<button class="ah-btn" type="button" id="ahDoLoginOtp">Send OTP</button>`}
+        <div class="ah-or">or continue with</div>
+        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} Continue with Google</button></div>
+        ${errBox('ahErr')}
+        <div class="ah-foot">Don't have an account? <button type="button" data-go="signup">Sign Up</button></div>
+      </div>
+    </section>`);
     mountGoogle();
   };
 
-  const signup = () => paint(clone('signup', `
-    <button class="ah-hit" type="button" data-go="login" aria-label="Back" style="left:3%;top:1.8%;width:12%;height:6%"></button>
-    <input class="ah-in" id="ahName" placeholder="" value="${esc(draft.name)}" style="left:8%;width:84%;top:46%;height:6.2%" autocomplete="name">
-    <input class="ah-in" id="ahId" placeholder="" value="${esc(draft.id)}" style="left:8%;width:84%;top:56.5%;height:6.2%" autocomplete="username">
-    <input class="ah-in" id="ahPass" type="password" placeholder="" style="left:8%;width:84%;top:66.8%;height:6.2%" autocomplete="new-password">
-    <input class="ah-in" id="ahPass2" type="password" placeholder="" style="left:8%;width:84%;top:77%;height:6.2%" autocomplete="new-password">
-    <label style="position:absolute;left:8%;top:84%;width:84%;height:5%;opacity:0"><input id="ahTerms" type="checkbox" checked></label>
-    <button class="ah-hit" type="button" id="ahDoSignup" aria-label="Sign Up" style="left:8%;width:84%;top:89%;height:7%"></button>
-    <button class="ah-hit" type="button" data-go="login" aria-label="Login" style="left:8%;width:84%;top:96%;height:3.8%"></button>
-    ${errBox('ahErr')}
-  `));
+  const signup = () => paint(`<section class="ah-screen ah-light">
+    <button class="ah-back" type="button" data-go="login" aria-label="Back">${ico('back')}</button>
+    <div class="ah-hero-slot">${S().signupHero ? S().signupHero() : ''}</div>
+    <h1 class="ah-h">Create Your Account</h1>
+    <p class="ah-p">Join thousands of learners on Admission Hub</p>
+    <div class="ah-form">
+      <label class="ah-lab">Full Name</label>
+      <input class="ah-inp" id="ahName" placeholder="Full Name" value="${esc(draft.name)}" autocomplete="name">
+      <label class="ah-lab">Email or Mobile Number</label>
+      <input class="ah-inp" id="ahId" placeholder="Email or Mobile Number" value="${esc(draft.id)}" autocomplete="username">
+      <label class="ah-lab">Password</label>${passRow('ahPass','Password','new-password')}
+      <label class="ah-lab">Confirm Password</label>${passRow('ahPass2','Confirm Password','new-password')}
+      <label class="ah-check"><input id="ahTerms" type="checkbox" checked> I agree to the Terms &amp; Conditions and Privacy Policy</label>
+      <button class="ah-btn" type="button" id="ahDoSignup">Sign Up</button>
+      ${errBox('ahErr')}
+      <div class="ah-foot">Already have an account? <button type="button" data-go="login">Login</button></div>
+    </div>
+  </section>`);
 
-  const otpScreen = () => paint(clone('otp', `
-    <button class="ah-hit" type="button" data-go="${draft.purpose==='reset'?'forgot':(draft.purpose==='signup'?'signup':'login')}" aria-label="Back" style="left:3%;top:1.8%;width:12%;height:6%"></button>
-    <div class="ah-otpbox" id="ahOtp" style="top:57%">${[0,1,2,3,4,5].map(i=>`<input maxlength="1" inputmode="numeric" data-otp="${i}" autocomplete="${i?'off':'one-time-code'}">`).join('')}</div>
-    <button class="ah-hit" type="button" id="ahDoVerify" aria-label="Verify" style="left:8%;width:84%;top:73.5%;height:7.5%"></button>
-    <button class="ah-hit" type="button" id="ahResend" aria-label="Resend" style="left:20%;width:60%;top:83%;height:4.5%"></button>
-    <button class="ah-hit" type="button" data-go="${draft.purpose==='signup'?'signup':'login'}" aria-label="Change Email" style="left:8%;width:84%;top:91%;height:5%"></button>
+  const otpScreen = () => paint(`<section class="ah-screen ah-light ah-center">
+    <button class="ah-back" type="button" data-go="${draft.purpose==='reset'?'forgot':(draft.purpose==='signup'?'signup':'login')}" aria-label="Back">${ico('back')}</button>
+    <div class="ah-hero-slot">${S().otpHero ? S().otpHero() : ''}</div>
+    <h1 class="ah-h">Verify Your Number</h1>
+    <p class="ah-p">We sent a 6-digit code to<br><b>${esc(draft.masked || draft.id)}</b></p>
+    <button class="ah-change" type="button" data-go="${draft.purpose==='signup'?'signup':'login'}">Change Number</button>
+    <div class="ah-otp" id="ahOtp">${[0,1,2,3,4,5].map(i=>`<input maxlength="1" inputmode="numeric" data-otp="${i}" autocomplete="${i?'off':'one-time-code'}">`).join('')}</div>
+    <div class="ah-resend" id="ahOtpWait">Resend code in 00:<span id="ahSec">${esc(String(draft.wait||45))}</span></div>
+    <button class="ah-resend ah-link" type="button" id="ahResend">Resend code</button>
+    <button class="ah-btn" type="button" id="ahDoVerify">Verify &amp; Continue</button>
     ${errBox('ahErr')}
-  `));
+  </section>`);
 
-  const success = (title, sub, goTxt) => paint(clone('success', `
-    <button class="ah-hit" type="button" id="ahEnter" aria-label="${goTxt}" style="left:8%;width:84%;top:80.5%;height:8%"></button>
-  `));
+  const success = (title, sub, goTxt) => paint(`<section class="ah-screen ah-light ah-center ah-ok">
+    <div class="ah-hero-slot">${S().successHero ? S().successHero() : ''}</div>
+    <h1 class="ah-h">${title}</h1>
+    <p class="ah-p">${sub}</p>
+    <button class="ah-btn" type="button" id="ahEnter">${goTxt}</button>
+  </section>`);
 
-  const forgot = () => paint(clone('login', `
-    <button class="ah-hit" type="button" data-go="login" aria-label="Back" style="left:3%;top:1.8%;width:12%;height:6%"></button>
-    <input class="ah-in" id="ahId" placeholder="" value="${esc(draft.id)}" style="left:8%;width:84%;top:47.5%;height:7%">
-    <button class="ah-hit" type="button" id="ahDoForgot" aria-label="Send Code" style="left:8%;width:84%;top:69.5%;height:8%"></button>
+  const forgot = () => paint(`<section class="ah-screen ah-light">
+    <button class="ah-back" type="button" data-go="login" aria-label="Back">${ico('back')}</button>
+    <div class="ah-hero-slot">${S().loginHero ? S().loginHero() : ''}</div>
+    <h1 class="ah-h">Forgot Password</h1>
+    <p class="ah-p">Enter your email or mobile to receive a code</p>
+    <label class="ah-lab">Email or Mobile Number</label>
+    <input class="ah-inp" id="ahId" placeholder="Email or Mobile Number" value="${esc(draft.id)}">
+    <button class="ah-btn" type="button" id="ahDoForgot">Send Code</button>
     ${errBox('ahErr')}
-  `));
+  </section>`);
 
-  const reset = () => paint(clone('login', `
-    <button class="ah-hit" type="button" data-go="forgot" aria-label="Back" style="left:3%;top:1.8%;width:12%;height:6%"></button>
-    <input class="ah-in" id="ahPass" type="password" placeholder="" style="left:8%;width:84%;top:47.5%;height:7%">
-    <input class="ah-in" id="ahPass2" type="password" placeholder="" style="left:8%;width:84%;top:56%;height:7%">
-    <button class="ah-hit" type="button" id="ahDoReset" aria-label="Update" style="left:8%;width:84%;top:69.5%;height:8%"></button>
+  const reset = () => paint(`<section class="ah-screen ah-light">
+    <button class="ah-back" type="button" data-go="forgot" aria-label="Back">${ico('back')}</button>
+    <h1 class="ah-h">New Password</h1>
+    <p class="ah-p">Choose a new password for your account</p>
+    <label class="ah-lab">Password</label>${passRow('ahPass','Password','new-password')}
+    <label class="ah-lab">Confirm Password</label>${passRow('ahPass2','Confirm Password','new-password')}
+    <button class="ah-btn" type="button" id="ahDoReset">Update</button>
     ${errBox('ahErr')}
-  `));
+  </section>`);
 
   function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -166,7 +198,7 @@
     if (name === 'otp') return otpScreen();
     if (name === 'forgot') return forgot();
     if (name === 'reset') return reset();
-    if (name === 'ok') return success('Email Verified!', 'Your account has been successfully verified. You can now access all features of Admission Hub.', 'Continue to Login');
+    if (name === 'ok') return success('Welcome Aboard! 🎉', 'Your account has been verified successfully.', 'Go to Dashboard');
     if (name === 'resetOk') return success('All Set! 🎉', 'Your password has been updated successfully.', 'Login');
   }
 
@@ -202,6 +234,20 @@
     if (resend) resend.onclick = resendOtp;
     setupOtpInputs();
     startOtpCountdown();
+    bindTilt();
+  }
+  function bindTilt() {
+    const sc = document.querySelector('#ahAuthGate [data-tilt]');
+    if (!sc || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const parent = sc.closest('.ah-scene, .ah-hero-slot') || sc;
+    const apply = (x, y) => {
+      const r = parent.getBoundingClientRect();
+      const px = (x - r.left) / Math.max(1, r.width) - 0.5;
+      const py = (y - r.top) / Math.max(1, r.height) - 0.5;
+      sc.style.transform = `rotateX(${(-py * 10).toFixed(2)}deg) rotateY(${(px * 12).toFixed(2)}deg)`;
+    };
+    parent.addEventListener('pointermove', e => apply(e.clientX, e.clientY));
+    parent.addEventListener('pointerleave', () => { sc.style.transform = ''; });
   }
 
   function setupOtpInputs() {
@@ -521,6 +567,10 @@
         await logout();
       } catch (e) { toast(e.message); }
     });
+  }
+
+  function passField(id, ph) {
+    return `<div class="ah-field"><input class="ah-inp" id="${id}" type="password" placeholder="${ph}"><button class="ah-eye" type="button" data-eye="${id}" aria-label="Show password">👁</button></div>`;
   }
 
   function openPhotoSheet() {
