@@ -648,50 +648,56 @@
     }
   }
 
+  function googleBody(extra) {
+    return JSON.stringify(Object.assign({ name: draft.name, dob: draft.dob, school: draft.school, college: draft.college }, extra));
+  }
+  async function finishGoogle(extra) {
+    const data = await api('/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: googleBody(extra) });
+    await afterAuth(data);
+  }
   function mountGoogle() {
-    if (!cfg.googleClientId) return;
-    loadGis().then(() => {
-      if (!window.google || !google.accounts || !google.accounts.id) return;
-      try {
-        google.accounts.id.initialize({
-          client_id: cfg.googleClientId,
-          callback: async (resp) => {
-            try {
-              const data = await api('/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: resp.credential, name: draft.name, dob: draft.dob, school: draft.school, college: draft.college }) });
-              await afterAuth(data);
-            } catch (e) { showErr('ahErr', e.message); }
-          },
-          ux_mode: 'popup'
-        });
-      } catch (_) {}
-    }).catch(() => {});
+    if (cfg.googleClientId) loadGis().catch(() => {});
   }
   function loadGis() {
     return new Promise((resolve, reject) => {
-      if (window.google && google.accounts) return resolve();
+      if (window.google && google.accounts && google.accounts.oauth2) return resolve();
       const s = document.createElement('script');
       s.src = 'https://accounts.google.com/gsi/client';
       s.async = true;
       s.onload = () => resolve();
-      s.onerror = reject;
+      s.onerror = () => reject(new Error('Google লোড হয়নি'));
       document.head.appendChild(s);
     });
   }
-  async function doGoogle() {
-    if (!cfg.googleClientId) return showErr('ahErr', 'Google লগইন এখন সেটআপ নেই');
-    try {
-      await loadGis();
-      google.accounts.id.initialize({
-        client_id: cfg.googleClientId,
-        callback: async (resp) => {
-          try {
-            const data = await api('/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: resp.credential, name: draft.name, dob: draft.dob, school: draft.school, college: draft.college }) });
-            await afterAuth(data);
-          } catch (e) { showErr('ahErr', e.message); }
+  function startGooglePicker() {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: cfg.googleClientId,
+      scope: 'openid email profile',
+      prompt: 'select_account',
+      callback: async (resp) => {
+        if (!resp || resp.error || !resp.access_token) {
+          showErr('ahErr', lang === 'bn' ? 'গুগল লগইন বাতিল হয়েছে' : 'Google sign-in cancelled');
+          return;
         }
-      });
-      google.accounts.id.prompt();
-    } catch (e) { showErr('ahErr', e.message || 'Google লগইন ব্যর্থ'); }
+        try { await finishGoogle({ accessToken: resp.access_token }); }
+        catch (e) { showErr('ahErr', e.message); }
+      }
+    });
+    client.requestAccessToken({ prompt: 'select_account' });
+  }
+  async function doGoogle() {
+    if (!cfg.googleClientId) return showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এখন সেটআপ নেই' : 'Google login is not set up');
+    const btn = document.getElementById('ahGoogle');
+    try {
+      if (window.google && google.accounts && google.accounts.oauth2) {
+        startGooglePicker();
+        return;
+      }
+      if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; }
+      await loadGis();
+      startGooglePicker();
+    } catch (e) { showErr('ahErr', e.message || (lang === 'bn' ? 'গুগল লগইন ব্যর্থ' : 'Google login failed')); }
+    finally { if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; } }
   }
 
   async function afterAuth(data) {
@@ -939,6 +945,7 @@
       }
     } catch (e) { showErr('ahErr', e.message); }
     try { cfg = await api('/auth/config'); } catch (_) {}
+    if (cfg && cfg.googleClientId) loadGis().catch(() => {});
     window.AH_AUTH_CONFIG = cfg;
     const g = gateEl();
     if (g && !g.innerHTML.trim()) welcome();

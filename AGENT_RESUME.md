@@ -6,6 +6,8 @@ Read this first. Continue existing work; do not redesign Phase 1.
 **Date:** 2026-09-01
 
 ## Status
+- Google button uses OAuth account picker (not One Tap prompt)
+- Mail fromName Admission Hub passed to MAIL_HOOK; Gmail Send-as name still needed on mahmudrashel1034
 - Phase 1 Exact Clone — frozen
 - Phase 2 Central cloud content — live
 - Phase 3 auth **in progress, waiting PHASE 3 APPROVED**
@@ -15,7 +17,7 @@ Read this first. Continue existing work; do not redesign Phase 1.
 - Control: https://sheikhrashel47-stack.github.io/admission-hub/
 - Public: https://sheikhrashel47-stack.github.io/admission-hub-demo/
 - Workers PUT 2026-09-01: `admission-gk` + `ah-public` (passkey + register-email **live**)
-- Demo git: SW `v152-welcome-lang-20260901` / `p3-auth-ui-v18`
+- Demo git: SW `v157-google-oauth-20260901` / `p3-auth-ui-v23`
 - Welcome: same Glass Daylight. Middle English/বাংলা → buttons hide → clean letter typing (no cat, no photo BG)
 - Hub git: `d353285`
 - PUB: `https://admission-gk.rashelzayan213.workers.dev/pub`

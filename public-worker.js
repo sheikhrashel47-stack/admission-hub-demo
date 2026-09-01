@@ -241,7 +241,7 @@ async function sendOtpMessage(env, destId, code) {
       const r = await fetch(env.MAIL_HOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secret: env.MAIL_HOOK_SECRET || '', to, subject, text, html })
+        body: JSON.stringify({ secret: env.MAIL_HOOK_SECRET || '', to, subject, text, html, name: 'Admission Hub', fromName: 'Admission Hub' })
       });
       if (r.ok) return { ok: true, channel: 'email' };
     }
@@ -386,7 +386,7 @@ function derToRaw(der) {
 async function sendEmail(env, to, subject, text, html) {
   const destId = 'em:' + String(to).toLowerCase();
   if (env.MAIL_HOOK) {
-    const r = await fetch(env.MAIL_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: env.MAIL_HOOK_SECRET || '', to, subject, text, html }) });
+    const r = await fetch(env.MAIL_HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: env.MAIL_HOOK_SECRET || '', to, subject, text, html, name: 'Admission Hub', fromName: 'Admission Hub' }) });
     if (r.ok) return { ok: true };
   }
   if (env.BREVO_KEY) {
@@ -710,13 +710,25 @@ const authLogout = async (request, env) => {
 };
 const authGoogle = async (request, env) => {
   const b = await request.json().catch(() => ({}));
-  const idToken = String(b.idToken || '');
-  if (!idToken) return json({ error: 'Google টোকেন নেই' }, 400);
   if (!env.GOOGLE_CLIENT_ID) return json({ error: 'Google লগইন এখন সেটআপ নেই' }, 503);
-  const r = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken));
-  const g = await r.json().catch(() => ({}));
-  if (!r.ok || !g.email) return json({ error: 'Google লগইন ব্যর্থ' }, 401);
-  if (g.aud !== env.GOOGLE_CLIENT_ID) return json({ error: 'Google ক্লায়েন্ট মিলছে না' }, 401);
+  const idToken = String(b.idToken || '');
+  const accessToken = String(b.accessToken || b.access_token || '');
+  let g = {};
+  if (idToken) {
+    const r = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken));
+    g = await r.json().catch(() => ({}));
+    if (!r.ok || !g.email) return json({ error: 'Google লগইন ব্যর্থ' }, 401);
+    if (g.aud !== env.GOOGLE_CLIENT_ID) return json({ error: 'Google ক্লায়েন্ট মিলছে না' }, 401);
+  } else if (accessToken) {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + accessToken } });
+    g = await r.json().catch(() => ({}));
+    if (!r.ok || !g.email) return json({ error: 'Google লগইন ব্যর্থ' }, 401);
+    const t = await fetch('https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(accessToken));
+    const info = await t.json().catch(() => ({}));
+    if (info.aud && info.aud !== env.GOOGLE_CLIENT_ID) return json({ error: 'Google ক্লায়েন্ট মিলছে না' }, 401);
+  } else {
+    return json({ error: 'Google টোকেন নেই' }, 400);
+  }
   const id = normId(g.email);
   const existing = JSON.parse((await env.PUB_KV.get('user:' + id)) || '{}');
   if (existing.blocked || existing.status === 'disabled' || existing.status === 'suspended') return json({ error: 'অ্যাকাউন্ট বন্ধ' }, 403);
