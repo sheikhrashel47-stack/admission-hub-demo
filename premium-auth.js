@@ -10,6 +10,11 @@
   const PERSONAL = ['examResults', 'mistakes', 'settings', 'dailyStats', 'activityLogs', 'notes'];
   let cfg = { google: false, googleClientId: '', email: false, sms: false };
   let view = 'welcome';
+  let typeGen = 0;
+  const LINES = {
+    bn: ['আসসালামু আলাইকুম! আপনাকে পেয়ে আমরা আনন্দিত।', 'চলুন, একসাথে শুরু করি নতুন এক অভিজ্ঞতা।'],
+    en: ['Welcome! Let’s get started.', 'Make every moment of learning count.']
+  };
   let draft = { name: '', dob: '', school: '', college: '', id: '', password: '', purpose: 'signup', masked: '', wait: 45 };
   let syncing = false;
   let otpTimer = 0;
@@ -98,6 +103,16 @@
 
   const welcome = () => paint(`<section class="ah-screen ah-welcome ah-glass">
     ${S().welcomeScene ? S().welcomeScene() : ''}
+    <div class="ah-lang-stage">
+      <div class="ah-lang-btns" id="ahLangBtns">
+        <button type="button" class="ah-lang en" data-lang="en">English</button>
+        <button type="button" class="ah-lang bn" data-lang="bn">বাংলা</button>
+      </div>
+      <div class="ah-type" id="ahType" hidden>
+        <p class="ah-type-l" id="ahType1"></p>
+        <p class="ah-type-l" id="ahType2"></p>
+      </div>
+    </div>
     <div class="ah-dock">
       <h1>ADMISSION HUB</h1>
       <p class="ah-tag">Learn Smart, Achieve More</p>
@@ -223,6 +238,7 @@
   function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
   function go(name) {
+    typeGen += 1;
     view = name;
     if (name === 'welcome') return welcome();
     if (name === 'login' || name === 'loginOtp' || name === 'forgot' || name === 'otp' || name === 'reset') return login();
@@ -268,6 +284,7 @@
     if (cont) cont.onclick = doContinueProfile;
     const ew = document.getElementById('ahEmailWay');
     if (ew) ew.onclick = () => go('emailv');
+    root.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => startWelcomeType(b.getAttribute('data-lang')));
     ['ahName','ahDob','ahSchool','ahCollege'].forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -281,6 +298,52 @@
     setupOtpInputs();
     startOtpCountdown();
     bindTilt();
+  }
+  function glyphs(s) {
+    try {
+      if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+        return [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(s)].map(x => x.segment);
+      }
+    } catch (_) {}
+    return Array.from(s);
+  }
+  function startWelcomeType(lang) {
+    lang = lang === 'en' ? 'en' : 'bn';
+    try { localStorage.setItem('ahLang', lang); } catch (_) {}
+    const btns = document.getElementById('ahLangBtns');
+    const box = document.getElementById('ahType');
+    const l1 = document.getElementById('ahType1');
+    const l2 = document.getElementById('ahType2');
+    if (!box || !l1 || !l2) return;
+    if (btns) btns.hidden = true;
+    box.hidden = false;
+    l1.innerHTML = '';
+    l2.innerHTML = '';
+    const lines = LINES[lang];
+    const g1 = glyphs(lines[0]);
+    const g2 = glyphs(lines[1]);
+    const instant = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const gen = ++typeGen;
+    const add = (el, ch) => {
+      el.querySelector('.ah-caret')?.remove();
+      el.insertAdjacentHTML('beforeend', ch === ' ' ? ' ' : `<span class="ah-ch">${esc(ch)}</span>`);
+      el.insertAdjacentHTML('beforeend', '<i class="ah-caret"></i>');
+    };
+    if (instant) {
+      l1.textContent = lines[0];
+      l2.textContent = lines[1];
+      return;
+    }
+    let i = 0;
+    const tick = () => {
+      if (gen !== typeGen) return;
+      if (i < g1.length) { add(l1, g1[i]); i += 1; setTimeout(tick, 24); return; }
+      l1.querySelector('.ah-caret')?.remove();
+      const j = i - g1.length;
+      if (j < g2.length) { add(l2, g2[j]); i += 1; setTimeout(tick, 24); return; }
+      l2.querySelector('.ah-caret')?.remove();
+    };
+    tick();
   }
   function bindTilt() {
     const sc = document.querySelector('#ahAuthGate [data-tilt]');
@@ -819,7 +882,7 @@
     setInterval(wrapRender, 800);
   }
 
-  document.addEventListener('ah-get-started', () => { setGate(true); go('login'); });
+  document.addEventListener('ah-get-started', () => { setGate(true); go('signup'); });
   window.AHAuth = { isAuthed: authed, user, token, logout, pushState, pullState, openLogin: () => { setGate(true); go('login'); }, renderProfile, renderEdit };
   window.AdmissionAccount = window.AHAuth;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(boot, 20));
