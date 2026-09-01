@@ -1,8 +1,7 @@
-# LATEST — 2026-09-02 · ✅ সব ঠিক লাইভ
+# LATEST — 2026-09-02 · ✅ নোটিশ ঠিক + সব লাইভ (v30)
 
-- **মূল সমস্যা (ভাইয়ের রিপোর্ট "সবাই লগআউট"):** KV namespace মিসম্যাচ — accounts OLD_KV-তে, worker PUB_KV পড়ছিল → পুরনো token অদৃশ্য। **ফিক্স LIVE:** ৭৪ key মাইগ্রেট + worker-এ dual-KV fallback (`kvGet`) + deploy `48fc321d`
-- **লাইভ verified:** ভাইয়ের account `Sheikh Mohammad Rashel` active ✅ · fresh signup full-cycle ✅
-- **Push সম্পন্ন:** demo `ccbbb5e` (v29 GH Pages live) · control `5347760`
-- **Auth hardening v29:** network blip-এ auto-logout বন্ধ (retry + 401-only logout), storage resilience (sessionStorage fallback), soft offline note
-- **Deploy setup persistent:** `/home/user/ah-deploy/` (আর /tmp নয়)
+- **ভাইয়ের রিপোর্ট (IMG_3364):** "নোটিশ — আমার কে সংযোগ আছে? এসব বন্ধ করো" — স্ক্রিনশট OCR করে দেখা গেল: **ভাই Arena chat-এর Agent Mode প্রিভিউতে অ্যাপ দেখছেন** (welcome screen + লগইন গেট), যেখানে ইন্টারনেট বন্ধ → সার্ভার/গুগল লোড হয় না। পুরনো নোটিশের "নেটওয়ার্ক সংযোগ" কথাটা ভাইকে ভয় দেখাচ্ছিল
+- **ফিক্স (v30 `d996caa`, live):** নোটিশ নতুন — bottom card, পরিষ্কার বাংলা: "এই প্রিভিউতে লগইন করা যায় না… তোমার অ্যাকাউন্টে কোনো ঝুঁকি নেই" + **"আসল অ্যাপ খুলো →" বাটন** (github.io লিংক) + ✕ বন্ধ বাটন (pref সেভ)। ইন্টারনেট ফিরলে অটো-হাইড
+- **সব আগের ফিক্স এখনও live:** KV মাইগ্রেশন + dual-KV fallback (`48fc321d`), auth-hardening v29 (retry, no auto-logout, storage resilience), ভাইয়ের account "Sheikh Mohammad Rashel" active ✅
+- **লাইভ:** demo `d996caa` (v30) · control `5347760` · worker `48fc321d`
 - Resume: `AGENT_RESUME/2026-09-02-kv-migration-critical.md`
