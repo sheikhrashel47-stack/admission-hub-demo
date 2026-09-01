@@ -192,7 +192,7 @@
       <p class="ah-p">${t('loginSub')}</p>
       <div class="ah-form">
         <button class="ah-btn" type="button" id="ahPasskey">${t('passkey')}</button>
-        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button><p class="ah-google-tip">${lang === 'bn' ? 'প্রথমবার গুগলে Continue/Allow চাপতে হতে পারে' : 'Google may ask you to Continue / Allow on first use'}</p></div>
+        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button><p class="ah-google-tip">${lang === 'bn' ? 'গুগলে অ্যাকাউন্ট বাছাই → Continue; সতর্কবার্তা দেখালে Advanced → Continue to (unsafe)' : 'Pick account → Continue; if warned: Advanced → Continue to (unsafe)'}</p></div>
         <div class="ah-or">${t('orPass')}</div>
         <label class="ah-lab">${t('email')}</label>
         <input class="ah-inp" id="ahId" placeholder="${t('email')}" value="${esc(draft.id)}" autocomplete="username">
@@ -225,7 +225,7 @@
       <label class="ah-lab">${t('confirm')}</label>${passRow('ahPass2', t('confirm'), 'new-password')}
       <button class="ah-btn" type="button" id="ahContinue">${t('cont')}</button>
       <div class="ah-or">${t('or')}</div>
-      <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button><p class="ah-google-tip">${lang === 'bn' ? 'প্রথমবার গুগলে Continue/Allow চাপতে হতে পারে' : 'Google may ask you to Continue / Allow on first use'}</p></div>
+      <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button><p class="ah-google-tip">${lang === 'bn' ? 'গুগলে অ্যাকাউন্ট বাছাই → Continue; সতর্কবার্তা দেখালে Advanced → Continue to (unsafe)' : 'Pick account → Continue; if warned: Advanced → Continue to (unsafe)'}</p></div>
       ${errBox('ahErr')}
       <div class="ah-foot">${t('haveAcc')} <button type="button" data-go="login">${t('login')}</button></div>
     </div>
@@ -866,6 +866,15 @@
   function hideOfflineNote() {
     try { const n = document.body.querySelector('.ah-offline-note'); if (n) n.remove(); } catch (_) {}
   }
+  function googleHelpBtn() {
+    return lang === 'bn'
+      ? '<div class="ah-g-help"><b>গুগলে যা করতে হবে:</b><span>১) অ্যাকাউন্ট বাছাই করুন → ২) Continue চাপুন → ৩) সতর্কবার্তা দেখালে <u>Advanced → Continue to (unsafe)</u> → ৪) তারপর অ্যাপে ফিরে আসুন</span></div><button class="ah-btn ah-g-fb" type="button" id="ahEmailFallback">📧 ইমেইল দিয়ে ঢুকো</button>'
+      : '<div class="ah-g-help"><b>In the Google window:</b><span>1) pick your account → 2) press Continue → 3) if you see a warning press <u>Advanced → Continue to (unsafe)</u> → 4) come back here</span></div><button class="ah-btn ah-g-fb" type="button" id="ahEmailFallback">📧 Sign in with email</button>';
+  }
+  function wireGoogleFallback() {
+    const fb = document.getElementById('ahEmailFallback');
+    if (fb) fb.onclick = () => go('login');
+  }
   function startGooglePicker() {
     const client = google.accounts.oauth2.initTokenClient({
       client_id: cfg.googleClientId,
@@ -876,11 +885,18 @@
           const code = String((resp && (resp.error || '')) || '');
           const msg = String((resp && (resp.error_description || '')) || code);
           let err = lang === 'bn' ? 'গুগল লগইন ব্যর্থ — আবার চেষ্টা করো' : 'Google sign-in failed — try again';
-          if (/popup_closed_by_user|user_cancelled/i.test(code)) err = lang === 'bn' ? 'গুগল উইন্ডো বন্ধ হয়েছে — আবার চেষ্টা করো' : 'Google window closed — try again';
-          else if (/access_denied/i.test(code)) err = lang === 'bn' ? 'গুগল অ্যাকাউন্ট অনুমতি দেয়নি — অন্য গুগল অ্যাকাউন্ট বা Allow চাপো' : 'Google account did not grant permission';
+          if (/popup_closed_by_user|user_cancelled/i.test(code)) err = lang === 'bn' ? 'গুগল উইন্ডো বন্ধ হয়েছে — অ্যাকাউন্ট বাছাই করে Continue চাপো; সতর্কবার্তা দেখালে Advanced → Continue to (unsafe) নাও' : 'Google window closed — pick your account and press Continue; if warned, go Advanced → Continue to (unsafe)';
+          else if (/access_denied/i.test(code)) err = lang === 'bn' ? 'গুগল অ্যাকাউন্ট অনুমতি দেয়নি — Allow চাপো বা অন্য গুগল অ্যাকাউন্ট ব্যবহার করো' : 'Google account did not grant permission — press Allow or use another Google account';
           else if (/origin|not allowed|client_id/i.test(msg)) err = lang === 'bn' ? 'গুগল লগইন এই ঠিকানায় অনুমোদিত নয় — লাইভ সাইট https://sheikhrashel47-stack.github.io/admission-hub-demo/ থেকে খুলো' : 'Google login is not allowed on this address — open the live site https://sheikhrashel47-stack.github.io/admission-hub-demo/';
-          else if (/consent|interaction|continue/i.test(code + msg)) err = lang === 'bn' ? 'গুগলে Continue/Allow চাপতে হবে — প্রথমবার গুগল সতর্কবার্তা দেখাতে পারে' : 'Press Continue / Allow in the Google window — Google may show a warning on first use';
+          else if (/consent|interaction|continue/i.test(code + msg)) err = lang === 'bn' ? 'গুগলে Continue/Allow চাপতে হবে — সতর্কবার্তা দেখালে Advanced → Continue to (unsafe) নাও' : 'Press Continue / Allow in the Google window — if warned, press Advanced → Continue to (unsafe)';
           showErr('ahErr', err);
+          const box = document.getElementById('ahErr');
+          if (box && !document.getElementById('ahEmailFallback')) {
+            const wrap = document.createElement('div');
+            wrap.innerHTML = googleHelpBtn();
+            box.insertAdjacentElement('afterend', wrap);
+            wireGoogleFallback();
+          }
           return;
         }
         try { await finishGoogle({ accessToken: resp.access_token }); }
@@ -890,18 +906,25 @@
     try {
       client.requestAccessToken({ prompt: 'select_account' });
     } catch (e) {
-      showErr('ahErr', lang === 'bn' ? 'গুগল লগইন খুলতে পারিনি — পপ-আপ ব্লক থাকলে অনুমতি দাও, নয়তো ইমেইল/পাসওয়ার্ড দিয়ে ঢুকো' : 'Could not open Google — allow pop-ups, or sign in with email/password');
+      showErr('ahErr', lang === 'bn' ? 'গুগল লগইন খুলতে পারিনি — ব্রাউজারের পপ-আপ ব্লক থাকলে অনুমতি দাও, নয়তো নিচের বাটনে ইমেইল দিয়ে ঢুকো' : 'Could not open Google — allow pop-ups, or use the email button below');
+      const box = document.getElementById('ahErr');
+      if (box && !document.getElementById('ahEmailFallback')) {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = googleHelpBtn();
+        box.insertAdjacentElement('afterend', wrap);
+        wireGoogleFallback();
+      }
     }
   }
   async function doGoogle() {
     if (!cfg.googleClientId) return showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এখন সেটআপ নেই' : 'Google login is not set up');
     const btn = document.getElementById('ahGoogle');
+    if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; }
     try {
       if (window.google && google.accounts && google.accounts.oauth2) {
         startGooglePicker();
         return;
       }
-      if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; }
       await loadGis();
       startGooglePicker();
     } catch (e) { showErr('ahErr', e.message || (lang === 'bn' ? 'গুগল লগইন ব্যর্থ' : 'Google login failed')); }
