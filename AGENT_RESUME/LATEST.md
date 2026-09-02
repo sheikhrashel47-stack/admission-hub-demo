@@ -1,3 +1,3 @@
-# LATEST — 2026-09-02 · RESTORE v165 (গতকালের exact state) live
+# LATEST — 2026-09-02 · v167 live (Google built-in fallback + full app UI restored)
 
-**স্থিতি:** `8f914dd` — গতকাল (০৯-০১) `aa58e29` exact restore + cache-bust v165 মাত্র। ভাইয়ের নির্দেশ: আর কোনো আপডেট নয়। Worker অপরিবর্তিত (live)। ভাইয়ের কনফার্মেশন বাকি।
+**স্থিতি:** `c506422` — index.html পূর্ণ (৫,৬৪৫ লাইন, CDN-হ্যাক বাদ), গুগল client_id built-in fallback (config fail-ও গুগল চলে), Replit-এর retry+passkey-বাংলা রাখা, sw `v167-auth-resilience-20260902`। টেস্ট ৭/৭ ✅। ভাইয়ের কনফার্মেশন বাকি।
