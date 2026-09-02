@@ -1,3 +1,3 @@
-# LATEST — 2026-09-02 · Brevo OTP LIVE (মেইল ডেলিভারি ফিক্সড)
+# LATEST — 2026-09-02 · AUTH ROOT-CAUSE v170 live
 
-**স্থিতি:** Worker deploy `383b7d8a` — Brevo primary (sendEmail+sendOtpMessage), BREVO_KEY + BREVO_FROM (`mahmudrashel1034@gmail.com`, verified) সেট। লাইভ signup OTP → Brevo `delivered` ✅ (Brevo events-এ প্রমাণ)। ইউজাররা এখন OTP পাবে। UI সব আগের মতো (v169)। ভাইয়ের রিয়েল-ডিভাইস কনফার্মেশন বাকি।
+**স্থিতি:** v170 `4004458` — পুরনো SW-shell cache purge (পুরনো auth UI আর কখনো serve হবে না), existing-email 409→LOGIN redirect (নতুন Gmail-এ নয়), authFriendly error-map, stale-session cleanup। Worker end-to-end signup লাইভ প্রমাণিত (register→Brevo OTP→verify→token+active)। টেস্ট ১৩/১৩ ✅। ভাইয়ের real-device কনফার্মেশন বাকি (২× রিফ্রেশ → নতুন Gmail signup)।
