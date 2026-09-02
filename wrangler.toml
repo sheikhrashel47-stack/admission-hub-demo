@@ -1,0 +1,20 @@
+name = "admission-gk"
+main = "gk-agent-worker.js"
+compatibility_date = "2026-09-02"
+
+# KV Namespaces - Create these in Cloudflare Dashboard or via wrangler
+[[kv_namespaces]]
+binding = "PUB_KV"
+id = "YOUR_PUB_KV_ID_HERE"
+
+[[kv_namespaces]]
+binding = "GK_KV"
+id = "YOUR_GK_KV_ID_HERE"
+
+# Environment Variables - Set via wrangler secret or Dashboard
+# Required secrets:
+# - RESEND_KEY
+# - ADMIN_TOKEN
+# - GOOGLE_CLIENT_ID
+# - GOOGLE_CLIENT_SECRET
+# Optional: BREVO_KEY, MAIL_HOOK, TWILIO_SID, TWILIO_TOKEN, etc.
