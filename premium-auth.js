@@ -903,9 +903,13 @@
       const prev = btn ? btn.innerHTML : '';
       try {
         if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; btn.innerHTML = '<i class="ah-spin"></i>' + (lang === 'bn' ? 'গুগল প্রস্তুত হচ্ছে…' : 'Loading Google…'); }
-        const liveCfg = await loadAuthConfig();
-        if (!liveCfg.googleClientId) {
-          return showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এখন প্রস্তুত নয়। ইমেইল দিয়ে চেষ্টা করুন বা একটু পরে আবার চাপুন।' : 'Google sign-in is temporarily unavailable. Try email or try again shortly.');
+        let liveCfg = null;
+        try { liveCfg = await loadAuthConfig(); } catch (_) {}
+        if (liveCfg && liveCfg.googleClientId) {
+          cfg = liveCfg;
+        } else {
+          // config-এ client_id না পেলে built-in fallback — নেটওয়ার্ক দুর্বল হলেও গুগল কাজ করবেই
+          cfg = Object.assign({}, cfg, { google: true, googleClientId: '673030739375-i91ini3ianip5sa88qemhjcao2hl3e3s.apps.googleusercontent.com' });
         }
         await loadGis();
         startGooglePicker();
@@ -1902,7 +1906,7 @@
         return;
       }
     } catch (e) { showErr('ahErr', e.message); }
-    try { cfg = await loadAuthConfig(); } catch (_) { cfg = { google: false, googleClientId: '', email: false, sms: false }; }
+    try { cfg = await loadAuthConfig(); } catch (_) { cfg = { google: true, googleClientId: '673030739375-i91ini3ianip5sa88qemhjcao2hl3e3s.apps.googleusercontent.com', email: true, sms: false }; }
     if (cfg && cfg.googleClientId) loadGis().catch(() => {});
     window.AH_AUTH_CONFIG = cfg;
     const held = readWait();
