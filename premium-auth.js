@@ -122,6 +122,16 @@
       throw last || new Error('network-error');
     };
 
+    // ইউজার-বান্ধব ত্রুটি: সেশন/লগইন-সম্পর্কিত raw message-কে পরিষ্কার বাংলায় রূপ দাও
+    const sessionErr = e => /আগে লগইন|http-401|http-403|অ্যাকাউন্ট বন্ধ/.test(String((e && e.message) || e || ''));
+    const authFriendly = e => {
+      const m = String((e && e.message) || e || '');
+      if (/http-401/.test(m)) return lang === 'bn' ? 'তোমার সেশন শেষ হয়ে গেছে — আবার লগইন করো' : 'Your session ended — please sign in again';
+      if (/http-403/.test(m) || /অ্যাকাউন্ট বন্ধ/.test(m)) return lang === 'bn' ? 'এই কাজের অনুমতি নেই' : 'Not allowed to do this';
+      if (/আগে লগইন/.test(m)) return lang === 'bn' ? 'প্রথমে নিজের অ্যাকাউন্টে লগইন করো' : 'Please sign in to your account first';
+      return m;
+    };
+
       const setGate = on => {
     document.documentElement.dataset.ah = on ? 'out' : 'in';
     document.body.classList.toggle('ah-gated', !!on);
@@ -607,7 +617,7 @@
       document.getElementById('ahDoLogin')?.classList.add('ah-busy');
       const data = await api('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id, password }) });
       await afterAuth(data);
-    } catch (e) { showErr('ahErr', e.message); }
+    } catch (e) { showErr('ahErr', authFriendly(e)); }
   }
   async function doLoginOtp() {
     try {
@@ -616,7 +626,7 @@
       const data = await api('/auth/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id, purpose: 'login' }) });
       draft.masked = data.masked; draft.wait = data.wait || 900;
       go('otp');
-    } catch (e) { showErr('ahErr', e.message); }
+    } catch (e) { showErr('ahErr', authFriendly(e)); }
   }
   function grabProfile() {
     const n = document.getElementById('ahName');
@@ -660,7 +670,19 @@
       go('otp');
     } catch (e) {
       if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('sendLink'); }
-      showErr('ahErr', e.message);
+      const m = String((e && e.message) || e || '');
+      if (/আগেই আছে|ইতিমধ্যে|already exists/i.test(m)) {
+        // এটা ভুল বার্তা নয় — এই ইমেইল আগে থেকেই registered। ইউজারকে সরাসরি লগইন স্ক্রিনে নিয়ে যাও।
+        draft.id = (document.getElementById('ahId') && document.getElementById('ahId').value.trim()) || draft.id;
+        setGate(true);
+        go('login');
+        const box = document.getElementById('ahErr');
+        if (box) box.textContent = lang==='bn'
+          ? 'এই ইমেইল দিয়ে আগেই অ্যাকাউন্ট খোলা হয়েছে — নিচে পাসওয়ার্ড দিয়ে লগইন করো। পাসওয়ার্ড ভুলে গেলে "পাসওয়ার্ড ভুলে গেছেন?" চাপো।'
+          : 'An account already exists for this email — sign in below. Forgot your password? Use "Forgot password?".';
+      } else {
+        showErr('ahErr', authFriendly(e));
+      }
     }
   }
   async function resendVerifyLink() {
@@ -677,7 +699,7 @@
       go('otp');
     } catch (e) {
       if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('resendLink'); }
-      showErr('ahErr', e.message);
+      showErr('ahErr', authFriendly(e));
     }
   }
   function persistWait() {
@@ -741,14 +763,14 @@
       const data = await api('/auth/otp/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id, code, purpose: draft.purpose, name: draft.name }) });
       setSession(data.token, data.user);
       go('ok');
-    } catch (e) { showErr('ahErr', e.message); }
+    } catch (e) { showErr('ahErr', authFriendly(e)); }
   }
   async function resendOtp() {
     try {
       const data = await api('/auth/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id, purpose: draft.purpose }) });
       draft.wait = data.wait || 900;
       go('otp');
-    } catch (e) { showErr('ahErr', e.message); }
+    } catch (e) { showErr('ahErr', authFriendly(e)); }
   }
   async function doForgot() {
     const btn = document.getElementById('ahDoForgot');
@@ -763,7 +785,7 @@
       go('otp');
     } catch (e) {
       if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('sendCode'); }
-      showErr('ahErr', e.message);
+      showErr('ahErr', authFriendly(e));
     }
   }
   async function doReset() {
@@ -773,7 +795,7 @@
       const data = await api('/auth/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draft.id, password, confirm }) });
       if (data.token) setSession(data.token, data.user);
       go('resetOk');
-    } catch (e) { showErr('ahErr', e.message); }
+    } catch (e) { showErr('ahErr', authFriendly(e)); }
   }
 
 
@@ -899,7 +921,7 @@
           return;
         }
         try { await finishGoogle({ accessToken: resp.access_token }); }
-        catch (e) { showErr('ahErr', e.message); }
+        catch (e) { showErr('ahErr', authFriendly(e)); }
       }
     });
     client.requestAccessToken({ prompt: 'select_account' });
@@ -920,7 +942,7 @@
         await loadGis();
         startGooglePicker();
       } catch (e) {
-        const msg = networkFailure(e) ? (lang === 'bn' ? 'গুগল সংযোগ পাওয়া যাচ্ছে না। ইন্টারনেট ঠিক করে আবার চেষ্টা করুন, অথবা ইমেইল দিয়ে ঢুকুন।' : 'Google could not be reached. Check your connection or use email sign-in.') : (e.message || (lang === 'bn' ? 'গুগল লগইন ব্যর্থ হয়েছে' : 'Google login failed'));
+        const msg = networkFailure(e) ? (lang === 'bn' ? 'গুগল সংযোগ পাওয়া যাচ্ছে না। ইন্টারনেট ঠিক করে আবার চেষ্টা করুন, অথবা ইমেইল দিয়ে ঢুকুন।' : 'Google could not be reached. Check your connection or use email sign-in.') : (authFriendly(e) || (lang === 'bn' ? 'গুগল লগইন ব্যর্থ হয়েছে' : 'Google login failed'));
         showErr('ahErr', msg);
       } finally {
         if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; if (prev) btn.innerHTML = prev; }
@@ -1385,7 +1407,7 @@
         await api('/auth/password', { method: 'POST', headers: authH(), body: JSON.stringify({ current: document.getElementById('curPass').value, password: document.getElementById('newPass').value, confirm: document.getElementById('newPass2').value }) });
         toast('পাসওয়ার্ড বদলেছে');
         navigate('profile/security');
-      } catch (e) { showErr('ahErr', e.message); }
+      } catch (e) { showErr('ahErr', authFriendly(e)); }
     });
   }
   function renderPasskeys() {
@@ -1911,7 +1933,7 @@
         await afterAuth(data);
         return;
       }
-    } catch (e) { showErr('ahErr', e.message); }
+    } catch (e) { showErr('ahErr', authFriendly(e)); }
     try { cfg = await loadAuthConfig(); } catch (_) { cfg = { google: true, googleClientId: '673030739375-i91ini3ianip5sa88qemhjcao2hl3e3s.apps.googleusercontent.com', email: true, sms: false }; }
     if (cfg && cfg.googleClientId) loadGis().catch(() => {});
     window.AH_AUTH_CONFIG = cfg;
