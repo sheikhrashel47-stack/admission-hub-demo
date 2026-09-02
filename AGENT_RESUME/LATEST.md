@@ -1,3 +1,3 @@
-# LATEST — 2026-09-02 · v169 live (email=6-digit code + passkey register on verify)
+# LATEST — 2026-09-02 · Brevo OTP LIVE (মেইল ডেলিভারি ফিক্সড)
 
-**স্থিতি:** `v169` — গুগল ✓ (v167), এখন ইমেইল verify-র সব copy "৬-অঙ্কের কোড" (server OTP-র সাথে মিলে গেছে), verify-তে passkey আসল register করে, checkmail-এ "কোড লিখুন" বাটন। টেস্ট ৯/৯ ✅। ভাইয়ের কনফার্মেশন বাকি।
+**স্থিতি:** Worker deploy `383b7d8a` — Brevo primary (sendEmail+sendOtpMessage), BREVO_KEY + BREVO_FROM (`mahmudrashel1034@gmail.com`, verified) সেট। লাইভ signup OTP → Brevo `delivered` ✅ (Brevo events-এ প্রমাণ)। ইউজাররা এখন OTP পাবে। UI সব আগের মতো (v169)। ভাইয়ের রিয়েল-ডিভাইস কনফার্মেশন বাকি।
