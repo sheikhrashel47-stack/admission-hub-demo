@@ -27,10 +27,10 @@
       welcomeBack: 'Welcome Back,<br>Scholar! 👋', loginSub: 'Passkey, Google, or email',
       passkey: 'Continue with Passkey', orPass: 'or password', email: 'Email', password: 'Password',
       noAcc: "Don't have an account?", signup: 'Sign Up',
-      verifyTitle: 'Verify your email', verifySub: 'We will send a 6-digit code to your email. Enter it to activate your account.',
-      emailWay: 'Send code to my email', hint: 'Choose whichever is more convenient for you.',
-      emailTitle: 'Verify your email', emailSub: "We'll send a 6-digit code to this email",
-      sendLink: 'Send verification code', checkEmail: 'Confirm your email',
+      verifyTitle: 'Verify your account', verifySub: 'One last step to secure your account',
+      emailWay: 'Continue with Email Verification', hint: 'Choose whichever is more convenient for you.',
+      emailTitle: 'Verify your email', emailSub: "We'll send a verification link",
+      sendLink: 'Send verification link', checkEmail: 'Confirm your email',
       linkSent: 'A verification message has been sent to',
       linkTap: 'Open the link in that message to activate your account.',
       processing: 'Processing…', waitingMail: 'Please keep this page open. Once the link is confirmed, this device will sign you in.',
@@ -53,10 +53,10 @@
       welcomeBack: 'স্বাগতম,<br>শিক্ষার্থী', loginSub: 'পাসকি, গুগল অথবা ইমেইল',
       passkey: 'পাসকি দিয়ে এগিয়ে যান', orPass: 'অথবা পাসওয়ার্ড', email: 'ইমেইল', password: 'পাসওয়ার্ড',
       noAcc: 'অ্যাকাউন্ট নেই?', signup: 'নিবন্ধন করুন',
-      verifyTitle: 'ইমেইল যাচাই করুন', verifySub: 'আপনার ইমেইলে ৬-অঙ্কের কোড পাঠানো হবে। কোডটি লিখে অ্যাকাউন্ট সক্রিয় করুন।',
-      emailWay: 'ইমেইলে কোড পাঠান', hint: 'আপনার সুবিধামতো পদ্ধতি বেছে নিন।',
-      emailTitle: 'ইমেইল যাচাইকরণ', emailSub: 'এই ইমেইলে একটি ৬-অঙ্কের কোড পাঠানো হবে',
-      sendLink: 'কোড পাঠান', checkEmail: 'ইমেইল নিশ্চিতকরণ',
+      verifyTitle: 'অ্যাকাউন্ট যাচাইকরণ', verifySub: 'নিরাপত্তার জন্য শেষ ধাপ',
+      emailWay: 'ইমেইল যাচাইকরণ', hint: 'আপনার সুবিধামতো পদ্ধতি বেছে নিন।',
+      emailTitle: 'ইমেইল যাচাইকরণ', emailSub: 'যাচাইকরণ লিংক প্রেরণ করা হবে',
+      sendLink: 'যাচাইকরণ লিংক পাঠান', checkEmail: 'ইমেইল নিশ্চিতকরণ',
       linkSent: 'যাচাইকরণ বার্তা প্রেরণ করা হয়েছে',
       linkTap: 'বার্তার লিংক খুললে আপনার অ্যাকাউন্ট সক্রিয় হবে।',
       processing: 'প্রক্রিয়াকরণ চলছে…', waitingMail: 'এই পাতা খোলা রাখুন। লিংক নিশ্চিত হলে এই ডিভাইসে স্বয়ংক্রিয়ভাবে প্রবেশ করবে।',
@@ -78,19 +78,16 @@
   let waitPoll = 0;
 
   const readStore = (k) => {
-    let v = '';
-    try { v = localStorage.getItem(k) || ''; } catch (_) {}
-    if (v) return v;
-    try { v = sessionStorage.getItem(k) || ''; } catch (_) {}
-    return v || '';
+    try { return localStorage.getItem(k) || sessionStorage.getItem(k) || ''; } catch (_) { return ''; }
   };
   const token = () => readStore(LS_TOKEN);
   const user = () => { try { return JSON.parse(readStore(LS_USER) || 'null'); } catch (_) { return null; } };
   const setSession = (tok, u) => {
-    // লেখা ব্যর্থ হলে sessionStorage-এও চেষ্টা — private mode / সীমাবদ্ধ storage-এ লগইন টিকে থাকে
     const write = (k, v) => {
-      try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (_) {}
-      try { if (v) sessionStorage.setItem(k, v); else sessionStorage.removeItem(k); } catch (_) {}
+      try {
+        if (v) { localStorage.setItem(k, v); sessionStorage.setItem(k, v); }
+        else { localStorage.removeItem(k); sessionStorage.removeItem(k); }
+      } catch (_) {}
     };
     write(LS_TOKEN, tok || '');
     write(LS_USER, u ? JSON.stringify(u) : '');
@@ -100,16 +97,7 @@
   const toast = m => { if (typeof window.toast === 'function') window.toast(m); };
 
   const api = async (path, opts = {}) => {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 15000);
-    let res;
-    try {
-      res = await fetch(PUB + path, Object.assign({}, opts, { signal: ctl.signal }));
-    } catch (e) {
-      clearTimeout(t);
-      throw new Error(lang === 'bn' ? 'ইন্টারনেট সংযোগ নেই — আবার চেষ্টা করো' : 'No internet connection — try again');
-    }
-    clearTimeout(t);
+    const res = await fetch(PUB + path, opts);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || ('http-' + res.status));
     return data;
@@ -201,7 +189,7 @@
       <p class="ah-p">${t('loginSub')}</p>
       <div class="ah-form">
         <button class="ah-btn" type="button" id="ahPasskey">${t('passkey')}</button>
-        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button><p class="ah-google-tip">${lang === 'bn' ? 'গুগলে অ্যাকাউন্ট বাছাই → Continue; সতর্কবার্তা দেখালে Advanced → Continue to (unsafe)' : 'Pick account → Continue; if warned: Advanced → Continue to (unsafe)'}</p></div>
+        <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button></div>
         <div class="ah-or">${t('orPass')}</div>
         <label class="ah-lab">${t('email')}</label>
         <input class="ah-inp" id="ahId" placeholder="${t('email')}" value="${esc(draft.id)}" autocomplete="username">
@@ -234,7 +222,7 @@
       <label class="ah-lab">${t('confirm')}</label>${passRow('ahPass2', t('confirm'), 'new-password')}
       <button class="ah-btn" type="button" id="ahContinue">${t('cont')}</button>
       <div class="ah-or">${t('or')}</div>
-      <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button><p class="ah-google-tip">${lang === 'bn' ? 'গুগলে অ্যাকাউন্ট বাছাই → Continue; সতর্কবার্তা দেখালে Advanced → Continue to (unsafe)' : 'Pick account → Continue; if warned: Advanced → Continue to (unsafe)'}</p></div>
+      <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button></div>
       ${errBox('ahErr')}
       <div class="ah-foot">${t('haveAcc')} <button type="button" data-go="login">${t('login')}</button></div>
     </div>
@@ -248,7 +236,9 @@
     <h1 class="ah-h">${t('verifyTitle')}</h1>
     <p class="ah-p">${t('verifySub')}</p>
     <div class="ah-form">
-      <button class="ah-btn" type="button" id="ahEmailWay">📧 ${t('emailWay')}</button>
+      <button class="ah-btn sec" type="button" id="ahEmailWay">${t('emailWay')}</button>
+      <button class="ah-btn" type="button" id="ahPasskey">${t('passkey')}</button>
+      <p class="ah-hint">${t('hint')}</p>
       ${errBox('ahErr')}
     </div>
   </section>`);
@@ -826,7 +816,7 @@
       });
       await afterAuth(data);
     } catch (e) {
-      showErr('ahErr', e.name === 'NotFoundError' ? (lang === 'bn' ? 'এই ডিভাইসে পাসকি পাওয়া যায়নি — ইমেইল/পাসওয়ার্ড বা গুগল দিয়ে ঢুকো' : 'No passkey found on this device — use email/password or Google') : (e.name === 'NotAllowedError' ? 'Passkey বাতিল' : (e.message || 'Passkey ব্যর্থ')));
+      showErr('ahErr', e.name === 'NotAllowedError' ? 'Passkey বাতিল' : (e.message || 'Passkey ব্যর্থ'));
     }
   }
 
@@ -851,37 +841,6 @@
       document.head.appendChild(s);
     });
   }
-  function showOfflineNote() {
-    try {
-      if (document.body.querySelector('.ah-offline-note')) return;
-      const n = document.createElement('div');
-      n.className = 'ah-offline-note';
-      n.innerHTML = `
-        <button class="ah-on-x" aria-label="বন্ধ করো">✕</button>
-        <div class="ah-on-ic">🔒</div>
-        <div class="ah-on-tx">
-          <b>এই প্রিভিউতে লগইন করা যায় না</b>
-          <span>এটা শুধু একটা প্রিভিউ উইন্ডো — এখানে ইন্টারনেট বন্ধ থাকে, তাই গুগল/লগইন এখানে চলে না। তোমার অ্যাকাউন্টে কোনো ঝুঁকি নেই।</span>
-          <a class="ah-on-btn" href="https://sheikhrashel47-stack.github.io/admission-hub-demo/" target="_blank" rel="noopener">📱 আসল অ্যাপ খুলো →</a>
-        </div>`;
-      document.body.appendChild(n);
-      const x = n.querySelector('.ah-on-x');
-      if (x) x.onclick = () => { try { localStorage.setItem('ahPrefNoteOff', '1'); } catch (_) {} n.remove(); };
-      try { if (localStorage.getItem('ahPrefNoteOff') === '1') n.remove(); } catch (_) {}
-    } catch (_) {}
-  }
-  function hideOfflineNote() {
-    try { const n = document.body.querySelector('.ah-offline-note'); if (n) n.remove(); } catch (_) {}
-  }
-  function googleHelpBtn() {
-    return lang === 'bn'
-      ? '<div class="ah-g-help"><b>গুগলে যা করতে হবে:</b><span>১) অ্যাকাউন্ট বাছাই করুন → ২) Continue চাপুন → ৩) সতর্কবার্তা দেখালে <u>Advanced → Continue to (unsafe)</u> → ৪) তারপর অ্যাপে ফিরে আসুন</span></div><button class="ah-btn ah-g-fb" type="button" id="ahEmailFallback">📧 ইমেইল দিয়ে ঢুকো</button>'
-      : '<div class="ah-g-help"><b>In the Google window:</b><span>1) pick your account → 2) press Continue → 3) if you see a warning press <u>Advanced → Continue to (unsafe)</u> → 4) come back here</span></div><button class="ah-btn ah-g-fb" type="button" id="ahEmailFallback">📧 Sign in with email</button>';
-  }
-  function wireGoogleFallback() {
-    const fb = document.getElementById('ahEmailFallback');
-    if (fb) fb.onclick = () => go('login');
-  }
   function startGooglePicker() {
     const client = google.accounts.oauth2.initTokenClient({
       client_id: cfg.googleClientId,
@@ -889,71 +848,24 @@
       prompt: 'select_account',
       callback: async (resp) => {
         if (!resp || resp.error || !resp.access_token) {
-          const code = String((resp && (resp.error || '')) || '');
-          const msg = String((resp && (resp.error_description || '')) || code);
-          let err = lang === 'bn' ? 'গুগল লগইন ব্যর্থ — আবার চেষ্টা করো' : 'Google sign-in failed — try again';
-          if (/popup_closed_by_user|user_cancelled/i.test(code)) err = lang === 'bn' ? 'গুগল উইন্ডো বন্ধ হয়েছে — অ্যাকাউন্ট বাছাই করে Continue চাপো; সতর্কবার্তা দেখালে Advanced → Continue to (unsafe) নাও' : 'Google window closed — pick your account and press Continue; if warned, go Advanced → Continue to (unsafe)';
-          else if (/access_denied/i.test(code)) err = lang === 'bn' ? 'গুগল অ্যাকাউন্ট অনুমতি দেয়নি — Allow চাপো বা অন্য গুগল অ্যাকাউন্ট ব্যবহার করো' : 'Google account did not grant permission — press Allow or use another Google account';
-          else if (/origin|not allowed|client_id/i.test(msg)) err = lang === 'bn' ? 'গুগল লগইন এই ঠিকানায় অনুমোদিত নয় — লাইভ সাইট https://sheikhrashel47-stack.github.io/admission-hub-demo/ থেকে খুলো' : 'Google login is not allowed on this address — open the live site https://sheikhrashel47-stack.github.io/admission-hub-demo/';
-          else if (/consent|interaction|continue/i.test(code + msg)) err = lang === 'bn' ? 'গুগলে Continue/Allow চাপতে হবে — সতর্কবার্তা দেখালে Advanced → Continue to (unsafe) নাও' : 'Press Continue / Allow in the Google window — if warned, press Advanced → Continue to (unsafe)';
-          showErr('ahErr', err);
-          const box = document.getElementById('ahErr');
-          if (box && !document.getElementById('ahEmailFallback')) {
-            const wrap = document.createElement('div');
-            wrap.innerHTML = googleHelpBtn();
-            box.insertAdjacentElement('afterend', wrap);
-            wireGoogleFallback();
-          }
+          showErr('ahErr', lang === 'bn' ? 'গুগল লগইন বাতিল হয়েছে' : 'Google sign-in cancelled');
           return;
         }
         try { await finishGoogle({ accessToken: resp.access_token }); }
         catch (e) { showErr('ahErr', e.message); }
       }
     });
-    try {
-      client.requestAccessToken({ prompt: 'select_account' });
-    } catch (e) {
-      showErr('ahErr', lang === 'bn' ? 'গুগল লগইন খুলতে পারিনি — ব্রাউজারের পপ-আপ ব্লক থাকলে অনুমতি দাও, নয়তো নিচের বাটনে ইমেইল দিয়ে ঢুকো' : 'Could not open Google — allow pop-ups, or use the email button below');
-      const box = document.getElementById('ahErr');
-      if (box && !document.getElementById('ahEmailFallback')) {
-        const wrap = document.createElement('div');
-        wrap.innerHTML = googleHelpBtn();
-        box.insertAdjacentElement('afterend', wrap);
-        wireGoogleFallback();
-      }
-    }
+    client.requestAccessToken({ prompt: 'select_account' });
   }
   async function doGoogle() {
-    // config লোড না হলে আবার আনার চেষ্টা — নেটওয়ার্ক ফিরে এলে গুগল কাজ করবেই
-    if (!cfg || !cfg.googleClientId) {
-      try {
-        const fresh = await api('/auth/config');
-        if (fresh && fresh.googleClientId) { cfg = fresh; window.AH_AUTH_CONFIG = fresh; }
-      } catch (_) {}
-    }
-    if (!cfg || !cfg.googleClientId) {
-      return showErr('ahErr', lang === 'bn'
-        ? 'গুগল লগইন লোড হচ্ছে না — ইন্টারনেট সংযোগ দেখে একটু পরে আবার চাপো, নয়তো নিচের ফর্মে ইমেইল/পাসওয়ার্ড দিয়ে ঢুকো'
-        : 'Google login is loading — check internet and try again, or use email/password below');
-    }
-    // signup স্ক্রিনে নাম/জন্মতারিখ ভরা থাকলে গুগল অ্যাকাউন্টে সেগুলো চলে যাবে
-    try {
-      const nn = document.getElementById('ahName');
-      const dd = document.getElementById('ahDob');
-      const ss = document.getElementById('ahSchool');
-      const cc = document.getElementById('ahCollege');
-      if (nn && nn.value.trim()) draft.name = nn.value.trim();
-      if (dd && dd.value) draft.dob = dd.value;
-      if (ss && ss.value.trim()) draft.school = ss.value.trim();
-      if (cc && cc.value.trim()) draft.college = cc.value.trim();
-    } catch (_) {}
+    if (!cfg.googleClientId) return showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এখন সেটআপ নেই' : 'Google login is not set up');
     const btn = document.getElementById('ahGoogle');
-    if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; }
     try {
       if (window.google && google.accounts && google.accounts.oauth2) {
         startGooglePicker();
         return;
       }
+      if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; }
       await loadGis();
       startGooglePicker();
     } catch (e) { showErr('ahErr', e.message || (lang === 'bn' ? 'গুগল লগইন ব্যর্থ' : 'Google login failed')); }
@@ -1945,14 +1857,7 @@
         return;
       }
     } catch (e) { showErr('ahErr', e.message); }
-    try { cfg = await api('/auth/config'); hideOfflineNote(); } catch (_) {
-      // নেটওয়ার্ক সাময়িক থাকলে ৩ বার চেষ্টা — গুগল/লগইন সেটআপ হারাবে না
-      let got = false;
-      for (let i = 0; i < 3 && !got; i++) {
-        try { await new Promise(r => setTimeout(r, 700 * (i + 1))); cfg = await api('/auth/config'); got = true; } catch (_) {}
-      }
-      if (got) hideOfflineNote(); else showOfflineNote();
-    }
+    try { cfg = await api('/auth/config'); } catch (_) {}
     if (cfg && cfg.googleClientId) loadGis().catch(() => {});
     window.AH_AUTH_CONFIG = cfg;
     const held = readWait();
@@ -1974,43 +1879,26 @@
     const g = gateEl();
     if (g && !g.innerHTML.trim()) welcome();
     if (token()) {
-      // অস্থায়ী নেটওয়ার্ক ঝামেলায় সেশন হারানো যাবে না — ১ বার retry, ৪০১/৪০৩ ছাড়া লগআউট নেই
-      let me = null;
-      let authErr = null;
       try {
-        me = await api('/auth/me', { headers: authH() });
-      } catch (e) {
-        authErr = e;
-        const msg = String(e && e.message || e);
-        if (!/আগে লগইন|http-401|http-403|অ্যাকাউন্ট বন্ধ/.test(msg)) {
-          try { await new Promise(r => setTimeout(r, 1100)); me = await api('/auth/me', { headers: authH() }); authErr = null; } catch (e2) { authErr = e2; }
+        const me = await api('/auth/me', { headers: authH() });
+        if (me.user && (me.user.status === 'disabled' || me.user.status === 'suspended')) {
+          setSession('', null); setGate(true); go('login'); return;
         }
-      }
-      if (authErr) {
-        const msg = String(authErr && authErr.message || authErr);
+        if (me.user) setSession(token(), me.user);
+        setGate(false);
+        await pullState();
+        if (window.AdmissionCloudContent) AdmissionCloudContent.pull().catch(() => {});
+        if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {
+          const onb = await AHOnboard.maybeStart();
+          if (onb) return;
+        }
+      } catch (e) {
+        const msg = String(e && e.message || e);
         if (/আগে লগইন|http-401|http-403|অ্যাকাউন্ট বন্ধ/.test(msg)) {
           setSession('', null); setGate(true); go('welcome');
         } else {
-          // নেটওয়ার্ক/সার্ভার সমস্যা — টোকেন ধরে রাখো, অ্যাপ দেখাও
           setGate(false);
-          showOfflineNote();
         }
-        if (token()) { setInterval(() => { if (token()) pushState().catch(() => {}); }, 90000); }
-        let n = 0;
-        setInterval(wrapRender, 800);
-        return;
-      }
-      if (me && me.user && (me.user.status === 'disabled' || me.user.status === 'suspended')) {
-        setSession('', null); setGate(true); go('login'); return;
-      }
-      if (me && me.user) setSession(token(), me.user);
-      setGate(false);
-      hideOfflineNote();
-      try { await pullState(); } catch (_) {}
-      if (window.AdmissionCloudContent) AdmissionCloudContent.pull().catch(() => {});
-      if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {
-        const onb = await AHOnboard.maybeStart();
-        if (onb) return;
       }
     } else {
       setGate(true);
