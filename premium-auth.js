@@ -27,15 +27,15 @@
       welcomeBack: 'Welcome Back,<br>Scholar! 👋', loginSub: 'Passkey, Google, or email',
       passkey: 'Continue with Passkey', orPass: 'or password', email: 'Email', password: 'Password',
       noAcc: "Don't have an account?", signup: 'Sign Up',
-      verifyTitle: 'Verify your account', verifySub: 'One last step to secure your account',
-      emailWay: 'Continue with Email Verification', hint: 'Choose whichever is more convenient for you.',
-      emailTitle: 'Verify your email', emailSub: "We'll send a verification link",
-      sendLink: 'Send verification link', checkEmail: 'Confirm your email',
-      linkSent: 'A verification message has been sent to',
-      linkTap: 'Open the link in that message to activate your account.',
+      verifyTitle: 'Verify your email', verifySub: 'We will send a 6-digit code to your email. Enter it below to activate your account.',
+      emailWay: 'Send code to my email', hint: 'Choose whichever is more convenient for you.',
+      emailTitle: 'Verify your email', emailSub: "We'll send a 6-digit code to this email",
+      sendLink: 'Send verification code', checkEmail: 'Check your email',
+      linkSent: 'A verification code has been sent to',
+      linkTap: 'Enter the 6-digit code from that email to activate your account.',
       processing: 'Processing…', waitingMail: 'Please keep this page open. Once the link is confirmed, this device will sign you in.',
       linkExpires: 'Link expires in', linkExpired: 'The verification link has expired. Please request a new one.',
-      resendLink: 'Resend verification link', forgot: 'Forgot password?',
+      resendLink: 'Resend code', forgot: 'Forgot password?',
       forgotTitle: 'Recover password', forgotSub: 'Enter the email address used to create your account. A verification code will be sent only to that address.',
       sendCode: 'Send verification code', otpTitle: 'Enter verification code',
       otpSub: 'A six-digit code has been sent to', resendCode: 'Resend code', resendIn: 'Resend available in',
@@ -53,15 +53,15 @@
       welcomeBack: 'স্বাগতম,<br>শিক্ষার্থী', loginSub: 'পাসকি, গুগল অথবা ইমেইল',
       passkey: 'পাসকি দিয়ে এগিয়ে যান', orPass: 'অথবা পাসওয়ার্ড', email: 'ইমেইল', password: 'পাসওয়ার্ড',
       noAcc: 'অ্যাকাউন্ট নেই?', signup: 'নিবন্ধন করুন',
-      verifyTitle: 'অ্যাকাউন্ট যাচাইকরণ', verifySub: 'নিরাপত্তার জন্য শেষ ধাপ',
-      emailWay: 'ইমেইল যাচাইকরণ', hint: 'আপনার সুবিধামতো পদ্ধতি বেছে নিন।',
-      emailTitle: 'ইমেইল যাচাইকরণ', emailSub: 'যাচাইকরণ লিংক প্রেরণ করা হবে',
-      sendLink: 'যাচাইকরণ লিংক পাঠান', checkEmail: 'ইমেইল নিশ্চিতকরণ',
-      linkSent: 'যাচাইকরণ বার্তা প্রেরণ করা হয়েছে',
-      linkTap: 'বার্তার লিংক খুললে আপনার অ্যাকাউন্ট সক্রিয় হবে।',
+      verifyTitle: 'ইমেইল যাচাই করুন', verifySub: 'আপনার ইমেইলে ৬-অঙ্কের কোড পাঠানো হবে। কোডটি লিখে অ্যাকাউন্ট সক্রিয় করুন।',
+      emailWay: 'ইমেইলে কোড পাঠান', hint: 'আপনার সুবিধামতো পদ্ধতি বেছে নিন।',
+      emailTitle: 'ইমেইল যাচাইকরণ', emailSub: 'এই ইমেইলে একটি ৬-অঙ্কের কোড পাঠানো হবে',
+      sendLink: 'কোড পাঠান', checkEmail: 'ইমেইল দেখুন',
+      linkSent: 'যাচাইকরণ কোড প্রেরণ করা হয়েছে',
+      linkTap: 'ইমেইলের ৬-অঙ্কের কোডটি লিখে অ্যাকাউন্ট সক্রিয় করুন।',
       processing: 'প্রক্রিয়াকরণ চলছে…', waitingMail: 'এই পাতা খোলা রাখুন। লিংক নিশ্চিত হলে এই ডিভাইসে স্বয়ংক্রিয়ভাবে প্রবেশ করবে।',
       linkExpires: 'লিংকের মেয়াদ', linkExpired: 'যাচাইকরণ লিংকের মেয়াদ শেষ হয়েছে। নতুন লিংক প্রেরণ করুন।',
-      resendLink: 'নতুন লিংক প্রেরণ করুন', forgot: 'পাসওয়ার্ড ভুলে গেছেন?',
+      resendLink: 'কোড আবার পাঠান', forgot: 'পাসওয়ার্ড ভুলে গেছেন?',
       forgotTitle: 'পাসওয়ার্ড পুনরুদ্ধার', forgotSub: 'যে ইমেইল ঠিকানায় অ্যাকাউন্ট খুলেছিলেন সেটি লিখুন। যাচাইকরণ কোড কেবল সেই ঠিকানায় প্রেরণ করা হবে।',
       sendCode: 'যাচাইকরণ কোড পাঠান', otpTitle: 'যাচাইকরণ কোড লিখুন',
       otpSub: 'ছয় অঙ্কের কোড প্রেরণ করা হয়েছে', resendCode: 'কোড পুনরায় পাঠান', resendIn: 'পুনরায় পাঠানো যাবে',
@@ -327,9 +327,8 @@
     <h1 class="ah-h">${t('checkEmail')}</h1>
     <p class="ah-p">${t('linkSent')}<br><b>${esc(draft.masked || draft.id)}</b></p>
     <p class="ah-p">${t('linkTap')}</p>
-    <p class="ah-count-lab">${t('linkExpires')}</p>
-    <div class="ah-count" id="ahCount">15:00</div>
-    <p class="ah-p" id="ahWaitNote">${t('waitingMail')}</p>
+    <button class="ah-btn" type="button" id="ahGoOtp">${lang==='bn'?'🔢 কোড লিখুন':'🔢 Enter the code'}</button>
+    <div class="ah-resend" style="margin-top:14px">${t('linkExpires')}: <span id="ahCount">15:00</span></div>
     <button class="ah-btn sec" type="button" id="ahResendLink" disabled>${t('resendLink')}</button>
     ${errBox('ahErr')}
   </section>`);
@@ -425,8 +424,11 @@
     const pk = document.getElementById('ahPasskey');
     if (pk) pk.onclick = () => {
       if (view === 'login') return doPasskeyLogin();
+      if (view === 'verify') return doPasskeyRegister();
       showErr('ahErr', lang === 'bn' ? 'পাসকি যোগ করতে আগে অ্যাকাউন্টে ঢুকুন। তারপর প্রোফাইল → নিরাপত্তা → পাসকি থেকে যোগ করুন।' : 'To add a passkey, sign in first. Then open Profile → Security → Passkeys.');
     };
+    const goOtp = document.getElementById('ahGoOtp');
+    if (goOtp) goOtp.onclick = () => go('otp');
     const cont = document.getElementById('ahContinue');
     if (cont) cont.onclick = doContinueProfile;
     const ew = document.getElementById('ahEmailWay');
@@ -813,7 +815,11 @@
       });
       await afterAuth(data);
     } catch (e) {
-      showErr('ahErr', e.name === 'NotAllowedError' ? 'Passkey বাতিল' : (e.message || 'Passkey ব্যর্থ'));
+      const m = String((e && e.message) || '');
+      if (e && e.name === 'NotFoundError') showErr('ahErr', lang === 'bn' ? 'এই ডিভাইসে পাসকি সেটআপ করা যায়নি — ফেসআইডি/টাচআইডি থাকলে চেষ্টা করো, নয়তো ইমেইল দিয়ে যাও' : 'Could not create a passkey on this device — try Face/Touch ID, or use email');
+      else if (e && e.name === 'NotAllowedError') showErr('ahErr', 'Passkey বাতিল — আবার চেষ্টা করো');
+      else if (/Failed to fetch|NetworkError|network/i.test(m)) showErr('ahErr', lang === 'bn' ? 'ইন্টারনেট সংযোগ নেই — আবার চেষ্টা করো' : 'No internet connection — try again');
+      else showErr('ahErr', (e && e.message) || 'Passkey ব্যর্থ');
     }
   }
   async function doPasskeyLogin() {
