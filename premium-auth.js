@@ -96,14 +96,33 @@
   const authH = () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() });
   const toast = m => { if (typeof window.toast === 'function') window.toast(m); };
 
-  const api = async (path, opts = {}) => {
-    const res = await fetch(PUB + path, opts);
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || ('http-' + res.status));
-    return data;
-  };
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const retryableStatus = status => status === 408 || status === 425 || status === 429 || status >= 500;
+    const networkFailure = error => /Failed to fetch|NetworkError|Load failed|timed out|network/i.test(String(error && error.message || error));
+    const api = async (path, opts = {}) => {
+      const method = String(opts.method || 'GET').toUpperCase();
+      const canRetry = method === 'GET' || path === '/auth/config';
+      let last;
+      for (let attempt = 0; attempt < (canRetry ? 3 : 1); attempt += 1) {
+        try {
+          const res = await fetch(PUB + path, opts);
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            last = new Error(data.error || ('http-' + res.status));
+            if (canRetry && retryableStatus(res.status) && attempt < 2) { await wait(350 * (attempt + 1)); continue; }
+            throw last;
+          }
+          return data;
+        } catch (error) {
+          last = error;
+          if (canRetry && networkFailure(error) && attempt < 2) { await wait(350 * (attempt + 1)); continue; }
+          throw error;
+        }
+      }
+      throw last || new Error('network-error');
+    };
 
-  const setGate = on => {
+      const setGate = on => {
     document.documentElement.dataset.ah = on ? 'out' : 'in';
     document.body.classList.toggle('ah-gated', !!on);
     const g = document.getElementById('ahAuthGate');
@@ -404,7 +423,10 @@
     const gbtn = document.getElementById('ahGoogle');
     if (gbtn) gbtn.onclick = doGoogle;
     const pk = document.getElementById('ahPasskey');
-    if (pk) pk.onclick = () => (view === 'login' ? doPasskeyLogin() : doPasskeyRegister());
+    if (pk) pk.onclick = () => {
+      if (view === 'login') return doPasskeyLogin();
+      showErr('ahErr', lang === 'bn' ? 'পাসকি যোগ করতে আগে অ্যাকাউন্টে ঢুকুন। তারপর প্রোফাইল → নিরাপত্তা → পাসকি থেকে যোগ করুন।' : 'To add a passkey, sign in first. Then open Profile → Security → Passkeys.');
+    };
     const cont = document.getElementById('ahContinue');
     if (cont) cont.onclick = doContinueProfile;
     const ew = document.getElementById('ahEmailWay');
@@ -830,18 +852,37 @@
   function mountGoogle() {
     if (cfg.googleClientId) loadGis().catch(() => {});
   }
-  function loadGis() {
-    return new Promise((resolve, reject) => {
-      if (window.google && google.accounts && google.accounts.oauth2) return resolve();
-      const s = document.createElement('script');
-      s.src = 'https://accounts.google.com/gsi/client';
-      s.async = true;
-      s.onload = () => resolve();
-      s.onerror = () => reject(new Error('Google লোড হয়নি'));
-      document.head.appendChild(s);
-    });
-  }
-  function startGooglePicker() {
+  let gisPromise = null;
+    function loadGis() {
+      if (window.google && window.google.accounts && window.google.accounts.oauth2) return Promise.resolve();
+      if (gisPromise) return gisPromise;
+      gisPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-ah-google-identity]');
+        if (existing) {
+          existing.addEventListener('load', () => resolve(), { once: true });
+          existing.addEventListener('error', () => { gisPromise = null; reject(new Error('Google লোড হয়নি')); }, { once: true });
+          return;
+        }
+        const s = document.createElement('script');
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.async = true;
+        s.defer = true;
+        s.dataset.ahGoogleIdentity = '1';
+        s.onload = () => resolve();
+        s.onerror = () => { gisPromise = null; reject(new Error('Google লোড হয়নি')); };
+        document.head.appendChild(s);
+      });
+      return gisPromise;
+    }
+    async function loadAuthConfig() {
+      const next = await api('/auth/config', { cache: 'no-store' });
+      if (!next || typeof next !== 'object') throw new Error('auth-config-invalid');
+      cfg = next;
+      window.AH_AUTH_CONFIG = cfg;
+      return cfg;
+    }
+
+      function startGooglePicker() {
     const client = google.accounts.oauth2.initTokenClient({
       client_id: cfg.googleClientId,
       scope: 'openid email profile',
@@ -858,21 +899,25 @@
     client.requestAccessToken({ prompt: 'select_account' });
   }
   async function doGoogle() {
-    if (!cfg.googleClientId) return showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এখন সেটআপ নেই' : 'Google login is not set up');
-    const btn = document.getElementById('ahGoogle');
-    try {
-      if (window.google && google.accounts && google.accounts.oauth2) {
+      const btn = document.getElementById('ahGoogle');
+      const prev = btn ? btn.innerHTML : '';
+      try {
+        if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; btn.innerHTML = '<i class="ah-spin"></i>' + (lang === 'bn' ? 'গুগল প্রস্তুত হচ্ছে…' : 'Loading Google…'); }
+        const liveCfg = await loadAuthConfig();
+        if (!liveCfg.googleClientId) {
+          return showErr('ahErr', lang === 'bn' ? 'গুগল লগইন এখন প্রস্তুত নয়। ইমেইল দিয়ে চেষ্টা করুন বা একটু পরে আবার চাপুন।' : 'Google sign-in is temporarily unavailable. Try email or try again shortly.');
+        }
+        await loadGis();
         startGooglePicker();
-        return;
+      } catch (e) {
+        const msg = networkFailure(e) ? (lang === 'bn' ? 'গুগল সংযোগ পাওয়া যাচ্ছে না। ইন্টারনেট ঠিক করে আবার চেষ্টা করুন, অথবা ইমেইল দিয়ে ঢুকুন।' : 'Google could not be reached. Check your connection or use email sign-in.') : (e.message || (lang === 'bn' ? 'গুগল লগইন ব্যর্থ হয়েছে' : 'Google login failed'));
+        showErr('ahErr', msg);
+      } finally {
+        if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; if (prev) btn.innerHTML = prev; }
       }
-      if (btn) { btn.classList.add('ah-busy'); btn.disabled = true; }
-      await loadGis();
-      startGooglePicker();
-    } catch (e) { showErr('ahErr', e.message || (lang === 'bn' ? 'গুগল লগইন ব্যর্থ' : 'Google login failed')); }
-    finally { if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; } }
-  }
+    }
 
-  async function afterAuth(data) {
+      async function afterAuth(data) {
     clearWait();
     setSession(data.token, data.user);
     await enterApp();
@@ -1857,7 +1902,7 @@
         return;
       }
     } catch (e) { showErr('ahErr', e.message); }
-    try { cfg = await api('/auth/config'); } catch (_) {}
+    try { cfg = await loadAuthConfig(); } catch (_) { cfg = { google: false, googleClientId: '', email: false, sms: false }; }
     if (cfg && cfg.googleClientId) loadGis().catch(() => {});
     window.AH_AUTH_CONFIG = cfg;
     const held = readWait();
