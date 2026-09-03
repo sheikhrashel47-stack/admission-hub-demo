@@ -1366,11 +1366,13 @@ var authUser = async (request, env) => {
   return tr.id;
 };
 var touchUser = async (env, id) => {
-  const u = JSON.parse(await env.PUB_KV.get("user:" + id) || "{}");
-  if (u.id) {
-    u.lastSeen = Date.now();
-    await env.PUB_KV.put("user:" + id, JSON.stringify(u));
-  }
+  try {
+    const u = JSON.parse(await env.PUB_KV.get("user:" + id) || "{}");
+    if (u.id) {
+      u.lastSeen = Date.now();
+      await env.PUB_KV.put("user:" + id, JSON.stringify(u));
+    }
+  } catch (_) {}
 };
 var tok = (s) => String(s || "").toLowerCase().split(/[^\p{L}\p{M}\p{N}]+/u).filter((t) => t.length > 2).slice(0, 24);
 var bankMatch = (qs, text) => {
@@ -1517,7 +1519,7 @@ var aiCall = async (request, env, uid) => {
   let lim = 0;
   try { lim = Number(await env.PUB_KV.get(limKey) || 0); } catch (_) {}
   if (lim >= 12) return json({ error: "একটু ধীরে — প্রতি মিনিটে ১২টির বেশি AI উত্তর নয় 😊", retryAfter: 45 }, 429);
-  await env.PUB_KV.put(limKey, String(lim + 1), { expirationTtl: 150 });
+  try { await env.PUB_KV.put(limKey, String(lim + 1), { expirationTtl: 150 }); } catch (_) {}
   /* user-chat history (per-user, isolated) */
   let hist = [];
   try { hist = JSON.parse(await env.PUB_KV.get("achat:" + uid) || "[]"); } catch (_) {}
@@ -1525,7 +1527,6 @@ var aiCall = async (request, env, uid) => {
   const [contentRaw, stRaw] = await Promise.all([env.PUB_KV.get("pubContent"), env.PUB_KV.get("ustate:" + uid)]);
   const C = contentRaw ? JSON.parse(contentRaw) : { questions: [], vocabulary: [], subjects: [], topics: [] };
   const st = stRaw ? JSON.parse(stRaw) : {};
-  await env.PUB_KV.put(limKey, String(lim + 1), { expirationTtl: 150 });
   const keys2 = String(env.GEMINI_KEYS || "").split(",").map((s) => s.trim()).filter(Boolean);
   if (!keys2.length) return json({ error: "AI-key কনফিগার নেই (admin)" }, 503);
   /* cache READ — একই uid+প্রশ্ন ১০ মিনিটে আবার কল হয় না (কোস্ট কন্ট্রোল) */
@@ -1694,7 +1695,7 @@ var NEWS_SCHEMA = {
 var cors = (request) => {
   const origin = request.headers.get("Origin") || "";
   const ok = /^https:\/\/([a-z0-9-]+\.)?github\.io$/.test(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || /^https:\/\/[a-z0-9-]+\.e2b\.app$/.test(origin);
-  const headers = { "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-AH-App", "Access-Control-Max-Age": "86400" };
+  const headers = { "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, authorization, x-ah-guest, x-ah-app, x-ah-device, x-ah-client", "Access-Control-Max-Age": "86400" };
   if (ok) headers["Access-Control-Allow-Origin"] = origin;
   return headers;
 };

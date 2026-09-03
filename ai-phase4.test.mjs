@@ -26,6 +26,10 @@ t('১০. চ্যাট-হিস্ট্রি per-user (achat:<uid>, cap 4
 t('১১. স্পিড/কোস্ট: মডেল-চেইন ৩-flash-preview প্রথম (২-মডেল) + cache ৬০০s + টাইমআউট ৪৫s + রেট-লিমিট ১২/মিনিট',
   w.includes('gemini-3-flash-preview", "gemini-3.1-flash-lite"]') && w.includes('expirationTtl: 600') && w.includes('45000') && w.includes('lim >= 12') && !/gemini-2\.5-flash/.test(w));
 t('১১ক. ক্যাশ read+write একই key (একই প্রশ্নে নতুন API কল নয়)', w.includes('const cacheKey = "aicache:"') && w.includes('cached: true') && w.includes('env.PUB_KV.get(cacheKey)'));
+t('১১ক২. CORS preflight: authorization + x-ah-guest + x-ah-app allow (ব্রাউজার-ব্লকের মূল ফিক্স)',
+  /authorization,\s*content-type,\s*x-ah-guest/.test(w) && w.includes('x-ah-device'));
+t('১১ক৩. KV-র write-ব্যর্থতায় AI-ও পড়ে না (সব put try/catch, duplicate বাদ)',
+  w.includes('try { await env.PUB_KV.put(limKey') && (w.match(/put\(limKey/g) || []).length === 1 && w.includes('var touchUser = async (env, id) => {\n  try {'));
 t('১১বি০. ভিশন: শেষ user-মেসেজে attachments → inline_data (server-সূত্রে ছবি পড়া)',
   w.includes('inline_data: { mime_type: String(a.mime') && sai.includes('lastMsg.attachments = atts2'));
 t('১১বি. Google পেলোড-রূপ: contents[].parts[{text}] + raw-বডি থেকে lastTxt (400/crash-ফিক্স স্থায়ী)',
