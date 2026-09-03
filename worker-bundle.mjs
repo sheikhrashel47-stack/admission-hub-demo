@@ -1,7 +1,7 @@
 // public-worker.js
 var JSONH = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,content-type", "Access-Control-Allow-Methods": "GET,POST,OPTIONS" };
 var json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: JSONH });
-var GEM_CHAIN = ["gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+var GEM_CHAIN = ["gemini-3-flash-preview", "gemini-3.1-flash-lite"];
 var SYS = (ai) => `তুমি "স্টাডি বন্ধু" — Admission Hub-এর প্রাণ জুড়ানো AI সহপাঠী, বাংলাদেশি ভর্তি-প্রস্তুতির বন্ধু। আজকের তারিখ (ঢাকা): ${(new Date()).toLocaleDateString("bn-BD", { timeZone: "Asia/Dhaka" })}।
 ভাষা ও সুর: সবসময় মাখনের মতো সহজ, মনমুগ্ধকর বাংলা; বন্ধুর মতো মানুষের ভাষা — রোবটিক ভাব কখনো নয়; ২-৬ লাইনে উত্তর; প্রয়োজনে হালকা emoji বা ছোট তালিকা।
 সততা — সর্বোচ্চ নিয়ম: নিচের [লাইভ-মেমোরি] একমাত্র তথ্যের উৎস। ইউজারের কোনো স্কোর/প্রগ্রেস/ইতিহাস/ভুল সেখানে না থাকলে স্পষ্ট বলো "এখনো যথেষ্ট ডেটা নেই" — কখনোই (ভুলেও) কোনো সংখ্যা, ফলাফল বা তথ্য বানাবে না। প্রশ্ন/শব্দ সম্পর্কে শুধু [লাইভ-মেমোরি]-তে যা আছে তা-ই বলো; না থাকলে স্বীকার করো।
@@ -1544,7 +1544,7 @@ var aiCall = async (request, env, uid) => {
   for (const k of keys2) for (const m of GEM_CHAIN) {
     try {
       const ctrl = new AbortController();
-      const to = setTimeout(() => ctrl.abort(), 26000);
+      const to = setTimeout(() => ctrl.abort(), 45000);
       const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + m + ":generateContent", { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": k }, signal: ctrl.signal, body: JSON.stringify({ system_instruction: { parts: [{ text: sysTxt }] }, contents: msgs.length ? msgs : [{ role: "user", parts: [{ text: "হ্যালো" }] }] }) });
       clearTimeout(to);
       const d = await r.json().catch(() => ({}));
