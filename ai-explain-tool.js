@@ -76,14 +76,20 @@ Explain to the student in clear simple Bengali (তুমি-ফর্ম). Requ
     if (inflight[qid]) return inflight[qid];
     const prompt = buildPrompt(q, c);
     const p = (async () => {
-      let text = '', via = 'gemini', model = gemCfg().model;
+      let text = '', via = 'server-ai', model = 'context-engine';
       try {
-        if (gemCfg().keys.length) text = await callGemini(prompt);
+        if (window.AH_AI) {
+          // 🚀 Phase 4: secure server AI — প্রশ্ন-কনটেক্সট exact (question-aware), user-key লাগে না
+          const ah = await window.AH_AI.ask({ messages: [{ role: 'user', content: String(prompt).slice(0, 4000) }], kind: 'explain', refs: { questionId: qid } });
+          text = ah.text || '';
+          model = ah.model || 'context-engine';
+        } else if (gemCfg().keys.length) { text = await callGemini(prompt); via = 'gemini'; model = gemCfg().model; }
         else { text = await callAgent(prompt); via = 'agent'; model = 'browser-agent'; }
       } catch (e) {
         const m = String(e && e.message || e);
-        if (/^gem-/.test(m)) { // Gemini ব্যর্থ → এজেন্ট ফলব্যাক (কখনো raw error নয়)
-          text = await callAgent(prompt); via = 'agent'; model = 'browser-agent';
+        if (e && e.status === 429) throw e;
+        if (window.AH_AI ? true : /^gem-/.test(m)) { // server/Gemini ব্যর্থ → এজেন্ট ফলব্যাক (কখনো raw error নয়)
+          try { text = await callAgent(prompt); via = 'agent'; model = 'browser-agent'; } catch (e2) { throw e; }
         } else throw e;
       }
       const st = store();

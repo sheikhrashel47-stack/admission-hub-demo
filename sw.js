@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v178-nosplash-20260903';
+const BUILD_ID = 'v179-aiengine-20260903';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -49,8 +49,8 @@ const APP_SHELL = [
   './vocabulary-master-tool.js?v=vm-autoimg-v106',
   './notification-hub.js?v=notify-v110',
   './gk-agent-tool.js?v=gk-v115',
-  './study-ai-tool.js?v=studyai-v132',
-  './ai-explain-tool.js?v=aiex-v3',
+  './study-ai-tool.js?v=studyai-v133-server',
+  './ai-explain-tool.js?v=aiex-v4-ph4',
   './bug-agent-tool.js?v=bugagent-v112',
   './vocabulary-pronunciation.js?v=voice-el-v104',
   './vocabulary-elevenlabs.js?v=el-voice-v105',
@@ -74,6 +74,7 @@ const APP_SHELL = [
   './cloud-content-sync.js?v=p2-cloud-v2',
   './auth-svg.js?v=p3-auth-prof-v177',
   './session-persist.js?v=session-v1',
+  './ah-ai-client.js?v=ahai-v1',
   './premium-auth.js?v=p3-auth-guest-v177',
   './android-runtime-fix.js?v=and-scroll-v1',
   '',

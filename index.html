@@ -573,6 +573,7 @@ textarea{min-height:96px}
 })();
 </script>
 <script src="./session-persist.js?v=session-v1"></script>
+<script src="./ah-ai-client.js?v=ahai-v1"></script>
 <style id="ah-boot-min">.ah-boot{min-height:100dvh;display:grid;place-content:center;justify-items:center;gap:9px;color:#17221d;background:#f1faf6}.ah-boot-mark{display:grid;place-items:center;width:56px;height:56px;border-radius:17px;background:#0f6b4f;color:#fff;font-size:26px;box-shadow:0 12px 28px rgba(15,107,79,.30)}.ah-boot b{font-size:19px;font-weight:800;letter-spacing:.01em}.ah-boot i{font-style:normal;font-size:12px;color:#5e7168;animation:ahBootPulse 1.15s ease-in-out infinite}@keyframes ahBootPulse{0%,100%{opacity:.55}50%{opacity:1}}@media(prefers-reduced-motion:reduce){.ah-boot i{animation:none}}</style>
 </head>
 <body class="app-booting">
@@ -5112,17 +5113,17 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
       // An older worker can keep serving the pre-fix navigation bundle in an
       // installed PWA. Remove that controller once, then install the current
       // worker with a fresh build URL.
-      const expectedSwVersion = 'v178-nosplash-20260903';
+      const expectedSwVersion = 'v179-aiengine-20260903';
       if (registration && activeUrl && !activeUrl.includes(expectedSwVersion)) {
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v178-nosplash-20260903',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v179-aiengine-20260903',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v178-nosplash-20260903';
+        const cur = 'admission-hub-shell-v179-aiengine-20260903';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -5417,7 +5418,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script src="mobile-ux-fix.js?v=1"></script>
 <script src="notes-tool.js?v=dashboard-notes-v9-compact-pages"></script>
 
-<script src="ai-explain-tool.js?v=aiex-v3" defer></script>
+<script src="ai-explain-tool.js?v=aiex-v4-ph4" defer></script>
 <script src="nav-resume-fix.js?v=1"></script>
 <script src="mistake-note-icon.js?v=16-aiex"></script>
 <script src="experience-studio-store.js?v=2"></script>
@@ -5642,7 +5643,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script src="./vocabulary-elevenlabs.js?v=el-voice-v105" defer></script>
 <script src="./notification-hub.js?v=notify-v110"></script>
 <script src="./gk-agent-tool.js?v=gk-v115" defer></script>
-<script src="./study-ai-tool.js?v=studyai-v132" defer></script>
+<script src="./study-ai-tool.js?v=studyai-v133-server" defer></script>
 <script src="./bug-agent-tool.js?v=bugagent-v112" defer></script>
 <script src="./memorizing-match-tool.js?v=memorizing-match-v8-stable-cards" defer></script>
 <script src="./question-card-game-visual.js?v=question-card-game-v2-persistent" defer></script>

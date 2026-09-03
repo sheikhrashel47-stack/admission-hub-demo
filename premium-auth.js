@@ -8,7 +8,7 @@
   const CANONICAL_WORKER = 'https://admission-gk.admissionhub.workers.dev'; // আজীবন-লক: ভুল ঠিকানায় পড়লেও এখানে fallback (AUTH_ENDPOINTS_GUARD.test.mjs গার্ড করে)
   const LS_TOKEN = 'ahPubToken';
   const LS_USER = 'ahPubUser';
-  const PERSONAL = ['examResults', 'mistakes', 'settings', 'dailyStats', 'activityLogs', 'notes'];
+  const PERSONAL = ['examResults', 'mistakes', 'settings', 'dailyStats', 'activityLogs', 'notes', 'vocabulary'];
   let cfg = { google: false, googleClientId: '', email: false, sms: false };
   let view = 'welcome';
   let typeGen = 0;

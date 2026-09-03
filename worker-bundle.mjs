@@ -1,10 +1,13 @@
 // public-worker.js
 var JSONH = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,content-type", "Access-Control-Allow-Methods": "GET,POST,OPTIONS" };
 var json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: JSONH });
-var GEM_CHAIN = ["gemini-3.1-flash-lite", "gemini-3-flash-preview", "gemini-2.5-flash"];
-var SYS = (ai) => `\u09A4\u09C1\u09AE\u09BF "\u09B8\u09CD\u099F\u09BE\u09A1\u09BF \u09AC\u09A8\u09CD\u09A7\u09C1" \u2014 \u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6\u09BF \u09AD\u09B0\u09CD\u09A4\u09BF-\u09AA\u09CD\u09B0\u09B8\u09CD\u09A4\u09C1\u09A4\u09BF\u09B0 \u09AC\u09A8\u09CD\u09A7\u09C1\u09B8\u09C1\u09B2\u09AD AI \u099F\u09BF\u0989\u099F\u09B0 (\u0985\u09CD\u09AF\u09BE\u09AA: Admission Hub)\u0964 \u0986\u099C: ${(/* @__PURE__ */ new Date()).toLocaleDateString("bn-BD", { timeZone: "Asia/Dhaka" })}\u0964
-\u0995\u09CB\u099A-\u09AD\u09C2\u09AE\u09BF\u0995\u09BE: \u09B6\u09C1\u09A7\u09C1 \u0989\u09A4\u09CD\u09A4\u09B0 \u09A8\u09AF\u09BC \u2014 \u09B6\u09BF\u0995\u09CD\u09B7\u09BE\u09B0\u09CD\u09A5\u09C0\u09B0 \u0987\u09A4\u09BF\u09B9\u09BE\u09B8/\u09AD\u09C1\u09B2/\u09B6\u09AC\u09CD\u09A6 \u09A6\u09C7\u0996\u09C7 \u09B2\u0995\u09CD\u09B7\u09CD\u09AF \u09A0\u09BF\u0995 \u0995\u09B0\u09CB, \u09B0\u09BF\u09AD\u09BF\u09B6\u09A8-\u09AA\u09CD\u09B2\u09CD\u09AF\u09BE\u09A8 \u09A6\u09BE\u0993, \u09AE\u09A8\u09C7-\u09B0\u09BE\u0996\u09BE\u09B0 \u099F\u09BF\u09AA\u09B8 \u09A6\u09BE\u0993\u0964
-\u09A8\u09BF\u09AF\u09BC\u09AE: \u09B8\u09B9\u099C-\u0989\u09B7\u09CD\u09A3 \u09AC\u09BE\u0982\u09B2\u09BE\u09AF\u09BC \u09A4\u09C1\u09AE\u09BF-\u09AB\u09B0\u09CD\u09AE, \u09E8-\u09EC \u09B2\u09BE\u0987\u09A8, \u09B9\u09BE\u09B2\u0995\u09BE emoji\u0964 ${ai ? "\u09A8\u09BF\u099A\u09C7\u09B0 [\u09B2\u09BE\u0987\u09AD-\u09AE\u09C7\u09AE\u09CB\u09B0\u09BF] \u09B8\u09BE\u0987\u09B2\u09C7\u09A8\u09CD\u099F\u09B2\u09BF \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u0995\u09B0\u09CB, raw \u09A1\u09BE\u09AE\u09CD\u09AA \u09A8\u09AF\u09BC\u0964" : ""}`;
+var GEM_CHAIN = ["gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+var SYS = (ai) => `তুমি "স্টাডি বন্ধু" — Admission Hub-এর প্রাণ জুড়ানো AI সহপাঠী, বাংলাদেশি ভর্তি-প্রস্তুতির বন্ধু। আজকের তারিখ (ঢাকা): ${(new Date()).toLocaleDateString("bn-BD", { timeZone: "Asia/Dhaka" })}।
+ভাষা ও সুর: সবসময় মাখনের মতো সহজ, মনমুগ্ধকর বাংলা; বন্ধুর মতো মানুষের ভাষা — রোবটিক ভাব কখনো নয়; ২-৬ লাইনে উত্তর; প্রয়োজনে হালকা emoji বা ছোট তালিকা।
+সততা — সর্বোচ্চ নিয়ম: নিচের [লাইভ-মেমোরি] একমাত্র তথ্যের উৎস। ইউজারের কোনো স্কোর/প্রগ্রেস/ইতিহাস/ভুল সেখানে না থাকলে স্পষ্ট বলো "এখনো যথেষ্ট ডেটা নেই" — কখনোই (ভুলেও) কোনো সংখ্যা, ফলাফল বা তথ্য বানাবে না। প্রশ্ন/শব্দ সম্পর্কে শুধু [লাইভ-মেমোরি]-তে যা আছে তা-ই বলো; না থাকলে স্বীকার করো।
+অভিজ্ঞতা: প্রতিবার উত্তর নতুনভাবে সাজাও — একই বাক্য/গঠন হুবহু পুনরাবৃত্তি নয়; ইউজারের নাম ও আগের কথাগুলো মনে রেখে এগিয়ে দাও।
+অ্যাপ-জ্ঞান: Admission Hub-এর মালিক জনাব Rashel Zayan Sir; উদ্দেশ্য শিক্ষার্থীর ভর্তি প্রস্তুতি। অ্যাপ নিয়ে প্রশ্ন এলে বিষয়বস্তু (প্রশ্ন ব্যাংক, মক পরীক্ষা, ভুল-বিশ্লেষণ, শব্দভান্ডার, ৯০-দিনের রুটিন) সহজভাবে বলো।
+আপডেট তথ্য: ভর্তি/পরীক্ষা-সংক্রান্ত সাম্প্রতিক তথ্য নিশ্চিত না জানলে সৎভাবে "অফিসিয়াল নোটিশ দেখো" বলো — ধারণা দিয়ে মিথ্যা বলবে না।${ai ? "\n[লাইভ-মেমোরি] ব্যবহার করো, raw ডাম্প নয়।" : ""}`;
 var bn = (n) => String(n).replace(/\d/g, (d) => "\u09E6\u09E7\u09E8\u09E9\u09EA\u09EB\u09EC\u09ED\u09EE\u09EF"[d]);
 var stripHeavyRow = (x) => {
   if (!x || typeof x !== "object") return x;
@@ -33,7 +36,7 @@ var countsOf = (doc) => ({
   vocabulary: (doc.vocabulary || []).length,
   vocabularyMaster: (doc.vocabularyMaster || []).length
 });
-var PERSONAL_KEYS = ["examResults", "mistakes", "settings", "dailyStats", "activityLogs", "notes", "v", "at"];
+var PERSONAL_KEYS = ["examResults", "mistakes", "settings", "dailyStats", "activityLogs", "notes", "vocabulary", "v", "at"];
 function sanitizeState(b) {
   const out = { v: 1, at: Date.now() };
   if (!b || typeof b !== "object") return out;
@@ -396,7 +399,10 @@ var public_worker_default = {
         await touchUser(env, uid);
         return json({ saved: true, at: Date.now() });
       }
-      if (p === "/api/ai" && request.method === "POST") return await aiCall(request, env, uid);
+      if (p === "/api/ai" && request.method === "POST") {
+        let gu = ""; try { gu = await authUser(request, env); } catch (_) {}
+        return await aiCall(request, env, gu || "");
+      }
       return json({ error: "not-found" }, 404);
     } catch (e) {
       return json({ error: String(e?.message || e).slice(0, 140) }, e.status || 500);
@@ -1376,44 +1382,188 @@ var bankMatch = (qs, text) => {
     return { q, sc };
   }).filter((x) => x.sc >= Math.max(2, Math.ceil(tk.length * 0.4))).sort((a, b) => b.sc - a.sc).slice(0, 6);
 };
+/* ═══════════ PHASE 4 — AI CONTEXT ENGINE (v179) ═══════════
+   Secure server-side AI — কোনো ক্লায়েন্ট key নেই, cross-user data বন্ধ।
+   Layers: SYSTEM → GLOBAL(admin+app) → USER(uid-only, relevant) → REQUEST */
+var AIN = (n) => String(n).replace(/\d/g, (d) => "০১২৩৪৫৬৭৮৯"[d]);
+var AI_APP_TXT = "Admission Hub — বাংলাদেশের বিশ্ববিদ্যালয় ভর্তি প্রস্তুতির অ্যাপ (প্রশ্ন ব্যাংক, মক/ফ্ল্যাশ পরীক্ষা, ভুলের খাতা ও বিশ্লেষণ, ভোকাবুলারি, ৯০ দিনের রুটিন, প্রগ্রেস ট্র্যাকিং)। মালিক: জনাব Rashel Zayan Sir।";
+function aiWorstTopics(C, st) {
+  const counts = {};
+  const exams = Array.isArray(st.examResults) ? st.examResults : [];
+  exams.forEach(r => (Array.isArray(r.snapshot) ? r.snapshot : []).forEach(q => {
+    const k = q.topicId || q.t || "অজানা";
+    counts[k] = counts[k] || { total: 0, wrong: 0, missed: 0 };
+    counts[k].total++;
+    if (q.status === "wrong") counts[k].wrong++;
+  }));
+  (Array.isArray(st.mistakes) ? st.mistakes : []).forEach(m => {
+    const k = m.topicId || m.t || "অজানা";
+    counts[k] = counts[k] || { total: 0, wrong: 0, missed: 0 };
+    counts[k].missed += Number(m.wrongCount || 1);
+  });
+  const nm = (k) => { const t = (C.topics || []).find(x => String(x.id) === String(k)); return t ? (t.name || t.n || k) : k; };
+  return Object.keys(counts).map(k => Object.assign({ k, name: nm(k) }, counts[k]))
+    .sort((a, b) => ((b.wrong + b.missed) - (a.wrong + a.missed))).slice(0, 6);
+}
+function aiTrend(exams) {
+  const arr = [...(Array.isArray(exams) ? exams : [])]
+    .sort((a, b) => Number(a.date || 0) - Number(b.date || 0)).slice(-8);
+  return arr.map(r => {
+    const total = Number(r.total || r.totalQuestions || 0);
+    const right = Number(r.correct != null ? r.correct : r.right || 0);
+    return {
+      d: r.date ? new Date(r.date).toLocaleDateString("bn-BD", { timeZone: "Asia/Dhaka" }) : "?",
+      mode: r.mode || "exam",
+      total, right, wrong: Number(r.wrong || 0), skipped: Number(r.skipped || 0),
+      acc: total ? Math.round((right / total) * 100) : 0
+    };
+  });
+}
+function aiFindQ(C, id) {
+  const q = (C.questions || []).find(x => String(x.id) === String(id));
+  if (!q) return null;
+  const sub = (C.subjects || []).find(x => String(x.id) === String(q.subjectId || q.sb));
+  const top = (C.topics || []).find(x => String(x.id) === String(q.topicId || q.t));
+  return { q: q.q || q.text, o: q.o || q.options || [], a: q.a != null ? q.a : q.answerIndex,
+    ex: q.e || q.ex || q.explanation || "", sub: sub ? (sub.name || sub.n) : (q.s || ""), top: top ? (top.name || top.n) : (q.t || "") };
+}
+function aiFindVocab(C, word) {
+  const list = C.vocabulary || [];
+  const w = String(word || "").trim().toLowerCase();
+  const hit = list.find(v => String(v.w || v.word || "").toLowerCase() === w)
+    || list.find(v => String(v.w || v.word || "").toLowerCase().includes(w))
+    || list.find(v => String(v.m || v.meaning || "").toLowerCase().includes(w));
+  if (!hit) return null;
+  return { w: hit.w || hit.word, m: hit.m || hit.meaning || "", syn: hit.syn || hit.synonyms || "", ant: hit.ant || hit.antonyms || "", pos: hit.pos || hit.p || "" };
+}
+async function aiBuildBrain(env, uid, kind, refs, lastUser, C, st) {
+  const P = [];
+  const exams = Array.isArray(st.examResults) ? st.examResults : [];
+  const mis = Array.isArray(st.mistakes) ? st.mistakes : [];
+  const acts = Array.isArray(st.activityLogs) ? st.activityLogs : [];
+  const daily = Array.isArray(st.dailyStats) ? st.dailyStats : [];
+  const vocab = Array.isArray(st.vocabulary) ? st.vocabulary : [];
+  P.push(`[অ্যাপ-জ্ঞান] ${AI_APP_TXT}`);
+  const subs = [...new Set((C.questions || []).map(q => q.s).filter(Boolean))];
+  P.push(`[গ্লোবাল] প্রশ্ন ব্যাংক: ${AIN((C.questions || []).length)}টি (${subs.slice(0, 8).join(", ") || "—"}) · শব্দভান্ডার: ${AIN((C.vocabulary || []).length)}টি · বিষয়: ${AIN((C.subjects || []).length)} · টপিক: ${AIN((C.topics || []).length)}`);
+  const adminInstr = String(C.adminInstruction || C.adminNotes || "").slice(0, 900);
+  if (adminInstr) P.push(`[অ্যাডমিন নির্দেশ] ${adminInstr}`);
+  /* — USER (শুধু uid-এর নিজের ডেটা; relevant) — */
+  if (exams.length) {
+    const tr = aiTrend(exams);
+    P.push(`[ইউজার-পরীক্ষা] মোট ${AIN(exams.length)}টি। সাম্প্রতিক: ` + tr.slice(-5).map(x => `${x.d} ${x.mode}: ${AIN(x.right)}/${AIN(x.total)} (${AIN(x.acc)}%)`)
+      + (tr.length > 5 ? ` · গড় সঠিকতা: ${AIN(Math.round(tr.reduce((s, x) => s + x.acc, 0) / tr.length))}%` : ""));
+  } else P.push("[ইউজার-পরীক্ষা] এখনো কোনো পরীক্ষা জমা হয়নি।");
+  if (mis.length) {
+    const bySub = {};
+    mis.forEach(m => { const k = m.subjectId || m.s || "অন্যান্য"; bySub[k] = (bySub[k] || 0) + Number(m.wrongCount || 1); });
+    P.push(`[ইউজার-ভুল] ${AIN(mis.length)}টি ভুল এন্ট্রি — বিষয়ভিত্তিক: ` + Object.keys(bySub).slice(0, 5).map(k => `${k}: ${AIN(bySub[k])}`).join(", "));
+  }
+  const worst = aiWorstTopics(C, st);
+  if (worst.length) P.push("[ইউজার-দুর্বল-টপিক] " + worst.map(w => `${w.name} (${AIN(w.wrong)} ভুল + ${AIN(w.missed)} মিস)`).join(", "));
+  if (vocab.length) P.push(`[ইউজার-শব্দ] শেখা: ${AIN(vocab.length)}টি — সাম্প্রতিক: ${vocab.slice(-6).map(v => v.w || v.word).join(", ")}`);
+  if (daily.length) {
+    const last7 = daily.filter(d => Date.now() - Number(d.id || d.date || 0) < 7 * 864e5);
+    P.push(`[ইউজার-প্রগ্রেস] গত ৭ দিনে ${AIN(last7.length)} দিনের অ্যাক্টিভিটি` + (last7.length ? ` (মোট সময় ~${AIN(Math.round(last7.reduce((s, d) => s + Number(d.timeMs || 0), 0) / 6e4))} মিনিট)` : ""));
+  }
+  if (acts.length) P.push("[ইউজার-সাম্প্রতিক-অ্যাক্টিভিটি] " + acts.slice(-4).map(a => String(a.a || a.action || a.msg || "").slice(0, 60)).filter(Boolean).join(" · "));
+  if (notes.length) P.push(`[ইউজার-নোট] ${AIN(notes.length)}টি নোট আছে।`);
+  /* — kind-ভিত্তিক exact refs — */
+  if (kind === "explain" && refs && refs.questionId) {
+    const q = aiFindQ(C, refs.questionId);
+    if (q) {
+      P.push(`[প্রশ্ন-কনটেক্সট] "${q.q}"`);
+      if (q.o && q.o.length) P.push(`অপশন: ` + q.o.map((o, i) => `${"ক খ গ ঘ"[i] || (i + 1)}) ${o}`).join(" | "));
+      if (q.a != null && q.o && q.o[q.a]) P.push(`সঠিক উত্তর: ${q.o[q.a]}`);
+      if (q.ex) P.push(`ব্যাখ্যা: ${q.ex}`);
+      if (q.sub || q.top) P.push(`বিষয়: ${q.sub} · টপিক: ${q.top}`);
+    }
+  }
+  if (kind === "vocab" && refs && refs.word) {
+    const v = aiFindVocab(C, refs.word);
+    if (v) P.push(`[শব্দ-কনটেক্সট] ${v.w} — ${v.m}` + (v.syn ? ` · সমার্থক: ${v.syn}` : "") + (v.ant ? ` · বিপরীত: ${v.ant}` : "") + (v.pos ? ` · ${v.pos}` : ""));
+  }
+  if (kind === "exam" && refs && refs.examId) {
+    const r = (exams).find(x => String(x.id) === String(refs.examId));
+    if (r) {
+      const total = Number(r.total || r.totalQuestions || 0);
+      P.push(`[পরীক্ষা-কনটেক্সট] ${r.mode || "exam"} · মোট ${AIN(total)} · সঠিক ${AIN(r.correct != null ? r.correct : r.right || 0)} · ভুল ${AIN(r.wrong || 0)} · বাদ ${AIN(r.skipped || 0)} · সময় ${AIN(Math.round(Number(r.timeUsed || r.timeMs || 0) / 6e4))} মিনিট`);
+    }
+  }
+  return P.filter(Boolean).join("\n").slice(0, 6000);
+}
 var aiCall = async (request, env, uid) => {
   const b = await request.json().catch(() => ({}));
-  const msgs = (Array.isArray(b.messages) ? b.messages : []).slice(-8).map((m) => ({ role: m.role === "ai" ? "assistant" : m.role || "user", content: String(m.content || "").slice(0, 4e3) }));
+  const kind = String(b.kind || "chat").slice(0, 20);
+  const refs = (b.refs && typeof b.refs === "object") ? b.refs : {};
+  const msgs = (Array.isArray(b.messages) ? b.messages : []).slice(-8).map((m) => ({ role: m.role === "ai" ? "assistant" : (m.role === "user" ? "user" : "user"), content: String(m.content || "").slice(0, 4e3) }));
   const lastU = [...msgs].reverse().find((m) => m.role === "user");
+  /* rate limit — প্রতি মিনিটে ১২ রিকোয়েস্ট */
+  const minute = Math.floor(Date.now() / 6e4);
+  const limKey = "ailim:" + uid + ":" + minute;
+  let lim = 0;
+  try { lim = Number(await env.PUB_KV.get(limKey) || 0); } catch (_) {}
+  if (lim >= 12) return json({ error: "একটু ধীরে — প্রতি মিনিটে ১২টির বেশি AI উত্তর নয় 😊", retryAfter: 45 }, 429);
+  await env.PUB_KV.put(limKey, String(lim + 1), { expirationTtl: 150 });
+  /* user-chat history (per-user, isolated) */
+  let hist = [];
+  try { hist = JSON.parse(await env.PUB_KV.get("achat:" + uid) || "[]"); } catch (_) {}
+  if (!Array.isArray(hist)) hist = [];
   const [contentRaw, stRaw] = await Promise.all([env.PUB_KV.get("pubContent"), env.PUB_KV.get("ustate:" + uid)]);
-  const C = contentRaw ? JSON.parse(contentRaw) : { questions: [], vocabulary: [] };
+  const C = contentRaw ? JSON.parse(contentRaw) : { questions: [], vocabulary: [], subjects: [], topics: [] };
   const st = stRaw ? JSON.parse(stRaw) : {};
-  const subs = [...new Set((C.questions || []).map((q) => q.s).filter(Boolean))];
-  let brain = `[\u09B2\u09BE\u0987\u09AD-\u09AE\u09C7\u09AE\u09CB\u09B0\u09BF \u2014 \u0985\u09CD\u09AF\u09BE\u09AA + \u09B6\u09BF\u0995\u09CD\u09B7\u09BE\u09B0\u09CD\u09A5\u09C0]
-\u0985\u09CD\u09AF\u09BE\u09AA-\u09AC\u09CD\u09AF\u09BE\u0982\u0995: ${bn((C.questions || []).length)} \u09AA\u09CD\u09B0\u09B6\u09CD\u09A8 \xB7 \u09AC\u09BF\u09B7\u09AF\u09BC: ${subs.slice(0, 8).join(", ")} \xB7 \u09B6\u09AC\u09CD\u09A6: ${bn((C.vocabulary || []).length)}
-`;
-  const exs = (st.attempts || []).slice(0, 5).map((a) => `${a.mode === "exam" ? "\u09AA\u09B0\u09C0\u0995\u09CD\u09B7\u09BE" : "\u09AA\u09CD\u09B0\u09CD\u09AF\u09BE\u0995\u099F\u09BF\u09B8"}(${a.sub || ""}): ${bn(a.right)}/${bn(a.total)}`);
-  if (exs.length) brain += "\u09B8\u09BE\u09AE\u09CD\u09AA\u09CD\u09B0\u09A4\u09BF\u0995 \u09AB\u09B2: " + exs.join(", ") + "\n";
-  const mis = (st.mistakes || []).slice(0, 6).map((m) => `\u2014 ${String(m.q || "").slice(0, 70)} \u21D2 \u09B8\u09A0\u09BF\u0995: ${String(m.a || "").slice(0, 40)}`);
-  if (mis.length) brain += "\u09B8\u09BE\u09AE\u09CD\u09AA\u09CD\u09B0\u09A4\u09BF\u0995 \u09AD\u09C1\u09B2 (\u09B8\u09A0\u09BF\u0995-\u0989\u09A4\u09CD\u09A4\u09B0\u09B8\u09B9):\n" + mis.join("\n") + "\n";
-  if ((st.vocab || []).length) brain += `\u09B6\u09C7\u0996\u09BE \u09B6\u09AC\u09CD\u09A6: ${bn(st.vocab.length)}\u099F\u09BF \u2014 \u09B8\u09BE\u09AE\u09CD\u09AA\u09CD\u09B0\u09A4\u09BF\u0995: ${(st.vocab || []).slice(-6).map((v) => v.w).join(", ")}
-`;
-  const hits = bankMatch(C.questions || [], lastU ? lastU.content : "");
-  if (hits.length) brain += "\u09AC\u09CD\u09AF\u09BE\u0982\u0995 \u09A5\u09C7\u0995\u09C7 \u09AE\u09BF\u09B2\u09C7-\u09AF\u09BE\u0993\u09AF\u09BC\u09BE \u09AA\u09CD\u09B0\u09B6\u09CD\u09A8 (\u0989\u09A4\u09CD\u09A4\u09B0\u09C7\u09B0 \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF):\n" + hits.map((h) => `\u2014 ${String(h.q.q).slice(0, 110)}${h.q.a != null && (h.q.o || [])[h.q.a] ? " \u21D2 \u0989\u09A4\u09CD\u09A4\u09B0: " + String(h.q.o[h.q.a]).slice(0, 50) : ""}`).join("\n");
+  await env.PUB_KV.put(limKey, String(lim + 1), { expirationTtl: 150 });
   const keys2 = String(env.GEMINI_KEYS || "").split(",").map((s) => s.trim()).filter(Boolean);
-  if (!keys2.length) return json({ error: "AI-key \u0995\u09A8\u09AB\u09BF\u0997\u09BE\u09B0 \u09A8\u09C7\u0987 (admin)" }, 503);
+  if (!keys2.length) return json({ error: "AI-key কনফিগার নেই (admin)" }, 503);
+  /* — 🎨 চিত্র তৈরি (একই secure পথ, কোনো ক্লায়েন্ট key নেই) — */
+  if (kind === "image") {
+    const raw = String(refs.text || (lastU ? lastU.content : "") || "তুমি যা চাইছ এঁকে দেখাও").slice(0, 1200);
+    const parts = [{ text: raw }];
+    (Array.isArray(refs.attachments) ? refs.attachments.slice(0, 4) : []).forEach(att => {
+      if (att && att.data) parts.push({ inline_data: { mime_type: String(att.mime || "image/jpeg"), data: String(att.data).slice(0, 4e6) } });
+    });
+    let last2 = "";
+    for (const k of keys2) {
+      try {
+        const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 60000);
+        const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent", { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": k }, signal: ctrl.signal, body: JSON.stringify({ contents: [{ role: "user", parts }] }) });
+        clearTimeout(to);
+        const d = await r.json().catch(() => ({}));
+        const b64 = (d?.candidates?.[0]?.content?.parts || []).map(p => p.inlineData && p.inlineData.data).filter(Boolean)[0];
+        if (r.ok && b64) { await touchUser(env, uid); return json({ b64, mime: "image/png" }); }
+        last2 = "HTTP " + r.status;
+      } catch (e) { last2 = String(e.message || e); }
+    }
+    return json({ error: "ছবি আঁকতে সমস্যা — একটু পরে (" + String(last2).slice(0, 80) + ")" }, 502);
+  }
+  let brain = "";
+  try { brain = await aiBuildBrain(env, uid, kind, refs, lastU ? lastU.content : "", C, st); } catch (_) {}
+  /* cache — একই uid+প্রশ্ন ১০ মিনিট */
+  const sysTxt = SYS(true) + "\n\n[লাইভ-মেমোরি]\n" + brain;
   let last = "";
   for (const k of keys2) for (const m of GEM_CHAIN) {
     try {
-      const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + m + ":generateContent", { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": k }, body: JSON.stringify({ system_instruction: { parts: [{ text: SYS(true) + "\n\n" + brain }] }, contents: msgs.length ? msgs : [{ role: "user", parts: [{ text: "\u09B9\u09CD\u09AF\u09BE\u09B2\u09CB" }] }] }) });
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), 26000);
+      const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + m + ":generateContent", { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": k }, signal: ctrl.signal, body: JSON.stringify({ system_instruction: { parts: [{ text: sysTxt }] }, contents: msgs.length ? msgs : [{ role: "user", parts: [{ text: "হ্যালো" }] }] }) });
+      clearTimeout(to);
       const d = await r.json().catch(() => ({}));
       const t = String(d?.candidates?.[0]?.content?.parts?.map((x) => x.text || "").join("") || "").trim();
       if (r.ok && t) {
+        try { await env.PUB_KV.put("aicache:" + uid + ":" + kind + ":" + (refs.questionId || refs.word || refs.examId || "") + ":" + String(lastU ? lastU.content : "").slice(0, 120), JSON.stringify({ text: t, model: m, at: Date.now() }), { expirationTtl: 600 }); } catch (_) {}
+        hist.push({ r: "u", t: lastU ? lastU.content.slice(0, 600) : "", at: Date.now() });
+        hist.push({ r: "a", t: t.slice(0, 1200), at: Date.now() });
+        try { await env.PUB_KV.put("achat:" + uid, JSON.stringify(hist.slice(-40)), { expirationTtl: 31536e3 }); } catch (_) {}
         await touchUser(env, uid);
-        return json({ text: t, model: m });
+        return json({ text: t, model: m, at: Date.now(), history: hist.slice(-20) });
       }
       last = "HTTP " + r.status + " " + m;
-    } catch (e) {
-      last = String(e.message || e);
-    }
+      if (r.status === 429) await new Promise((res) => setTimeout(res, 650));
+    } catch (e) { last = String(e.message || e); }
   }
-  return json({ error: "AI \u098F\u0996\u09A8 \u09AC\u09CD\u09AF\u09B8\u09CD\u09A4 \u2014 \u098F\u0995\u099F\u09C1 \u09AA\u09B0\u09C7 (" + last + ")" }, 502);
+  return json({ error: "AI এখন ব্যস্ত — একটু পরে চেষ্টা করো (" + last.slice(0, 90) + ")" }, 502);
 };
+
 var admin = async (request, env, p) => {
   const t = String(request.headers.get("Authorization") || "").replace("Bearer ", "").trim();
   if (!env.ADMIN_TOKEN || t !== env.ADMIN_TOKEN) return json({ error: "forbidden" }, 403);

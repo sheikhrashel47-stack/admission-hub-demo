@@ -26,14 +26,15 @@
   let state = { busy: false, sheet: null, view: {}, page: null, attach: [], keyTest: null, bankInfo: undefined, autoSyncTried: false };
 
   // ── চ্যাট-লিস্ট (branches) ────────────────────────────────────────────────────
-  const listChats = () => { try { const l = JSON.parse(localStorage.getItem(LS_LIST) || '[]'); return Array.isArray(l) ? l : []; } catch (_) { return []; } };
+  const ownerOf = () => { try { const u = JSON.parse(localStorage.getItem('ahPubUser') || 'null'); return (u && (u.uid || u.id)) || ''; } catch (_) { return ''; } };
+  const listChats = () => { try { const l = JSON.parse(localStorage.getItem(LS_LIST) || '[]'); return Array.isArray(l) ? l.filter(c => (c.owner || '') === ownerOf()) : []; } catch (_) { return []; } };
   const saveList = l => localStorage.setItem(LS_LIST, JSON.stringify(l.slice(0, 30)));
   const curId = () => localStorage.getItem(LS_CUR) || '';
   const msgsOf = id => { try { return JSON.parse(localStorage.getItem('studyAiChat:' + id) || '[]'); } catch (_) { return []; } };
   const saveMsgs = (id, m) => localStorage.setItem('studyAiChat:' + id, JSON.stringify(m.slice(-60)));
   const ensureChat = () => {
     if (curId() && listChats().some(c => c.id === curId())) return curId();
-    const c = { id: uid(), title: 'নতুন চ্যাট', at: Date.now() };
+    const c = { id: uid(), title: 'নতুন চ্যাট', at: Date.now(), owner: ownerOf() };
     saveList([c, ...listChats()]); localStorage.setItem(LS_CUR, c.id);
     return c.id;
   };
@@ -41,9 +42,9 @@
     const l = listChats(); const c = l.find(x => x.id === id);
     if (c) { if (firstText && c.title === 'নতুন চ্যাট') c.title = String(firstText).slice(0, 28); c.at = Date.now(); saveList(l.sort((a, b) => b.at - a.at)); }
   };
-  const newChat = () => { const c = { id: uid(), title: 'নতুন চ্যাট', at: Date.now() }; saveList([c, ...listChats()]); localStorage.setItem(LS_CUR, c.id); state.sheet = null; state.msgsFull = false; state.jumpBottom = true; paint(); };
+  const newChat = () => { const c = { id: uid(), title: 'নতুন চ্যাট', at: Date.now(), owner: ownerOf() }; saveList([c, ...listChats()]); localStorage.setItem(LS_CUR, c.id); state.sheet = null; state.msgsFull = false; state.jumpBottom = true; paint(); };
   const openChat = id => { localStorage.setItem(LS_CUR, id); state.sheet = null; state.msgsFull = false; state.jumpBottom = true; fixIds(id); paint(); };
-  const delChat = id => { let l = listChats().filter(c => c.id !== id); localStorage.removeItem('studyAiChat:' + id); if (!l.length) { const c = { id: uid(), title: 'নতুন চ্যাট', at: Date.now() }; l = [c]; } saveList(l); if (curId() === id) localStorage.setItem(LS_CUR, l[0].id); paint(); };
+  const delChat = id => { let l = listChats().filter(c => c.id !== id); localStorage.removeItem('studyAiChat:' + id); if (!l.length) { const c = { id: uid(), title: 'নতুন চ্যাট', at: Date.now(), owner: ownerOf() }; l = [c]; } saveList(l); if (curId() === id) localStorage.setItem(LS_CUR, l[0].id); paint(); };
   const chatTitle = () => (listChats().find(c => c.id === curId()) || {}).title || 'নতুন চ্যাট';
 
   const cache = () => (typeof CACHE !== 'undefined' && CACHE) || window.CACHE || {};
@@ -247,6 +248,12 @@ ${cfg().sendData && localStorage.getItem('studyAiCtx') ? `শিক্ষার�
     // 🎨 ছবি-আঁকা — যেকোনো ইঞ্জিন থেকে Gemini-ইমেজ-মডেলে
     if (/(ছবি|চিত্র)[^\n.]{0,26}(বানাও|আঁকো|আঁকা|তৈরি|জেনারেট)|(বানাও|আঁকো)[^\n.]{0,20}ছবি|(generate|create|draw)[^\n.]{0,16}(image|picture)|^\/img/i.test(question)) {
       // v130: ছবি-চেইন — ① Gemini ② Hugging Face FLUX.1-schnell ③ OpenRouter Images (OR/HF = সেরা-ছবি-বিশেষজ্ঞ)
+      if (window.AH_AI) {
+        try {
+          const im2 = await window.AH_AI.askImage(question, (Array.isArray(atts) ? atts : []).filter(a => a && a.data).map(a => ({ mime: a.mime || 'image/jpeg', data: a.data })));
+          if (im2 && im2.b64) return { text: 'ছবি তৈরি হয়েছে ✨', img: (await shrinkB64(String(im2.b64))) || undefined };
+        } catch (_) {}
+      }
       const gk = keyList('gemini')[0];
       if (gk) {
         const gd = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent', Object.assign({ method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': gk }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Generate an image: ' + question }] }] }) }, ctl ? { signal: ctl.signal } : {})).then(r => r.json()).catch(() => ({}));
@@ -280,6 +287,16 @@ ${cfg().sendData && localStorage.getItem('studyAiCtx') ? `শিক্ষার�
       const histParts = msgsOf(curId()).filter(m => m.text).slice(-8).map(m => ({ role: m.who === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] }));
       if (histParts.length) histParts[histParts.length - 1] = { role: 'user', parts: [{ text: qText }, ...imgs.filter(i => i.data).map(i => ({ inline_data: { mime_type: i.mime || 'image/jpeg', data: i.data } }))] };
       else histParts.push({ role: 'user', parts: [{ text: qText }, ...imgs.filter(i => i.data).map(i => ({ inline_data: { mime_type: i.mime || 'image/jpeg', data: i.data } }))] });
+      if (window.AH_AI) {
+        // 🚀 Phase 4: secure server AI — ইউজার-কী লাগে না, user context server-এ
+        try {
+          const ah = await window.AH_AI.ask({ messages: histParts.map(m => ({ role: m.role === 'model' ? 'ai' : 'user', content: String((m.parts && m.parts[0] && m.parts[0].text) || m.text || '').slice(0, 4000) })), kind: 'chat' });
+          return { text: ah.text || 'উত্তর পাইনি — আবার লেখো?', sources: [] };
+        } catch (e) {
+          if (e && e.status === 429) throw new Error('একটু ধীরে — কিছুক্ষণ পরেই আবার চেষ্টা করো 😊');
+          throw new Error(String(e && e.message || e).includes('কনফিগার') ? 'AI সার্ভার প্রস্তুত হচ্ছে — একটু পরে চেষ্টা করো' : (String(e && e.message || e).slice(0, 140) || 'AI-এর সাথে যোগাযোগ হয়নি — আবার চেষ্টা করো'));
+        }
+      }
       const gCall = (model, useTools, k) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, Object.assign({ method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify(Object.assign({ system_instruction: { parts: [{ text: sysPrompt() + (brain ? '\n\n' + brain : '') }] }, contents: histParts, generationConfig: { temperature: 0.5, maxOutputTokens: 2048 } }, useTools ? { tools: [{ google_search: {} }] } : {})) }, ctl ? { signal: ctl.signal } : {}));
       let lastMsg = '', lastStatus = 0;
       for (const k of gKeys) {
