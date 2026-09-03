@@ -269,7 +269,7 @@
     } catch (_) {}
   }
 
-  window.AdmissionSplash3D = { mount: mount, setStage: setStage, setProgress: setProgress, dismiss: dismiss, forceHide: forceHide };
+  window.AdmissionSplash3D = { mount: mount, setStage: setStage, setProgress: setProgress, dismiss: dismiss, forceHide: forceHide, sceneMarkup: sceneHTML, styleCSS: CSS };
 
   /* প্রথম UI-তে থাকা splash-গুলোতে অটো mount */
   function autoMount() {
