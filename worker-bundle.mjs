@@ -280,6 +280,10 @@ var public_worker_default = {
       if (p === "/api/auth/reset" && request.method === "POST") return await authReset(request, env);
       if (p === "/api/auth/logout" && request.method === "POST") return await authLogout(request, env);
       if (p.startsWith("/api/admin/")) return await admin(request, env, p);
+      if (p === "/api/ai" && request.method === "POST") {
+        let gu = ""; try { gu = await authUser(request, env); } catch (_) {}
+        return await aiCall(request, env, gu || "");
+      }
       const uid = await authUser(request, env);
       if (p === "/api/auth/passkey/add/begin" && request.method === "POST") return await pkAddBegin(request, env, uid);
       if (p === "/api/auth/passkey/add/finish" && request.method === "POST") return await pkAddFinish(request, env, uid);
@@ -398,10 +402,6 @@ var public_worker_default = {
         await env.PUB_KV.put("ustate:" + uid, JSON.stringify(sanitizeState(b)).slice(0, 18e5));
         await touchUser(env, uid);
         return json({ saved: true, at: Date.now() });
-      }
-      if (p === "/api/ai" && request.method === "POST") {
-        let gu = ""; try { gu = await authUser(request, env); } catch (_) {}
-        return await aiCall(request, env, gu || "");
       }
       return json({ error: "not-found" }, 404);
     } catch (e) {
