@@ -1498,6 +1498,7 @@ var aiCall = async (request, env, uid) => {
   const refs = (b.refs && typeof b.refs === "object") ? b.refs : {};
   const msgs = (Array.isArray(b.messages) ? b.messages : []).slice(-8).map((m) => ({ role: (String(m.role || "user") === "user" ? "user" : "model"), parts: [{ text: String(m.content || "").slice(0, 4e3) }] }));
   const lastU = [...msgs].reverse().find((m) => m.role === "user");
+  const lastTxt = (Array.isArray(b.messages) ? b.messages : []).reverse().find((m) => String(m.role || "user") === "user") ? String((Array.isArray(b.messages) ? b.messages : []).reverse().find((m) => String(m.role || "user") === "user").content || "") : "";
   /* rate limit — প্রতি মিনিটে ১২ রিকোয়েস্ট */
   const minute = Math.floor(Date.now() / 6e4);
   const limKey = "ailim:" + uid + ":" + minute;
@@ -1517,7 +1518,7 @@ var aiCall = async (request, env, uid) => {
   if (!keys2.length) return json({ error: "AI-key কনফিগার নেই (admin)" }, 503);
   /* — 🎨 চিত্র তৈরি (একই secure পথ, কোনো ক্লায়েন্ট key নেই) — */
   if (kind === "image") {
-    const raw = String(refs.text || (lastU ? lastU.content : "") || "তুমি যা চাইছ এঁকে দেখাও").slice(0, 1200);
+    const raw = String(refs.text || lastTxt || "তুমি যা চাইছ এঁকে দেখাও").slice(0, 1200);
     const parts = [{ text: raw }];
     (Array.isArray(refs.attachments) ? refs.attachments.slice(0, 4) : []).forEach(att => {
       if (att && att.data) parts.push({ inline_data: { mime_type: String(att.mime || "image/jpeg"), data: String(att.data).slice(0, 4e6) } });
@@ -1537,7 +1538,7 @@ var aiCall = async (request, env, uid) => {
     return json({ error: "ছবি আঁকতে সমস্যা — একটু পরে (" + String(last2).slice(0, 80) + ")" }, 502);
   }
   let brain = "";
-  try { brain = await aiBuildBrain(env, uid, kind, refs, lastU ? lastU.content : "", C, st); } catch (_) {}
+  try { brain = await aiBuildBrain(env, uid, kind, refs, lastTxt, C, st); } catch (_) {}
   /* cache — একই uid+প্রশ্ন ১০ মিনিট */
   const sysTxt = SYS(true) + "\n\n[লাইভ-মেমোরি]\n" + brain;
   let last = "";
@@ -1550,8 +1551,8 @@ var aiCall = async (request, env, uid) => {
       const d = await r.json().catch(() => ({}));
       const t = String(d?.candidates?.[0]?.content?.parts?.map((x) => x.text || "").join("") || "").trim();
       if (r.ok && t) {
-        try { await env.PUB_KV.put("aicache:" + uid + ":" + kind + ":" + (refs.questionId || refs.word || refs.examId || "") + ":" + String(lastU ? lastU.content : "").slice(0, 120), JSON.stringify({ text: t, model: m, at: Date.now() }), { expirationTtl: 600 }); } catch (_) {}
-        hist.push({ r: "u", t: lastU ? lastU.content.slice(0, 600) : "", at: Date.now() });
+        try { await env.PUB_KV.put("aicache:" + uid + ":" + kind + ":" + (refs.questionId || refs.word || refs.examId || "") + ":" + lastTxt.slice(0, 120), JSON.stringify({ text: t, model: m, at: Date.now() }), { expirationTtl: 600 }); } catch (_) {}
+        hist.push({ r: "u", t: lastTxt.slice(0, 600), at: Date.now() });
         hist.push({ r: "a", t: t.slice(0, 1200), at: Date.now() });
         try { await env.PUB_KV.put("achat:" + uid, JSON.stringify(hist.slice(-40)), { expirationTtl: 31536e3 }); } catch (_) {}
         await touchUser(env, uid);
