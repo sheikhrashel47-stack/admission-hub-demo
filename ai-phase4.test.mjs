@@ -36,11 +36,21 @@ t('১৪. image-ও একই secure পথ (কোনো ক্লায়ে
 t('১৫. ah-ai-client.js: একমাত্র গন্তব্য /api (secure worker), কোনো key-স্ট্রিং নেই', gate.includes("WORKER + '/ai'") && !/AIza|x-goog-api-key/.test(gate));
 t('১৬. ah-ai-client.js: token-হলেই Bearer + গেস্ট-ও চলে', gate.includes('Authorization: \'Bearer \'') && gate.includes('tok()'));
 t('১৬খ. গেস্ট-ডিভাইস id → X-AH-Guest header → server-এ uid=g:<id> (per-device isolation)', gate.includes('X-AH-Guest') && gate.includes('guestId') && /"g:" \+ gid/.test(w) && w.includes('X-AH-Guest'));
+t('১৬গ. মেনু-সরলীকরণ: মেনুতে শুধু ফেরি/পরীক্ষা/নতুন-চ্যাট/সব-চ্যাট/মুছি — সোর্স-ইঞ্জিন-সেটিংস-নাম-বদলানো নেই',
+  (() => { const a = sai.indexOf("state.sheet === 'menu'"); const b = sai.indexOf("state.sheet === 'source'"); const m = sai.slice(a, b);
+    return m.includes('নতুন চ্যাট') && m.includes('সব চ্যাট') && m.includes('এই কথোপকথন মুছি') && !m.includes('openSheet(\'engine\')') && !m.includes("openSheet('settings')") && !m.includes("openSheet('source')") && !m.includes('চ্যাটের নাম বদলাও'); })());
+t('১৬ঘ. অভিবাদন-নাম: লগইন-নাম → LS_NAME → fallback "শিক্ষার্থী" (কোনো হার্ডকোড নাম নয়)',
+  /isAuthed\(\)/.test(sai) && sai.includes("'শিক্ষার্থী'") && !/\| 'রাশেল'/.test(sai));
+t('১৬ঙ. ল্যান্ডিং সাদামাটা: শেয়ার-কার্ড/মেমোরি-চিপ/এজেন্ট-নোট বাদ',
+  (() => { const a = sai.indexOf('const landing = ()'); const b = sai.indexOf('const sheet = ()'); const L = sai.slice(a, b);
+    return !L.includes('sai-ghostbtn') && !L.includes('সত্যিই ওয়েব ঘেঁটে') && !L.includes('মেমোরি:') && !L.includes('সব ডেটা পাঠাও'); })());
+t('১৬চ. SYS-নাম-নিয়ম: নাম থাকলে ডাকো, না থাকলে "শিক্ষার্থী" — গেস্টে নাম বানাবে না; ব্রেইনে [ইউজার-নাম]',
+  w.includes('শিক্ষার্থী\" বলে ডাকো') && w.includes('[ইউজার-নাম]'));
 t('১৭. Study AI → server-first (AH_AI.ask) + chat owner-স্কোপ (স্পেক ১৩)', sai.includes('window.AH_AI') && sai.includes('ownerOf()') && sai.includes("(c.owner || '') === ownerOf()"));
 t('১৮. Study AI ছবি → server-first; client-পথ শুধু fallback', sai.includes('window.AH_AI.askImage') && sai.includes('const gk = keyList'));
 t('১৯. AI Explain → server-first + question-aware (refs.questionId)', aie.includes('window.AH_AI') && aie.includes("refs: { questionId: qid }"));
 t('২০. index.html-এ gateway লোড + v179 markers + AI টুল নতুন ভার্সন',
-  idx.includes('ah-ai-client.js?v=ahai-v2') && idx.includes('v179-aiengine-20260903') && idx.includes('studyai-v133-server') && idx.includes('aiex-v4-ph4'));
+  idx.includes('ah-ai-client.js?v=ahai-v2') && idx.includes('v179-aiengine-20260903') && idx.includes('studyai-v134-server') && idx.includes('aiex-v4-ph4'));
 
 /* ── RUNTIME: gateway-র আচরণ (jsdom) ── */
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/' });

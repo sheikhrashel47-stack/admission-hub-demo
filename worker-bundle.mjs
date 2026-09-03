@@ -1,11 +1,11 @@
 // public-worker.js
-var JSONH = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,content-type", "Access-Control-Allow-Methods": "GET,POST,OPTIONS" };
+var JSONH = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,content-type,x-ah-guest,x-ah-app,x-ah-device", "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Max-Age": "86400" };
 var json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: JSONH });
 var GEM_CHAIN = ["gemini-3-flash-preview", "gemini-3.1-flash-lite"];
 var SYS = (ai) => `তুমি "স্টাডি বন্ধু" — Admission Hub-এর প্রাণ জুড়ানো AI সহপাঠী, বাংলাদেশি ভর্তি-প্রস্তুতির বন্ধু। আজকের তারিখ (ঢাকা): ${(new Date()).toLocaleDateString("bn-BD", { timeZone: "Asia/Dhaka" })}।
 ভাষা ও সুর: সবসময় মাখনের মতো সহজ, মনমুগ্ধকর বাংলা; বন্ধুর মতো মানুষের ভাষা — রোবটিক ভাব কখনো নয়; ২-৬ লাইনে উত্তর; প্রয়োজনে হালকা emoji বা ছোট তালিকা।
 সততা — সর্বোচ্চ নিয়ম: নিচের [লাইভ-মেমোরি] একমাত্র তথ্যের উৎস। ইউজারের কোনো স্কোর/প্রগ্রেস/ইতিহাস/ভুল সেখানে না থাকলে স্পষ্ট বলো "এখনো যথেষ্ট ডেটা নেই" — কখনোই (ভুলেও) কোনো সংখ্যা, ফলাফল বা তথ্য বানাবে না। প্রশ্ন/শব্দ সম্পর্কে শুধু [লাইভ-মেমোরি]-তে যা আছে তা-ই বলো; না থাকলে স্বীকার করো।
-অভিজ্ঞতা: প্রতিবার উত্তর নতুনভাবে সাজাও — একই বাক্য/গঠন হুবহু পুনরাবৃত্তি নয়; ইউজারের নাম ও আগের কথাগুলো মনে রেখে এগিয়ে দাও।
+অভিজ্ঞতা: প্রতিবার উত্তর নতুনভাবে সাজাও — একই বাক্য/গঠন হুবহু পুনরাবৃত্তি নয়; [লাইভ-মেমোরি]-তে ইউজারের নাম থাকলে সেই নামে ডাকো, না থাকলে "শিক্ষার্থী" বলে ডাকো — কখনোই কোনো নাম অনুমান কোরো না; আগের কথাগুলো মনে রেখে এগিয়ে দাও।
 অ্যাপ-জ্ঞান: Admission Hub-এর মালিক জনাব Rashel Zayan Sir; উদ্দেশ্য শিক্ষার্থীর ভর্তি প্রস্তুতি। অ্যাপ নিয়ে প্রশ্ন এলে বিষয়বস্তু (প্রশ্ন ব্যাংক, মক পরীক্ষা, ভুল-বিশ্লেষণ, শব্দভান্ডার, ৯০-দিনের রুটিন) সহজভাবে বলো।
 আপডেট তথ্য: ভর্তি/পরীক্ষা-সংক্রান্ত সাম্প্রতিক তথ্য নিশ্চিত না জানলে সৎভাবে "অফিসিয়াল নোটিশ দেখো" বলো — ধারণা দিয়ে মিথ্যা বলবে না।${ai ? "\n[লাইভ-মেমোরি] ব্যবহার করো, raw ডাম্প নয়।" : ""}`;
 var bn = (n) => String(n).replace(/\d/g, (d) => "\u09E6\u09E7\u09E8\u09E9\u09EA\u09EB\u09EC\u09ED\u09EE\u09EF"[d]);
@@ -1445,6 +1445,10 @@ async function aiBuildBrain(env, uid, kind, refs, lastUser, C, st) {
   const daily = Array.isArray(st.dailyStats) ? st.dailyStats : [];
   const vocab = Array.isArray(st.vocabulary) ? st.vocabulary : [];
   P.push(`[অ্যাপ-জ্ঞান] ${AI_APP_TXT}`);
+  try {
+    const urec = JSON.parse(await env.PUB_KV.get("user:" + uid) || "null");
+    if (urec && (urec.name || urec.displayName)) P.push(`[ইউজার-নাম] ${String(urec.name || urec.displayName).slice(0, 30)}`);
+  } catch (_) {}
   const subs = [...new Set((C.questions || []).map(q => q.s).filter(Boolean))];
   P.push(`[গ্লোবাল] প্রশ্ন ব্যাংক: ${AIN((C.questions || []).length)}টি (${subs.slice(0, 8).join(", ") || "—"}) · শব্দভান্ডার: ${AIN((C.vocabulary || []).length)}টি · বিষয়: ${AIN((C.subjects || []).length)} · টপিক: ${AIN((C.topics || []).length)}`);
   const adminInstr = String(C.adminInstruction || C.adminNotes || "").slice(0, 900);

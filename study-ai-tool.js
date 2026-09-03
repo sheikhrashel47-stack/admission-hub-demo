@@ -19,7 +19,15 @@
   const bn = n => String(n).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const uid = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const nameOf = () => localStorage.getItem(LS_NAME) || 'রাশেল';
+  const nameOf = () => {
+    try { if (window.AH_AI && window.AH_AI.isAuthed && window.AH_AI.isAuthed()) {
+      const u = JSON.parse(localStorage.getItem('ahPubUser') || 'null');
+      const nm = u && (u.name || u.displayName || u.fullName || (u.profile && u.profile.name));
+      if (nm) return String(nm).trim().split(/\s+/)[0].slice(0, 20);
+    } } catch (_) {}
+    const ls = (() => { try { return localStorage.getItem(LS_NAME); } catch (_) { return ''; } })();
+    return (ls && ls.trim()) ? ls.trim().slice(0, 20) : 'শিক্ষার্থী';
+  };
   const cfg = () => { try { return Object.assign({ engine: 'agent', provider: 'gemini', keys: {}, model: '', sendData: true, theme: 'aurora' }, JSON.parse(localStorage.getItem(LS_CFG) || '{}')); } catch (_) { return { engine: 'agent', provider: 'gemini', keys: {}, model: '', sendData: true, theme: 'aurora' }; } };
   const setCfg = c => localStorage.setItem(LS_CFG, JSON.stringify(c));
 
@@ -239,6 +247,20 @@ ${cfg().sendData && localStorage.getItem('studyAiCtx') ? `শিক্ষার�
     } catch (_) { res(b64); }
   });
   const askFast = async (question, atts, abortRef) => {
+    // 🚀 Phase 4: সার্ভার-ফার্স্ট — ইউজার-কী/ইঞ্জিন-সেটিং লাগে না
+    if (window.AH_AI) {
+      try {
+        const qTxt = String(question || '') + (Array.isArray(atts) ? atts.filter(a => a && a.text).map(a => '\n\n📎 "' + String(a.name || '') + '":\n' + String(a.text || '').slice(0, 2500)).join('') : '');
+        const hist = msgsOf(curId()).filter(m => m.text).slice(-8).map(m => ({ role: m.who === 'ai' ? 'ai' : 'user', content: String(m.text || '').slice(0, 4000) }));
+        if (hist.length) hist[hist.length - 1] = { role: 'user', content: qTxt };
+        else hist.push({ role: 'user', content: qTxt });
+        const ah = await window.AH_AI.ask({ messages: hist, kind: 'chat' });
+        return { text: ah.text || 'উত্তর পাইনি — আবার লেখো?', sources: [] };
+      } catch (e) {
+        if (e && e.status === 429) throw new Error('একটু ধীরে — কিছুক্ষণ পরেই আবার চেষ্টা করো 😊');
+        throw new Error(String(e && e.message || e).slice(0, 160) || 'AI-এর সাথে যোগাযোগ হয়নি — আবার চেষ্টা করো');
+      }
+    }
     const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     if (abortRef && ctl) { const iv = setInterval(() => { if (abortRef.aborted) { try { ctl.abort(); } catch (_) {} clearInterval(iv); } }, 400); setTimeout(() => clearInterval(iv), 240000); }
     const c = cfg(); const key = keyList(c.provider)[0] || '';
@@ -460,11 +482,7 @@ ${cfg().sendData && localStorage.getItem('studyAiCtx') ? `শিক্ষার�
   const shareCard = () => localStorage.getItem(LS_SHARED) === '1' ? '' : `<div class="card sai-share"><b>📊 এজেন্টকে তোমার সব ডেটা দাও?</b><p class="muted" style="margin:6px 0 10px">অ্যাপ পাঠাবে <b>সম্পূর্ণ প্রশ্নব্যাংক + পরীক্ষার ইতিহাস + প্রগ্রেস</b> — এজেন্টের নিজের ডাটাবেসে সেভ থাকবে। এরপর সে তোমার ব্যাংক থেকেই প্রশ্নের উত্তর দেবে। (এই কার্ড আর আসবে না; Settings-থেকে যখন খুশি আপডেট করা যাবে)</p><button class="btn" onclick="StudyAiTool.shareData()">✅ সব ডেটা পাঠাও</button><button class="btn ghost sm" style="margin-left:8px" onclick="StudyAiTool.skipShare()">পরে</button></div>`;
   const CHIPS = ['আজ কী পড়বো?', 'দুর্বল টপিক বলো', '৭ দিনের রিভিশন প্ল্যান', 'GK কুইজ দাও'];
 
-  const landing = () => {
-    const synced = localStorage.getItem(LS_BANK);
-    const ghost = localStorage.getItem(LS_SHARED) === '1' && !synced;
-    return `<div class="sai-landing">${ghost ? '<button class="sai-ghostbtn" onclick="StudyAiTool.shareData()">⚠️ ডেটা এখনো এজেন্টের কাছে পৌঁছায়নি — 📚 এখনই পাঠাও</button>' : ''}<div class="sai-logo"><span>🤖</span><i>✨</i></div><div class="sai-hello">হ্যালো, <b class="sai-name" onclick="StudyAiTool.editName()">${esc(nameOf())}</b>!</div><div class="sai-sub">আজ তোমাকে কীভাবে সাহায্য করবো?</div>${shareCard()}${synced ? `<div class="sai-memok">📚 মেমোরি: ${bn(new Date(Number(synced)).getDate())} তারিখে ${bn('…') || ''}ব্যাংক সেভ আছে · Settings-এ আপডেট করো</div>` : ''}<div class="sai-note">🌐 ব্রাউজার-এজেন্ট সত্যিই ওয়েব ঘেঁটে যাচাই করে উত্তর দেয় — সাধারণত ১০ সেকেন্ড–৩ মিনিট, কাজ বড় হলে বেশি</div></div>`;
-  };
+  const landing = () => `<div class="sai-landing"><div class="sai-logo"><span>🤖</span><i>✨</i></div><div class="sai-hello">হ্যালো, <b class="sai-name">${esc(nameOf())}</b>!</div><div class="sai-sub">আজ তোমাকে কীভাবে সাহায্য করবো?</div></div>`;
 
 
   const sheet = () => {
@@ -490,15 +508,11 @@ ${cfg().sendData && localStorage.getItem('studyAiCtx') ? `শিক্ষার�
           ${drow('🏠', 'ড্যাশবোর্ডে ফেরি', 'মূল অ্যাপে ফিরে যাও', "StudyAiTool.closeSheet();navigate('dashboard')")}
           ${drow('📝', 'চ্যাটে পরীক্ষা', '৫-প্রশ্নের ফ্ল্যাশ-টেস্ট — স্কোর ইতিহাসে সেভ হবে', "StudyAiTool.closeSheet();StudyAiTool.startChatExam()")}
           ${drow('✏️', 'নতুন চ্যাট', 'একদম শূন্য থেকে', "StudyAiTool.newChat()")}
-          ${drow('⊕', 'সোর্স', 'AI কোথা থেকে উত্তর দেবে', "StudyAiTool.openSheet('source')")}
-          ${drow('⚡', 'ইঞ্জিন', 'এখন উত্তর দিচ্ছে: ' + (ENG_LABEL[c.provider] || 'Admihub AI'), "StudyAiTool.openSheet('engine')")}
           ${drow('💬', 'সব চ্যাট', bn(chats.length) + 'টি ব্রাঞ্চ', "StudyAiTool.openSheet('chats')")}
-          ${drow('✏️', 'চ্যাটের নাম বদলাও', esc(chatTitle()), "StudyAiTool.renameChat()")}
           ${drow('🧹', 'এই কথোপকথন মুছি', 'শুরু থেকে ফাঁকা', "StudyAiTool.clearCurrent()")}
           <div class="sai-dsec">সাম্প্রতিক</div>
           ${chats.slice(0, 8).map(ch => `<div class="sai-drow ${ch.id === curId() ? 'on' : ''}" onclick="StudyAiTool.openChat('${ch.id}')"><span class="sai-dico">🗨️</span><span class="sai-dtx"><b>${esc(ch.title)}</b><small>${dateStr(ch.at)}</small></span><b class="sai-del" onclick="event.stopPropagation();StudyAiTool.delChat('${ch.id}')">🗑</b></div>`).join('')}
         </div>
-        <div class="sai-dfoot">${drow('⚙️', 'সেটিংস', 'key • ইঞ্জিন • থিম', "StudyAiTool.openSheet('settings')")}</div>
       </aside></div>`;
     }
     if (state.sheet === 'source') {
@@ -915,13 +929,13 @@ body{overflow-x:hidden}
     if (imgs.length && !visionOk) {
       push({ who: 'me', text, atts: atts.map(a => ({ kind: a.kind, name: a.name, thumb: a.thumb || '' })) });
       state.attach = []; saveDraft('');
-      push({ who: 'ai', text: 'ছবি-বিশ্লেষণের জন্য এখন আমার কাছে কোনো ভিশন-প্রোভাইডার জোড়া নেই 👀\n⚙️ সেটিংসে কোনো vision-মডেলের key (যেমন Gemini) জুড়লে সরাসরি ছবি পড়ে দিতে পারব — আর না-ও জুড়লে চ্যাট, এজেন্ট, প্রশ্ন-ব্যাংক সবই আগের মতো চলবে।\nকাছাকাছি সমাধান: ছবির প্রশ্নটা লিখে পাঠাও — 🌐 এজেন্ট ওয়েব ঘেঁটে উত্তর দেবে ✨' });
+      push({ who: 'ai', text: 'ছবি পড়ে বিশ্লেষণ করা এখনো আমার সামর্থ্যে নেই 👀 — ছবির প্রশ্নটা লিখে পাঠাও, আমি দ্রুত উত্তর দেব ✨' });
       return;
     }
     // ইউজার যে-ইঞ্জিন নির্বাচন করেছে সেটাই উত্তর দেবে — চুপচাপ অন্য-ইঞ্জিনে ফেলো নয়
-    if (cfg().engine === 'fast' && !fastAvailable()) {
+    if (!window.AH_AI && cfg().engine === 'fast' && !fastAvailable()) {
       push({ who: 'me', text });
-      push({ who: 'ai', text: '⚡ ফাস্ট-ইঞ্জিন নির্বাচিত, কিন্তু ওই provider-এর API key নেই 🙈\n⚙️ সেটিংসে key বসাও — অথবা কম্পোজারের ইঞ্জিন-ব্যাজে চেপে 🌐 ব্রাউজার-এজেন্টে বদলাও। তুমি যেটা বেছেছো সেটাই উত্তর দেবে, আমি নিজে থেকে অন্যটায় যাবো না।' });
+      push({ who: 'ai', text: 'আমার উত্তর-ইঞ্জিন প্রস্তুত হচ্ছে — একটু পরে আবার চেষ্টা করো 🙏' });
       if (input) input.value = '';
       return;
     }
@@ -933,7 +947,7 @@ body{overflow-x:hidden}
     const aiMsg = push({ who: 'ai', text: '', status: 'pending' });
     paint();
     try {
-      if (cfg().engine === 'fast' && fastAvailable()) {
+      if (window.AH_AI || (cfg().engine === 'fast' && fastAvailable())) {
         patchMsg(aiMsg.id, { status: 'streaming' });
         const r = await askFast(text, atts, state.abortRef);
         await typewrite(aiMsg.id, r.text, { sources: r.sources || [], img: r.img || '' });
