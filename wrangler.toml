@@ -1,0 +1,12 @@
+name = "admission-gk"
+main = "worker-bundle.mjs"
+compatibility_date = "2024-11-01"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "PUB_KV"
+id = "b9353515b098427687afcfb8654ed359"
+
+[[kv_namespaces]]
+binding = "OLD_KV"
+id = "942828aa82e546d4af11796ef92ab134"

@@ -31,6 +31,49 @@
     'Math': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16M4 20h16M4 4l16 16M20 4L4 20"/></svg>'
   };
 
+
+  /* ---- curriculum-driven helpers (user uni+unit = source of truth) ---- */
+  const cur = () => (window.ADM && typeof window.ADM.subjectsFor === 'function') ? window.ADM : null;
+  function unitOptions(uniCode) {
+    const c = cur();
+    if (c && uniCode) { const u = c.unitList(uniCode); if (u && u.length) return u; }
+    return ['A', 'B', 'C', 'D'];
+  }
+  function weakChipsHtml() {
+    const c = cur(); const uniCode = data.targetUniversityIds[0]; const unit = (data.targetUnits || [])[0];
+    let list = null;
+    if (c && uniCode) {
+      const subs = c.subjectsFor(uniCode, unit).map(x => x && x.name).filter(Boolean);
+      if (subs.length) list = subs;
+    }
+    if (!list) list = SUBJECTS;
+    return list.map(x => `<div class="chip ${(data.weakSubjects || []).includes(x) ? 'selected' : ''}" data-sub="${esc(x)}">${x} ${IC.chipCheck}</div>`).join('');
+  }
+  function renderWeakChips() { const el = document.getElementById('weakChips'); if (el) el.innerHTML = weakChipsHtml(); }
+  function focusRows(uniCode, unit) {
+    const c = cur();
+    let subs = (c && uniCode) ? c.focusFor(uniCode, unit, 3) : [];
+    if (!subs || !subs.length) subs = [
+      { name: 'বাংলা', count: SUBJ_COUNT['বাংলা'] || 12 }, { name: 'English', count: SUBJ_COUNT['English'] || 12 }, { name: 'GK', count: SUBJ_COUNT['GK'] || 12 }
+    ];
+    return subs.map(x => `
+          <div class="focus-row">
+            <div class="focus-ic" style="background:${'#eef2ff'};">${SUBJ_ICON[x.name] || IC.goalBook}</div>
+            <span class="name">${esc(x.name)}</span>
+            <span class="count">${Number(x.count) || 12} টি প্রশ্ন</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>`).join('');
+  }
+  function refreshDash() {
+    const uniSel = selectedUni();
+    const unit = (data.targetUnits || [])[0] || '';
+    const dn = document.getElementById('dashUniName'); if (dn) dn.textContent = uniSel ? uniSel.name : 'বিশ্ববিদ্যালয় বাছাই করো';
+    const du = document.getElementById('dashUnitName'); if (du) du.textContent = unit ? (unit + ' ইউনিট') : 'ইউনিট বাছাই করো';
+    const fc = document.getElementById('dashFocus'); if (fc) fc.innerHTML = focusRows(uniSel ? uniSel.code : '', unit);
+    const days = Number(data.weeklyDays) || 5; const pct = Math.round(days / 7 * 100);
+    const rt = document.getElementById('ringText'); if (rt) rt.textContent = pct + '%';
+    const rp = document.getElementById('ringProgress'); if (rp) rp.setAttribute('stroke-dashoffset', String(150.8 - 150.8 * pct / 100));
+  }
   let step = 1;
   let data = blank();
 
@@ -208,8 +251,9 @@
         <p class="name" id="unitUniName">ঢাকা বিশ্ববিদ্যালয়</p>
       </div>
       <div class="unit-grid">
-        ${['A', 'B', 'C', 'D'].map(x => `<div class="unit-card ${data.targetUnits[0] === x ? 'selected' : ''}" data-unit="${x}">${x} ইউনিট</div>`).join('')}
+        ${unitOptions(data.targetUniversityIds[0]).map(x => `<div class="unit-card ${data.targetUnits[0] === x ? 'selected' : ''}" data-unit="${x}">${x} ইউনিট</div>`).join('')}
       </div>
+      <p class="subtitle" id="unitHint" style="margin-top:10px;color:#b45309;display:${data.targetUniversityIds[0] ? 'none' : 'block'};">আগে বিশ্ববিদ্যালয় বাছাই করো — ইউনিট তার অনুযায়ী দেখাবে</p>
       <button class="fab-next" data-next="4">${IC.arrowR}</button>
     </div>`;
   }
@@ -248,10 +292,7 @@
         <div class="gauge-label" id="gaugeText">শুরুর দিকে</div>
       </div>
       <p class="subtitle" style="margin-bottom:14px;font-weight:700;color:#111827;">কোন বিষয়গুলোতে বেশি মনোযোগ প্রয়োজন?</p>
-      <div class="chip-row">
-        ${SUBJECTS.map(s => `
-          <div class="chip ${data.weakSubjects.includes(s) ? 'selected' : ''}" data-sub="${esc(s)}">${s} ${IC.chipCheck}</div>`).join('')}
-      </div>
+      <div class="chip-row" id="weakChips">${weakChipsHtml()}</div>
       <button class="fab-next" data-next="6">${IC.arrowR}</button>
     </div>`;
   }
@@ -341,9 +382,9 @@
     </div>`;
   }
   function sDash() {
-    const uni = selectedUni() || UNIVERSITIES[0];
-    const unit = (data.targetUnits || [])[0] || 'A';
-    const focus = (data.weakSubjects && data.weakSubjects.length ? data.weakSubjects : ['বাংলা', 'English', 'GK']).slice(0, 3);
+    const uniSel = selectedUni();
+    const unit = (data.targetUnits || [])[0] || '';
+    const focusHtml = focusRows(uniSel ? uniSel.code : '', unit);
     const days = Number(data.weeklyDays) || 5;
     const ringPct = Math.round(days / 7 * 100);
     return `<div class="screen" id="s9">
@@ -355,8 +396,8 @@
       <p class="greet-sub">তোমার প্রস্তুতি শুরু হোক এখনই!</p>
       <div class="goal-hero-card">
         <p class="lbl">তোমার লক্ষ্য</p>
-        <p class="name" id="dashUniName">${esc(uni.name)}</p>
-        <p class="unit" id="dashUnitName">${unit} ইউনিট</p>
+        <p class="name" id="dashUniName">${esc(uniSel ? uniSel.name : 'বিশ্ববিদ্যালয় বাছাই করো')}</p>
+        <p class="unit" id="dashUnitName">${unit ? (unit + ' ইউনিট') : 'ইউনিট বাছাই করো'}</p>
         <svg width="90" height="70" style="position:absolute;right:8px;bottom:0;opacity:.35;" viewBox="0 0 90 70">
           <rect x="15" y="20" width="60" height="50" fill="#fff"/>
           <polygon points="10,20 45,4 80,20" fill="#fff"/>
@@ -367,15 +408,7 @@
         </svg>
       </div>
       <p class="section-title">আজকের ফোকাস</p>
-      <div class="focus-card">
-        ${focus.map(s => `
-          <div class="focus-row">
-            <div class="focus-ic" style="background:${'#eef2ff'};">${SUBJ_ICON[s] || IC.goalBook}</div>
-            <span class="name">${esc(s)}</span>
-            <span class="count">${SUBJ_COUNT[s] || 12} টি প্রশ্ন</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>`).join('')}
-      </div>
+      <div class="focus-card" id="dashFocus">${focusHtml}</div>
       <div class="week-row">
         <div>
           <p class="wt">সাপ্তাহিক অগ্রগতি</p>
@@ -420,7 +453,7 @@
     if (idx === 5) animateGauge();
     if (idx === 7) startAlmostTimer();
     if (idx === 8) runPlan();
-    if (idx === 9) animateRing();
+    if (idx === 9) { animateRing(); refreshDash(); }
   }
   function updateProgress(idx) {
     const pos = progressOrder.indexOf(idx);
@@ -582,12 +615,12 @@
         const code = uni.getAttribute('data-uni');
         data.targetUniversityIds = [code];
         data.targetUniversities = [(() => { const u = UNIVERSITIES.find(x => x.code === code); return u ? u.name : code; })()];
-        saveRemote(); renderUniGrid(document.getElementById('uniSearch') ? document.getElementById('uniSearch').value : ''); updateUniConfirm(); return;
+        saveRemote(); renderUniGrid(document.getElementById('uniSearch') ? document.getElementById('uniSearch').value : ''); updateUniConfirm(); renderWeakChips(); refreshDash(); return;
       }
       const unit = e.target.closest('[data-unit]');
       if (unit) {
         data.targetUnits = [unit.getAttribute('data-unit')];
-        saveRemote(); syncSelected('[data-unit]', data.targetUnits[0]); return;
+        saveRemote(); syncSelected('[data-unit]', data.targetUnits[0]); renderWeakChips(); refreshDash(); return;
       }
       const aim = e.target.closest('[data-aim]');
       if (aim) {

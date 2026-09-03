@@ -5103,7 +5103,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v172-authapi-guard-20260903',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v173-uniunit-fix-20260903',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
@@ -5645,7 +5645,8 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="./auth-svg.js?v=p3-auth-ui-v25"></script>
 <script src="./premium-auth.js?v=p3-auth-prof-v172"></script>
-<script src="./onboarding.js?v=p6-onboard-v11"></script>
+<script src="./curriculum-config.js?v=p6-onboard-v12"></script>
+<script src="./onboarding.js?v=p6-onboard-v12"></script>
 <script src="./app-seed.js?v=p1" defer></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */

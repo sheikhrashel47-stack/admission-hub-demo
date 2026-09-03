@@ -426,11 +426,15 @@ export default {
     const url = new URL(request.url);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(request) });
 
-    // v133b: /pub/* → পাবলিক-প্রোডাক্ট API (public-worker.js মডিউল — নিজের auth/admin/AI)
-    if (url.pathname.startsWith('/pub/')) {
+    // v133b: /pub/* ও /api/* (public-product) → পাবলিক-প্রোডাক্ট API (public-worker.js মডিউল — নিজের auth/admin/AI)
+    if (url.pathname.startsWith('/pub/') || url.pathname.startsWith('/api/')) {
+      // v173: auth/onboarding/profile/state/content-type routes হেডার-গেটের বাইরে — লগইন/সাইনআপ কখনো 403 নয়
+      const gatedApi = url.pathname === '/api/ask' || url.pathname.startsWith('/api/ask/') || url.pathname === '/api/bank' || url.pathname.startsWith('/api/gk/') || url.pathname === '/api/cloud/publish';
       const u2p = new URL(request.url); u2p.pathname = url.pathname.replace(/^\/pub\//, '/api/');
-      const envPub = { PUB_KV: env.PUB_KV, OLD_KV: env.GK_KV, ADMIN_TOKEN: env.ADMIN_TOKEN, GEMINI_KEYS: env.GEMINI_KEYS, RESEND_KEY: env.RESEND_KEY, RESEND_KEY_2: env.RESEND_KEY_2, MAIL_FROM: env.MAIL_FROM, MAIL_HOOK: env.MAIL_HOOK, MAIL_HOOK_SECRET: env.MAIL_HOOK_SECRET, BREVO_KEY: env.BREVO_KEY, BREVO_FROM: env.BREVO_FROM, GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET, TWILIO_SID: env.TWILIO_SID, TWILIO_TOKEN: env.TWILIO_TOKEN, TWILIO_FROM: env.TWILIO_FROM, SMS_API_URL: env.SMS_API_URL, SMS_API_KEY: env.SMS_API_KEY, SMS_FROM: env.SMS_FROM, GREENWEB_TOKEN: env.GREENWEB_TOKEN, BULKSMS_API_KEY: env.BULKSMS_API_KEY };
-      return pubHandler.fetch(new Request(u2p.href, request), envPub, ctx);
+      if (url.pathname.startsWith('/pub/') || !gatedApi) {
+        const envPub = { PUB_KV: env.PUB_KV, OLD_KV: env.OLD_KV || env.GK_KV, ADMIN_TOKEN: env.ADMIN_TOKEN, GEMINI_KEYS: env.GEMINI_KEYS, RESEND_KEY: env.RESEND_KEY, RESEND_KEY_2: env.RESEND_KEY_2, MAIL_FROM: env.MAIL_FROM, MAIL_HOOK: env.MAIL_HOOK, MAIL_HOOK_SECRET: env.MAIL_HOOK_SECRET, BREVO_KEY: env.BREVO_KEY, BREVO_FROM: env.BREVO_FROM, GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET, TWILIO_SID: env.TWILIO_SID, TWILIO_TOKEN: env.TWILIO_TOKEN, TWILIO_FROM: env.TWILIO_FROM, SMS_API_URL: env.SMS_API_URL, SMS_API_KEY: env.SMS_API_KEY, SMS_FROM: env.SMS_FROM, GREENWEB_TOKEN: env.GREENWEB_TOKEN, BULKSMS_API_KEY: env.BULKSMS_API_KEY };
+        return pubHandler.fetch(new Request(u2p.href, request), envPub, ctx);
+      }
     }
 
     if (url.pathname === '/health') {

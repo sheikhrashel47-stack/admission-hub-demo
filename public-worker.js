@@ -391,24 +391,65 @@ function officialLetter(kind, extra) {
   const code = extra && extra.code ? String(extra.code) : '';
   const link = extra && extra.link ? String(extra.link) : '';
   const isReset = kind === 'reset';
-  const subject = isReset ? 'Admission Hub | Password Recovery' : 'Admission Hub | Email Verification';
-  const enLead = isReset
-    ? 'This correspondence confirms a request to recover the password for the Admission Hub account registered to this email address.'
-    : 'This correspondence confirms a request to verify the email address submitted for registration with Admission Hub.';
-  const bnLead = isReset
-    ? 'Admission Hub-এ এই ইমেইল ঠিকানায় নিবন্ধিত অ্যাকাউন্টের পাসওয়ার্ড পুনরুদ্ধারের অনুরোধ এই পত্রের মাধ্যমে নিশ্চিত করা হচ্ছে।'
-    : 'Admission Hub-এ নিবন্ধনের জন্য প্রদত্ত ইমেইল ঠিকানা যাচাইয়ের অনুরোধ এই পত্রের মাধ্যমে নিশ্চিত করা হচ্ছে।';
-  const enTime = code ? 'This verification code remains valid for two (2) minutes only.' : 'This verification remains valid for fifteen (15) minutes only.';
-  const bnTime = code ? 'এই যাচাইকরণ কোড মাত্র দুই (২) মিনিটের জন্য কার্যকর থাকবে।' : 'এই যাচাইকরণ মাত্র পনেরো (১৫) মিনিটের জন্য কার্যকর থাকবে।';
-  const enIgn = 'If you did not initiate this request, please disregard this message. No further action is required.';
-  const bnIgn = 'আপনি এই অনুরোধ না করে থাকলে এই বার্তাটি উপেক্ষা করুন। কোনো অতিরিক্ত পদক্ষেপ প্রয়োজন নেই।';
-  const text = ['Dear Student / প্রিয় শিক্ষার্থী,', '', enLead, bnLead, '', enTime, bnTime, '',
-    code ? ('Verification code / যাচাইকরণ কোড: ' + code) : ('Verification link / যাচাইকরণ লিংক:'),
-    code ? '' : link, '', enIgn, bnIgn, '', 'Yours sincerely,', 'Office of Student Accounts', 'Admission Hub'].filter(x => x !== undefined).join('\n');
-  const action = code
-    ? ('<p style="font-size:28px;letter-spacing:8px;font-weight:700;color:#1e7a4c;margin:22px 0;font-family:Arial,sans-serif">' + code + '</p>')
-    : ('<p style="margin:26px 0 10px"><a href="' + link + '" style="display:inline-block;background:#1e7a4c;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:6px;font-weight:700;font-size:14px;font-family:Arial,sans-serif">Verify email address</a></p><p style="font-size:12px;color:#66756e;word-break:break-all;font-family:Arial,sans-serif">' + link + '</p>');
-  const html = '<div style="background:#f3f5f4;padding:24px;font-family:Georgia,Times,serif;color:#1a2420"><div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #dce6e0;padding:32px 28px"><p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:.16em;color:#1e7a4c;font-weight:700">ADMISSION HUB</p><p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:12px;color:#66756e">Office of Student Accounts</p><p>Dear Student / প্রিয় শিক্ষার্থী,</p><p>' + enLead + '</p><p>' + bnLead + '</p><p>' + enTime + '<br>' + bnTime + '</p>' + action + '<p style="color:#5b675f;font-size:14px">' + enIgn + '<br>' + bnIgn + '</p><p style="margin:28px 0 0">Yours sincerely,<br>Office of Student Accounts<br>Admission Hub</p></div></div>';
+  const subject = isReset ? 'Admission Hub পাসওয়ার্ড পুনরুদ্ধার করুন' : 'Admission Hub অ্যাকাউন্ট যাচাই করুন';
+  const preheader = isReset ? 'পাসওয়ার্ড পুনরুদ্ধারের লিংক প্রস্তুত রয়েছে।' : 'আপনার ইমেইল যাচাই করার কোড প্রস্তুত রয়েছে।';
+  const F = "'Noto Sans Bengali','Hind Siliguri','SolaimanLipi',Arial,sans-serif";
+  const EMERALD = '#0b6b4b';
+  const EMERALD_D = '#08452f';
+  const INK = '#16241c';
+  const SUB = '#5b6b62';
+
+  const text = isReset
+    ? ['ADMISSION HUB', 'শিক্ষার্থী অ্যাকাউন্ট সেবা', '', 'আপনার ইমেইল ঠিকানা যাচাই করা হয়েছে', '', 'Admission Hub-এ আপনার অ্যাকাউন্টের পাসওয়ার্ড পুনরুদ্ধার করতে নিচের লিংকটি খুলুন:', '', link, '', 'লিংকটি ১৫ মিনিট পর্যন্ত কার্যকর থাকবে।', '', 'আপনি যদি এই অনুরোধ না করে থাকেন, তাহলে এই ইমেইলটি উপেক্ষা করুন। কোনো পদক্ষেপের প্রয়োজন নেই।', '', 'শুভেচ্ছান্তে,', 'Admission Hub', 'শিক্ষার্থী অ্যাকাউন্ট সেবা'].join('\n')
+    : ['ADMISSION HUB', 'শিক্ষার্থী অ্যাকাউন্ট সেবা', '', 'আপনার ইমেইল ঠিকানা যাচাই করুন', '', 'Admission Hub-এ আপনার অ্যাকাউন্ট তৈরির প্রক্রিয়া সম্পন্ন করতে নিচের যাচাইকরণ কোডটি ব্যবহার করুন।', '', 'আপনার যাচাইকরণ কোড: ' + code, '', 'কোডটি ২ মিনিট পর্যন্ত কার্যকর থাকবে।', '', 'আপনি যদি এই কোডের জন্য অনুরোধ না করে থাকেন, তাহলে এই ইমেইলটি উপেক্ষা করুন। কোনো পদক্ষেপের প্রয়োজন নেই।', '', 'শুভেচ্ছান্তে,', 'Admission Hub', 'শিক্ষার্থী অ্যাকাউন্ট সেবা'].join('\n');
+
+  const codeHtml = code
+    ? ('<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:22px auto 10px;"><tr>' +
+       code.split('').map(d => '<td style="padding:14px 10px;background:#f1f8f4;border:1px solid #bcd9ca;border-radius:10px;font-family:' + F + ';font-size:30px;line-height:1;font-weight:800;color:' + EMERALD_D + ';letter-spacing:2px;">' + d + '</td>').join('<td style="width:6px;"></td>') +
+       '</tr></table>' +
+       '<p style="text-align:center;color:' + SUB + ';font-size:13px;line-height:1.7;margin:14px 0 0;">এই কোডটি <b style="color:' + EMERALD_D + ';">২ মিনিট</b> পর্যন্ত কার্যকর থাকবে।</p>')
+    : ('<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:24px auto 8px;"><tr><td style="background:' + EMERALD + ';border-radius:12px;"><a href="' + link + '" style="display:block;padding:14px 30px;color:#ffffff;text-decoration:none;font-family:' + F + ';font-size:15px;font-weight:700;border-radius:12px;">পাসওয়ার্ড পুনরুদ্ধার করুন</a></td></tr></table>' +
+       '<p style="text-align:center;color:' + SUB + ';font-size:13px;line-height:1.7;margin:14px 0 0;">লিংকটি <b style="color:' + EMERALD_D + ';">১৫ মিনিট</b> পর্যন্ত কার্যকর থাকবে।</p>' +
+       '<p style="text-align:center;word-break:break-all;font-size:11px;color:#93a39a;margin:12px 0 0;font-family:' + F + ';">' + link + '</p>');
+
+  const html =
+'<!DOCTYPE html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>' + subject + '</title></head>' +
+'<body style="margin:0;padding:0;background:#eef4f1;">' +
+'<div style="display:none;max-height:0;overflow:hidden;opacity:0;">' + preheader + '</div>' +
+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef4f1;padding:28px 12px;">' +
+'<tr><td align="center">' +
+'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #dbe8e0;">' +
+  '<tr><td style="padding:30px 40px 6px;" align="center">' +
+    '<p style="margin:0;font-family:' + F + ';font-size:14px;letter-spacing:.22em;color:' + EMERALD + ';font-weight:800;">ADMISSION HUB</p>' +
+    '<p style="margin:6px 0 0;font-family:' + F + ';font-size:12px;color:' + SUB + ';">শিক্ষার্থী অ্যাকাউন্ট সেবা</p>' +
+    '<div style="height:1px;background:#e3ede7;margin:22px 0 0;"></div>' +
+  '</td></tr>' +
+  '<tr><td style="padding:26px 40px 8px;">' +
+    '<h1 style="margin:0 0 12px;font-family:' + F + ';font-size:23px;line-height:1.5;color:' + INK + ';font-weight:800;">' + (isReset ? 'আপনার পাসওয়ার্ড পুনরুদ্ধার করুন' : 'আপনার ইমেইল ঠিকানা যাচাই করুন') + '</h1>' +
+    '<p style="margin:0;font-family:' + F + ';font-size:15px;line-height:1.9;color:#33463b;">' +
+      (isReset
+        ? 'Admission Hub-এ আপনার অ্যাকাউন্টের পাসওয়ার্ড পুনরুদ্ধার করতে নিচের বোতামটি ব্যবহার করুন।'
+        : 'Admission Hub-এ আপনার অ্যাকাউন্ট তৈরির প্রক্রিয়া সম্পন্ন করতে নিচের যাচাইকরণ কোডটি ব্যবহার করে আপনার ইমেইল ঠিকানা নিশ্চিত করুন।') +
+    '</p>' +
+  '</td></tr>' +
+  '<tr><td style="padding:10px 40px 0;" align="center">' + codeHtml + '</td></tr>' +
+  '<tr><td style="padding:24px 40px 6px;">' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7fbf8;border-left:3px solid ' + EMERALD + ';border-radius:10px;"><tr><td style="padding:13px 16px;font-family:' + F + ';font-size:13px;line-height:1.8;color:' + SUB + ';">' +
+      (isReset
+        ? 'আপনি যদি পাসওয়ার্ড পুনরুদ্ধারের অনুরোধ না করে থাকেন, তাহলে এই ইমেইলটি উপেক্ষা করুন। আপনার কোনো অতিরিক্ত পদক্ষেপ নেওয়ার প্রয়োজন নেই।'
+        : 'আপনি যদি এই যাচাইকরণ কোডের জন্য অনুরোধ না করে থাকেন, তাহলে এই ইমেইলটি উপেক্ষা করুন। আপনার কোনো অতিরিক্ত পদক্ষেপ নেওয়ার প্রয়োজন নেই।') +
+    '</td></tr></table>' +
+  '</td></tr>' +
+  '<tr><td style="padding:26px 40px 30px;">' +
+    '<div style="height:1px;background:#e3ede7;margin-bottom:20px;"></div>' +
+    '<p style="margin:0;font-family:' + F + ';font-size:14px;color:' + INK + ';font-weight:700;">শুভেচ্ছান্তে,</p>' +
+    '<p style="margin:6px 0 0;font-family:' + F + ';font-size:14px;color:' + EMERALD_D + ';font-weight:800;">Admission Hub</p>' +
+    '<p style="margin:2px 0 18px;font-family:' + F + ';font-size:12px;color:' + SUB + ';">শিক্ষার্থী অ্যাকাউন্ট সেবা</p>' +
+    '<p style="margin:0;font-family:' + F + ';font-size:11px;line-height:1.7;color:#93a39a;">এই ইমেইলটি স্বয়ংক্রিয়ভাবে পাঠানো হয়েছে — অনুগ্রহ করে এর উত্তর দেবেন না।</p>' +
+  '</td></tr>' +
+'</table>' +
+'</td></tr></table></body></html>';
+
   return { subject, text, html };
 }
 async function sendOtpMessage(env, destId, code, kind) {

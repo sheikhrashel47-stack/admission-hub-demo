@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v172-authapi-guard-20260903';
+const BUILD_ID = 'v173-uniunit-fix-20260903';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -79,7 +79,8 @@ const APP_SHELL = [
   './premium-auth.css?v=p3-auth-prof-v172',
   './auth-svg.js?v=p3-auth-prof-v172',
   './premium-auth.js?v=p3-auth-prof-v172',
-  './onboarding.js?v=p6-onboard-v1',
+  './curriculum-config.js?v=p6-onboard-v12',
+  './onboarding.js?v=p6-onboard-v12',
   './onboarding.css?v=p6-onboard-v1',
   './app-seed.js?v=p1',
   './',
