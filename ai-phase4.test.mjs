@@ -25,6 +25,7 @@ t('৯. Isolation: uid শুধু server-টোকেন থেকে, KV key-
 t('১০. চ্যাট-হিস্ট্রি per-user (achat:<uid>, cap 40, উত্তর-সহ সংরক্ষণ)', w.includes('hist.slice(-40)') && w.includes("achat:" + '" + uid'));
 t('১১. স্পিড/কোস্ট: মডেল-চেইন ৩-flash-preview প্রথম (২-মডেল) + cache ৬০০s + টাইমআউট ৪৫s + রেট-লিমিট ১২/মিনিট',
   w.includes('gemini-3-flash-preview", "gemini-3.1-flash-lite"]') && w.includes('expirationTtl: 600') && w.includes('45000') && w.includes('lim >= 12') && !/gemini-2\.5-flash/.test(w));
+t('১১ক. ক্যাশ read+write একই key (একই প্রশ্নে নতুন API কল নয়)', w.includes('const cacheKey = "aicache:"') && w.includes('cached: true') && w.includes('env.PUB_KV.get(cacheKey)'));
 t('১১বি. Google পেলোড-রূপ: contents[].parts[{text}] + raw-বডি থেকে lastTxt (400/crash-ফিক্স স্থায়ী)',
   w.includes('parts: [{ text: String(m.content') && w.includes('lastTxt.slice(0, 120)') && w.includes('lastTxt, C, st)'));
 t('১২. Failure: 429 বাংলা + retryAfter; 502 বাংলা; খালি-কী 503; model-chain failover', w.includes('retryAfter') && w.includes('একটু পরে চেষ্টা করো') && w.includes('AI-key কনফিগার নেই'));

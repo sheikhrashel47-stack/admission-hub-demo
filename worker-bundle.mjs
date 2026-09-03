@@ -1500,6 +1500,7 @@ var aiCall = async (request, env, uid) => {
   const msgs = (Array.isArray(b.messages) ? b.messages : []).slice(-8).map((m) => ({ role: (String(m.role || "user") === "user" ? "user" : "model"), parts: [{ text: String(m.content || "").slice(0, 4e3) }] }));
   const lastU = [...msgs].reverse().find((m) => m.role === "user");
   const lastTxt = (Array.isArray(b.messages) ? b.messages : []).reverse().find((m) => String(m.role || "user") === "user") ? String((Array.isArray(b.messages) ? b.messages : []).reverse().find((m) => String(m.role || "user") === "user").content || "") : "";
+  const cacheKey = "aicache:" + uid + ":" + kind + ":" + (refs.questionId || refs.word || refs.examId || "") + ":" + lastTxt.slice(0, 120);
   /* rate limit — প্রতি মিনিটে ১২ রিকোয়েস্ট */
   const minute = Math.floor(Date.now() / 6e4);
   const limKey = "ailim:" + uid + ":" + minute;
@@ -1517,6 +1518,11 @@ var aiCall = async (request, env, uid) => {
   await env.PUB_KV.put(limKey, String(lim + 1), { expirationTtl: 150 });
   const keys2 = String(env.GEMINI_KEYS || "").split(",").map((s) => s.trim()).filter(Boolean);
   if (!keys2.length) return json({ error: "AI-key কনফিগার নেই (admin)" }, 503);
+  /* cache READ — একই uid+প্রশ্ন ১০ মিনিটে আবার কল হয় না (কোস্ট কন্ট্রোল) */
+  try {
+    const hit = JSON.parse(await env.PUB_KV.get(cacheKey) || "null");
+    if (hit && hit.text) return json({ text: hit.text, model: hit.model, at: Date.now(), cached: true, history: hist.slice(-20) });
+  } catch (_) {}
   /* — 🎨 চিত্র তৈরি (একই secure পথ, কোনো ক্লায়েন্ট key নেই) — */
   if (kind === "image") {
     const raw = String(refs.text || lastTxt || "তুমি যা চাইছ এঁকে দেখাও").slice(0, 1200);
@@ -1552,7 +1558,7 @@ var aiCall = async (request, env, uid) => {
       const d = await r.json().catch(() => ({}));
       const t = String(d?.candidates?.[0]?.content?.parts?.map((x) => x.text || "").join("") || "").trim();
       if (r.ok && t) {
-        try { await env.PUB_KV.put("aicache:" + uid + ":" + kind + ":" + (refs.questionId || refs.word || refs.examId || "") + ":" + lastTxt.slice(0, 120), JSON.stringify({ text: t, model: m, at: Date.now() }), { expirationTtl: 600 }); } catch (_) {}
+        try { await env.PUB_KV.put(cacheKey, JSON.stringify({ text: t, model: m, at: Date.now() }), { expirationTtl: 600 }); } catch (_) {}
         hist.push({ r: "u", t: lastTxt.slice(0, 600), at: Date.now() });
         hist.push({ r: "a", t: t.slice(0, 1200), at: Date.now() });
         try { await env.PUB_KV.put("achat:" + uid, JSON.stringify(hist.slice(-40)), { expirationTtl: 31536e3 }); } catch (_) {}
