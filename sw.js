@@ -74,7 +74,7 @@ const APP_SHELL = [
   './cloud-content-sync.js?v=p2-cloud-v2',
   './auth-svg.js?v=p3-auth-prof-v177',
   './session-persist.js?v=session-v1',
-  './ah-ai-client.js?v=ahai-v1',
+  './ah-ai-client.js?v=ahai-v2',
   './premium-auth.js?v=p3-auth-guest-v177',
   './android-runtime-fix.js?v=and-scroll-v1',
   '',

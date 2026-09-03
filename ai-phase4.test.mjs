@@ -39,7 +39,7 @@ t('১৭. Study AI → server-first (AH_AI.ask) + chat owner-স্কোপ (�
 t('১৮. Study AI ছবি → server-first; client-পথ শুধু fallback', sai.includes('window.AH_AI.askImage') && sai.includes('const gk = keyList'));
 t('১৯. AI Explain → server-first + question-aware (refs.questionId)', aie.includes('window.AH_AI') && aie.includes("refs: { questionId: qid }"));
 t('২০. index.html-এ gateway লোড + v179 markers + AI টুল নতুন ভার্সন',
-  idx.includes('ah-ai-client.js?v=ahai-v1') && idx.includes('v179-aiengine-20260903') && idx.includes('studyai-v133-server') && idx.includes('aiex-v4-ph4'));
+  idx.includes('ah-ai-client.js?v=ahai-v2') && idx.includes('v179-aiengine-20260903') && idx.includes('studyai-v133-server') && idx.includes('aiex-v4-ph4'));
 
 /* ── RUNTIME: gateway-র আচরণ (jsdom) ── */
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/' });
