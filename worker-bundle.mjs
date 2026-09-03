@@ -282,7 +282,8 @@ var public_worker_default = {
       if (p.startsWith("/api/admin/")) return await admin(request, env, p);
       if (p === "/api/ai" && request.method === "POST") {
         let gu = ""; try { gu = await authUser(request, env); } catch (_) {}
-        return await aiCall(request, env, gu || "");
+        const gid = String(request.headers.get("X-AH-Guest") || "").trim().replace(/[^a-zA-Z0-9\-_]/g, "").slice(0, 48);
+        return await aiCall(request, env, gu || (gid ? "g:" + gid : "gu"));
       }
       const uid = await authUser(request, env);
       if (p === "/api/auth/passkey/add/begin" && request.method === "POST") return await pkAddBegin(request, env, uid);
