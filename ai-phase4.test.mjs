@@ -28,6 +28,8 @@ t('১১. স্পিড/কোস্ট: মডেল-চেইন ৩-flash-
 t('১১ক. ক্যাশ read+write একই key (একই প্রশ্নে নতুন API কল নয়)', w.includes('const cacheKey = "aicache:"') && w.includes('cached: true') && w.includes('env.PUB_KV.get(cacheKey)'));
 t('১১ক২. CORS preflight: authorization + x-ah-guest + x-ah-app allow (ব্রাউজার-ব্লকের মূল ফিক্স)',
   /authorization,\s*content-type,\s*x-ah-guest/.test(w) && w.includes('x-ah-device'));
+t('১১ক২খ. KV-লেখা-থ্রটল: tok/sess ১০ মিনিটে একবার, touchUser ৩০ মিনিটে (দৈনিক সীমা-রক্ষা)',
+  w.includes('nowTs - tr.lastSeen >= 600000') && w.includes('nowTs - prev.lastSeen < 600000') && w.includes('nowTs - u.lastSeen < 1800000'));
 t('১১ক৩. KV-র write-ব্যর্থতায় AI-ও পড়ে না (সব put try/catch, duplicate বাদ)',
   w.includes('try { await env.PUB_KV.put(limKey') && (w.match(/put\(limKey/g) || []).length === 1 && w.includes('var touchUser = async (env, id) => {\n  try {'));
 t('১১বি০. ভিশন: শেষ user-মেসেজে attachments → inline_data (server-সূত্রে ছবি পড়া)',

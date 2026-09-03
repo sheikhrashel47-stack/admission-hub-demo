@@ -126,9 +126,11 @@ async function trackSession(env, uid, token, ua) {
     let list = JSON.parse(await env.PUB_KV.get(key) || "{}");
     if (!list || typeof list !== "object") list = {};
     const prev = list[token] || {};
+    const nowTs = Date.now();
+    if (prev.lastSeen && nowTs - prev.lastSeen < 600000) return; /* ১০ মিনিটে একবারই লেখা */
     list[token] = {
-      at: prev.at || Date.now(),
-      lastSeen: Date.now(),
+      at: prev.at || nowTs,
+      lastSeen: nowTs,
       device: info.device,
       browser: info.browser,
       mobile: info.mobile,
@@ -1359,8 +1361,11 @@ var authUser = async (request, env) => {
   const u = JSON.parse(await env.PUB_KV.get("user:" + tr.id) || "{}");
   if (u.blocked || u.status === "disabled" || u.status === "suspended") throw Object.assign(new Error("\u0985\u09CD\u09AF\u09BE\u0995\u09BE\u0989\u09A8\u09CD\u099F \u09AC\u09A8\u09CD\u09A7 \u0995\u09B0\u09BE \u09B9\u09AF\u09BC\u09C7\u099B\u09C7"), { status: 403 });
   try {
-    await env.PUB_KV.put("tok:" + tok2, JSON.stringify({ id: tr.id, at: tr.at || Date.now(), lastSeen: Date.now() }), { expirationTtl: 31536e3 });
-    await trackSession(env, tr.id, tok2, request.headers.get("User-Agent") || "");
+    const nowTs = Date.now();
+    if (!tr.lastSeen || nowTs - tr.lastSeen >= 600000) {
+      await env.PUB_KV.put("tok:" + tok2, JSON.stringify({ id: tr.id, at: tr.at || nowTs, lastSeen: nowTs }), { expirationTtl: 31536e3 });
+      await trackSession(env, tr.id, tok2, request.headers.get("User-Agent") || "");
+    }
   } catch (_) {
   }
   return tr.id;
@@ -1369,7 +1374,9 @@ var touchUser = async (env, id) => {
   try {
     const u = JSON.parse(await env.PUB_KV.get("user:" + id) || "{}");
     if (u.id) {
-      u.lastSeen = Date.now();
+      const nowTs = Date.now();
+      if (u.lastSeen && nowTs - u.lastSeen < 1800000) return; /* ৩০ মিনিটে একবারই */
+      u.lastSeen = nowTs;
       await env.PUB_KV.put("user:" + id, JSON.stringify(u));
     }
   } catch (_) {}
