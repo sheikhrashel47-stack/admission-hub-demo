@@ -5,7 +5,7 @@
 (() => {
   'use strict';
 
-  const DEFAULT_ENDPOINT = 'https://admission-notify.rashelzayan213.workers.dev';
+  const DEFAULT_ENDPOINT = 'https://admission-notify.admissionhub.workers.dev';
   const LS_ENDPOINT = 'ahNotifyUrl';
   const VAPID_PUBLIC = 'BJtpFY7isSDAQy7ck7zNQjNfmhAu4w-bcQ3_eFUTQbITSHBJO5f6n5ayYm_-TE7vNcnZ_1Ib45DVmxQkyLIFDsY';
   const APP_HEADER = 'admission-hub';

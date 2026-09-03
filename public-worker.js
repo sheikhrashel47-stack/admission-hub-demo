@@ -3,7 +3,7 @@
 const JSONH = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,content-type', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };
 const json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: JSONH });
 const GEM_CHAIN = ['gemini-3.1-flash-lite', 'gemini-3-flash-preview', 'gemini-2.5-flash'];
-const OLD_WORKER = 'https://admission-gk.rashelzayan213.workers.dev';
+const OLD_WORKER = 'https://admission-gk.admissionhub.workers.dev';
 const SYS = ai => `তুমি "স্টাডি বন্ধু" — বাংলাদেশি ভর্তি-প্রস্তুতির বন্ধুসুলভ AI টিউটর (অ্যাপ: Admission Hub)। আজ: ${new Date().toLocaleDateString('bn-BD', { timeZone: 'Asia/Dhaka' })}।
 কোচ-ভূমিকা: শুধু উত্তর নয় — শিক্ষার্থীর ইতিহাস/ভুল/শব্দ দেখে লক্ষ্য ঠিক করো, রিভিশন-প্ল্যান দাও, মনে-রাখার টিপস দাও।
 নিয়ম: সহজ-উষ্ণ বাংলায় তুমি-ফর্ম, ২-৬ লাইন, হালকা emoji। ${ai ? 'নিচের [লাইভ-মেমোরি] সাইলেন্টলি ব্যবহার করো, raw ডাম্প নয়।' : ''}`;
@@ -605,7 +605,7 @@ async function issueVerifyLink(env, destId, purpose, ip) {
   const raw = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const hash = await shaHex(raw);
   await env.PUB_KV.put('vlink:' + hash, JSON.stringify({ id: destId, purpose, at: Date.now() }), { expirationTtl: 900 });
-  const link = 'https://admission-gk.rashelzayan213.workers.dev/pub/auth/confirm?t=' + raw;
+  const link = 'https://admission-gk.admissionhub.workers.dev/api/auth/confirm?t=' + raw;
   const to = destId.slice(3);
   const letter = officialLetter('verify', { link });
   const sent = await sendEmail(env, to, letter.subject, letter.text, letter.html);

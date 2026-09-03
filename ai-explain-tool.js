@@ -4,7 +4,7 @@
   if (window.AiExplain) return;
   window.__aiExplainInstalled = true;
 
-  const WORKER = 'https://admission-gk.rashelzayan213.workers.dev';
+  const WORKER = 'https://admission-gk.admissionhub.workers.dev';
   const APP_HEADER = { 'X-AH-App': 'admission-hub' };
   const EXPL_KEY = 'ah-explanation-cache'; // বিদ্যমান স্টোর (mistake-notebook একই জিনিস পড়ে)
   const PV = 1; // promptVersion

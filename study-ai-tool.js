@@ -12,7 +12,7 @@
   if (window.StudyAiTool) return;
   const ROUTE = 'study-ai';
   const route = () => (window.location.hash || '').replace(/^#\/?/, '').split('?')[0];
-  const WORKER = 'https://admission-gk.rashelzayan213.workers.dev';
+  const WORKER = 'https://admission-gk.admissionhub.workers.dev';
   const APP_HEADER = { 'X-AH-App': 'admission-hub' };
   const LS_LIST = 'studyAiChats', LS_CUR = 'studyAiCur', LS_SHARED = 'studyAiShared', LS_NAME = 'studyAiName', LS_BANK = 'studyAiBankAt', LS_CFG = 'studyAiCfg';
 

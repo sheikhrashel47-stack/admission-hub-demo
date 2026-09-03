@@ -3,8 +3,8 @@
   'use strict';
   if (window.__ahUserAccount) return;
   window.__ahUserAccount = true;
-  const WORKER = 'https://admission-gk.rashelzayan213.workers.dev';
-  const PUB = WORKER + '/pub';
+  const WORKER = 'https://admission-gk.admissionhub.workers.dev';
+  const PUB = WORKER + '/api';
   const LS_TOKEN = 'ahPubToken';
   const LS_USER = 'ahPubUser';
   const PERSONAL = ['examResults', 'mistakes', 'settings', 'dailyStats', 'activityLogs', 'notes'];

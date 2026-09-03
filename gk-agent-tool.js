@@ -5,7 +5,7 @@
 (() => {
   'use strict';
 
-  const WORKER = (() => { try { return String(localStorage.getItem('ahGkUrl') || '').trim() || 'https://admission-gk.rashelzayan213.workers.dev'; } catch (_) { return 'https://admission-gk.rashelzayan213.workers.dev'; } })();
+  const WORKER = (() => { try { return String(localStorage.getItem('ahGkUrl') || '').trim() || 'https://admission-gk.admissionhub.workers.dev'; } catch (_) { return 'https://admission-gk.admissionhub.workers.dev'; } })();
   const ROUTE = 'gk-agent';
   const route = () => (window.location.hash || '').replace(/^#\/?/, '').split('?')[0];
   const gkStyleOnce = () => { if (document.getElementById('gkAgentStyle')) return; const st = document.createElement('style'); st.id = 'gkAgentStyle'; st.textContent = `

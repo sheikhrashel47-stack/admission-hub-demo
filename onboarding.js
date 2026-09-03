@@ -10,7 +10,7 @@
   'use strict';
   if (window.AHOnboard) return;
 
-  const PUB = 'https://admission-gk.rashelzayan213.workers.dev/pub';
+  const PUB = 'https://admission-gk.admissionhub.workers.dev/api';
   const TOTAL = 10;
 
   const UNIVERSITIES = [

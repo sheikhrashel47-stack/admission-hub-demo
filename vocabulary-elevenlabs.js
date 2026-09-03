@@ -44,7 +44,7 @@
   const delRow = key => dbReady() ? Promise.resolve(dbDelRaw('voiceCache', key)).catch(() => false) : (mem.delete(key), Promise.resolve(true));
 
   // ── Secure endpoint (worker URL — secret নয়, key নয়) ────────────────────────
-  const DEFAULT_ENDPOINT = 'https://admission-voice.rashelzayan213.workers.dev';
+  const DEFAULT_ENDPOINT = 'https://admission-voice.admissionhub.workers.dev';
   let proxyUrl = DEFAULT_ENDPOINT;
   try {
     const saved = String(localStorage.getItem(LS_ENDPOINT) || '').trim();

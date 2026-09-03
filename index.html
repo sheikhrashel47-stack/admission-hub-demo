@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>My Admission Hub</title>
 <script>(function(){try{document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')||sessionStorage.getItem('ahPubToken'))?'in':'out';}catch(e){document.documentElement.dataset.ah='out';}})();</script>
-<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-prof-v170">
+<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-prof-v171">
 <link rel="stylesheet" href="./onboarding.css?v=p6-onboard-v11">
 
 <link rel="manifest" href="manifest.json">
@@ -5098,17 +5098,17 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
       // An older worker can keep serving the pre-fix navigation bundle in an
       // installed PWA. Remove that controller once, then install the current
       // worker with a fresh build URL.
-      const expectedSwVersion = 'v170-auth-resilience-20260902';
+      const expectedSwVersion = 'v171-authapi-fix-20260903';
       if (registration && activeUrl && !activeUrl.includes(expectedSwVersion)) {
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v170-auth-resilience-20260902',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v171-authapi-fix-20260903',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v170-auth-resilience-20260902';
+        const cur = 'admission-hub-shell-v171-authapi-fix-20260903';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -5622,7 +5622,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script src="./result-analysis-500.js?v=result-analysis-500-deep-matched-v2" defer></script>
 <script src="./mock-result-experience.js?v=result-insights-200-single-card-v5" defer></script>
 <script>
-window.ADMISSION_HUB_AI_ENDPOINT = 'https://admission-hub-ai-proxy.rashelzayan213.workers.dev/analyze';
+window.ADMISSION_HUB_AI_ENDPOINT = 'https://admission-hub-ai-proxy.admissionhub.workers.dev/analyze';
 window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 </script>
 <script src="./result-ai-analysis.js?v=result-ai-live-tool-v10-real-request" defer></script>
@@ -5644,7 +5644,7 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script src="./cloud-content-sync.js?v=p2-cloud-v2"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="./auth-svg.js?v=p3-auth-ui-v25"></script>
-<script src="./premium-auth.js?v=p3-auth-prof-v170"></script>
+<script src="./premium-auth.js?v=p3-auth-prof-v171"></script>
 <script src="./onboarding.js?v=p6-onboard-v11"></script>
 <script src="./app-seed.js?v=p1" defer></script>
 <script>

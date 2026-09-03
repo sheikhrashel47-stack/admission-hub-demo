@@ -1,4 +1,5 @@
-# LATEST — 2026-09-02 · ✅ AUTH COMPLETE — v170 live + end-to-end প্রমাণিত
+# LATEST — 2026-09-03 · ✅ AUTH API FIX — v171 live (email OTP / Passkey / Google signup ফের চালু)
 
-**স্থিতি:** v170 লাইভ (UI `p3-auth-prof-v170`, SW `v170`)। লাইভ সার্ভারে নতুন ইমেইল `finalcheck<ts>@gmail.com` → register-email `sent:true` → OTP verify → **token+active user** ✅ — কোনো "আগে লগইন" নয়। Brevo OTP delivery আগের টেস্টে delivered+opened (বাস্তব Gmail)। Google OAuth origin authorize (302→signin), built-in fallback client_id। পুরনো SW-shell cache purge live। jsdom ১৩/১৩ + live E2E ✅।
-**অবশিষ্ট:** ভাইয়ের ডিভাইসে ২× রিফ্রেশ → নতুন Gmail signup manual confirm।
+**Root cause (নিখুঁত প্রমাণসহ):** (১) সমস্ত ফ্রন্টএন্ড ভুল host `admission-gk.rashelzayan213.workers.dev` (DNS NXDOMAIN) ব্যবহার করত — সঠিক `admission-gk.admissionhub.workers.dev`; (২) ভুল prefix `/pub/*` (Worker-এ নেই → 401 "আগে লগইন") — সঠিক `/api/*`। Worker সুস্থ, `/api/*` route-এ Brevo OTP `sent:true` + passkey challenge + Google route সব live verified।
+
+**ফিক্স v171:** host fix ১২ ফাইল + `/pub`→`/api` prefix (premium-auth/user-account/onboarding/cloud-content-sync/public-users-admin) + sw BUILD_ID `v171-authapi-fix-20260903` + APP_SHELL `p3-auth-prof-v171`। committed+pushed (demo+hub), Pages redeploy → live verify এই টার্নেই।
