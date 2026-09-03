@@ -314,3 +314,80 @@ html[data-ah="in"] #ahAuthGate{display:none!important}
   .ah-pf-prep{flex-direction:column;text-align:center}
   .ah-pf-prep-side .li span{flex-basis:76px}
 }
+
+/* ═══════════ GUEST-FIRST UX (v177) — premium prompt sheet, guest profile, badges ═══════════ */
+body.ah-prompt-open{overflow:hidden}
+.ah-prompt-wrap{position:fixed;inset:0;z-index:7000;display:flex;align-items:flex-end;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif}
+.ah-prompt-backdrop{position:absolute;inset:0;background:rgba(9,24,18,.44);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);animation:ahPromptFade .24s ease both}
+.ah-prompt-sheet{position:relative;width:min(100%,440px);max-height:88dvh;overflow:auto;background:linear-gradient(165deg,#ffffff 0%,#f2faf6 55%,#e7f5ee 100%);border-radius:26px 26px 0 0;border-top:1px solid rgba(255,255,255,.85);box-shadow:0 -18px 60px rgba(9,24,18,.30);padding:22px 22px calc(18px + env(safe-area-inset-bottom,0px));animation:ahPromptUp .34s cubic-bezier(.22,1.1,.32,1) both;text-align:center;color:#12251d}
+.ah-prompt-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;border:1px solid #d8ebe2;background:rgba(255,255,255,.8);color:#3e7a64;font-size:17px;line-height:1;cursor:pointer;z-index:2}
+.ah-prompt-scene{position:relative;height:86px;margin:2px auto 6px;width:200px}
+.ah-prompt-orb{position:absolute;border-radius:50%;background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.35) 18%, rgba(180,230,210,.20) 52%, rgba(140,200,175,.12) 100%);border:1px solid rgba(255,255,255,.7);box-shadow:inset -8px -12px 18px rgba(80,140,110,.08),0 10px 22px rgba(40,90,70,.10)}
+.ah-prompt-orb.a{width:74px;height:74px;left:8%;top:26%;animation:ahPromptFloat 4.2s ease-in-out infinite}
+.ah-prompt-orb.b{width:44px;height:44px;right:10%;top:44%;animation:ahPromptFloat 5.1s ease-in-out .6s infinite}
+.ah-prompt-orb.c{width:22px;height:22px;left:36%;top:70%;opacity:.8;animation:ahPromptFloat 3.6s ease-in-out .3s infinite}
+.ah-prompt-spark{position:absolute;left:50%;top:0;width:56px;height:56px;margin-left:-28px;fill:#0f6b4f;filter:drop-shadow(0 6px 12px rgba(15,107,79,.35));animation:ahPromptSpin 14s linear infinite}
+.ah-prompt-eyebrow{font-size:9.5px;font-weight:900;letter-spacing:.14em;color:#1a7a58;opacity:.9}
+.ah-prompt-title{font-size:23px;line-height:1.22;margin:7px 0 6px;color:#103b2d;font-weight:800}
+.ah-prompt-sub{font-size:13px;line-height:1.68;color:#41695b;margin:0 auto;max-width:330px}
+.ah-prompt-benefits{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:13px 0 15px}
+.ah-prompt-benefits span{font-size:10px;font-weight:800;color:#0d6b4c;background:#e4f5ec;border:1px solid #c4e6d6;padding:5px 9px;border-radius:999px}
+.ah-prompt-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:52px;border-radius:15px;border:1px solid #cfdfd7;background:#ffffff;color:#17312a;font-size:14.5px;font-weight:800;cursor:pointer;box-shadow:0 6px 18px rgba(15,107,79,.10);transition:transform .14s ease}
+.ah-prompt-google:active{transform:scale(.975)}
+.ah-prompt-google svg{width:19px;height:19px}
+.ah-prompt-email{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:50px;margin-top:10px;border-radius:15px;border:0;background:linear-gradient(135deg,#0e7050,#16a06f);color:#fff;font-size:14.5px;font-weight:800;cursor:pointer;box-shadow:0 8px 20px rgba(14,112,80,.30);transition:transform .14s ease}
+.ah-prompt-email:active{transform:scale(.975)}
+.ah-prompt-email-ic{font-size:16px}
+.ah-prompt-later{display:inline-block;margin:13px auto 2px;padding:8px 18px;border:0;background:none;color:#4b7a68;font-size:13.5px;font-weight:800;cursor:pointer;border-bottom:1px dashed #9ec7b6}
+.ah-prompt-safe{font-size:10.5px;color:#6b8d80;margin:8px 0 0}
+@keyframes ahPromptUp{from{transform:translateY(46%) scale(.98);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+@keyframes ahPromptFade{from{opacity:0}to{opacity:1}}
+@keyframes ahPromptFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes ahPromptSpin{to{transform:rotate(360deg)}}
+
+/* — গেস্ট ব্যাজ (history / mistakes / result / dashboard) — */
+.ah-guest-note{display:flex;align-items:center;gap:11px;margin:10px 12px;padding:12px 12px;border-radius:16px;background:linear-gradient(140deg,#f0faf5,#e2f4eb);border:1px solid #bfe2d2;box-shadow:0 6px 18px rgba(15,107,79,.07);text-align:left}
+.ah-guest-note-ic{flex:0 0 38px;height:38px;display:grid;place-items:center;font-size:18px;border-radius:12px;background:#fff;border:1px solid #cde8dc;box-shadow:0 4px 12px rgba(15,107,79,.10)}
+.ah-guest-note-body{flex:1;min-width:0}
+.ah-guest-note-body b{display:block;color:#124933;font-size:13px;line-height:1.4}
+.ah-guest-note-body i{display:block;font-style:normal;color:#4f7a69;font-size:11px;line-height:1.5;margin-top:2px}
+.ah-guest-note-btn{flex:0 0 auto;border:0;border-radius:12px;background:#0e7050;color:#fff;font-size:11.5px;font-weight:800;padding:10px 13px;cursor:pointer;box-shadow:0 6px 14px rgba(14,112,80,.28)}
+.ah-guest-note-btn:active{transform:scale(.96)}
+.ah-guest-result{background:linear-gradient(140deg,#fffdf4,#f7f1df);border-color:#e8d9ae}
+.ah-guest-result .ah-guest-note-ic{border-color:#efe2bd}
+.ah-guest-result .ah-guest-note-body b{color:#5c4a17}
+.ah-guest-result .ah-guest-note-body i{color:#826f3c}
+.ah-guest-result .ah-guest-note-btn{background:#b98314}
+
+/* — গেস্ট প্রোফাইল — */
+.ah-guest-profile .ah-pf-hero{display:flex;gap:15px;align-items:center;padding:0 2px 4px}
+.ah-guest-avatar{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;font-size:27px;background:linear-gradient(145deg,#d9f0e5,#a5d6bf);border:2px solid rgba(15,107,79,.28);box-shadow:0 8px 22px rgba(15,107,79,.16)}
+.ah-guest-hero h1{font-size:21px;margin:0 0 4px;color:#103b2d}
+.ah-guest-hero p{margin:0;font-size:12.5px;color:#4f7a69;line-height:1.55}
+.ah-guest-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:15px 0}
+.ah-guest-stats span{background:#fff;border:1px solid #d8ebe2;border-radius:15px;padding:11px 6px;text-align:center;box-shadow:0 5px 14px rgba(15,107,79,.06)}
+.ah-guest-stats b{display:block;font-size:17px;color:#0d6144}
+.ah-guest-stats i{display:block;font-style:normal;font-size:9.5px;color:#6b8d80;margin-top:3px}
+.ah-guest-cta{position:relative;overflow:hidden;text-align:center;margin-top:4px;border-radius:22px;background:linear-gradient(160deg,#ffffff 0%,#effaf4 60%,#e2f4eb 100%);border:1px solid #c4e6d6;padding:20px 18px 16px;box-shadow:0 10px 30px rgba(15,107,79,.10)}
+.ah-guest-cta-art{position:relative;height:64px;width:170px;margin:0 auto 4px}
+.ah-guest-cta .ah-prompt-orb{position:absolute}
+.ah-guest-cta .ah-prompt-orb.a{width:56px;height:56px;left:4%;top:14%}
+.ah-guest-cta .ah-prompt-orb.b{width:34px;height:34px;right:8%;top:40%}
+.ah-guest-cta .ah-prompt-spark{width:44px;height:44px;margin-left:-22px;top:2px}
+.ah-guest-cta h2{font-size:19px;color:#103b2d;margin:6px 0 6px}
+.ah-guest-cta p{font-size:12.5px;line-height:1.62;color:#4f7a69;margin:0 auto 14px;max-width:330px}
+.ah-guest-cta .ah-prompt-google,.ah-guest-cta .ah-prompt-email,.ah-guest-cta .ah-prompt-later{margin-left:auto;margin-right:auto;max-width:330px}
+.ah-guest-safe{font-size:10.5px;color:#6b8d80;margin:8px 0 0}
+@media (prefers-reduced-motion:reduce){
+  .ah-prompt-sheet{animation:none}
+  .ah-prompt-backdrop{animation:none}
+  .ah-prompt-orb{animation:none}
+  .ah-prompt-spark{animation:none}
+}
+@media(max-width:370px){
+  .ah-prompt-title{font-size:20px}
+  .ah-guest-stats{grid-template-columns:repeat(2,1fr)}
+}
+/* welcome-এ "গেস্ট হিসেবে চালিয়ে যাও" (login wall না — সবসময় escape) */
+.ah-guestlink{display:inline-block;margin-top:14px;padding:9px 16px;border:1px solid #cfe4da;border-radius:999px;background:rgba(255,255,255,.65);color:#2f6b54;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit}
+.ah-guestlink:active{transform:scale(.97);background:#eef8f3}

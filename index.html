@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>My Admission Hub</title>
 <script>(function(){try{document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')||sessionStorage.getItem('ahPubToken'))?'in':'out';}catch(e){document.documentElement.dataset.ah='out';}})();</script>
-<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-prof-v172">
+<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-guest-v177">
 <link rel="stylesheet" href="./onboarding.css?v=p6-onboard-v11">
 
 <link rel="manifest" href="manifest.json">
@@ -693,7 +693,7 @@ textarea{min-height:96px}
 </style>
 </head>
 <body class="app-booting">
-<div id="ahAuthGate" aria-label="Authentication">
+<div id="ahAuthGate" aria-label="Authentication" style="display:none" aria-hidden="true">
 <section class="ah-screen ah-welcome ah-glass">
 <div class="ah-dock">
 <h1>ADMISSION HUB</h1>
@@ -5234,17 +5234,17 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
       // An older worker can keep serving the pre-fix navigation bundle in an
       // installed PWA. Remove that controller once, then install the current
       // worker with a fresh build URL.
-      const expectedSwVersion = 'v176-introfix-20260903';
+      const expectedSwVersion = 'v177-guest-20260903';
       if (registration && activeUrl && !activeUrl.includes(expectedSwVersion)) {
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v176-introfix-20260903',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v177-guest-20260903',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v176-introfix-20260903';
+        const cur = 'admission-hub-shell-v177-guest-20260903';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -5795,8 +5795,8 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script>window.AH_CLOUD_ROLE='public';</script>
 <script src="./cloud-content-sync.js?v=p2-cloud-v2"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
-<script src="./auth-svg.js?v=p3-auth-ui-v25"></script>
-<script src="./premium-auth.js?v=p3-auth-prof-v172"></script>
+<script src="./auth-svg.js?v=p3-auth-prof-v177"></script>
+<script src="./premium-auth.js?v=p3-auth-guest-v177"></script>
 <script src="./curriculum-config.js?v=p6-onboard-v12"></script>
 <script src="./onboarding.js?v=p6-onboard-v12"></script>
 <script src="./app-seed.js?v=p1" defer></script>

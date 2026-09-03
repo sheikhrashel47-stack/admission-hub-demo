@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v176-introfix-20260903';
+const BUILD_ID = 'v177-guest-20260903';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -72,15 +72,15 @@ const APP_SHELL = [
   './smart-revision-tool.js?v=smart-revision-v2-safe-session',
   './source-course-tool.js?v=bangla-only-courses-v23-freshfetch',
   './cloud-content-sync.js?v=p2-cloud-v2',
-  './auth-svg.js?v=p3-auth-prof-v172',
+  './auth-svg.js?v=p3-auth-prof-v177',
   './splash-3d.js?v=splash3d-v3',
   './session-persist.js?v=session-v1',
-  './premium-auth.js?v=p3-auth-prof-v172',
+  './premium-auth.js?v=p3-auth-guest-v177',
   './android-runtime-fix.js?v=and-scroll-v1',
   '',
-  './premium-auth.css?v=p3-auth-prof-v172',
-  './auth-svg.js?v=p3-auth-prof-v172',
-  './premium-auth.js?v=p3-auth-prof-v172',
+  './premium-auth.css?v=p3-auth-guest-v177',
+  './auth-svg.js?v=p3-auth-prof-v177',
+  './premium-auth.js?v=p3-auth-guest-v177',
   './curriculum-config.js?v=p6-onboard-v12',
   './onboarding.js?v=p6-onboard-v12',
   './onboarding.css?v=p6-onboard-v1',

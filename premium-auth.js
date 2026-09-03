@@ -12,8 +12,8 @@
   let cfg = { google: false, googleClientId: '', email: false, sms: false };
   let view = 'welcome';
   let typeGen = 0;
-  let lang = 'en';
-  try { if (localStorage.getItem('ahLang') === 'bn') lang = 'bn'; } catch (_) {}
+  let lang = 'bn';
+  try { if (localStorage.getItem('ahLang') === 'en') lang = 'en'; } catch (_) {}
   const LINES = {
     bn: ['আসসালামু আলাইকুম! আপনাকে পেয়ে আমরা আনন্দিত।', 'চলুন, একসাথে শুরু করি নতুন এক অভিজ্ঞতা।'],
     en: ['Welcome! Let’s get started.', 'Make every moment of learning count.']
@@ -225,6 +225,7 @@
       <h1>ADMISSION HUB</h1>
       <p class="ah-tag">${t('tag')}</p>
       <button class="ah-getstarted" type="button" data-go="signup">${t('start')}</button>
+      <button class="ah-guestlink" type="button" data-guest-go>${lang === 'bn' ? 'আপাতত গেস্ট হিসেবে চালিয়ে যাও' : 'Continue as guest for now'}</button>
     </div>
   </section>`);
     startWelcomeType(lang);
@@ -432,6 +433,7 @@
     });
     const root = gateEl(); if (!root) return;
     root.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.getAttribute('data-go')));
+    root.querySelectorAll('[data-guest-go]').forEach(b => b.onclick = () => { clearPendingAuth(); enterGuest(); });
     root.querySelectorAll('[data-eye]').forEach(b => b.onclick = () => {
       const inp = document.getElementById(b.getAttribute('data-eye'));
       if (!inp) return;
@@ -991,8 +993,8 @@
   async function logout() {
     try { if (token()) await api('/auth/logout', { method: 'POST', headers: authH() }); } catch (_) {}
     setSession('', null);
-    setGate(true);
-    go('welcome');
+    enterGuest();
+    toast(lang === 'bn' ? 'লগআউট হয়েছে — তোমার ডেটা এই ডিভাইসে নিরাপদ আছে' : 'Signed out — your data stays safe on this device');
   }
 
   function routePath() {
@@ -1022,7 +1024,9 @@
         if (label === 'Profile' && ic) {
           const s = 21;
           if (u.photo) ic.innerHTML = `<img src="${u.photo}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;vertical-align:-6px;border:1.5px solid var(--emerald)">`;
-          else ic.innerHTML = `<span class="ah-navmono" style="width:${s}px;height:${s}px;display:inline-grid;place-items:center;border-radius:50%;background:var(--emerald);color:#fff;font-size:${Math.round(s * 0.5)}px;font-weight:800;vertical-align:-6px;margin:0 auto">${esc(String(u.name || 'S').trim().charAt(0).toUpperCase())}</span>`;
+          else ic.innerHTML = u.name
+            ? `<span class="ah-navmono" style="width:${s}px;height:${s}px;display:inline-grid;place-items:center;border-radius:50%;background:var(--emerald);color:#fff;font-size:${Math.round(s * 0.5)}px;font-weight:800;vertical-align:-6px;margin:0 auto">${esc(String(u.name).trim().charAt(0).toUpperCase())}</span>`
+            : `<span style="width:${s}px;height:${s}px;display:inline-grid;place-items:center;border-radius:50%;background:linear-gradient(145deg,#cfe9dd,#9fd4bd);color:#14533d;font-size:12px;vertical-align:-6px;margin:0 auto;box-shadow:inset 0 0 0 1.5px rgba(20,83,61,.25)">👤</span>`;
         }
       });
     };
@@ -1881,8 +1885,284 @@
     wrap.addEventListener('click', e => { if (e.target === wrap) { URL.revokeObjectURL(img.src); wrap.remove(); } });
   }
 
+  async function enterApp() {
+    setGate(false);
+    try { await pullState(); } catch (_) {}
+    try { if (window.AdmissionCloudContent) await AdmissionCloudContent.pull(); } catch (_) {}
+    try { await pushState(); } catch (_) {}
+    if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {
+      const onb = await AHOnboard.maybeStart();
+      if (onb) return;
+    }
+    if (typeof navigate === 'function') navigate(pendingRoute() || 'dashboard');
+    else if (typeof render === 'function') render();
+    clearPendingAuth();
+    stopGuestBadger();
+    window.__ahGuestMode = false;
+  }
+
+  /* ═══════════ GUEST-FIRST AUTH UX (v177) ═══════════
+     - app প্রথম পেইন্টেই guest mode → কোন login wall নেই
+     - personal/cloud feature-এ premium login prompt (bottom sheet)
+     - "Not now" → একই action-এ session-জুড়ে আর prompt নয়
+     - guest data সবই local stores-এ; login করলে applyPersonal+pushState
+       (id-ভিত্তিক upsert) → duplicate ছাড়া cloud merge
+     - 🚨 পুরনো সেশন (ahPubToken/ahPubUser) কখনো মুছে না — কেবল নিঃশব্দে restore */
+  const GUEST_SKIP_PREFIX = 'ahGuestPromptSkip:';
+  const pendingRoute = () => String(window.__ahPendingAuthRoute || '');
+  const setPendingAuth = route => { window.__ahPendingAuthRoute = route || ''; };
+  const clearPendingAuth = () => { window.__ahPendingAuthRoute = ''; };
+  const promptSkipped = action => {
+    try { return sessionStorage.getItem(GUEST_SKIP_PREFIX + action) === '1'; } catch (_) { return false; }
+  };
+  const markPromptSkipped = action => {
+    try { sessionStorage.setItem(GUEST_SKIP_PREFIX + action, '1'); } catch (_) {}
+  };
+  const closeAuthPrompt = () => {
+    const ev = document.getElementById('ahAuthPrompt');
+    if (ev) ev.remove();
+    document.body.classList.remove('ah-prompt-open');
+  };
+  const openAuthPrompt = (action, opts) => {
+    if (authed()) return true;
+    try {
+      if (promptSkipped(action)) { toast(lang === 'bn' ? 'এই কাজটা এই ডিভাইসে তার নিজের মতোই চলে — অ্যাকাউন্ট যেকোনো সময় খুলতে পারো' : 'This works locally on this device — you can create an account anytime'); return false; }
+    } catch (_) {}
+    closeAuthPrompt();
+    const o = opts || {};
+    const title = o.title || (lang === 'bn' ? 'Keep Your Preparation Safe' : 'Keep Your Preparation Safe');
+    const sub = o.sub || (lang === 'bn'
+      ? 'ফ্রি অ্যাকাউন্ট খুলে তোমার পরীক্ষা, ভুল ও অগ্রগতি সব ডিভাইসে সেভ রাখো।'
+      : 'Create your free account to save your exams, mistakes and progress across devices.');
+    
+    const wrap = document.createElement('div');
+    wrap.id = 'ahAuthPrompt';
+    wrap.className = 'ah-prompt-wrap';
+    wrap.setAttribute('role', 'dialog');
+    wrap.setAttribute('aria-modal', 'true');
+    wrap.setAttribute('aria-label', 'Keep Your Preparation Safe');
+    wrap.innerHTML = `
+      <div class="ah-prompt-backdrop" data-ah-prompt-close></div>
+      <section class="ah-prompt-sheet" role="document">
+        <button class="ah-prompt-x" type="button" data-ah-prompt-close aria-label="বন্ধ করুন">×</button>
+        <div class="ah-prompt-scene" aria-hidden="true">
+          <span class="ah-prompt-orb a"></span><span class="ah-prompt-orb b"></span><span class="ah-prompt-orb c"></span>
+          <svg class="ah-prompt-spark" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4c1.8 11.2 6.8 16.2 18 18-11.2 1.8-16.2 6.8-18 18-1.8-11.2-6.8-16.2-18-18 11.2-1.8 16.2-6.8 18-18z"/></svg>
+        </div>
+        <div class="ah-prompt-eyebrow">ADMISSION HUB · ${lang === 'bn' ? 'ফ্রি অ্যাকাউন্ট' : 'FREE ACCOUNT'}</div>
+        <h2 class="ah-prompt-title">${title}</h2>
+        <p class="ah-prompt-sub">${sub}</p>
+        <div class="ah-prompt-benefits">
+          <span>☁️ ${lang === 'bn' ? 'ক্লাউড ব্যাকআপ' : 'Cloud backup'}</span>
+          <span>🔄 ${lang === 'bn' ? 'সব ডিভাইসে সিঙ্ক' : 'Sync across devices'}</span>
+          <span>🔐 ${lang === 'bn' ? 'নিরাপদ ও বিচ্ছিন্ন' : 'Secure & isolated'}</span>
+        </div>
+        <button class="ah-prompt-google" type="button" data-ah-prompt-google>
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.8-2.1 5.1-4.4 6.7v5.6h7.1c4.2-3.9 6.6-9.6 6.6-16.3z"/><path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.3l-7.1-5.6c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.7-3.9-12.5-9.2H4.2v5.7C7.8 41.3 15.3 46 24 46z"/><path fill="#FBBC05" d="M11.5 28c-.4-1.3-.7-2.6-.7-4s.3-2.7.7-4v-5.7H4.2C2.7 17.1 2 20.4 2 24s.7 6.9 2.2 9.7L11.5 28z"/><path fill="#EA4335" d="M24 10.8c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C35 4.5 30 2 24 2 15.3 2 7.8 6.7 4.2 14.3l7.3 5.7c1.8-5.3 6.7-9.2 12.5-9.2z"/></svg>
+          <span>Continue with Google</span>
+        </button>
+        <button class="ah-prompt-email" type="button" data-ah-prompt-email>
+          <span class="ah-prompt-email-ic">✉️</span>
+          <span>Continue with Email</span>
+        </button>
+        <button class="ah-prompt-later" type="button" data-ah-prompt-later>${o.laterLabel || (lang === 'bn' ? 'Not now' : 'Not now')}</button>
+        <p class="ah-prompt-safe">🔒 ${lang === 'bn' ? 'তোমার ডেটা এই ডিভাইসে থাকবে — কিছু মুছে যাবে না' : 'Your data stays on this device — nothing is lost'}</p>
+      </section>`;
+    document.body.appendChild(wrap);
+    document.body.classList.add('ah-prompt-open');
+    const goGoogle = () => {
+      closeAuthPrompt();
+      doGoogle();
+    };
+    const goEmail = () => {
+      closeAuthPrompt();
+      setPendingAuth(pendingRoute() || (window.Router && Router.path) || 'dashboard');
+      setGate(true);
+      go('login');
+    };
+    wrap.querySelector('[data-ah-prompt-google]').onclick = goGoogle;
+    wrap.querySelector('[data-ah-prompt-email]').onclick = goEmail;
+    wrap.querySelector('[data-ah-prompt-later]').onclick = () => {
+      markPromptSkipped(action);
+      closeAuthPrompt();
+      toast(lang === 'bn' ? 'ঠিক আছে — এই কাজটা এবার আর জিজ্ঞেস করব না' : 'Got it — I won’t ask again for this');
+    };
+    wrap.querySelectorAll('[data-ah-prompt-close]').forEach(el => { el.onclick = closeAuthPrompt; });
+    return false;
+  };
+
+  /* — Guest mode-এ ঢোকা: কোন wall নেই, সব local-ই available —
+     entry: boot() (no token / 401) ও logout() */
+  function enterGuest() {
+    setGate(false);
+    window.__ahGuestMode = true;
+    try {
+      if (typeof navigate === 'function') navigate(pendingRoute() || routePath() || 'dashboard');
+      else if (typeof render === 'function') render();
+    } catch (_) {}
+    clearPendingAuth();
+    hydrateGuestPages();
+    startGuestBadger();
+  }
+
+  /* — local/cloud ফিচার পেজগুলোর render-এর পরে গেস্ট ব্যাজ বসানোর হুক — */
+  function hydrateGuestPages() {
+    ['renderHistory', 'renderMistakes', 'renderExamResult', 'renderDashboard'].forEach(name => {
+      if (typeof window[name] !== 'function') return;
+      const orig = window[name];
+      if (orig.__ahGuestWrap) return;
+      const wrapped = function () {
+        const ret = orig.apply(this, arguments);
+        try { mountGuestBadges(); } catch (_) {}
+        return ret;
+      };
+      wrapped.__ahGuestWrap = true;
+      window[name] = wrapped;
+    });
+  }
+  function startGuestBadger() {
+    if (window.__ahGuestBadger) return;
+    window.__ahGuestBadger = setInterval(() => {
+      if (authed()) return stopGuestBadger();
+      try { mountGuestBadges(); } catch (_) {}
+    }, 1200);
+  }
+  function stopGuestBadger() {
+    if (window.__ahGuestBadger) { clearInterval(window.__ahGuestBadger); window.__ahGuestBadger = null; }
+    document.querySelectorAll('[data-ah-guest-badge]').forEach(el => el.remove());
+  }
+
+  const badgeCta = (action, icon, title, sub, laterLabel) => `
+    <div class="ah-guest-note" data-ah-guest-badge role="note">
+      <span class="ah-guest-note-ic">${icon}</span>
+      <div class="ah-guest-note-body">
+        <b>${title}</b><i>${sub}</i>
+      </div>
+      <button class="ah-guest-note-btn" type="button" data-ah-guest-action="${action}" data-ah-guest-later="${laterLabel || ''}">${lang === 'bn' ? 'ফ্রি অ্যাকাউন্ট' : 'Free account'}</button>
+    </div>`;
+  const afterBadgeInject = () => {
+    document.querySelectorAll('[data-ah-guest-action]').forEach(btn => {
+      if (btn.__ahGuestBound) return;
+      btn.__ahGuestBound = true;
+      btn.onclick = () => openAuthPrompt(btn.getAttribute('data-ah-guest-action'), { laterLabel: btn.getAttribute('data-ah-guest-later') || '' });
+    });
+  };
+  function mountGuestBadges() {
+    if (authed()) return;
+    try {
+      const p = String((window.Router && Router.path) || '');
+      const seal = (where) => { if (!where) return; };
+      // 1) Dashboard — ক্লাউড সিঙ্ক কার্ড
+      if (p === 'dashboard' && !document.querySelector('.dashboard-existing [data-ah-guest-badge]')) {
+        const host = document.querySelector('.dashboard-existing');
+        if (host) {
+          const el = document.createElement('div');
+          el.innerHTML = badgeCta('sync', '☁️',
+            lang === 'bn' ? 'অগ্রগতি সব ডিভাইসে সিঙ্ক করো' : 'Sync progress across devices',
+            lang === 'bn' ? 'ফ্রি অ্যাকাউন্টে তোমার পরীক্ষা, ভুল ও প্রগ্রেস ক্লাউডে থাকবে' : 'Free account keeps your exams, mistakes and progress in the cloud');
+          host.insertBefore(el.firstChild, host.firstChild);
+        }
+      }
+      // 2) History — ক্লাউড হিস্ট্রি ব্যাজ
+      if ((p === 'history' || p.startsWith('history/')) && !document.querySelector('[data-ah-guest-badge]')) {
+        const host = document.querySelector('.page > .card:first-child, .page > section:first-child, .page > div:first-child');
+        if (host) {
+          const wrap = document.createElement('div');
+          wrap.innerHTML = badgeCta('history', '🕐',
+            lang === 'bn' ? 'ক্লাউড হিস্ট্রি আনলক করো' : 'Unlock cloud history',
+            lang === 'bn' ? 'অ্যাকাউন্ট খুললে সব পরীক্ষার ইতিহাস স্থায়ী থাকবে — ডিভাইস বদলালেও' : 'Sign in to keep your full exam history permanently, on any device');
+          const hostParent = host.parentElement || document.querySelector('#app .page') || document.body;
+          hostParent.insertBefore(wrap.firstChild, host);
+        }
+      }
+      // 3) Mistakes — ভুলের খাতা ক্লাউড-সিঙ্ক ব্যাজ
+      if ((p === 'mistakes' || p.startsWith('mistakes/')) && !document.querySelector('[data-ah-guest-badge]')) {
+        const host = document.querySelector('.page > .card:first-child, .page > section:first-child, .page > div:first-child');
+        if (host) {
+          const wrap = document.createElement('div');
+          wrap.innerHTML = badgeCta('mistakes', '❌',
+            lang === 'bn' ? 'মিস্টেক ব্যাংক ক্লাউডে রাখো' : 'Keep your mistake bank in the cloud',
+            lang === 'bn' ? 'ফ্রি অ্যাকাউন্টে ভুলগুলো সব ডিভাইসে সিঙ্ক হবে — কখনো হারাবে না' : 'Free account syncs your mistakes across devices — never lost');
+          const hostParent = host.parentElement || document.querySelector('#app .page') || document.body;
+          hostParent.insertBefore(wrap.firstChild, host);
+        }
+      }
+      // 4) Exam result — result অ্যাকাউন্টে সেভ কার্ড
+      if (p === 'exam/result' && !document.querySelector('[data-ah-guest-badge]')) {
+        const host = document.querySelector('.page, #app > main, #app');
+        if (host) {
+          const el = document.createElement('div');
+          el.innerHTML = `
+            <div class="ah-guest-note ah-guest-result" data-ah-guest-badge role="note">
+              <span class="ah-guest-note-ic">💾</span>
+              <div class="ah-guest-note-body">
+                <b>${lang === 'bn' ? 'এই ফলাফল তোমার অ্যাকাউন্টে সেভ করো' : 'Save this result to your account'}</b>
+                <i>${lang === 'bn' ? 'ফ্রি অ্যাকাউন্ট খুললে ফলাফল স্থায়ী হিস্ট্রিতে থাকবে — সব ডিভাইসে' : 'A free account keeps it in your permanent history, on every device'}</i>
+              </div>
+              <button class="ah-guest-note-btn" type="button" data-ah-guest-action="result-save" data-ah-guest-later="Later">${lang === 'bn' ? 'সেভ করো' : 'Save'}</button>
+            </div>`;
+          host.appendChild(el.firstChild);
+        }
+      }
+      afterBadgeInject();
+    } catch (_) {}
+  }
+
+  /* — গেস্ট প্রোফাইল: personal profile আনলক করতে account-এর CTA —
+     স্পেক ১১: গেস্ট Profile icon → unlock card + Google/Email */
+  function renderGuestProfile(path) {
+    let exams = 0, correct = 0, attempted = 0, streak = 0;
+    try {
+      const st = (typeof computeLifetimeStats === 'function') ? computeLifetimeStats() : null;
+      if (st) { exams = st.exams || 0; correct = st.correct || 0; attempted = st.attempted || 0; }
+      if (typeof computeStreak === 'function') streak = computeStreak() || 0;
+    } catch (_) {}
+    const acc = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
+    const nav = typeof bottomNavHtml === 'function' ? bottomNavHtml('profile') : '';
+    renderShell(`<main class="page ah-pf ah-guest-profile">
+      <header class="ah-pf-hero ah-guest-hero">
+        <div class="ah-guest-avatar">👤</div>
+        <div>
+          <h1>${lang === 'bn' ? 'গেস্ট শিক্ষার্থী' : 'Guest learner'}</h1>
+          <p>${lang === 'bn' ? 'তোমার প্রোফাইল আনলক করতে ফ্রি অ্যাকাউন্ট খোলো' : 'Create your free account to unlock your personal Admission Hub profile'}</p>
+        </div>
+      </header>
+      <div class="ah-guest-stats">
+        <span><b>${exams}</b><i>${lang === 'bn' ? 'পরীক্ষা' : 'Exams'}</i></span>
+        <span><b>${attempted}</b><i>${lang === 'bn' ? 'প্রশ্ন' : 'Questions'}</i></span>
+        <span><b>${acc}%</b><i>${lang === 'bn' ? 'সঠিকতা' : 'Accuracy'}</i></span>
+        <span><b>${streak}</b><i>${lang === 'bn' ? 'দিন' : 'Days'}</i></span>
+      </div>
+      <section class="ah-guest-cta ah-glass-card">
+        <div class="ah-guest-cta-art" aria-hidden="true">
+          <span class="ah-prompt-orb a"></span><span class="ah-prompt-orb b"></span>
+          <svg class="ah-prompt-spark" viewBox="0 0 48 48"><path d="M24 4c1.8 11.2 6.8 16.2 18 18-11.2 1.8-16.2 6.8-18 18-1.8-11.2-6.8-16.2-18-18 11.2-1.8 16.2-6.8 18-18z"/></svg>
+        </div>
+        <h2>${lang === 'bn' ? 'তোমার প্রস্তুতি নিরাপদ রাখো' : 'Keep your preparation safe'}</h2>
+        <p>${lang === 'bn' ? 'ফ্রি অ্যাকাউন্টে তোমার পরীক্ষা, ভুল ও অগ্রগতি সেভ থাকবে — সব ডিভাইসে, চিরকাল।' : 'Save your exams, mistakes and progress in a free account — on every device, forever.'}</p>
+        <button class="ah-prompt-google" type="button" data-ah-guest-profile-google>
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.8-2.1 5.1-4.4 6.7v5.6h7.1c4.2-3.9 6.6-9.6 6.6-16.3z"/><path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.3l-7.1-5.6c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.7-3.9-12.5-9.2H4.2v5.7C7.8 41.3 15.3 46 24 46z"/><path fill="#FBBC05" d="M11.5 28c-.4-1.3-.7-2.6-.7-4s.3-2.7.7-4v-5.7H4.2C2.7 17.1 2 20.4 2 24s.7 6.9 2.2 9.7L11.5 28z"/><path fill="#EA4335" d="M24 10.8c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C35 4.5 30 2 24 2 15.3 2 7.8 6.7 4.2 14.3l7.3 5.7c1.8-5.3 6.7-9.2 12.5-9.2z"/></svg>
+          <span>Continue with Google</span>
+        </button>
+        <button class="ah-prompt-email" type="button" data-ah-guest-profile-email>
+          <span class="ah-prompt-email-ic">✉️</span>
+          <span>Continue with Email</span>
+        </button>
+        <button class="ah-prompt-later" type="button" data-ah-guest-profile-later>${lang === 'bn' ? 'Not now' : 'Not now'}</button>
+        <p class="ah-guest-safe">🔒 ${lang === 'bn' ? 'তোমার ডেটা এই ডিভাইসে থাকবে — কিছু মুছে যাবে না' : 'Your data stays on this device — nothing is lost'}</p>
+      </section>
+    </main>`, { topbar: false });
+    const g = document.querySelector('[data-ah-guest-profile-google]');
+    if (g) g.onclick = () => { setPendingAuth('profile'); doGoogle(); };
+    const e = document.querySelector('[data-ah-guest-profile-email]');
+    if (e) e.onclick = () => { setPendingAuth('profile'); setGate(true); go('login'); };
+    const l = document.querySelector('[data-ah-guest-profile-later]');
+    if (l) l.onclick = () => { markPromptSkipped('profile'); toast(lang === 'bn' ? 'ঠিক আছে — এইবার আর জিজ্ঞেস করব না' : 'Got it — I won’t ask again for this'); };
+  }
+
   function renderProfileRoute() {
     const p = routePath();
+    if (!authed()) return renderGuestProfile(p);
     if (p === 'profile') return renderProfile();
     if (p === 'profile/edit') return renderEdit();
     if (p === 'profile/security') return renderSecurity();
@@ -1992,14 +2272,15 @@
       } catch (e) {
         const msg = String(e && e.message || e);
         if (/আগে লগইন|http-401|http-403|অ্যাকাউন্ট বন্ধ/.test(msg)) {
-          setSession('', null); setGate(true); go('welcome');
+          setSession('', null);
+          enterGuest();
+          toast(lang === 'bn' ? 'সেশন শেষ হয়ে গেছে — গেস্ট মোডে চালিয়ে যাও' : 'Session ended — continuing in guest mode');
         } else {
           setGate(false);
         }
       }
     } else {
-      setGate(true);
-      if (view === 'welcome') welcome();
+      enterGuest();
     }
     
     setInterval(() => { if (token()) pushState().catch(() => {}); }, 90000);
@@ -2008,7 +2289,7 @@
   }
 
   document.addEventListener('ah-get-started', () => { setGate(true); go('signup'); });
-  window.AHAuth = { isAuthed: authed, user, token, logout, pushState, pullState, openLogin: () => { setGate(true); go('login'); }, renderProfile, renderProfileRoute };
+  window.AHAuth = { isAuthed: authed, isGuest: () => !authed(), user, token, logout, pushState, pullState, openLogin: () => { setGate(true); go('login'); }, prompt: openAuthPrompt, promptSkipped, enterGuest, closePrompt: closeAuthPrompt, renderProfile, renderProfileRoute, GuestBadges: mountGuestBadges };
   window.AdmissionAccount = window.AHAuth;
   injectAvatar();
   handleVerifyReturn();
