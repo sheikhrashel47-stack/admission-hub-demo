@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v177-guest-20260903';
+const BUILD_ID = 'v178-nosplash-20260903';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -17,7 +17,7 @@ const APP_SHELL = [
   './phase23-ui.js?v=swipe-fix-0f10a28-safe-capture',
   './upgrade-features.js?v=4',
   './phase3-intelligence.js?v=command-tools-v15-greet3d',
-  './phase1-upgrade.js?v=3-dynamic-command-pages-safe-capture',
+  './phase1-upgrade.js?v=4-nosplash',
   './web-search-fix.js?v=1',
   './study-tools-restore.js?v=3',
   './urgent-topic-fix.js?v=practice10',
@@ -73,7 +73,6 @@ const APP_SHELL = [
   './source-course-tool.js?v=bangla-only-courses-v23-freshfetch',
   './cloud-content-sync.js?v=p2-cloud-v2',
   './auth-svg.js?v=p3-auth-prof-v177',
-  './splash-3d.js?v=splash3d-v3',
   './session-persist.js?v=session-v1',
   './premium-auth.js?v=p3-auth-guest-v177',
   './android-runtime-fix.js?v=and-scroll-v1',
