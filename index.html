@@ -572,6 +572,7 @@ textarea{min-height:96px}
   window.addEventListener('hashchange', () => trace('route', location.hash));
 })();
 </script>
+<script src="./splash-3d.js?v=splash3d-v1"></script>
 </head>
 <body class="app-booting">
 <div id="ahAuthGate" aria-label="Authentication">
@@ -584,7 +585,7 @@ textarea{min-height:96px}
 </section>
 </div>
 <div id="ahOnboardGate" aria-label="Onboarding" style="display:none"></div>
-<div id="app"><main class="app-loading" role="status"><div class="app-loading-mark"><span class="ah3d" aria-hidden="true"><span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span><span class="cube"><i class="f1"></i><i class="f2"></i><i class="f3"></i><i class="f4"></i><i class="f5"></i><i class="f6"></i></span><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="dot d4"></span></span></div><b>Preparing your study space…</b><span>Loading your saved data safely.</span></main></div>
+<div id="app"><main class="app-loading" id="ahSplash" role="status"><div class="ahfs-prefill" aria-hidden="true"><span class="ahfs-prefill-tile">✦</span><b>Admission Hub</b><span>তোমার স্টাডি স্পেস প্রস্তুত হচ্ছে…</span></div></main></div>
 <div id="navRoot" aria-label="Primary navigation"></div>
 <div id="toast" class="toast"></div>
 <div id="modalRoot"></div>
@@ -972,10 +973,15 @@ function renderStartupLoading(){
   const app=document.getElementById('app');
   if(!app) return;
   app.classList.add('no-nav');
-  if(!app.firstElementChild || !app.firstElementChild.classList.contains('app-loading')) app.innerHTML='<main class="app-loading" role="status"><div class="app-loading-mark"><span class="ah3d" aria-hidden="true"><span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span><span class="cube"><i class="f1"></i><i class="f2"></i><i class="f3"></i><i class="f4"></i><i class="f5"></i><i class="f6"></i></span><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="dot d4"></span></span></div><b>Preparing your study space…</b><span>Loading your saved data safely.</span></main>';
+  let node=app.firstElementChild;
+  if(!node || !node.classList.contains('app-loading')){
+    app.innerHTML='<main class="app-loading" id="ahSplash" role="status"><div class="ahfs-prefill" aria-hidden="true"><span class="ahfs-prefill-tile">✦</span><b>Admission Hub</b><span>তোমার স্টাডি স্পেস প্রস্তুত হচ্ছে…</span></div></main>';
+    node=app.firstElementChild;
+  }
   const navRoot=document.getElementById('navRoot');
   if(navRoot) navRoot.innerHTML='';
-  return app.firstElementChild;
+  try{ if(window.AdmissionSplash3D) window.AdmissionSplash3D.mount(node); }catch(_){}
+  return node;
 }
 function renderShell(innerHtml, opts){
   opts=opts||{};
@@ -3930,6 +3936,7 @@ async function boot(){
   window.__admissionFinalModulesReady=false;
   try{
     await openDB();
+    try{ if(window.AdmissionSplash3D){ AdmissionSplash3D.setStage('তোমার ডেটা সুরক্ষিতভাবে লোড হচ্ছে…'); AdmissionSplash3D.setProgress(.45); } }catch(_){}
   }catch(err){
     window.__admissionBootStatus='failed';
     document.body.classList.remove('app-booting');
@@ -3939,8 +3946,10 @@ async function boot(){
   }
   try{
     await seedIfEmpty();
+    try{ if(window.AdmissionSplash3D){ AdmissionSplash3D.setStage('তোমার বিষয় ও অগ্রগতি প্রস্তুত হচ্ছে…'); AdmissionSplash3D.setProgress(.8); } }catch(_){}
     // Startup remains read/validate-only; no automatic content migration runs here.
     await loadCache();
+    try{ if(window.AdmissionSplash3D) AdmissionSplash3D.setStage('প্রায় প্রস্তুত…'); }catch(_){}
   }catch(err){
     console.error('Data load failed',err);
     toast('Could not load data — check storage permission and reload.');
@@ -3949,6 +3958,7 @@ async function boot(){
   window.__admissionBootStatus='ready';
   window.__admissionFinalModulesReady=true;
   document.body.classList.remove('app-booting');
+  try{ if(window.AdmissionSplash3D){ AdmissionSplash3D.setStage('প্রায় প্রস্তুত…'); AdmissionSplash3D.setProgress(1); AdmissionSplash3D.dismiss(520); } }catch(_){}
   applyTheme();
   Router.path=location.hash.slice(1)||'dashboard';
   // Replace the launch shell once with real counts before any resume modal is considered.
@@ -5103,7 +5113,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v173-uniunit-fix-20260903',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v174-splash3d-20260903',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
@@ -5430,6 +5440,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
     window.__admissionFinalModulesReady = true;
     window.__admissionFinalRenderLock = false;
     clearTimeout(window.__admissionFinalRenderUnlock);
+    try{ if(window.AdmissionSplash3D) window.AdmissionSplash3D.dismiss(520); }catch(_){}
     const raw = location.hash.replace(/^#\/?/, '') || 'dashboard';
     Router.path = raw.split('?')[0] || 'dashboard';
     if (typeof window.__admissionRenderRoute === 'function') window.__admissionRenderRoute();
