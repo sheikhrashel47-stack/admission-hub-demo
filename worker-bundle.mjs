@@ -1496,7 +1496,7 @@ var aiCall = async (request, env, uid) => {
   const b = await request.json().catch(() => ({}));
   const kind = String(b.kind || "chat").slice(0, 20);
   const refs = (b.refs && typeof b.refs === "object") ? b.refs : {};
-  const msgs = (Array.isArray(b.messages) ? b.messages : []).slice(-8).map((m) => ({ role: m.role === "ai" ? "assistant" : (m.role === "user" ? "user" : "user"), content: String(m.content || "").slice(0, 4e3) }));
+  const msgs = (Array.isArray(b.messages) ? b.messages : []).slice(-8).map((m) => ({ role: (String(m.role || "user") === "user" ? "user" : "model"), content: String(m.content || "").slice(0, 4e3) }));
   const lastU = [...msgs].reverse().find((m) => m.role === "user");
   /* rate limit — প্রতি মিনিটে ১২ রিকোয়েস্ট */
   const minute = Math.floor(Date.now() / 6e4);
