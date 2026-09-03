@@ -1557,7 +1557,7 @@ var aiCall = async (request, env, uid) => {
         await touchUser(env, uid);
         return json({ text: t, model: m, at: Date.now(), history: hist.slice(-20) });
       }
-      last = "HTTP " + r.status + " " + m + " :: " + String((d && (d.error && d.error.message || d.promptFeedback && d.promptFeedback.blockReason)) || "").slice(0, 160);
+      last = (String(last).slice(0, 0) ? last + " ⏐ " : "") + "HTTP " + r.status + " " + m + " :: " + String((d && (d.error && d.error.message || d.promptFeedback && d.promptFeedback.blockReason)) || "" + (d && d.promptFeedback && d.promptFeedback.blockReason) || "").slice(0, 150);
       if (r.status === 429) await new Promise((res) => setTimeout(res, 650));
     } catch (e) { last = String(e.message || e); }
   }
