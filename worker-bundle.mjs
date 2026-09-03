@@ -1501,7 +1501,13 @@ var aiCall = async (request, env, uid) => {
   const b = await request.json().catch(() => ({}));
   const kind = String(b.kind || "chat").slice(0, 20);
   const refs = (b.refs && typeof b.refs === "object") ? b.refs : {};
-  const msgs = (Array.isArray(b.messages) ? b.messages : []).slice(-8).map((m) => ({ role: (String(m.role || "user") === "user" ? "user" : "model"), parts: [{ text: String(m.content || "").slice(0, 4e3) }] }));
+  const msgs = (Array.isArray(b.messages) ? b.messages : []).slice(-8).map((m) => {
+    const parts = [{ text: String(m.content || "").slice(0, 4e3) }];
+    (Array.isArray(m.attachments) ? m.attachments.slice(0, 4) : []).forEach((a) => {
+      if (a && a.data) parts.push({ inline_data: { mime_type: String(a.mime || "image/jpeg").slice(0, 60), data: String(a.data).slice(0, 4e6) } });
+    });
+    return { role: (String(m.role || "user") === "user" ? "user" : "model"), parts };
+  });
   const lastU = [...msgs].reverse().find((m) => m.role === "user");
   const lastTxt = (Array.isArray(b.messages) ? b.messages : []).reverse().find((m) => String(m.role || "user") === "user") ? String((Array.isArray(b.messages) ? b.messages : []).reverse().find((m) => String(m.role || "user") === "user").content || "") : "";
   const cacheKey = "aicache:" + uid + ":" + kind + ":" + (refs.questionId || refs.word || refs.examId || "") + ":" + lastTxt.slice(0, 120);

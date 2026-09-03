@@ -25,8 +25,7 @@
       const nm = u && (u.name || u.displayName || u.fullName || (u.profile && u.profile.name));
       if (nm) return String(nm).trim().split(/\s+/)[0].slice(0, 20);
     } } catch (_) {}
-    const ls = (() => { try { return localStorage.getItem(LS_NAME); } catch (_) { return ''; } })();
-    return (ls && ls.trim()) ? ls.trim().slice(0, 20) : 'শিক্ষার্থী';
+    return 'শিক্ষার্থী';
   };
   const cfg = () => { try { return Object.assign({ engine: 'agent', provider: 'gemini', keys: {}, model: '', sendData: true, theme: 'aurora' }, JSON.parse(localStorage.getItem(LS_CFG) || '{}')); } catch (_) { return { engine: 'agent', provider: 'gemini', keys: {}, model: '', sendData: true, theme: 'aurora' }; } };
   const setCfg = c => localStorage.setItem(LS_CFG, JSON.stringify(c));
@@ -252,8 +251,11 @@ ${cfg().sendData && localStorage.getItem('studyAiCtx') ? `শিক্ষার�
       try {
         const qTxt = String(question || '') + (Array.isArray(atts) ? atts.filter(a => a && a.text).map(a => '\n\n📎 "' + String(a.name || '') + '":\n' + String(a.text || '').slice(0, 2500)).join('') : '');
         const hist = msgsOf(curId()).filter(m => m.text).slice(-8).map(m => ({ role: m.who === 'ai' ? 'ai' : 'user', content: String(m.text || '').slice(0, 4000) }));
-        if (hist.length) hist[hist.length - 1] = { role: 'user', content: qTxt };
-        else hist.push({ role: 'user', content: qTxt });
+        const atts2 = (Array.isArray(atts) ? atts : []).filter(a => a && a.data);
+        const lastMsg = { role: 'user', content: qTxt };
+        if (atts2.length) lastMsg.attachments = atts2.slice(0, 4).map(a => ({ mime: a.mime || 'image/jpeg', data: String(a.data).slice(0, 4e6) }));
+        if (hist.length) hist[hist.length - 1] = lastMsg;
+        else hist.push(lastMsg);
         const ah = await window.AH_AI.ask({ messages: hist, kind: 'chat' });
         return { text: ah.text || 'উত্তর পাইনি — আবার লেখো?', sources: [] };
       } catch (e) {
@@ -926,7 +928,7 @@ body{overflow-x:hidden}
     const imgs = atts.filter(a => a.kind === 'image');
     const visionOk = cfg().engine === 'fast' && keyList(cfg().provider).length > 0 && (cfg().provider === 'gemini' || !!VL_DEFAULT[cfg().provider]);
     // Gemini OPTIONAL: ছবি থাকলে ভিশন-ক্ষমতা দরকার — না থাকলে বন্ধুসুলভ capability-বার্তা (কখনো কঠিন error নয়)
-    if (imgs.length && !visionOk) {
+    if (imgs.length && !visionOk && !window.AH_AI) {
       push({ who: 'me', text, atts: atts.map(a => ({ kind: a.kind, name: a.name, thumb: a.thumb || '' })) });
       state.attach = []; saveDraft('');
       push({ who: 'ai', text: 'ছবি পড়ে বিশ্লেষণ করা এখনো আমার সামর্থ্যে নেই 👀 — ছবির প্রশ্নটা লিখে পাঠাও, আমি দ্রুত উত্তর দেব ✨' });

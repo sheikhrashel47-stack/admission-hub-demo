@@ -26,8 +26,10 @@ t('১০. চ্যাট-হিস্ট্রি per-user (achat:<uid>, cap 4
 t('১১. স্পিড/কোস্ট: মডেল-চেইন ৩-flash-preview প্রথম (২-মডেল) + cache ৬০০s + টাইমআউট ৪৫s + রেট-লিমিট ১২/মিনিট',
   w.includes('gemini-3-flash-preview", "gemini-3.1-flash-lite"]') && w.includes('expirationTtl: 600') && w.includes('45000') && w.includes('lim >= 12') && !/gemini-2\.5-flash/.test(w));
 t('১১ক. ক্যাশ read+write একই key (একই প্রশ্নে নতুন API কল নয়)', w.includes('const cacheKey = "aicache:"') && w.includes('cached: true') && w.includes('env.PUB_KV.get(cacheKey)'));
+t('১১বি০. ভিশন: শেষ user-মেসেজে attachments → inline_data (server-সূত্রে ছবি পড়া)',
+  w.includes('inline_data: { mime_type: String(a.mime') && sai.includes('lastMsg.attachments = atts2'));
 t('১১বি. Google পেলোড-রূপ: contents[].parts[{text}] + raw-বডি থেকে lastTxt (400/crash-ফিক্স স্থায়ী)',
-  w.includes('parts: [{ text: String(m.content') && w.includes('lastTxt.slice(0, 120)') && w.includes('lastTxt, C, st)'));
+  w.includes('parts = [{ text: String(m.content') && w.includes('lastTxt.slice(0, 120)') && w.includes('lastTxt, C, st)'));
 t('১২. Failure: 429 বাংলা + retryAfter; 502 বাংলা; খালি-কী 503; model-chain failover', w.includes('retryAfter') && w.includes('একটু পরে চেষ্টা করো') && w.includes('AI-key কনফিগার নেই'));
 t('১৩. vocabulary এখন cloud-সিঙ্কে (PERSONAL_KEYS) — AI-র কাছে শেখা-শব্দ', w.includes('"vocabulary"') && pa.includes("'vocabulary'"));
 t('১৪. image-ও একই secure পথ (কোনো ক্লায়েন্ট key নয়)', w.includes('kind === "image"') && w.includes('gemini-3.1-flash-image'));
@@ -50,7 +52,7 @@ t('১৭. Study AI → server-first (AH_AI.ask) + chat owner-স্কোপ (�
 t('১৮. Study AI ছবি → server-first; client-পথ শুধু fallback', sai.includes('window.AH_AI.askImage') && sai.includes('const gk = keyList'));
 t('১৯. AI Explain → server-first + question-aware (refs.questionId)', aie.includes('window.AH_AI') && aie.includes("refs: { questionId: qid }"));
 t('২০. index.html-এ gateway লোড + v179 markers + AI টুল নতুন ভার্সন',
-  idx.includes('ah-ai-client.js?v=ahai-v2') && idx.includes('v179-aiengine-20260903') && idx.includes('studyai-v134-server') && idx.includes('aiex-v4-ph4'));
+  idx.includes('ah-ai-client.js?v=ahai-v2') && idx.includes('v179-aiengine-20260903') && idx.includes('studyai-v135-server') && idx.includes('aiex-v4-ph4'));
 
 /* ── RUNTIME: gateway-র আচরণ (jsdom) ── */
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/' });
