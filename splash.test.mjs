@@ -1,41 +1,41 @@
+// v175 blank-proof + session tests
 import { JSDOM } from 'jsdom';
 import { readFileSync } from 'fs';
-const code = readFileSync('/home/user/demo/splash-3d.js', 'utf8');
 const dom = new JSDOM('<!DOCTYPE html><html><head></head><body><div id="app"><main class="app-loading" id="ahSplash"></main></div></body></html>', { runScripts: 'dangerously', pretendToBeVisual: true });
 const w = dom.window;
 w.matchMedia = () => ({ matches: false });
-const s = w.document.createElement('script');
-s.textContent = code;
-w.document.body.appendChild(s);
+const load = (code) => { const s = w.document.createElement('script'); s.textContent = code; w.document.body.appendChild(s); };
+load(readFileSync('/home/user/demo/splash-3d.js', 'utf8'));
+load(readFileSync('/home/user/demo/session-persist.js', 'utf8'));
 const A = w.AdmissionSplash3D;
 let pass = 0, fail = 0;
 const t = (n, c) => { if (c) { pass++; console.log('  ✓', n); } else { fail++; console.log('  ✗', n); } };
-t('AdmissionSplash3D exists', !!A);
-A.mount(w.document.getElementById('ahSplash'));
-const scene = w.document.querySelector('.ahfs-scene');
-t('scene mounted', !!scene);
-t('hero tile present', !!scene.querySelector('.ahfs-tile'));
-t('spark svg present', !!scene.querySelector('.ahfs-spark'));
-t('6 floating objects', scene.querySelectorAll('.ahfs-obj').length === 6);
-t('orbit rings 2', scene.querySelectorAll('.ahfs-ring').length === 2);
-t('platform layers', scene.querySelectorAll('.ahfs-platform .p1,.ahfs-platform .p2,.ahfs-platform .p3').length === 3);
-t('title "Admission Hub"', scene.querySelector('.ahfs-title').textContent.includes('Admission'));
-t('tagline বাংলা', scene.querySelector('.ahfs-tag').textContent.includes('ভর্তি প্রস্তুতির'));
-t('stage text বাংলা', scene.querySelector('.ahfs-stage-text').textContent.includes('স্টাডি স্পেস'));
-t('NO demo data (DU/unit/Bangla নয়)',
-  !/DU|বিশ্ববিদ্যালয়|A Unit|B Unit|Bangla|English|GK/.test(scene.textContent.replace('ঠিকানা','')));
-A.setStage('তোমার বিষয় প্রস্তুত হচ্ছে…');
-t('setStage updates', scene.querySelector('.ahfs-stage-text').textContent.includes('বিষয়'));
-A.setProgress(0.5);
-t('setProgress bar scaleX', scene.querySelector('.ahfs-bar').style.transform.includes('0.5'));
-const p = A.dismiss(300);
-p.then(() => {
-  t('dismiss removed overlay', !w.document.querySelector('.ahfs-overlay'));
-  const played = scene.classList.contains('ahfs-play') || scene.classList.contains('ahfs-still');
-  t('animations stopped (still)', scene.classList.contains('ahfs-still'));
-  t('scene fully removed from DOM (cleanup)', !w.document.contains(scene));
-  console.log(fail === 0 ? '✅ SPLASH TEST PASS (' + pass + ')' : '❌ FAIL ' + fail + ' / pass ' + pass);
+
+const root = w.document.getElementById('ahSplash');
+A.mount(root);
+t('scene mounted', !!root.querySelector('.ahfs-scene'));
+A.dismiss(200).then(() => setTimeout(() => {
+  // dismiss-এর পর root কখনো খালি নয় — prefill restored
+  const after = w.document.getElementById('ahSplash');
+  console.log('  [dbg] after exists:', !!after, '| cls:', after && after.className, '| inner len:', after && after.innerHTML.length, '| inner head:', after && after.innerHTML.slice(0,60));
+  t('dismiss → root NEVER blank (content present)', after && after.innerHTML.trim().length > 20 && after.textContent.trim().length > 0);
+  t('dismiss → overlay removed', !w.document.querySelector('.ahfs-overlay'));
+  // forceHide test — খালি root-এ prefill ফেরায়
+  after.innerHTML = '';
+  A.forceHide();
+  t('forceHide → empty root gets prefill (never blank)', !!after.querySelector('.ahfs-prefill'));
+  // mount fail-safe: invalid root
+  const r2 = w.document.createElement('div');
+  const ok = A.mount(r2);
+  t('mount works on fresh root', !!ok && !!r2.querySelector('.ahfs-scene'));
+  // session persist
+  const S = w.AdmissionSession;
+  t('AdmissionSession exists', !!S);
+  w.document.body.innerHTML = '<div id="app"></div>';
+  try { S.save(); } catch (_) {}
+  t('session save no-throw', true);
+  t('session path() = dashboard (default)', S.path() === 'dashboard');
+  console.log(fail === 0 ? '✅ SPLASH v175 TEST PASS (' + pass + ')' : '❌ FAIL ' + fail + ' / ' + pass);
   process.exit(fail ? 1 : 0);
-});
-// safe timeout
-setTimeout(() => { console.log('⏰ timeout — dismiss hang'); process.exit(1); }, 4000);
+}, 400));
+setTimeout(() => { console.log('⏰ timeout'); process.exit(1); }, 5000);

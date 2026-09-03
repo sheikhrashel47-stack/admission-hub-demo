@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v174-splash3d-20260903';
+const BUILD_ID = 'v175-blankfix-20260903';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -73,7 +73,8 @@ const APP_SHELL = [
   './source-course-tool.js?v=bangla-only-courses-v23-freshfetch',
   './cloud-content-sync.js?v=p2-cloud-v2',
   './auth-svg.js?v=p3-auth-prof-v172',
-  './splash-3d.js?v=splash3d-v1',
+  './splash-3d.js?v=splash3d-v2',
+  './session-persist.js?v=session-v1',
   './premium-auth.js?v=p3-auth-prof-v172',
   './android-runtime-fix.js?v=and-scroll-v1',
   '',

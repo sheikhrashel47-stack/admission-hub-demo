@@ -572,7 +572,8 @@ textarea{min-height:96px}
   window.addEventListener('hashchange', () => trace('route', location.hash));
 })();
 </script>
-<script src="./splash-3d.js?v=splash3d-v1"></script>
+<script src="./splash-3d.js?v=splash3d-v2"></script>
+<script src="./session-persist.js?v=session-v1"></script>
 </head>
 <body class="app-booting">
 <div id="ahAuthGate" aria-label="Authentication">
@@ -3958,6 +3959,7 @@ async function boot(){
   window.__admissionBootStatus='ready';
   window.__admissionFinalModulesReady=true;
   document.body.classList.remove('app-booting');
+  try{ if(window.__admissionSplashWatchdog){ clearTimeout(window.__admissionSplashWatchdog); window.__admissionSplashWatchdog=0; } }catch(_){}
   try{ if(window.AdmissionSplash3D){ AdmissionSplash3D.setStage('প্রায় প্রস্তুত…'); AdmissionSplash3D.setProgress(1); AdmissionSplash3D.dismiss(520); } }catch(_){}
   applyTheme();
   Router.path=location.hash.slice(1)||'dashboard';
@@ -5108,17 +5110,17 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
       // An older worker can keep serving the pre-fix navigation bundle in an
       // installed PWA. Remove that controller once, then install the current
       // worker with a fresh build URL.
-      const expectedSwVersion = 'v171-authapi-fix-20260903';
+      const expectedSwVersion = 'v175-blankfix-20260903';
       if (registration && activeUrl && !activeUrl.includes(expectedSwVersion)) {
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v174-splash3d-20260903',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v175-blankfix-20260903',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v171-authapi-fix-20260903';
+        const cur = 'admission-hub-shell-v175-blankfix-20260903';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -5136,23 +5138,38 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
       // Foreground resume (iOS standalone) never navigates, so the SW update
       // check would not run: ping it whenever the app becomes visible again.
       document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ registration.update().catch(()=>{}); } });
-      // One-time guarded refresh when a NEW worker takes control of this page:
-      // max once per 90s per session, never on first install (no controller yet).
-      if(navigator.serviceWorker.controller){
-        const flag='ah-sw-soft-reload-at';
-        const last=Number(sessionStorage.getItem(flag)||0);
-        if(Date.now()-last>90000){
-          navigator.serviceWorker.addEventListener('controllerchange',()=>{
-            try{ sessionStorage.setItem(flag,String(Date.now())); }catch(_){}
-            location.reload();
-          },{once:true});
-        }
-      }
+      // 💤 NO auto-reload on controllerchange: পরিবর্তিত worker পরের launch-এ apply হবে,
+      // বর্তমান সেশন ও স্ক্রোল-অবস্থা কখনো হারাবে না (ব্যাকগ্রাউন্ড state ধরে থাকে)।
     }catch(error){console.warn('PWA registration failed',error)}
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',registerPwaUpdates,{once:true}); else registerPwaUpdates();
 })();
+
+/* ================= SPLASH BLANK-PROOF WATCHDOG =================
+   ভাইয়ের নির্দেশ: splash সর্বোচ্চ ১০ সেকেন্ড — blank screen যেনো কখনো না আসে।
+   ১০ সেকেন্ডের মধ্যে boot/init সম্পন্ন না হলে: splash সরিয়ে ব্র্যান্ড-ফলব্যাক দেখাও
+   (আবার চেষ্টা/হোম বাটনসহ)। boot পরে ready হলে স্বাভাবিক dashboard আসবে। */
+(function(){
+  function showGentleRecovery(){
+    try{
+      if(window.AdmissionSplash3D) window.AdmissionSplash3D.forceHide();
+      const app=document.getElementById('app');
+      if(!app) return;
+      const first=app.firstElementChild;
+      if(first && first.classList && (first.classList.contains('page')||first.classList.contains('app-fallback'))) return;
+      app.classList.add('no-nav');
+      app.innerHTML='<main class="app-fallback" role="alert" data-admission-component="app-fallback"><div class="app-fallback-icon">✦</div><h1>একটু বেশি সময় লাগছে</h1><p>তোমার সেভ করা প্রশ্ন, অগ্রগতি ও সেটিংস অক্ষত আছে — শুধু লোডিং-এ ধীরগতি।</p><div class="app-fallback-actions"><button class="btn" onclick="location.reload()">আবার চেষ্টা করো</button><button class="btn ghost" onclick="window.__admissionGoDashboard&&window.__admissionGoDashboard()">ড্যাশবোর্ডে যাও</button></div></main>';
+    }catch(_){}
+  }
+  window.__admissionSplashWatchdog=setTimeout(function(){
+    try{
+      if(window.__admissionBootStatus==='ready' && window.__admissionFinalModulesReady) return;
+      showGentleRecovery();
+    }catch(_){}
+  },10000);
+})();
 </script>
+
 <style id="mistake-analysis-styles">
 .ma-page{padding-top:4px;}.ma-stats-row{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px;}
 .ma-stat{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; text-align:center; box-shadow:var(--shadow);}
@@ -5461,7 +5478,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 (() => {
   const removedRoute = (path) => {
     const p = String(path || '').replace(/^#\/?/, '').split('?')[0];
-    return p === 'daily-gk' || p === 'web-chat' || p === 'dictionary' || (p.startsWith('memorizing') && !p.startsWith('memorizing-match')) || p === 'study-hub' || p.startsWith('study-hub/') || p === 'ai' || p.startsWith('ai/') || p === 'profile' || p.startsWith('profile/') || p === 'vocabulary' || p.startsWith('vocabulary/') || p === 'rewards' || p === 'reward-shop' || p === 'quests' || p === 'daily-quests' || p === 'quest-board' || p === 'xp-history' || p === 'courses' || p.startsWith('courses/') || p === 'pdf-courses' || p.startsWith('pdf-courses/') || p === 'interactive-courses' || p.startsWith('interactive-courses/');
+    return p === 'daily-gk' || p === 'web-chat' || p === 'dictionary' || (p.startsWith('memorizing') && !p.startsWith('memorizing-match')) || p === 'study-hub' || p.startsWith('study-hub/') || p === 'ai' || p.startsWith('ai/') || p === 'vocabulary' || p.startsWith('vocabulary/') || p === 'rewards' || p === 'reward-shop' || p === 'quests' || p === 'daily-quests' || p === 'quest-board' || p === 'xp-history' || p === 'courses' || p.startsWith('courses/') || p === 'pdf-courses' || p.startsWith('pdf-courses/') || p === 'interactive-courses' || p.startsWith('interactive-courses/');
   };
   const purgeRemovedData = async () => {
     ['admission_hub_vocab_categories_v2','admission_hub_vocab_exam_history_v1','daily-gk-live-v1','admission_phase345_v1','memory-system-v2','xp','rewardEngineV2','rewardEngineV1','admission-phase2-dictionary-v1','admission-phase2-dictionary-v2','admission_memorizing_v1','admission_dict_v1','admission-hub-web-chat-v5','admissionHubCourseProgressV1','admissionHubCourseResultsV1','admissionHubCoursesV1','admission_hub_courses_v1'].forEach((key) => { try { localStorage.removeItem(key); sessionStorage.removeItem(key); } catch (_) {} });

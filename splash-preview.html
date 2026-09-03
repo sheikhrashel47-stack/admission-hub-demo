@@ -1,4 +1,20 @@
-/* ============================================================
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Admission Hub — Premium 3D Intro (v175 blank-proof)</title>
+<style>
+  html,body{margin:0;padding:0;background:#f1faf6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans Bengali','Hind Siliguri',sans-serif}
+  .hint{padding:12px 18px;font-size:12px;color:#5c6f65;text-align:center;line-height:1.6}
+  .zoom{position:fixed;right:12px;bottom:12px;z-index:130;background:#0f6b4f;color:#fff;border:0;border-radius:999px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(11,94,66,.35)}
+  .zoom:active{transform:scale(.96)}
+</style>
+</head>
+<body>
+<div class="hint">ব্ল্যাংক-প্রুফ সংস্করণ — intro শেষে root কখনো খালি থাকে না (ব্র্যান্ড prefill)। বাটনে আবার দেখুন।</div>
+<div id="ahSplash" class="app-loading" role="status"></div>
+<script>/* ============================================================
    ADMISSION HUB — PREMIUM 3D INTRO / SPLASH SYSTEM (v1 · 2026-09-03)
    - সম্পূর্ণ CSS 3D + inline SVG (কোনো external image নয়)
    - শুধু transform/opacity animation (GPU-friendly, ~60FPS)
@@ -287,3 +303,15 @@
     autoMount();
   }
 })();
+</script>
+<script>
+  AdmissionSplash3D.mount(document.getElementById('ahSplash'));
+  setTimeout(function(){ AdmissionSplash3D.setStage('তোমার বিষয় ও অগ্রগতি প্রস্তুত হচ্ছে…'); AdmissionSplash3D.setProgress(0.8); }, 2600);
+  setTimeout(function(){ AdmissionSplash3D.setStage('প্রায় প্রস্তুত…'); AdmissionSplash3D.setProgress(1); }, 3600);
+  setTimeout(function(){ AdmissionSplash3D.dismiss(520); }, 4300);
+  var z=document.createElement('button'); z.className='zoom'; z.textContent='↻ আবার দেখুন';
+  z.onclick=function(){ var r=document.getElementById('ahSplash'); window.__admissionSplashDone=false; r.innerHTML=''; AdmissionSplash3D.mount(r); };
+  document.body.appendChild(z);
+</script>
+</body>
+</html>
