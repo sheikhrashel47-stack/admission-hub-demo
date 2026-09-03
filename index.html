@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>My Admission Hub</title>
 <script>(function(){try{document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')||sessionStorage.getItem('ahPubToken'))?'in':'out';}catch(e){document.documentElement.dataset.ah='out';}})();</script>
-<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-prof-v171">
+<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-prof-v172">
 <link rel="stylesheet" href="./onboarding.css?v=p6-onboard-v11">
 
 <link rel="manifest" href="manifest.json">
@@ -5103,7 +5103,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v171-authapi-fix-20260903',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v172-authapi-guard-20260903',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
@@ -5644,7 +5644,7 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script src="./cloud-content-sync.js?v=p2-cloud-v2"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="./auth-svg.js?v=p3-auth-ui-v25"></script>
-<script src="./premium-auth.js?v=p3-auth-prof-v171"></script>
+<script src="./premium-auth.js?v=p3-auth-prof-v172"></script>
 <script src="./onboarding.js?v=p6-onboard-v11"></script>
 <script src="./app-seed.js?v=p1" defer></script>
 <script>

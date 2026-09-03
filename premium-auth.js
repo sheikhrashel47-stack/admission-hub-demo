@@ -5,6 +5,7 @@
   window.__ahPremiumAuth = true;
   const WORKER = 'https://admission-gk.admissionhub.workers.dev';
   const PUB = WORKER + '/api'; // auth/API routes live under /api on the live Worker
+  const CANONICAL_WORKER = 'https://admission-gk.admissionhub.workers.dev'; // আজীবন-লক: ভুল ঠিকানায় পড়লেও এখানে fallback (AUTH_ENDPOINTS_GUARD.test.mjs গার্ড করে)
   const LS_TOKEN = 'ahPubToken';
   const LS_USER = 'ahPubUser';
   const PERSONAL = ['examResults', 'mistakes', 'settings', 'dailyStats', 'activityLogs', 'notes'];
@@ -102,12 +103,31 @@
     const api = async (path, opts = {}) => {
       const method = String(opts.method || 'GET').toUpperCase();
       const canRetry = method === 'GET' || path === '/auth/config';
+      // আজীবন-লক: এসব public auth endpoint-এ ভুল পথ ধরে "আগে লগইন" এলে canonical-এ ১ বার retry
+      const PUBLIC_AUTH = ['/auth/config','/auth/register-email','/auth/otp/send','/auth/otp/verify','/auth/verify','/auth/request','/auth/forgot','/auth/reset','/auth/verify-link','/auth/google','/auth/passkey/register/begin','/auth/passkey/register/finish','/auth/passkey/login/begin','/auth/passkey/login/finish','/auth/wait'];
+      const canonicalBase = CANONICAL_WORKER + '/api';
       let last;
       for (let attempt = 0; attempt < (canRetry ? 3 : 1); attempt += 1) {
         try {
-          const res = await fetch(PUB + path, opts);
+          let res;
+          try {
+            res = await fetch(PUB + path, opts);
+          } catch (e) {
+            if (PUB !== canonicalBase) res = await fetch(canonicalBase + path, opts); // network fail → canonical fallback
+            else throw e;
+          }
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
+            if (PUB !== canonicalBase && PUBLIC_AUTH.includes(path) && (res.status === 401 || res.status === 404) && /আগে লগইন|not-found/.test(String(data.error || ''))) {
+              res = await fetch(canonicalBase + path, opts);
+              const data2 = await res.json().catch(() => ({}));
+              if (!res.ok) {
+                last = new Error(data2.error || ('http-' + res.status));
+                if (canRetry && retryableStatus(res.status) && attempt < 2) { await wait(350 * (attempt + 1)); continue; }
+                throw last;
+              }
+              return data2;
+            }
             last = new Error(data.error || ('http-' + res.status));
             if (canRetry && retryableStatus(res.status) && attempt < 2) { await wait(350 * (attempt + 1)); continue; }
             throw last;

@@ -1,5 +1,5 @@
-# LATEST — 2026-09-03 · ✅ AUTH API FIX — v171 live (email OTP / Passkey / Google signup ফের চালু)
-
-**Root cause (নিখুঁত প্রমাণসহ):** (১) সমস্ত ফ্রন্টএন্ড ভুল host `admission-gk.rashelzayan213.workers.dev` (DNS NXDOMAIN) ব্যবহার করত — সঠিক `admission-gk.admissionhub.workers.dev`; (২) ভুল prefix `/pub/*` (Worker-এ নেই → 401 "আগে লগইন") — সঠিক `/api/*`। Worker সুস্থ, `/api/*` route-এ Brevo OTP `sent:true` + passkey challenge + Google route সব live verified।
-
-**ফিক্স v171:** host fix ১২ ফাইল + `/pub`→`/api` prefix (premium-auth/user-account/onboarding/cloud-content-sync/public-users-admin) + sw BUILD_ID `v171-authapi-fix-20260903` + APP_SHELL `p3-auth-prof-v171`। committed+pushed (demo+hub), Pages redeploy → live verify এই টার্নেই।
+# LATEST — 2026-09-03 · 🏰 AUTH PERMANENT LOCK — v172 live
+**কাজ:** লগইন/সাইনআপ আর কখনো না ভাঙার আজীবন-লক (ভাইয়ের অনুরোধ) + ডাটা-কোথায়-যায় প্রশ্নের উত্তর।
+**লক:** (১) runtime self-heal (canonical retry in api()), (২) AUTH_ENDPOINTS_GUARD.test.mjs static guard (host allowlist + pub-prefix নিষিদ্ধ + version-sync), (৩) GitHub Actions guard CI + sw v172।
+**টেস্ট:** guard demo ৮৬ / hub ৮৯ ফাইল ✅ | node --check ✅ | push → Pages live verify।
+**ডাটা:** Cloudflare KV (admission-gk-kv) — pending→user→profile/state/activity; OTP hash-only; passkey public-key; মেইল Brevo। বিশদ: AGENT_RESUME/2026-09-03-authguard-lock.md
