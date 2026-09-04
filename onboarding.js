@@ -122,7 +122,7 @@
   }
   function authH() { return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() }; }
   async function saveRemote(extra) {
-    data = Object.assign(data, extra || {}, { step });
+    data = Object.assign(data, extra || {}, { step: data.step });
     ensureDefaults();
     persistLocal();
     if (!token()) return;
@@ -678,7 +678,12 @@
     loadLocal();
     try {
       const r = await api('/onboarding', { headers: authH() });
-      if (r.onboarding) data = Object.assign(blank(), data, r.onboarding);
+      if (r.onboarding) {
+        /* KV-রিপ্লিকেশন-বিলম্ব-সহন: সার্ভার পুরনো (completed:false) হলেও স্থানীয় completed হারানো যাবে না */
+        const done = !!data.completed || !!r.onboarding.completed;
+        data = Object.assign(blank(), r.onboarding, data);
+        data.completed = done;
+      }
     } catch (_) {}
     ensureDefaults();
     if (data.completed) return false;

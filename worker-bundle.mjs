@@ -462,7 +462,7 @@ function strongPass(p) {
   return "";
 }
 async function loadProfile(env, uid) {
-  return JSON.parse(await env.PUB_KV.get("profile:" + uid) || "{}");
+  return JSON.parse(await kvGetRetry(env.PUB_KV, "profile:" + uid, { tries: 4, base: 200 }) || "{}");
 }
 async function saveProfile(env, uid, pf) {
   await env.PUB_KV.put("profile:" + uid, JSON.stringify(pf).slice(0, 35e4));
