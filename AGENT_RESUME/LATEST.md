@@ -1,6 +1,5 @@
-# LATEST — 2026-09-03 · 🚫 NO-INTRO v178 (commit a0bcd9d)
-ভাইয়ের নির্দেশ: ইন্ট্রো/স্প্ল্যাশ **আজীবন বাদ** — phase1-এর লিগ্যাসি splash (সবুজ বক্স ✦)
-+ splash-3d 3D intro দুটোই সরানো; ফাইল splash-3d.js ও splash.test.mjs git থেকে ডিলিট।
-প্রথম পেইন্টে শুধু সরল লোডার (.ah-boot: ✦ Admission Hub লোড হচ্ছে…), বুট watchdog **৫ সেকেন্ড**।
-v178-nosplash-20260903। টেস্ট: nosplash ১৬/১৬ · auth-ux ৩৩/৩৩ · session-survive ১২/১২ · guard PASS।
-**শুধু demo; hub অক্ষত।**
+# LATEST — 2026-09-04 · ✅ P05 AI CORE/BRAIN (v184-aigw, commit 4c7ea8f)
+একক `/api/ai`-গেটওয়ে + মডেল-রাউটার (aiChain failover, aibad ২৪ঘ) + টোকেন-বাজেট (মেসেজ ২৪k/ব্রেইন ৬k) + pv: p05-1 + মেট্রিক aim:* + cost-cache ৬০০s + retryable।
+সব-স্যুট সবুজ (ai-phase4 35 · phase5-core 30 · phase4-core 16 · phase23-core 13 · auth-ux 33 · nosplash 16 · session 12 · GUARD · AC-3 50)।
+⚠️ **push/deploy আটক:** এই সেশন-এ git-রিমোট+ক্রেডেনশিয়াল নেই — মালিকের অনুমতি দরকার (repo-URL/PAT)।
+পরবর্তী: push→CI→deploy→লাইভ-verify→P06।

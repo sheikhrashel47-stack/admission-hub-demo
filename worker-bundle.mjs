@@ -1,6 +1,34 @@
 // public-worker.js
 var JSONH = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,content-type,x-ah-guest,x-ah-app,x-ah-device", "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Max-Age": "86400" };
-var json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: JSONH });
+var json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: JSONH });const PROMPT_V = 'p05-1';
+const AI_BUDGET = { msgs: 24000, brain: 6000, perMsg: 4000 };
+const dayKey = () => new Date().toISOString().slice(0, 10);
+const metKey = (name) => 'aim:' + name + ':' + dayKey();
+const kvInc = async (kv, key, ttl = 172800) => { try { const n = Number((await kv.get(key)) || 0) + 1; await kv.put(key, String(n), { expirationTtl: ttl }); return n; } catch (_) { return 0; } };
+const badKeyName = (key, model) => 'aibad:' + String(key).slice(0, 12) + ':' + model + ':' + dayKey();
+const aibadMark = async (kv, key, model) => { try { await kv.put(badKeyName(key, model), '1', { expirationTtl: 86400 }); } catch (_) {} };
+const aiChain = (keys, chain, badSet) => {
+  const out = [];
+  for (const k of keys || []) for (const m of chain || []) {
+    if (badSet.has(String(k).slice(0, 12) + ':' + m)) continue;
+    out.push({ k, m });
+  }
+  return out;
+};
+const clipMessages = (msgs, maxChars) => {
+  const out = []; let used = 0;
+  for (let i = (msgs || []).length - 1; i >= 0; i--) {
+    const m = msgs[i]; const c = String(m && m.content || '').slice(0, AI_BUDGET.perMsg);
+    if (used + c.length > maxChars) break;
+    out.unshift({ role: (m.role === 'ai' ? 'assistant' : (m.role || 'user')), content: c });
+    used += c.length;
+  }
+  return out;
+};
+const fitText = (s, max) => { s = String(s || ''); return s.length <= max ? s : s.slice(0, max - 1) + '…'; };
+
+
+
 var GEM_CHAIN = ["gemini-3-flash-preview", "gemini-3.1-flash-lite"];
 var SYS = (ai) => `তুমি "স্টাডি বন্ধু" — Admission Hub-এর প্রাণ জুড়ানো AI সহপাঠী, বাংলাদেশি ভর্তি-প্রস্তুতির বন্ধু। আজকের তারিখ (ঢাকা): ${(new Date()).toLocaleDateString("bn-BD", { timeZone: "Asia/Dhaka" })}।
 ভাষা ও সুর: সবসময় মাখনের মতো সহজ, মনমুগ্ধকর বাংলা; বন্ধুর মতো মানুষের ভাষা — রোবটিক ভাব কখনো নয়; ২-৬ লাইনে উত্তর; প্রয়োজনে হালকা emoji বা ছোট তালিকা।
@@ -1567,7 +1595,7 @@ var aiCall = async (request, env, uid) => {
   const limKey = "ailim:" + uid + ":" + minute;
   let lim = 0;
   try { lim = Number(await env.PUB_KV.get(limKey) || 0); } catch (_) {}
-  if (lim >= 12) return json({ error: "একটু ধীরে — প্রতি মিনিটে ১২টির বেশি AI উত্তর নয় 😊", retryAfter: 45 }, 429);
+  if (lim >= 12) return json({ error: "একটু ধীরে — প্রতি মিনিটে ১২টির বেশি AI উত্তর নয় 😊", retryAfter: 45, retryable: true }, 429);
   try { await env.PUB_KV.put(limKey, String(lim + 1), { expirationTtl: 150 }); } catch (_) {}
   /* user-chat history (per-user, isolated) */
   let hist = [];
@@ -1605,11 +1633,17 @@ var aiCall = async (request, env, uid) => {
     return json({ error: "ছবি আঁকতে সমস্যা — একটু পরে (" + String(last2).slice(0, 80) + ")" }, 502);
   }
   let brain = "";
-  try { brain = await aiBuildBrain(env, uid, kind, refs, lastTxt, C, st); } catch (_) {}
+  try { brain = fitText(await aiBuildBrain(env, uid, kind, refs, lastTxt, C, st), AI_BUDGET.brain); } catch (_) {}
   /* cache — একই uid+প্রশ্ন ১০ মিনিট */
   const sysTxt = SYS(true) + "\n\n[লাইভ-মেমোরি]\n" + brain;
   let last = "";
+  /* P05 মডেল-রাউটার: আজ-মার্ক-করা কী/মডেল বাদ → failover-chain */
+  const badSet = new Set();
   for (const k of keys2) for (const m of GEM_CHAIN) {
+    try { if (await env.PUB_KV.get(badKeyName(k, m))) badSet.add(String(k).slice(0, 12) + ":" + m); } catch (_) {}
+  }
+  const chain = aiChain(keys2, GEM_CHAIN, badSet);
+  for (const { k, m } of chain) {
     try {
       const ctrl = new AbortController();
       const to = setTimeout(() => ctrl.abort(), 45000);
@@ -1622,14 +1656,18 @@ var aiCall = async (request, env, uid) => {
         hist.push({ r: "u", t: lastTxt.slice(0, 600), at: Date.now() });
         hist.push({ r: "a", t: t.slice(0, 1200), at: Date.now() });
         try { await env.PUB_KV.put("achat:" + uid, JSON.stringify(hist.slice(-40)), { expirationTtl: 31536e3 }); } catch (_) {}
+        await kvInc(env.PUB_KV, metKey(m));
+        await kvInc(env.PUB_KV, metKey('total'));
         await touchUser(env, uid);
-        return json({ text: t, model: m, at: Date.now(), history: hist.slice(-20) });
+        return json({ text: t, model: m, at: Date.now(), history: hist.slice(-20), pv: PROMPT_V });
       }
       last = (String(last).slice(0, 0) ? last + " ⏐ " : "") + "HTTP " + r.status + " " + m + " :: " + String((d && (d.error && d.error.message || d.promptFeedback && d.promptFeedback.blockReason)) || "" + (d && d.promptFeedback && d.promptFeedback.blockReason) || "").slice(0, 150);
       if (r.status === 429) await new Promise((res) => setTimeout(res, 650));
+      if (r.status === 401 || r.status === 402 || r.status === 429 || r.status >= 500) await aibadMark(env.PUB_KV, k, m);
     } catch (e) { last = String(e.message || e); }
   }
-  return json({ error: "AI এখন ব্যস্ত — একটু পরে চেষ্টা করো (" + last.slice(0, 90) + ")" }, 502);
+  await kvInc(env.PUB_KV, metKey('fail'));
+  return json({ error: "AI এখন ব্যস্ত — একটু পরে চেষ্টা করো (" + last.slice(0, 90) + ")" , retryable: true }, 502);
 };
 
 var admin = async (request, env, p) => {

@@ -11,7 +11,8 @@
 | P02 Cloud Content | ✅ **সম্পন্ন** — ড্রাফট→পাবলিশ→ভার্সন→রোলব্যাক (লাইভ); +pagination+duplicate-protection+offline-marker — docs/PHASE-02-CONTENT.md |
 | P03 User Identity | ✅ **সম্পন্ন** — ইমেইল/পাসওয়ার্ড/Google/Passkey/সেশন/মডারেশন (লাইভ); স্মার্ট-সিএমএস-গেট — docs/PHASE-03-IDENTITY.md |
 | P04 Personal Cloud | ✅ **সম্পন্ন** — ৬→৯ স্টোর সিঙ্ক (প্ল্যান/ডে/লুকানো-প্রশ্ন), conflict-free per-id মার্জ (সর্বশেষ-সময়), export-বাটন, সিঙ্ক-স্ট্যাটাস UI — docs/PHASE-04-PERSONAL.md |
-| P05–P20 | পরবর্তী ক্রমে (গ্যাপ-রিপোর্ট নিচে সংরক্ষিত) |
+| P05 AI Core/Brain | ✅ **সম্পন্ন** — একক `/api/ai`-গেটওয়ে + মডেল-রাউটার (failover-chain), টোকেন-বাজেট+কোষ্ট-ক্যাশ, pv-প্রম্পট-ভার্সন, মেট্রিক — docs/PHASE-05-AI.md |
+| P06–P20 | পরবর্তী ক্রমে (গ্যাপ-রিপোর্ট নিচে সংরক্ষিত) |
 
 ## ২০ ফেজ এক লাইনে
 01 Exact Clone · 02 Cloud Content · 03 User Identity · 04 Personal Cloud · 05 AI Core · 06 Personal AI Tutor · 07 Intelligent Questions · 08 Advanced Exam Engine · 09 Deep Analytics · 10 Smart Mistakes · 11 Adaptive Learning · 12 Smart Vocabulary · 13 Scale & Performance · 14 Security · 15 PWA/Offline · 16 UX & Accessibility · 17 AI Agents · 18 Admission Intelligence · 19 Production+SEO · 20 Final QA + Launch
@@ -41,9 +42,9 @@
 **আছে:** token-ভিত্তিক per-user আইসোলেশন (`user:<id>`, `tok:<token>`, `sess:<uid>`) · cross-device (login → data ফেরত) · `collectPersonal` → examResults/mistakes/settings/dailyStats/activityLogs/notes · `/api/auth/delete` (GDPR-ধাঁচ)।
 **বাকি:** ① ডেটা-কভারেজ পূর্ণতা (progress/vocab-state/রুটিন-ডেটা সিঙ্কে যুক্ত) ② Conflict-মার্জিং (মাল্টি-ডিভাইস একই-সময়ে) ③ ডেটা-স্তর DB-তে ④ Export-ফিচার ⑤ সিঙ্ক-স্ট্যাটাস-ইউআই।
 
-## 🔥 P05 — AI Core / AI Brain — 🟡 ~৬০%
-**আছে:** server-side `/api/ai` (env `GEMINI_KEYS` — ইউজার-কী লাগে না) · `ai-proxy/worker.js` · মাল্টি-প্রোভাইডার ক্লায়েন্ট (Gemini/Grok/Groq + gpt-5 রেফারেন্স) · GK-এজেন্ট-ফেলওভার (৩-key failover, KV badKeys-ট্র্যাকিং) · মেমোরি-লেয়ার (`ask:*` KV, worker-এডেটা-মেমোরি) · retry/poll (30s, 15m max)।
-**বাকি:** ① Formal Gateway+Model-Router (একক এন্ট্রি, মডেল-অবস্ট্যাক) ② Context Engine (ইউজার-কনটেক্সট-প্যাকিং) ③ Prompt-ভার্সন-ম্যানেজমেন্ট ④ Token-অপটিমাইজেশন (ট্রাঙ্কেশন/কোষ্ট-বাজেট) ⑤ Fallback+error-recovery-অটো-টেস্ট ৬ সিক্রেট-রোটেশন।
+## 🔥 P05 — AI Core / AI Brain — ✅ **সম্পন্ন (২০২৬-০৯-০৪, sw v184-aigw)**
+**আছে (লাইভ-পথ):** একক server-side `/api/ai` (env `GEMINI_KEYS` multi-key — ইউজার-কী লাগে না) · **Model-Router** `aiChain(keys, GEM_CHAIN, badSet)` — ২-মডেল চেইন failover, আজ-মার্ক-করা combo (`aibad:`) skip · **Context Engine ৪-স্তর** `aiBuildBrain` (SYSTEM→GLOBAL→USER→REQUEST) · **Token-বাজেট** `AI_BUDGET` (msgs 24k/brain 6k/perMsg 4k) + `clipMessages`/`fitText` · **Prompt-ভার্সন** `PROMPT_V=p05-1` + `pv:` রেসপন্স · **Cost-cache** `aicache` ৬০০s + রেট ১২/মিনিট + timeout ৪৫s (ছবি ৬০s) · মেট্রিক `aim:<model|total|fail>:<date>` · retryable-সংকেত · `achat` per-user ইতিহাস।
+**বাকি:** ① সিক্রেট-রোটেশন-অটোমেশন (env-বদল-মাত্র কার্যকর; ক্লাউডফ্লেয়ার-সিক্রেট-টুল-তালিকা) ② টোকেন-কোষ্ট-সূক্ষ্ম-সংগ্রহ (usage-মেটাডেটা) ③ P06-টিউটর-স্তর (নিচে)।
 
 ## 🧠 P06 — Personal AI Tutor — 🟡 ~৪০%
 **আছে:** AI-mentor (Gemini) · `result-ai-analysis` · `mistake-analysis` · Admihub AI-চ্যাট (ডেটা-মেমোরি: "এজেন্ট তোমার ব্যাংক থেকেই উত্তর") · weekly-report-tool।

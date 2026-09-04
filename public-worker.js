@@ -2,8 +2,36 @@
 // রুট: /api/content · /api/auth/* · /api/state · /api/ai · /api/admin/*
 const JSONH = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,content-type', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };
 const json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: JSONH });
-const GEM_CHAIN = ['gemini-3.1-flash-lite', 'gemini-3-flash-preview', 'gemini-2.5-flash'];
-const OLD_WORKER = 'https://admission-gk.admissionhub.workers.dev';
+const GEM_CHAIN = ['gemini-3-flash-preview', 'gemini-3.1-flash-lite'];
+const OLD_WORKER = 'https://admission-gk.admissionhub.workers.dev';const PROMPT_V = 'p05-1';
+const AI_BUDGET = { msgs: 24000, brain: 6000, perMsg: 4000 };
+const dayKey = () => new Date().toISOString().slice(0, 10);
+const metKey = (name) => 'aim:' + name + ':' + dayKey();
+const kvInc = async (kv, key, ttl = 172800) => { try { const n = Number((await kv.get(key)) || 0) + 1; await kv.put(key, String(n), { expirationTtl: ttl }); return n; } catch (_) { return 0; } };
+const badKeyName = (key, model) => 'aibad:' + String(key).slice(0, 12) + ':' + model + ':' + dayKey();
+const aibadMark = async (kv, key, model) => { try { await kv.put(badKeyName(key, model), '1', { expirationTtl: 86400 }); } catch (_) {} };
+const aiChain = (keys, chain, badSet) => {
+  const out = [];
+  for (const k of keys || []) for (const m of chain || []) {
+    if (badSet.has(String(k).slice(0, 12) + ':' + m)) continue;
+    out.push({ k, m });
+  }
+  return out;
+};
+const clipMessages = (msgs, maxChars) => {
+  const out = []; let used = 0;
+  for (let i = (msgs || []).length - 1; i >= 0; i--) {
+    const m = msgs[i]; const c = String(m && m.content || '').slice(0, AI_BUDGET.perMsg);
+    if (used + c.length > maxChars) break;
+    out.unshift({ role: (m.role === 'ai' ? 'assistant' : (m.role || 'user')), content: c });
+    used += c.length;
+  }
+  return out;
+};
+const fitText = (s, max) => { s = String(s || ''); return s.length <= max ? s : s.slice(0, max - 1) + '…'; };
+
+
+
 const SYS = ai => `তুমি "স্টাডি বন্ধু" — বাংলাদেশি ভর্তি-প্রস্তুতির বন্ধুসুলভ AI টিউটর (অ্যাপ: Admission Hub)। আজ: ${new Date().toLocaleDateString('bn-BD', { timeZone: 'Asia/Dhaka' })}।
 কোচ-ভূমিকা: শুধু উত্তর নয় — শিক্ষার্থীর ইতিহাস/ভুল/শব্দ দেখে লক্ষ্য ঠিক করো, রিভিশন-প্ল্যান দাও, মনে-রাখার টিপস দাও।
 নিয়ম: সহজ-উষ্ণ বাংলায় তুমি-ফর্ম, ২-৬ লাইন, হালকা emoji। ${ai ? 'নিচের [লাইভ-মেমোরি] সাইলেন্টলি ব্যবহার করো, raw ডাম্প নয়।' : ''}`;
@@ -1379,11 +1407,20 @@ const bankMatch = (qs, text) => {
 };
 const aiCall = async (request, env, uid) => {
   const b = await request.json().catch(() => ({}));
-  const msgs = (Array.isArray(b.messages) ? b.messages : []).slice(-8).map(m => ({ role: m.role === 'ai' ? 'assistant' : (m.role || 'user'), content: String(m.content || '').slice(0, 4000) }));
-  const lastU = [...msgs].reverse().find(m => m.role === 'user');
-  const [contentRaw, stRaw] = await Promise.all([env.PUB_KV.get('pubContent'), env.PUB_KV.get('ustate:' + uid)]);
+  const [contentRaw, stRaw, memRaw] = await Promise.all([
+    env.PUB_KV.get('pubContent'),
+    env.PUB_KV.get('ustate:' + uid),
+    env.PUB_KV.get('chatmem:' + uid)
+  ]);
   const C = contentRaw ? JSON.parse(contentRaw) : { questions: [], vocabulary: [] };
   const st = stRaw ? JSON.parse(stRaw) : {};
+  let mem = [];
+  try { mem = JSON.parse(memRaw || '[]'); if (!Array.isArray(mem)) mem = []; } catch (_) { mem = []; }
+  let msgs = (Array.isArray(b.messages) ? b.messages : []).map(m => ({ role: m.role === 'ai' ? 'assistant' : (m.role || 'user'), content: String(m.content || '').slice(0, 4000) }));
+  /* কনভারসেশন-ম্যানেজার: ক্লায়েন্ট-সংক্ষিপ্ত হলে আগের স্মৃতি থেকে সিড */
+  if (msgs.length < 3 && mem.length) msgs = mem.concat(msgs);
+  msgs = clipMessages(msgs, AI_BUDGET.msgs);
+  const lastU = [...msgs].reverse().find(m => m.role === 'user');
   const subs = [...new Set((C.questions || []).map(q => q.s).filter(Boolean))];
   let brain = `[লাইভ-মেমোরি — অ্যাপ + শিক্ষার্থী]\nঅ্যাপ-ব্যাংক: ${bn((C.questions || []).length)} প্রশ্ন · বিষয়: ${subs.slice(0, 8).join(', ')} · শব্দ: ${bn((C.vocabulary || []).length)}\n`;
   const exs = (st.attempts || []).slice(0, 5).map(a => `${a.mode === 'exam' ? 'পরীক্ষা' : 'প্র্যাকটিস'}(${a.sub || ''}): ${bn(a.right)}/${bn(a.total)}`);
@@ -1393,19 +1430,36 @@ const aiCall = async (request, env, uid) => {
   if ((st.vocab || []).length) brain += `শেখা শব্দ: ${bn(st.vocab.length)}টি — সাম্প্রতিক: ${(st.vocab || []).slice(-6).map(v => v.w).join(', ')}\n`;
   const hits = bankMatch(C.questions || [], lastU ? lastU.content : '');
   if (hits.length) brain += 'ব্যাংক থেকে মিলে-যাওয়া প্রশ্ন (উত্তরের ভিত্তি):\n' + hits.map(h => `— ${String(h.q.q).slice(0, 110)}${h.q.a != null && (h.q.o || [])[h.q.a] ? ' ⇒ উত্তর: ' + String(h.q.o[h.q.a]).slice(0, 50) : ''}`).join('\n');
+  brain = fitText(brain, AI_BUDGET.brain);
   const keys = String(env.GEMINI_KEYS || '').split(',').map(s => s.trim()).filter(Boolean);
-  if (!keys.length) return json({ error: 'AI-key কনফিগার নেই (admin)' }, 503);
-  let last = '';
+  if (!keys.length) { await kvInc(env.PUB_KV, metKey('nokey')); return json({ error: 'AI-key কনফিগার নেই (admin)' }, 503); }
+  /* মডেল-রাউটার: আজ-মার্ক-করা কী/মডেল বাদ → কী×মডেল failover-chain */
+  const badSet = new Set();
   for (const k of keys) for (const m of GEM_CHAIN) {
+    try { if (await env.PUB_KV.get(badKeyName(k, m))) badSet.add(String(k).slice(0, 12) + ':' + m); } catch (_) {}
+  }
+  const chain = aiChain(keys, GEM_CHAIN, badSet);
+  let last = '';
+  for (let i = 0; i < chain.length; i++) {
+    const { k, m } = chain[i];
+    if (i) await new Promise(r => setTimeout(r, 250 * i));
     try {
       const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k }, body: JSON.stringify({ system_instruction: { parts: [{ text: SYS(true) + '\n\n' + brain }] }, contents: msgs.length ? msgs : [{ role: 'user', parts: [{ text: 'হ্যালো' }] }] }) });
       const d = await r.json().catch(() => ({}));
       const t = String(d?.candidates?.[0]?.content?.parts?.map(x => x.text || '').join('') || '').trim();
-      if (r.ok && t) { await touchUser(env, uid); return json({ text: t, model: m }); }
+      if (r.ok && t) {
+        await kvInc(env.PUB_KV, metKey(m));
+        await kvInc(env.PUB_KV, metKey('total'));
+        try { await env.PUB_KV.put('chatmem:' + uid, JSON.stringify(clipMessages(msgs.concat([{ role: 'assistant', content: t }]), AI_BUDGET.msgs)), { expirationTtl: 2592000 }); } catch (_) {}
+        await touchUser(env, uid);
+        return json({ text: t, model: m, pv: PROMPT_V });
+      }
       last = 'HTTP ' + r.status + ' ' + m;
+      if (r.status === 401 || r.status === 402 || r.status === 429 || r.status >= 500) await aibadMark(env.PUB_KV, k, m);
     } catch (e) { last = String(e.message || e); }
   }
-  return json({ error: 'AI এখন ব্যস্ত — একটু পরে (' + last + ')' }, 502);
+  await kvInc(env.PUB_KV, metKey('fail'));
+  return json({ error: 'AI এখন ব্যস্ত — একটু পরে (' + last + ')', retryable: true }, 502);
 };
 
 /* ── Admin (Bearer ADMIN_TOKEN) ── */
