@@ -26,6 +26,14 @@ const clipMessages = (msgs, maxChars) => {
   return out;
 };
 const fitText = (s, max) => { s = String(s || ''); return s.length <= max ? s : s.slice(0, max - 1) + '…'; };
+const lastUserText = (msgs) => {
+  const arr = Array.isArray(msgs) ? msgs : [];
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (String((arr[i] && arr[i].role) || "user") === "user") return String(arr[i].content || "");
+  }
+  return "";
+};
+
 
 
 
@@ -1588,7 +1596,7 @@ var aiCall = async (request, env, uid) => {
     return { role: (String(m.role || "user") === "user" ? "user" : "model"), parts };
   });
   const lastU = [...msgs].reverse().find((m) => m.role === "user");
-  const lastTxt = (Array.isArray(b.messages) ? b.messages : []).reverse().find((m) => String(m.role || "user") === "user") ? String((Array.isArray(b.messages) ? b.messages : []).reverse().find((m) => String(m.role || "user") === "user").content || "") : "";
+  const lastTxt = lastUserText(b.messages); /* D-P05-1: ডাবল-reverse মিউটেশন-বাগ — শেষ-বার্তা নয় প্রথম-বার্তা ধরত */
   const cacheKey = "aicache:" + uid + ":" + kind + ":" + (refs.questionId || refs.word || refs.examId || "") + ":" + lastTxt.slice(0, 120);
   /* rate limit — প্রতি মিনিটে ১২ রিকোয়েস্ট */
   const minute = Math.floor(Date.now() / 6e4);

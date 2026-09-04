@@ -67,5 +67,18 @@ for (const [n, text] of [['public-worker', S], ['bundle', B]]) {
   const locked = text.includes('gemini-3-flash-preview", "gemini-3.1-flash-lite"]') || text.includes("gemini-3-flash-preview', 'gemini-3.1-flash-lite']");
   t(n + ': মডেল-চেইন-লক (২-মডেল, 2.5-নিষেধ)', locked && !text.includes('gemini-2.5-flash'));
 }
+/* ৬ — D-P05-1: ক্যাশ-কী রিগ্রেশন (ডাবল-reverse মিউটেশন-বাগ) */
+const lut = grab(B, 'lastUserText');
+t('bundle: lastUserText হেল্পার', !!lut);
+if (lut) {
+  const f = new Function('return ' + lut.replace(/^const lastUserText = /, '') + ';')();
+  const ms = [{ role: 'user', content: 'প্রথম' }, { role: 'ai', content: 'উত্তর' }, { role: 'user', content: 'শেষ' }];
+  t('শেষ user-বার্তা ফেরত (ডাবল-reverse নয়)', f(ms) === 'শেষ');
+  t('শুধু-ai → খালি', f([{ role: 'ai', content: 'x' }]) === '');
+  t('role-ছাড়া → user-ধরা', f([{ content: 'হাই' }]) === 'হাই');
+  t('খালি-তালিকা → খালি', f([]) === '');
+}
+t('bundle: lastTxt = lastUserText(b.messages)', B.includes('const lastTxt = lastUserText(b.messages)'));
+t('bundle: ডাবল-reverse বাগি-প্যাটার্ন নেই', !B.includes('? String((Array.isArray(b.messages) ? b.messages : []).reverse()'));
 console.log(`\nPHASE5-CORE: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);
