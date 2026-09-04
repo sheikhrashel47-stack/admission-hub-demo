@@ -38,7 +38,7 @@ const countsOf = doc => ({
 });
 
 
-const PERSONAL_KEYS = ['examResults', 'mistakes', 'settings', 'dailyStats', 'activityLogs', 'notes', 'v', 'at'];
+const PERSONAL_KEYS = ['examResults', 'mistakes', 'settings', 'dailyStats', 'activityLogs', 'notes', 'vocabulary', 'admissionPlans', 'planDays', 'deletedQuestions', 'v', 'at'];
 function sanitizeState(b) {
   const out = { v: 1, at: Date.now() };
   if (!b || typeof b !== 'object') return out;

@@ -10,7 +10,8 @@
 | P01 Exact Clone | ✅ **FREEZE** — docs/PHASE-01-FREEZE.md (৩৭ render-পথ, ৬৯ মডিউল; অ্যাডমিন-লিক ০; D-P01-1/2) |
 | P02 Cloud Content | ✅ **সম্পন্ন** — ড্রাফট→পাবলিশ→ভার্সন→রোলব্যাক (লাইভ); +pagination+duplicate-protection+offline-marker — docs/PHASE-02-CONTENT.md |
 | P03 User Identity | ✅ **সম্পন্ন** — ইমেইল/পাসওয়ার্ড/Google/Passkey/সেশন/মডারেশন (লাইভ); স্মার্ট-সিএমএস-গেট — docs/PHASE-03-IDENTITY.md |
-| P04–P20 | পরবর্তী ক্রমে (গ্যাপ-রিপোর্ট নিচে সংরক্ষিত) |
+| P04 Personal Cloud | ✅ **সম্পন্ন** — ৬→৯ স্টোর সিঙ্ক (প্ল্যান/ডে/লুকানো-প্রশ্ন), conflict-free per-id মার্জ (সর্বশেষ-সময়), export-বাটন, সিঙ্ক-স্ট্যাটাস UI — docs/PHASE-04-PERSONAL.md |
+| P05–P20 | পরবর্তী ক্রমে (গ্যাপ-রিপোর্ট নিচে সংরক্ষিত) |
 
 ## ২০ ফেজ এক লাইনে
 01 Exact Clone · 02 Cloud Content · 03 User Identity · 04 Personal Cloud · 05 AI Core · 06 Personal AI Tutor · 07 Intelligent Questions · 08 Advanced Exam Engine · 09 Deep Analytics · 10 Smart Mistakes · 11 Adaptive Learning · 12 Smart Vocabulary · 13 Scale & Performance · 14 Security · 15 PWA/Offline · 16 UX & Accessibility · 17 AI Agents · 18 Admission Intelligence · 19 Production+SEO · 20 Final QA + Launch

@@ -36,7 +36,7 @@ var countsOf = (doc) => ({
   vocabulary: (doc.vocabulary || []).length,
   vocabularyMaster: (doc.vocabularyMaster || []).length
 });
-var PERSONAL_KEYS = ["examResults", "mistakes", "settings", "dailyStats", "activityLogs", "notes", "vocabulary", "v", "at"];
+var PERSONAL_KEYS = ["examResults", "mistakes", "settings", "dailyStats", "activityLogs", "notes", "vocabulary", "admissionPlans", "planDays", "deletedQuestions", "v", "at"];
 function sanitizeState(b) {
   const out = { v: 1, at: Date.now() };
   if (!b || typeof b !== "object") return out;

@@ -7,7 +7,24 @@
   const PUB = WORKER + '/api';
   const LS_TOKEN = 'ahPubToken';
   const LS_USER = 'ahPubUser';
-  const PERSONAL = ['examResults', 'mistakes', 'settings', 'dailyStats', 'activityLogs', 'notes'];
+  const PERSONAL = ['examResults', 'mistakes', 'settings', 'dailyStats', 'activityLogs', 'notes', 'admissionPlans', 'planDays', 'deletedQuestions'];
+  /* মাল্টি-ডিভাইস মার্জ: per-row সর্বশেষ-সময় জেতে; খালি-পক্ষ কখনো মুছে না (data-loss নয়) */
+  const rowTs = (x) => Number((x && (x.updatedAt || x.at || x.ts || x.date)) || 0) || 0;
+  const mergeRows = (local, remote) => {
+    const m = new Map();
+    (Array.isArray(local) ? local : []).forEach((x) => { if (x && x.id) m.set(String(x.id), x); });
+    (Array.isArray(remote) ? remote : []).forEach((x) => {
+      if (!x || !x.id) return;
+      const k = String(x.id), cur = m.get(k);
+      if (!cur || rowTs(x) >= rowTs(cur)) m.set(k, x); /* সর্বশেষ সংস্করণ */
+    });
+    return [...m.values()];
+  };
+  const mergeSettings = (local, remote) => {
+    const a = (local && typeof local === 'object') ? local : {};
+    const b = (remote && typeof remote === 'object') ? remote : {};
+    return Object.assign({}, a, b);
+  };
   let config = { google: false, googleClientId: '' };
   let syncing = false;
 
@@ -41,11 +58,18 @@
   const applyPersonal = async (doc) => {
     if (!doc || typeof doc !== 'object') return false;
     for (const st of PERSONAL) {
-      const rows = Array.isArray(doc[st]) ? doc[st] : (st === 'settings' && doc[st] ? [doc[st]] : []);
-      if (!rows.length) continue;
-      if (typeof dbClear === 'function') await dbClear(st).catch(() => {});
-      if (window.AdmissionCloudContent && AdmissionCloudContent.putManyFast) await AdmissionCloudContent.putManyFast(st, rows.filter(x => x && x.id));
-      else if (typeof dbPutMany === 'function') await dbPutMany(st, rows.filter(x => x && x.id));
+      const incoming = Array.isArray(doc[st]) ? doc[st] : (st === 'settings' && doc[st] ? [doc[st]] : []);
+      if (!incoming.length) continue; /* সার্ভারে কিছু নেই → স্থানীয় ওভাররাইট নয় */
+      if (st === 'settings') {
+        const cur = (typeof dbGet === 'function') ? await dbGet(st, 'main').catch(() => null) : null;
+        const merged = mergeSettings(cur || {}, incoming[0]);
+        if (typeof dbPut === 'function') { await dbPut(st, Object.assign({ id: 'main' }, merged)).catch(() => {}); }
+        continue;
+      }
+      const local = (typeof dbGetAll === 'function') ? await dbGetAll(st).catch(() => []) : [];
+      const merged = mergeRows(local, incoming.filter(x => x && x.id));
+      if (window.AdmissionCloudContent && AdmissionCloudContent.putManyFast) await AdmissionCloudContent.putManyFast(st, merged);
+      else if (typeof dbPutMany === 'function') await dbPutMany(st, merged);
     }
     if (typeof loadCache === 'function') await loadCache();
     if (typeof applyTheme === 'function') applyTheme();
@@ -82,6 +106,22 @@
     await pullState();
     await pushState();
     mountCard();
+  };
+
+  const exportData = async () => {
+    if (!token()) return;
+    try {
+      const res = await fetch(PUB + '/export', { headers: { Authorization: 'Bearer ' + token() } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || ('http-' + res.status));
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'admission-hub-my-data-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('তোমার ডেটা ডাউনলোড হয়েছে (JSON)');
+    } catch (e) { toast(String(e.message || e), true); }
   };
 
   const logout = async () => {
@@ -175,8 +215,12 @@
       return `<section class="card" id="ah-account-card"><div class="row between"><b>অ্যাকাউন্ট</b><span class="muted" style="font-size:11px">${u.status === 'verified' || u.verified ? 'ভেরিফায়েড' : 'লগইন'}</span></div>
         <div style="margin-top:8px;font-size:15px;font-weight:700">${u.name || 'শিক্ষার্থী'}</div>
         <div class="muted" style="font-size:12px;margin-top:3px">${u.contact || u.id || ''} · ID ${String(u.uid || u.id || '').slice(0, 12)}</div>
+        <div class="muted" style="font-size:11px;margin-top:6px" id="ahSyncStatus">${
+          window.__ahUserLastPush ? '☁️ শেষ সিঙ্ক: ' + new Date(window.__ahUserLastPush).toLocaleTimeString('bn-BD') : '☁️ সিঙ্ক-অপেক্ষায়…'
+        }</div>
         <div class="row" style="gap:8px;margin-top:12px">
           <button class="btn secondary sm" type="button" id="ahAccSync">ক্লাউড সিঙ্ক</button>
+          <button class="btn ghost sm" type="button" id="ahAccExport">ডেটা ডাউনলোড</button>
           <button class="btn ghost sm" type="button" id="ahAccOut">লগআউট</button>
         </div></section>`;
     }
@@ -190,8 +234,19 @@
     document.getElementById('ahAccIn')?.addEventListener('click', openLogin);
     document.getElementById('ahAccNew')?.addEventListener('click', openRegister);
     document.getElementById('ahAccOut')?.addEventListener('click', logout);
-    document.getElementById('ahAccSync')?.addEventListener('click', async () => { await pushState(); toast('সিঙ্ক হয়েছে'); });
+    document.getElementById('ahAccSync')?.addEventListener('click', async () => { await pushState(); toast('সিঙ্ক হয়েছে'); refreshSyncStatus(); });
+    document.getElementById('ahAccExport')?.addEventListener('click', exportData);
+    document.getElementById('ahSyncStatus') && (window.__ahSyncStatusEl = document.getElementById('ahSyncStatus'));
+    if (window.__ahSyncStatusEl) refreshSyncStatus();
   };
+
+  function refreshSyncStatus() {
+    const el = window.__ahSyncStatusEl || document.getElementById('ahSyncStatus');
+    if (!el) return;
+    if (window.__ahUserSyncErr) el.textContent = '⚠️ সিঙ্ক-সমস্যা: ' + String(window.__ahUserSyncErr).slice(0, 60);
+    else if (window.__ahUserLastPush) el.textContent = '☁️ শেষ সিঙ্ক: ' + new Date(window.__ahUserLastPush).toLocaleTimeString('bn-BD');
+    else el.textContent = '☁️ সিঙ্ক-অপেক্ষায়…';
+  }
 
   const mountCard = () => {
     const app = document.getElementById('app');
