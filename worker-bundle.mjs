@@ -272,7 +272,8 @@ var public_worker_default = {
       if (p === "/api/content" && request.method === "GET") {
         await authUser(request, env);
         const raw = await env.PUB_KV.get("pubContent");
-        return json(raw ? JSON.parse(raw) : { v: 0, at: 0, questions: [], vocabulary: [], exams: [] });
+        const q = new URL(request.url).searchParams;
+        return json(paginateContent(raw ? JSON.parse(raw) : { v: 0, at: 0, questions: [], vocabulary: [], exams: [] }, q.get("limit"), q.get("offset")));
       }
       if (p === "/api/auth/config" && request.method === "GET") {
         return json({
@@ -280,7 +281,8 @@ var public_worker_default = {
           googleClientId: env.GOOGLE_CLIENT_ID || "",
           passkey: true,
           email: !!((env.RESEND_KEY || env.RESEND_KEY_2 || env.MAIL_HOOK || env.BREVO_KEY) && (env.MAIL_FROM || env.MAIL_HOOK || env.BREVO_KEY)),
-          sms: !!(env.TWILIO_SID && env.TWILIO_TOKEN && env.TWILIO_FROM) || !!(env.SMS_API_URL && env.SMS_API_KEY) || !!env.GREENWEB_TOKEN
+          sms: smsReady(env),
+          phone: true,
         });
       }
       if (p === "/api/auth/register" && request.method === "POST") return await authRegister(request, env);
@@ -433,12 +435,29 @@ var public_worker_default = {
     }
   }
 };
+
+var paginateContent = (doc, limit, offset) => {
+  if (!doc || typeof doc !== 'object') return doc;
+  const limRaw = Number(limit);
+  const lim = Number.isFinite(limRaw) && limRaw > 0 ? Math.min(500, limRaw) : 0;
+  const off = Math.max(0, Number(offset) || 0);
+  if (!lim) return doc;
+  const out = Object.assign({}, doc);
+  ['questions', 'vocabulary', 'vocabularyMaster', 'subjects', 'topics', 'exams'].forEach((k) => { if (Array.isArray(doc[k])) out[k] = doc[k].slice(off, off + lim); });
+  out.total = Array.isArray(doc.questions) ? doc.questions.length : 0;
+  out.page = { limit: lim, offset: off };
+  return out;
+};
+
 var normId = (s) => {
   s = String(s || "").trim();
   if (/^\+?\d[\d\s-]{8,14}$/.test(s)) return "ph:" + s.replace(/\D/g, "");
   if (s.includes("@")) return "em:" + s.toLowerCase();
   return "un:" + s.toLowerCase().slice(0, 40);
 };
+
+var smsReady = (env) => !!(env && ((env.TWILIO_SID && env.TWILIO_TOKEN && env.TWILIO_FROM) || env.GREENWEB_TOKEN || env.BULKSMS_API_KEY || (env.SMS_API_URL && env.SMS_API_KEY)));
+
 var maskDest = (id) => {
   if (id.startsWith("em:")) {
     const e = id.slice(3);
@@ -999,6 +1018,7 @@ var authRegister = async (request, env) => {
   const name = String(b.name || "").trim().slice(0, 40);
   if (!name || name.length < 2) return json({ error: "\u09AA\u09C2\u09B0\u09CD\u09A3 \u09A8\u09BE\u09AE \u09B2\u09C7\u0996\u09CB" }, 400);
   if (!(id.startsWith("em:") || id.startsWith("ph:"))) return json({ error: "\u09B8\u09A0\u09BF\u0995 \u0987\u09AE\u09C7\u0987\u09B2 \u09AC\u09BE \u09AE\u09CB\u09AC\u09BE\u0987\u09B2 \u09B2\u09C7\u0996\u09CB" }, 400);
+  if (id.startsWith("ph:") && !smsReady(env)) return json({ error: "\u09AE\u09CB\u09AC\u09BE\u0987\u09B2-OTP \u098F\u0996\u09A8\u09CB \u09B8\u0995\u09CD\u09B0\u09BF\u09AF\u09BC \u09A8\u09BE \u2014 Google \u09AC\u09BE Passkey \u09A6\u09BF\u09AF\u09BC\u09C7 \u09A2\u09CB\u0995\u09CB" }, 400);
   const weak = strongPass(password);
   if (weak) return json({ error: weak }, 400);
   if (confirm && confirm !== password) return json({ error: "\u09AA\u09BE\u09B8\u0993\u09AF\u09BC\u09BE\u09B0\u09CD\u09A1 \u09A6\u09C1\u099F\u09CB \u09AE\u09BF\u09B2\u099B\u09C7 \u09A8\u09BE" }, 400);
@@ -1017,7 +1037,7 @@ var authRegister = async (request, env) => {
     created: Date.now(),
     providers: ["password"]
   };
-  if (!id.startsWith("em:")) return json({ error: "\u0987\u09AE\u09C7\u0987\u09B2 \u09B2\u09BF\u0982\u0995 \u09AD\u09C7\u09B0\u09BF\u09AB\u09BE\u0987 \u09B6\u09C1\u09A7\u09C1 Gmail/\u0987\u09AE\u09C7\u0987\u09B2\u09C7 \u2014 \u09AE\u09CB\u09AC\u09BE\u0987\u09B2\u09C7 Google \u09AC\u09BE Passkey \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u0995\u09B0\u09CB" }, 400);
+  if (!id.startsWith("em:") && !smsReady(env)) return json({ error: "\u09AE\u09CB\u09AC\u09BE\u0987\u09B2-\u09B0\u099C\u09BF\u09B8\u09CD\u099F\u09CD\u09B0\u09C7\u09B6\u09A8 \u098F\u0996\u09A8\u09CB \u09B8\u0995\u09CD\u09B0\u09BF\u09AF\u09BC \u09A8\u09BE \u2014 Gmail \u09AC\u09BE Google/Passkey \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u0995\u09B0\u09CB" }, 400);
   await env.PUB_KV.put("pending:" + id, JSON.stringify(pending), { expirationTtl: 1800 });
   const sent = await issueOtp(env, id, "signup", ip);
   if (sent.error) return json({ error: sent.error }, sent.status || 503);

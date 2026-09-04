@@ -240,7 +240,8 @@ export default {
       if (p === '/api/content' && request.method === 'GET') {
         await authUser(request, env);
         const raw = await env.PUB_KV.get('pubContent');
-        return json(raw ? JSON.parse(raw) : { v: 0, at: 0, questions: [], vocabulary: [], exams: [] });
+        const q = new URL(request.url).searchParams;
+        return json(paginateContent(raw ? JSON.parse(raw) : { v: 0, at: 0, questions: [], vocabulary: [], exams: [] }, q.get('limit'), q.get('offset')));
       }
       if (p === '/api/auth/config' && request.method === 'GET') {
         return json({
@@ -248,7 +249,8 @@ export default {
           googleClientId: env.GOOGLE_CLIENT_ID || '',
           passkey: true,
           email: !!((env.RESEND_KEY || env.RESEND_KEY_2 || env.MAIL_HOOK || env.BREVO_KEY) && (env.MAIL_FROM || env.MAIL_HOOK || env.BREVO_KEY)),
-          sms: !!(env.TWILIO_SID && env.TWILIO_TOKEN && env.TWILIO_FROM) || !!(env.SMS_API_URL && env.SMS_API_KEY) || !!env.GREENWEB_TOKEN
+          sms: smsReady(env),
+          phone: true,
         });
       }
       if (p === '/api/auth/register' && request.method === 'POST') return await authRegister(request, env);
@@ -382,7 +384,24 @@ export default {
 };
 
 
+
+const paginateContent = (doc, limit, offset) => {
+  if (!doc || typeof doc !== 'object') return doc;
+  const limRaw = Number(limit);
+  const lim = Number.isFinite(limRaw) && limRaw > 0 ? Math.min(500, limRaw) : 0;
+  const off = Math.max(0, Number(offset) || 0);
+  if (!lim) return doc;
+  const out = Object.assign({}, doc);
+  ['questions', 'vocabulary', 'vocabularyMaster', 'subjects', 'topics', 'exams'].forEach((k) => { if (Array.isArray(doc[k])) out[k] = doc[k].slice(off, off + lim); });
+  out.total = Array.isArray(doc.questions) ? doc.questions.length : 0;
+  out.page = { limit: lim, offset: off };
+  return out;
+};
+
 const normId = s => { s = String(s || '').trim(); if (/^\+?\d[\d\s-]{8,14}$/.test(s)) return 'ph:' + s.replace(/\D/g, ''); if (s.includes('@')) return 'em:' + s.toLowerCase(); return 'un:' + s.toLowerCase().slice(0, 40); };
+
+const smsReady = (env) => !!(env && ((env.TWILIO_SID && env.TWILIO_TOKEN && env.TWILIO_FROM) || env.GREENWEB_TOKEN || env.BULKSMS_API_KEY || (env.SMS_API_URL && env.SMS_API_KEY)));
+
 const maskDest = id => {
   if (id.startsWith('em:')) { const e = id.slice(3); const i = e.indexOf('@'); return i > 2 ? e.slice(0, 2) + '••••' + e.slice(i) : '••••' + e.slice(-8); }
   if (id.startsWith('ph:')) { const n = id.slice(3); return '••••' + n.slice(-4); }
@@ -988,6 +1007,7 @@ const authRegister = async (request, env) => {
   const name = String(b.name || '').trim().slice(0, 40);
   if (!name || name.length < 2) return json({ error: 'পূর্ণ নাম লেখো' }, 400);
   if (!(id.startsWith('em:') || id.startsWith('ph:'))) return json({ error: 'সঠিক ইমেইল বা মোবাইল লেখো' }, 400);
+  if (id.startsWith('ph:') && !smsReady(env)) return json({ error: 'মোবাইল-OTP এখনো সক্রিয় নয় — Google বা Passkey দিয়ে ঢোকো' }, 400);
   const weak = strongPass(password);
   if (weak) return json({ error: weak }, 400);
   if (confirm && confirm !== password) return json({ error: 'পাসওয়ার্ড দুটো মিলছে না' }, 400);
@@ -1002,7 +1022,7 @@ const authRegister = async (request, env) => {
     contact: id.startsWith('ph:') ? '+88' + id.slice(3).replace(/^88/, '') : id.slice(3),
     created: Date.now(), providers: ['password']
   };
-  if (!id.startsWith('em:')) return json({ error: 'ইমেইল লিংক ভেরিফাই শুধু Gmail/ইমেইলে — মোবাইলে Google বা Passkey ব্যবহার করো' }, 400);
+  if (!id.startsWith('em:') && !smsReady(env)) return json({ error: 'মোবাইল-রেজিস্ট্রেশন এখনো সক্রিয় নয় — Gmail বা Google/Passkey ব্যবহার করো' }, 400);
   await env.PUB_KV.put('pending:' + id, JSON.stringify(pending), { expirationTtl: 1800 });
   const sent = await issueOtp(env, id, 'signup', ip);
   if (sent.error) return json({ error: sent.error }, sent.status || 503);

@@ -4,6 +4,14 @@
 > এক ফেজের কাজ আরেক ফেজের ভেতরে লুকানো যাবে না। ফাইনাল পাবলিক-লঞ্চ শুধু মালিকের "✅ APPROVED FOR PUBLIC LAUNCH"-এর পর।
 > (দ্রষ্টব্য: আগে-থেকে-লাইভ থাকা অংশগুলো "লিগ্যাসি-কভারেজ" হিসেবে চিহ্নিত; নতুন কাজ ফেজ-বাউন্ডারিতে।)
 
+## ✅ অগ্রগতি-চিহ্ন (২০২৬-০৯-০৪)
+| ফেজ | অবস্থা |
+|---|---|
+| P01 Exact Clone | ✅ **FREEZE** — docs/PHASE-01-FREEZE.md (৩৭ render-পথ, ৬৯ মডিউল; অ্যাডমিন-লিক ০; D-P01-1/2) |
+| P02 Cloud Content | ✅ **সম্পন্ন** — ড্রাফট→পাবলিশ→ভার্সন→রোলব্যাক (লাইভ); +pagination+duplicate-protection+offline-marker — docs/PHASE-02-CONTENT.md |
+| P03 User Identity | ✅ **সম্পন্ন** — ইমেইল/পাসওয়ার্ড/Google/Passkey/সেশন/মডারেশন (লাইভ); স্মার্ট-সিএমএস-গেট — docs/PHASE-03-IDENTITY.md |
+| P04–P20 | পরবর্তী ক্রমে (গ্যাপ-রিপোর্ট নিচে সংরক্ষিত) |
+
 ## ২০ ফেজ এক লাইনে
 01 Exact Clone · 02 Cloud Content · 03 User Identity · 04 Personal Cloud · 05 AI Core · 06 Personal AI Tutor · 07 Intelligent Questions · 08 Advanced Exam Engine · 09 Deep Analytics · 10 Smart Mistakes · 11 Adaptive Learning · 12 Smart Vocabulary · 13 Scale & Performance · 14 Security · 15 PWA/Offline · 16 UX & Accessibility · 17 AI Agents · 18 Admission Intelligence · 19 Production+SEO · 20 Final QA + Launch
 
