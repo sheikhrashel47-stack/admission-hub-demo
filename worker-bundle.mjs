@@ -51,6 +51,17 @@ function sanitizeState(b) {
 }
 var b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
 var unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+const kvGetRetry = async (kv, key, opts = {}) => {
+  const tries = opts.tries || 6, base = opts.base || 250;
+  let v = null;
+  for (let i = 0; i < tries; i++) {
+    try { v = await kv.get(key); } catch (_) { v = null; }
+    if (v !== null && v !== undefined) return v;
+    await new Promise((r) => setTimeout(r, base * (i + 1)));
+  }
+  return v;
+};
+
 async function hashPassword(password, saltB64) {
   const enc = new TextEncoder();
   const salt = saltB64 ? unb64(saltB64) : crypto.getRandomValues(new Uint8Array(16));
@@ -569,12 +580,12 @@ async function issueOtp(env, destId, purpose, ip) {
   const code = String(Math.floor(1e5 + Math.random() * 9e5));
   const sent = await sendOtpMessage(env, destId, code, purpose);
   if (!sent.ok) return { error: sent.error, status: 503 };
-  await env.PUB_KV.put(key, JSON.stringify({ hash: await shaHex(code), exp: Date.now() + 12e4, tries: 0, sentAt: Date.now(), purpose }), { expirationTtl: 150 });
+  await env.PUB_KV.put(key, JSON.stringify({ hash: await shaHex(code), exp: Date.now() + 9e5, tries: 0, sentAt: Date.now(), purpose }), { expirationTtl: 900 });
   return { sent: true, channel: sent.channel, masked: maskDest(destId), wait: 120 };
 }
 async function checkOtp(env, destId, purpose, code) {
   const key = "otp:" + purpose + ":" + destId;
-  const o = JSON.parse(await env.PUB_KV.get(key) || "null");
+  const o = JSON.parse(await kvGetRetry(env.PUB_KV, key, { tries: 5, base: 250 }) || "null");
   if (!o || !o.hash) return { error: "\u0986\u0997\u09C7 \u0995\u09CB\u09A1 \u09AA\u09BE\u09A0\u09BE\u0993", status: 400 };
   if (o.exp < Date.now()) return { error: "\u0995\u09CB\u09A1\u09C7\u09B0 \u09B8\u09AE\u09AF\u09BC \u09B6\u09C7\u09B7 \u2014 \u0986\u09AC\u09BE\u09B0 \u09AA\u09BE\u09A0\u09BE\u0993", status: 401 };
   if (o.tries >= 5) return { error: "\u0985\u09A8\u09C7\u0995\u09AC\u09BE\u09B0 \u09AD\u09C1\u09B2 \u09B9\u09AF\u09BC\u09C7\u099B\u09C7 \u2014 \u098F\u0995\u099F\u09C1 \u09AA\u09B0\u09C7 \u099A\u09C7\u09B7\u09CD\u099F\u09BE \u0995\u09B0\u09CB", status: 429 };
@@ -588,7 +599,7 @@ async function checkOtp(env, destId, purpose, code) {
   return { ok: true };
 }
 async function getUserById(env, id) {
-  return JSON.parse(await env.PUB_KV.get("user:" + id) || "null");
+  return JSON.parse(await kvGetRetry(env.PUB_KV, "user:" + id, { tries: 5, base: 200 }) || "null");
 }
 var RP_ID = "sheikhrashel47-stack.github.io";
 var RP_ORIGIN = "https://sheikhrashel47-stack.github.io";
@@ -694,8 +705,8 @@ var authWait = async (request, env) => {
   const waitId = String(b.waitId || "");
   const id = normId(b.id || "");
   let row = null;
-  if (waitId.length >= 16) row = JSON.parse(await env.PUB_KV.get("wait:" + waitId) || "null");
-  if (!row && id.startsWith("em:")) row = JSON.parse(await env.PUB_KV.get("waitid:" + id) || "null");
+  if (waitId.length >= 16) row = JSON.parse(await kvGetRetry(env.PUB_KV, "wait:" + waitId, { tries: 4, base: 250 }) || "null");
+  if (!row && id.startsWith("em:")) row = JSON.parse(await kvGetRetry(env.PUB_KV, "waitid:" + id, { tries: 4, base: 250 }) || "null");
   if (!row) return json({ waiting: true });
   if (row.status === "ready" && row.token) return json({ token: row.token, user: row.user, ready: true });
   return json({ waiting: true });
@@ -862,7 +873,7 @@ var authGoogleUnlink = async (request, env, uid) => {
 };
 var authRemovePasskey = async (request, env) => {
   const tok2 = String(request.headers.get("Authorization") || "").replace("Bearer ", "").trim();
-  const tr = JSON.parse(await env.PUB_KV.get("tok:" + tok2) || "null");
+  const tr = JSON.parse(await kvGetRetry(env.PUB_KV, "tok:" + tok2, { tries: 4, base: 200 }) || "null");
   if (!tr) return json({ error: "\u0986\u0997\u09C7 \u09B2\u0997\u0987\u09A8 \u0995\u09B0\u09CB" }, 401);
   const u = JSON.parse(await env.PUB_KV.get("user:" + tr.id) || "null");
   if (!u) return json({ error: "\u0985\u09CD\u09AF\u09BE\u0995\u09BE\u0989\u09A8\u09CD\u099F \u09AA\u09BE\u0993\u09AF\u09BC\u09BE \u09AF\u09BE\u09AF\u09BC\u09A8\u09BF" }, 404);
@@ -1369,7 +1380,7 @@ var authUser = async (request, env) => {
   const tok2 = String(request.headers.get("Authorization") || "").replace("Bearer ", "").trim();
   const tr = JSON.parse(await env.PUB_KV.get("tok:" + tok2) || "null");
   if (!tr) throw Object.assign(new Error("\u0986\u0997\u09C7 \u09B2\u0997\u0987\u09A8 \u0995\u09B0\u09CB"), { status: 401 });
-  const u = JSON.parse(await env.PUB_KV.get("user:" + tr.id) || "{}");
+  const u = JSON.parse(await kvGetRetry(env.PUB_KV, "user:" + tr.id, { tries: 4, base: 200 }) || "{}");
   if (u.blocked || u.status === "disabled" || u.status === "suspended") throw Object.assign(new Error("\u0985\u09CD\u09AF\u09BE\u0995\u09BE\u0989\u09A8\u09CD\u099F \u09AC\u09A8\u09CD\u09A7 \u0995\u09B0\u09BE \u09B9\u09AF\u09BC\u09C7\u099B\u09C7"), { status: 403 });
   try {
     const nowTs = Date.now();

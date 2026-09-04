@@ -2257,7 +2257,13 @@
     if (g && !g.innerHTML.trim()) welcome();
     if (token()) {
       try {
-        const me = await api('/auth/me', { headers: authH() });
+        /* KV-রিপ্লিকেশন-সহন: লগইন-পর প্রথম me ৪০১ দিলেও রিট্রাই (৪×backoff) — সেশন ভুলে গেস্টে ফেলা না */
+        let me = null, meErr = null;
+        for (let att = 0; att < 4; att++) {
+          try { me = await api('/auth/me', { headers: authH() }); break; }
+          catch (e) { meErr = e; await new Promise((r) => setTimeout(r, 700 * (att + 1))); }
+        }
+        if (!me) throw (meErr || new Error('http-401'));
         if (me.user && (me.user.status === 'disabled' || me.user.status === 'suspended')) {
           setSession('', null); setGate(true); go('login'); return;
         }

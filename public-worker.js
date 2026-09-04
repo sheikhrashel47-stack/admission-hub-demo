@@ -53,6 +53,17 @@ function sanitizeState(b) {
 };
 const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
 const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const kvGetRetry = async (kv, key, opts = {}) => {
+  const tries = opts.tries || 6, base = opts.base || 250;
+  let v = null;
+  for (let i = 0; i < tries; i++) {
+    try { v = await kv.get(key); } catch (_) { v = null; }
+    if (v !== null && v !== undefined) return v;
+    await new Promise((r) => setTimeout(r, base * (i + 1)));
+  }
+  return v;
+};
+
 async function hashPassword(password, saltB64) {
   const enc = new TextEncoder();
   const salt = saltB64 ? unb64(saltB64) : crypto.getRandomValues(new Uint8Array(16));
@@ -555,12 +566,12 @@ async function issueOtp(env, destId, purpose, ip) {
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const sent = await sendOtpMessage(env, destId, code, purpose);
   if (!sent.ok) return { error: sent.error, status: 503 };
-  await env.PUB_KV.put(key, JSON.stringify({ hash: await shaHex(code), exp: Date.now() + 120000, tries: 0, sentAt: Date.now(), purpose }), { expirationTtl: 150 });
+  await env.PUB_KV.put(key, JSON.stringify({ hash: await shaHex(code), exp: Date.now() + 900000, tries: 0, sentAt: Date.now(), purpose }), { expirationTtl: 900 });
   return { sent: true, channel: sent.channel, masked: maskDest(destId), wait: 120 };
 }
 async function checkOtp(env, destId, purpose, code) {
   const key = 'otp:' + purpose + ':' + destId;
-  const o = JSON.parse((await env.PUB_KV.get(key)) || 'null');
+  const o = JSON.parse((await kvGetRetry(env.PUB_KV, key, { tries: 5, base: 250 })) || 'null');
   if (!o || !o.hash) return { error: 'আগে কোড পাঠাও', status: 400 };
   if (o.exp < Date.now()) return { error: 'কোডের সময় শেষ — আবার পাঠাও', status: 401 };
   if (o.tries >= 5) return { error: 'অনেকবার ভুল হয়েছে — একটু পরে চেষ্টা করো', status: 429 };
@@ -574,7 +585,7 @@ async function checkOtp(env, destId, purpose, code) {
   return { ok: true };
 }
 async function getUserById(env, id) {
-  return JSON.parse((await env.PUB_KV.get('user:' + id)) || 'null');
+  return JSON.parse((await kvGetRetry(env.PUB_KV, 'user:' + id, { tries: 5, base: 200 })) || 'null');
 }
 
 
@@ -727,8 +738,8 @@ const authWait = async (request, env) => {
   const waitId = String(b.waitId || '');
   const id = normId(b.id || '');
   let row = null;
-  if (waitId.length >= 16) row = JSON.parse((await env.PUB_KV.get('wait:' + waitId)) || 'null');
-  if (!row && id.startsWith('em:')) row = JSON.parse((await env.PUB_KV.get('waitid:' + id)) || 'null');
+  if (waitId.length >= 16) row = JSON.parse((await kvGetRetry(env.PUB_KV, 'wait:' + waitId, { tries: 4, base: 250 })) || 'null');
+  if (!row && id.startsWith('em:')) row = JSON.parse((await kvGetRetry(env.PUB_KV, 'waitid:' + id, { tries: 4, base: 250 })) || 'null');
   if (!row) return json({ waiting: true });
   if (row.status === 'ready' && row.token) return json({ token: row.token, user: row.user, ready: true });
   return json({ waiting: true });
@@ -867,7 +878,7 @@ const authGoogleUnlink = async (request, env, uid) => {
 };
 const authRemovePasskey = async (request, env) => {
   const tok = String(request.headers.get('Authorization') || '').replace('Bearer ', '').trim();
-  const tr = JSON.parse((await env.PUB_KV.get('tok:' + tok)) || 'null');
+  const tr = JSON.parse((await kvGetRetry(env.PUB_KV, 'tok:' + tok, { tries: 4, base: 200 })) || 'null');
   if (!tr) return json({ error: 'আগে লগইন করো' }, 401);
   const u = JSON.parse((await env.PUB_KV.get('user:' + tr.id)) || 'null');
   if (!u) return json({ error: 'অ্যাকাউন্ট পাওয়া যায়নি' }, 404);
@@ -1329,7 +1340,7 @@ const authUser = async (request, env) => {
   const tok = String(request.headers.get('Authorization') || '').replace('Bearer ', '').trim();
   const tr = JSON.parse((await env.PUB_KV.get('tok:' + tok)) || 'null');
   if (!tr) throw Object.assign(new Error('আগে লগইন করো'), { status: 401 });
-  const u = JSON.parse((await env.PUB_KV.get('user:' + tr.id)) || '{}');
+  const u = JSON.parse((await kvGetRetry(env.PUB_KV, 'user:' + tr.id, { tries: 4, base: 200 })) || '{}');
   if (u.blocked || u.status === 'disabled' || u.status === 'suspended') throw Object.assign(new Error('অ্যাকাউন্ট বন্ধ করা হয়েছে'), { status: 403 });
   // session freshness tracking (best-effort, never blocks)
   try {
