@@ -169,6 +169,17 @@ async function rateLimit(env, key, max, ttl) {
   return row.n <= max;
 };
 
+/* ── additive অথ-ইভেন্ট কাউন্টার (Admin AC-4-র read-only হুক; আচরণ বদলায় না) ── */
+async function admEvent(env, ev) {
+  try {
+    if (!env || !env.PUB_KV) return;
+    const day = new Date().toISOString().slice(0, 10);
+    const k = 'adm-events:' + String(ev).slice(0, 30) + ':' + day;
+    const n = Number((await env.PUB_KV.get(k)) || 0) + 1;
+    await env.PUB_KV.put(k, String(n), { expirationTtl: 172800 }); /* ২ দিন */
+  } catch (_) { /* কখনো মূল-পথ আটকাবে না */ }
+};
+
 export const publishGlobal = async (env, full) => {
   if (!env || !env.PUB_KV) return { error: 'no-pub-kv' };
   const src = full && typeof full === 'object' ? full : {};
@@ -885,7 +896,7 @@ const pkLoginBegin = async (request, env) => {
 const pkLoginFinish = async (request, env) => {
   const b = await request.json().catch(() => ({}));
   const ch = JSON.parse((await env.PUB_KV.get('pkch:' + b.chalId)) || 'null');
-  if (!ch || ch.t !== 'login') return json({ error: 'Passkey চ্যালেঞ্জ শেষ' }, 401);
+  if (!ch || ch.t !== 'login') { await admEvent(env, 'pk-fail'); return json({ error: 'Passkey চ্যালেঞ্জ শেষ' }, 401); }
   let cdata;
   try { cdata = JSON.parse(new TextDecoder().decode(unb64url(b.clientDataJSON))); } catch (_) { return json({ error: 'Passkey ডেটা খারাপ' }, 400); }
   if (cdata.type !== 'webauthn.get') return json({ error: 'Passkey টাইপ ভুল' }, 400);
@@ -911,8 +922,9 @@ const pkLoginFinish = async (request, env) => {
       const key = await crypto.subtle.importKey('spki', pub, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
       ok = await crypto.subtle.verify({ name: 'RSASSA-PKCS1-v1_5' }, key, unb64url(b.signature), signed);
     }
-    if (!ok) return json({ error: 'Passkey যাচাই ব্যর্থ' }, 401);
+    if (!ok) { await admEvent(env, 'pk-fail'); return json({ error: 'Passkey যাচাই ব্যর্থ' }, 401); }
   } catch (e) {
+    await admEvent(env, 'pk-fail');
     return json({ error: 'Passkey যাচাই ব্যর্থ' }, 401);
   }
   await env.PUB_KV.delete('pkch:' + b.chalId);
@@ -925,7 +937,7 @@ const pkLoginFinish = async (request, env) => {
 
 const authRegisterEmail = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';
-  if (!(await rateLimit(env, 'reg:' + ip, 400, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
+  if (!(await rateLimit(env, 'reg:' + ip, 400, 3600))) { await admEvent(env, 'reg-ratelimit'); return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429); }
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id || b.email);
   const name = String(b.name || '').trim().slice(0, 40);
@@ -1013,12 +1025,12 @@ const otpSend = async (request, env) => {
 
 const otpVerify = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';
-  if (!(await rateLimit(env, 'otptry:' + ip, 400, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
+  if (!(await rateLimit(env, 'otptry:' + ip, 400, 3600))) { await admEvent(env, 'otp-ratelimit'); return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429); }
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id);
   const purpose = String(b.purpose || 'login');
   const chk = await checkOtp(env, id, purpose, b.code);
-  if (!chk.ok) return json({ error: chk.error }, chk.status || 401);
+  if (!chk.ok) { await admEvent(env, 'otp-fail'); return json({ error: chk.error }, chk.status || 401); }
   if (purpose === 'signup') {
     const pending = JSON.parse((await env.PUB_KV.get('pending:' + id)) || 'null');
     if (!pending) return json({ error: 'সাইন আপ সময় শেষ — আবার চেষ্টা করো' }, 400);
@@ -1052,14 +1064,14 @@ const otpVerify = async (request, env) => {
 
 const authLogin = async (request, env) => {
   const ip = request.headers.get('CF-Connecting-IP') || 'ip';
-  if (!(await rateLimit(env, 'login:' + ip, 2000, 3600))) return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429);
+  if (!(await rateLimit(env, 'login:' + ip, 2000, 3600))) { await admEvent(env, 'login-ratelimit'); return json({ error: 'একটু পরে আবার চেষ্টা করো' }, 429); }
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id);
   const u = await getUserById(env, id);
-  if (!u || !u.passHash) return json({ error: 'ইমেইল/মোবাইল বা পাসওয়ার্ড ভুল' }, 401);
-  if (u.blocked || u.status === 'disabled' || u.status === 'suspended') return json({ error: 'অ্যাকাউন্ট বন্ধ' }, 403);
+  if (!u || !u.passHash) { await admEvent(env, 'login-fail'); return json({ error: 'ইমেইল/মোবাইল বা পাসওয়ার্ড ভুল' }, 401); }
+  if (u.blocked || u.status === 'disabled' || u.status === 'suspended') { await admEvent(env, 'login-blocked'); return json({ error: 'অ্যাকাউন্ট বন্ধ' }, 403); }
   const hp = await hashPassword(String(b.password || ''), u.passSalt);
-  if (hp.hash !== u.passHash) return json({ error: 'ইমেইল/মোবাইল বা পাসওয়ার্ড ভুল' }, 401);
+  if (hp.hash !== u.passHash) { await admEvent(env, 'login-fail'); return json({ error: 'ইমেইল/মোবাইল বা পাসওয়ার্ড ভুল' }, 401); }
   const issued = await issueToken(env, u);
   issued.user = await fullUser(env, u);
   await logAct(env, u.id, 'login', 'পাসওয়ার্ড দিয়ে লগইন সফল');

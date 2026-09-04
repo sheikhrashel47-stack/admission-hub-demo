@@ -194,6 +194,16 @@ async function rateLimit(env, key, max, ttl) {
   await env.PUB_KV.put(k, JSON.stringify(row), { expirationTtl: remain });
   return row.n <= max;
 }
+/* ── additive অথ-ইভেন্ট কাউন্টার (Admin AC-4 read-only হুক; আচরণ বদলায় না) ── */
+async function admEvent(env, ev) {
+  try {
+    if (!env || !env.PUB_KV) return;
+    const day = new Date().toISOString().slice(0, 10);
+    const k = "adm-events:" + String(ev).slice(0, 30) + ":" + day;
+    const n = Number((await env.PUB_KV.get(k)) || 0) + 1;
+    await env.PUB_KV.put(k, String(n), { expirationTtl: 172800 });
+  } catch (_) {}
+}
 var publishGlobal = async (env, full) => {
   if (!env || !env.PUB_KV) return { error: "no-pub-kv" };
   const src = full && typeof full === "object" ? full : {};
@@ -393,7 +403,7 @@ var public_worker_default = {
         if (!u || !u.passHash) return json({ error: "\u09AA\u09BE\u09B8\u0993\u09AF\u09BC\u09BE\u09B0\u09CD\u09A1 \u09B8\u09C7\u099F \u0995\u09B0\u09BE \u09A8\u09C7\u0987" }, 400);
         const b = await request.json().catch(() => ({}));
         const hp = await hashPassword(String(b.password || ""), u.passSalt);
-        if (hp.hash !== u.passHash) return json({ error: "\u09AA\u09BE\u09B8\u0993\u09AF\u09BC\u09BE\u09B0\u09CD\u09A1 \u09AD\u09C1\u09B2" }, 401);
+        if (hp.hash !== u.passHash) { await admEvent(env, "login-fail"); return json({ error: "\u0987\u09AE\u09C7\u0987\u09B2/\u09AE\u09CB\u09AC\u09BE\u0987\u09B2 \u09AC\u09BE \u09AA\u09BE\u09B8\u0993\u09AF\u09BC\u09BE\u09B0\u09CD\u09A1 \u09AD\u09C1\u09B2" }, 401); }
         return json({ ok: true });
       }
       if (p === "/api/onboarding" && request.method === "GET") return await onboardingGet(request, env, uid);
@@ -883,7 +893,7 @@ var pkLoginBegin = async (request, env) => {
 var pkLoginFinish = async (request, env) => {
   const b = await request.json().catch(() => ({}));
   const ch = JSON.parse(await env.PUB_KV.get("pkch:" + b.chalId) || "null");
-  if (!ch || ch.t !== "login") return json({ error: "Passkey \u099A\u09CD\u09AF\u09BE\u09B2\u09C7\u099E\u09CD\u099C \u09B6\u09C7\u09B7" }, 401);
+  if (!ch || ch.t !== "login") { await admEvent(env, "pk-fail"); return json({ error: "Passkey \u099A\u09CD\u09AF\u09BE\u09B2\u09C7\u099E\u09CD\u099C \u09B6\u09C7\u09B7" }, 401); }
   let cdata;
   try {
     cdata = JSON.parse(new TextDecoder().decode(unb64url(b.clientDataJSON)));
@@ -914,8 +924,9 @@ var pkLoginFinish = async (request, env) => {
       const key = await crypto.subtle.importKey("spki", pub, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
       ok = await crypto.subtle.verify({ name: "RSASSA-PKCS1-v1_5" }, key, unb64url(b.signature), signed);
     }
-    if (!ok) return json({ error: "Passkey \u09AF\u09BE\u099A\u09BE\u0987 \u09AC\u09CD\u09AF\u09B0\u09CD\u09A5" }, 401);
+    if (!ok) { await admEvent(env, "pk-fail"); return json({ error: "Passkey \u09AF\u09BE\u099A\u09BE\u0987 \u09AC\u09CD\u09AF\u09B0\u09CD\u09A5" }, 401); }
   } catch (e) {
+    await admEvent(env, "pk-fail");
     return json({ error: "Passkey \u09AF\u09BE\u099A\u09BE\u0987 \u09AC\u09CD\u09AF\u09B0\u09CD\u09A5" }, 401);
   }
   await env.PUB_KV.delete("pkch:" + b.chalId);
@@ -927,7 +938,7 @@ var pkLoginFinish = async (request, env) => {
 };
 var authRegisterEmail = async (request, env) => {
   const ip = request.headers.get("CF-Connecting-IP") || "ip";
-  if (!await rateLimit(env, "reg:" + ip, 400, 3600)) return json({ error: "\u098F\u0995\u099F\u09C1 \u09AA\u09B0\u09C7 \u0986\u09AC\u09BE\u09B0 \u099A\u09C7\u09B7\u09CD\u099F\u09BE \u0995\u09B0\u09CB" }, 429);
+  if (!await rateLimit(env, "reg:" + ip, 400, 3600)) { await admEvent(env, "reg-ratelimit"); return json({ error: "\u098F\u0995\u099F\u09C1 \u09AA\u09B0\u09C7 \u0986\u09AC\u09BE\u09B0 \u099A\u09C7\u09B7\u09CD\u099F\u09BE \u0995\u09B0\u09CB" }, 429); }
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id || b.email);
   const name = String(b.name || "").trim().slice(0, 40);
@@ -969,7 +980,7 @@ var authRegisterEmail = async (request, env) => {
 };
 var authRegister = async (request, env) => {
   const ip = request.headers.get("CF-Connecting-IP") || "ip";
-  if (!await rateLimit(env, "reg:" + ip, 400, 3600)) return json({ error: "\u098F\u0995\u099F\u09C1 \u09AA\u09B0\u09C7 \u0986\u09AC\u09BE\u09B0 \u099A\u09C7\u09B7\u09CD\u099F\u09BE \u0995\u09B0\u09CB" }, 429);
+  if (!await rateLimit(env, "reg:" + ip, 400, 3600)) { await admEvent(env, "reg-ratelimit"); return json({ error: "\u098F\u0995\u099F\u09C1 \u09AA\u09B0\u09C7 \u0986\u09AC\u09BE\u09B0 \u099A\u09C7\u09B7\u09CD\u099F\u09BE \u0995\u09B0\u09CB" }, 429); }
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id);
   const password = String(b.password || "");
@@ -1019,7 +1030,7 @@ var otpSend = async (request, env) => {
       return json({ sent: true, channel: otp2.channel, masked: otp2.masked, wait: otp2.wait, purpose: "signup" });
     }
     if (!u) return json({ error: "\u098F\u0987 \u0985\u09CD\u09AF\u09BE\u0995\u09BE\u0989\u09A8\u09CD\u099F \u09AA\u09BE\u0993\u09AF\u09BC\u09BE \u09AF\u09BE\u09AF\u09BC\u09A8\u09BF" }, 404);
-    if (u.blocked || u.status === "disabled" || u.status === "suspended") return json({ error: "\u0985\u09CD\u09AF\u09BE\u0995\u09BE\u0989\u09A8\u09CD\u099F \u09AC\u09A8\u09CD\u09A7" }, 403);
+    if (u.blocked || u.status === "disabled" || u.status === "suspended") { await admEvent(env, "login-blocked"); return json({ error: "\u0985\u09CD\u09AF\u09BE\u0995\u09BE\u0989\u09A8\u09CD\u099F \u09AC\u09A8\u09CD\u09A7" }, 403); }
   }
   const otp = await issueOtp(env, id, purpose, ip);
   if (otp.error) return json({ error: otp.error, wait: otp.wait }, otp.status || 503);
@@ -1027,12 +1038,12 @@ var otpSend = async (request, env) => {
 };
 var otpVerify = async (request, env) => {
   const ip = request.headers.get("CF-Connecting-IP") || "ip";
-  if (!await rateLimit(env, "otptry:" + ip, 400, 3600)) return json({ error: "\u098F\u0995\u099F\u09C1 \u09AA\u09B0\u09C7 \u0986\u09AC\u09BE\u09B0 \u099A\u09C7\u09B7\u09CD\u099F\u09BE \u0995\u09B0\u09CB" }, 429);
+  if (!await rateLimit(env, "otptry:" + ip, 400, 3600)) { await admEvent(env, "otp-ratelimit"); return json({ error: "\u098F\u0995\u099F\u09C1 \u09AA\u09B0\u09C7 \u0986\u09AC\u09BE\u09B0 \u099A\u09C7\u09B7\u09CD\u099F\u09BE \u0995\u09B0\u09CB" }, 429); }
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id);
   const purpose = String(b.purpose || "login");
   const chk = await checkOtp(env, id, purpose, b.code);
-  if (!chk.ok) return json({ error: chk.error }, chk.status || 401);
+  if (!chk.ok) { await admEvent(env, "otp-fail"); return json({ error: chk.error }, chk.status || 401); }
   if (purpose === "signup") {
     const pending = JSON.parse(await env.PUB_KV.get("pending:" + id) || "null");
     if (!pending) return json({ error: "\u09B8\u09BE\u0987\u09A8 \u0986\u09AA \u09B8\u09AE\u09AF\u09BC \u09B6\u09C7\u09B7 \u2014 \u0986\u09AC\u09BE\u09B0 \u099A\u09C7\u09B7\u09CD\u099F\u09BE \u0995\u09B0\u09CB" }, 400);
@@ -1075,11 +1086,11 @@ var otpVerify = async (request, env) => {
 };
 var authLogin = async (request, env) => {
   const ip = request.headers.get("CF-Connecting-IP") || "ip";
-  if (!await rateLimit(env, "login:" + ip, 2e3, 3600)) return json({ error: "\u098F\u0995\u099F\u09C1 \u09AA\u09B0\u09C7 \u0986\u09AC\u09BE\u09B0 \u099A\u09C7\u09B7\u09CD\u099F\u09BE \u0995\u09B0\u09CB" }, 429);
+  if (!await rateLimit(env, "login:" + ip, 2e3, 3600)) { await admEvent(env, "login-ratelimit"); return json({ error: "\u098F\u0995\u099F\u09C1 \u09AA\u09B0\u09C7 \u0986\u09AC\u09BE\u09B0 \u099A\u09C7\u09B7\u09CD\u099F\u09BE \u0995\u09B0\u09CB" }, 429); }
   const b = await request.json().catch(() => ({}));
   const id = normId(b.id);
   const u = await getUserById(env, id);
-  if (!u || !u.passHash) return json({ error: "\u0987\u09AE\u09C7\u0987\u09B2/\u09AE\u09CB\u09AC\u09BE\u0987\u09B2 \u09AC\u09BE \u09AA\u09BE\u09B8\u0993\u09AF\u09BC\u09BE\u09B0\u09CD\u09A1 \u09AD\u09C1\u09B2" }, 401);
+  if (!u || !u.passHash) { await admEvent(env, "login-fail"); return json({ error: "\u0987\u09AE\u09C7\u0987\u09B2/\u09AE\u09CB\u09AC\u09BE\u0987\u09B2 \u09AC\u09BE \u09AA\u09BE\u09B8\u0993\u09AF\u09BC\u09BE\u09B0\u09CD\u09A1 \u09AD\u09C1\u09B2" }, 401); }
   if (u.blocked || u.status === "disabled" || u.status === "suspended") return json({ error: "\u0985\u09CD\u09AF\u09BE\u0995\u09BE\u0989\u09A8\u09CD\u099F \u09AC\u09A8\u09CD\u09A7" }, 403);
   const hp = await hashPassword(String(b.password || ""), u.passSalt);
   if (hp.hash !== u.passHash) return json({ error: "\u0987\u09AE\u09C7\u0987\u09B2/\u09AE\u09CB\u09AC\u09BE\u0987\u09B2 \u09AC\u09BE \u09AA\u09BE\u09B8\u0993\u09AF\u09BC\u09BE\u09B0\u09CD\u09A1 \u09AD\u09C1\u09B2" }, 401);
