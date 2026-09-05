@@ -1,13 +1,8 @@
-# LATEST — 2026-09-05 · 🔒 LOCKED (v188-gfix) — সব-সবুজ + সব-লাইভ
-- **অবস্থা:** ২০২৬-০৯-০৫ লক-অবস্থা — ৯ স্যুট সব সবুজ (idb 22 · ai4 35 · auth-ux 33 · nosplash 16 · GUARD ✓ · session 12 · phase23 13 · phase4 16 · phase5 37) = ১৯০+ অ্যাসার্ট; GitHub CI-রান সব success; লাইভ pages.dev+github.io দুটোই v188-gfix-20260905; Worker health ✓; config google/passkey/email ✓।
-- **ইতিহাস-chronology:** v184 P05-ডিপ্লয় → v185 ai-ক্যাশ-ফিক্স → v186 IDB-ক্র্যাশ+defer → v187 ব্রাউজার-ফার্স্ট AI+Pages-অটো-ডিপ্লয় → v188 Google-হেল্প-ওভালে/এক-ট্যাপ গাইড।
-- **মালিক-পক্ষে একটাই কাজ:** GCP-কনসোলে Authorized JS origins → https://admissionhub.pages.dev (docs/GOOGLE-LOGIN-MANUAL-GUIDE.md) — Web-এ নই; ইমেইল/পাসকি চলে।
-- **নতুন ঠিকানা:** https://admissionhub.pages.dev (ফ্রি CF-Pages, অটো-ডিপ্লয়-চালু); GitHub রিপো = সোর্স-অব-ট্রুথ (sheikhrashel47-stack/admission-hub-demo)।
-- **পরে:** P08 Exam-রিকভারি (আগে থেকেই তালিকায়; মালিক-নির্দেশে)।
-- **ঠিকানা:** https://admissionhub.pages.dev (ফ্রি CF-Pages; পূর্ণ-অ্যাপ+PWA) — GitHub-রিপো `admission-hub-demo`-ই সোর্স-অব-ট্রুথ (মুভ হয়নি)।
-- **D-V186:** IDB "connection is closing" ক্র্যাশ ফিক্স (reopenDb+স্টেল-রিট্রাই+putManyFast-রিট্রাই; ব্লক-স্ক্রিন বাদ) · বুট-লোডার-আটক ফিক্স (memory-fallback) · ৪৭ স্ক্রিপ্ট defer (দ্রুত প্রথম-পেইন্ট) · +idb-hardening 14/14; সব-স্যুট সবুজ।
-- **D-V187:** AI ব্রাউজার-ফার্স্ট (নিজস্ব Gemini key→সরাসরি কল, কয়েক সেকেন্ড; না-থাকলে সার্ভার-ফলব্যাক) · Google-বাটনের নিচে ৪-ধাপ গাইড (origin_mismatch) · cf-pages.yml — push-থেকেই pages.dev অটো-ডিপ্লয়।
-- **Google-লগইন:** মালিককে GCP-কনসোলে https://admissionhub.pages.dev → Authorized JavaScript origins-এ যোগ করতে হবে (একবার; ইমেইল/পাসকি ঠিক)।
-- **P05 AI CORE/BRAIN** (commit `b4fdcb0`, sw v184-aigw): একক `/api/ai`-গেটওয়ে + মডেল-রাউটার (aiChain failover, aibad ২৪ঘ) + টোকেন-বাজেট + pv: p05-1 + মেট্রিক aim:* + cost-cache ৬০০s + retryable — **ডিপ্লয়ড** (Guard 33892410165 ✓ · Pages 33892409364 ✓ · Deploy Worker 33892450926 ✓)।
-- **D-P05-1** (committed, sw v185-aigw-fix): AI-একই-উত্তর-পুনরাবৃত্তি — `lastTxt`-এ ডাবল-`.reverse()` ইন-প্লেস-মিউটেশন → aicache-কী সব-প্রশ্নে **প্রথম**-বার্তা → ৬০০s-এ হুবহু-একই উত্তর (মালিক-স্ক্রিনশট-রিপ্রোডিউসড: `cached:true`)। ফিক্স: `lastUserText` হেল্পার (শেষ-বার্তা) + রিগ্রেশন §৬ (phase5-core **37/37**)।
-- সব-স্যুট সবুজ (ai-phase4 35 · phase5-core 37 · phase4-core 16 · phase23-core 13 · auth-ux 33 · nosplash 16 · session 12 · GUARD · AC-3 50)।
+# LATEST — 2026-09-05 · 🔒 LOCKED (v189) — ক্লাউড-ফার্স্ট ডেটা সিস্টেম
+- **অবস্থা:** v189 — ক্লাউড-ফার্স্ট sync system লাইভ। সব content (3000 questions, 81 vocabulary, 5 subjects, 14 topics) এখন server (KV) থেকে আসে। app-seed.js খালি।
+- **নতুন:** `/api/content` public (login লাগে না) — সবার জন্য read-only global data। Sync Now বাটন + status UI যোগ হয়েছে।
+- **লাইভ:** https://admissionhub.pages.dev (v189-gfix-20260905)
+- **Worker:** admission-gk.admissionhub.workers.dev (fad9693b)
+- **টেস্ট:** GUARD ✓ · phase23-core ✓ · 9-স্যুট গ্রিন (v188 থেকে অপরিবর্তিত)
+- **ইতিহাস:** v184 P05-AI → v185 cache-fix → v186 IDB → v187 fast-AI → v188 Google-help → **v189 cloud-sync**
+- **পরে:** P06 Personal AI Tutor · P08 Exam Recovery
