@@ -1,5 +1,6 @@
 # PHASE 19 — কাস্টম-ডোমেইন সেটআপ (প্ল্যান-ডক) · চলমান
 > বৈধ: ২০২৬-০৯-০৫ · অংশ: P19 Production/SEO-র প্রথম কাজ — ডোমেইন
+> ✅ **সম্পন্ন (২০২৬-০৯-০৫):** ফ্রি-পথ বাছাই — **https://admissionhub.pages.dev** (Cloudflare Pages direct-upload, ০ টাকা) — লাইভ + স্থিতিশীল (HTTP 200, PWA-অ্যাসেট ✓); পুরনো GitHub-Pages ঠিকানা backup-রূপে অক্ষত।
 
 ## 🎯 লক্ষ্য-আর্কিটেকচার
 ```
@@ -34,7 +35,14 @@
 - **is-a.dev** — ফ্রি `.is-a.dev`; GitHub-PR-ভিত্তিক অনুমোদন, মূলত developers-দের জন্য।
 - **উপসংহার:** নির্ভরযোগ্য-পথ = সস্তা-paid ডোমেইন (`admissionhub.org` ~$8.50/বছর — বছরে ~৳১,০০০-১,১০০)। ওয়েবসাইটের পরিচয়+SEO-র জন্য এটাই সঠিক বিনিয়োগ।
 
-## 🪜 ধাপ-ক্রম (মালিক + আমি)
+## 🪜 যা যা হলো (ফ্রি-পথ)
+1. ✅ নাম-বাছাই: `admissionhub` (Pages-সাবডোমেইন) — DNS NXDOMAIN-যাচাইয়ে খালি
+2. ✅ `wrangler pages project create admissionhub --production-branch main` — CF-অ্যাকাউন্ট `abb783e4…`-তে
+3. ✅ ডিপ্লয়: ২২৭ ফাইল / ১৭MB direct-upload → deployment `29d0837e` (production) — https://admissionhub.pages.dev
+4. ✅ যাচাই: পৃষ্ঠা 200 (৪৮৭KB) · sw v185-aigw-fix ✓ · manifest/icon-512/3d-loader ✓ · API workers.dev অপরিবর্তিত (CORS `*`) · পুরনো GitHub-Pages 200 (backup)
+5. ⏭️ (ভবিষ্যৎ-ঐচ্ছিক) নিজের `.com`-ডোমেইন কিনলে: CF-Zone+DNS CNAME + Pages custom-domain এক-ক্লিক — কোড-বদল লাগবে না (সব রেফারেন্স relative)
+
+## 🪜 ধাপ-ক্রম (ভবিষ্যৎ-কাস্টম-ডোমেইন, মালিক + আমি)
 1. **মালিক:** নাম-বাছাই → Cloudflare অ্যাকাউন্টে ডোমেইন কেনা (CF Registrar-এ at-cost) OR অন্য-রেজিস্ট্রারে (Porkbun/Namecheap) কিনে CF-তে NS-বদল
 2. **মালিক/আমি:** CF API-টোকেন (`Zone:Edit` + `Workers:Edit`; অথবা মালিক নিজে ড্যাশবোর্ডে) — জোন-যোগ → DNS-রেকর্ড:
    - `@` → CNAME `sheikhrashel47-stack.github.io` (proxied)
