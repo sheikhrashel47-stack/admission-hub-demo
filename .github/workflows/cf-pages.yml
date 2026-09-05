@@ -1,0 +1,23 @@
+name: Deploy Cloudflare Pages (Auto)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bundle site (exclude meta/test files)
+        run: |
+          mkdir -p dist
+          rsync -a --exclude='.git' --exclude='node_modules' --exclude='docs' --exclude='AGENT_RESUME' --exclude='ai-proxy' --exclude='uploads' --exclude='.github' --exclude='*.test.mjs' --exclude='*.md' ./ dist/
+          du -sh dist
+      - name: Deploy to Cloudflare Pages (admissionhub)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name admissionhub --branch main

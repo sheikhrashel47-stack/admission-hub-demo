@@ -41,7 +41,7 @@ t('১৩. vocabulary এখন cloud-সিঙ্কে (PERSONAL_KEYS) — AI-
 t('১৪. image-ও একই secure পথ (কোনো ক্লায়েন্ট key নয়)', w.includes('kind === "image"') && w.includes('gemini-3.1-flash-image'));
 
 /* ── CLIENT ── */
-t('১৫. ah-ai-client.js: একমাত্র গন্তব্য /api (secure worker), কোনো key-স্ট্রিং নেই', gate.includes("WORKER + '/ai'") && !/AIza|x-goog-api-key/.test(gate));
+t('১৫. ah-ai-client.js: সার্ভার-পথ ডিফল্ট + ব্রাউজার-ফার্স্ট শুধু ইউজারের নিজস্ব key (D-V187, হার্ডকোড-key নেই)', gate.includes("WORKER + '/ai'") && gate.includes('askLocal') && gate.includes("localStorage.getItem('gemini_api_key')") && !/AIza[0-9A-Za-z_\-]{10,}/.test(gate));
 t('১৬. ah-ai-client.js: token-হলেই Bearer + গেস্ট-ও চলে', gate.includes('Authorization: \'Bearer \'') && gate.includes('tok()'));
 t('১৬খ. গেস্ট-ডিভাইস id → X-AH-Guest header → server-এ uid=g:<id> (per-device isolation)', gate.includes('X-AH-Guest') && gate.includes('guestId') && /"g:" \+ gid/.test(w) && w.includes('X-AH-Guest'));
 t('১৬গ. মেনু-সরলীকরণ: মেনুতে শুধু ফেরি/পরীক্ষা/নতুন-চ্যাট/সব-চ্যাট/মুছি — সোর্স-ইঞ্জিন-সেটিংস-নাম-বদলানো নেই',
@@ -58,7 +58,7 @@ t('১৭. Study AI → server-first (AH_AI.ask) + chat owner-স্কোপ (�
 t('১৮. Study AI ছবি → server-first; client-পথ শুধু fallback', sai.includes('window.AH_AI.askImage') && sai.includes('const gk = keyList'));
 t('১৯. AI Explain → server-first + question-aware (refs.questionId)', aie.includes('window.AH_AI') && aie.includes("refs: { questionId: qid }"));
 t('২০. index.html-এ gateway লোড + v179 markers + AI টুল নতুন ভার্সন',
-  idx.includes('ah-ai-client.js?v=ahai-v2') && idx.includes('v179-aiengine-20260903') && idx.includes('studyai-v135-server') && idx.includes('aiex-v4-ph4'));
+  idx.includes('ah-ai-client.js?v=ahai-v3') && idx.includes('v179-aiengine-20260903') && idx.includes('studyai-v136-browser') && idx.includes('aiex-v4-ph4'));
 
 /* ── RUNTIME: gateway-র আচরণ (jsdom) ── */
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/' });

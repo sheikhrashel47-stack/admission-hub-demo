@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v186-idbkeep-20260905';
+const BUILD_ID = 'v187-fastai-20260905';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -49,7 +49,7 @@ const APP_SHELL = [
   './vocabulary-master-tool.js?v=vm-autoimg-v106',
   './notification-hub.js?v=notify-v110',
   './gk-agent-tool.js?v=gk-v115',
-  './study-ai-tool.js?v=studyai-v135-server',
+  './study-ai-tool.js?v=studyai-v136-browser',
   './ai-explain-tool.js?v=aiex-v4-ph4',
   './bug-agent-tool.js?v=bugagent-v112',
   './vocabulary-pronunciation.js?v=voice-el-v104',
@@ -74,7 +74,7 @@ const APP_SHELL = [
   './cloud-content-sync.js?v=p2-cloud-v2',
   './auth-svg.js?v=p3-auth-prof-v177',
   './session-persist.js?v=session-v1',
-  './ah-ai-client.js?v=ahai-v2',
+  './ah-ai-client.js?v=ahai-v3',
   './premium-auth.js?v=p3-auth-guest-v177',
   './android-runtime-fix.js?v=and-scroll-v1',
   '',

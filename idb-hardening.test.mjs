@@ -25,10 +25,24 @@ t('৪৭+ অভ্যন্তরীণ-স্ক্রিপ্ট defer (ক
 t('বুট-ক্রিটিকাল ৩-স্ক্রিপ্ট অ-ডিফার', /<script src="\.\/session-persist\.js/.test(H) && /<script src="\.\/ah-ai-client\.js/.test(H) && /<script src="data-protection\.js/.test(H));
 t('হেভি app-seed/result-analysis defer', /src="[^"]*app-seed\.js[^>]*defer|<script defer src="[^"]*app-seed\.js/.test(H) && /src="[^"]*result-analysis-500\.js[^>]*defer|defer src="[^"]*result-analysis-500\.js/.test(H));
 /* ৪ — ভার্সন */
-t('sw BUILD_ID v186-idbkeep-20260905', SW.includes("const BUILD_ID = 'v186-idbkeep-20260905'"));
-t('index sw-marker v186-idbkeep-20260905', H.includes('sw.js?v=v186-idbkeep-20260905'));
+t('sw BUILD_ID v187-fastai-20260905', SW.includes("const BUILD_ID = 'v187-fastai-20260905'"));
+t('index sw-marker v187-fastai-20260905', H.includes('sw.js?v=v187-fastai-20260905'));
 /* ৫ — data-protection count-ভিত্তিক (ধীর-নয়) */
 t('summarizeDatabase: count()-ভিত্তিক (পূর্ণ-কোরে নয়)', DP.includes('tx.objectStore(name).count()'));
+
+/* ৬ — D-V187: ব্রাউজার-ফার্স্ট Gemini + Google-হেল্প + অটো-ডিপ্লয় */
+const AC = readFileSync('ah-ai-client.js', 'utf8');
+const SAI = readFileSync('study-ai-tool.js', 'utf8');
+const PA = readFileSync('premium-auth.js', 'utf8');
+const WF = readFileSync('.github/workflows/cf-pages.yml', 'utf8');
+t('askLocal: gemini-3.1-flash-lite ব্রাউজার-কল', AC.includes('askLocal') && AC.includes('generativelanguage.googleapis.com/v1beta/models/') && AC.includes('gemini-3.1-flash-lite') && AC.includes('gemini-3-flash-preview'));
+t('askLocal: ১৪s abort + ৯০০ maxOutputTokens', AC.includes('14000') && AC.includes('maxOutputTokens: 900'));
+t('AH_AI.askLocal এক্সপোজড', AC.includes('ask, askImage, askLocal'));
+t('study-ai: সার্ভার-কলের আগে ব্রাউজার-ফার্স্ট (D-V187)', SAI.includes('D-V187') && SAI.indexOf('askLocal') < SAI.indexOf('AH_AI.ask({ messages: hist'));
+t('study-ai: সার্ভার ফলব্যাক অক্ষত', SAI.includes("const ah = await window.AH_AI.ask({ messages: hist, kind: 'chat' })"));
+t('premium-auth: Google-হেল্প বাটন + গাইড (origin)', PA.includes('ahGoogleHelp') && PA.includes('Authorized JavaScript origins') && PA.includes('admissionhub.pages.dev'));
+t('cf-pages.yml: push-অন-মেইন অটো-ডিপ্লয়', WF.includes('branches: [main]') && WF.includes('pages deploy dist --project-name admissionhub'));
+t('index study-ai marker v136', H.includes('studyai-v136-browser'));
 
 console.log(`\nIDB-HARDENING: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

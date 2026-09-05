@@ -240,6 +240,7 @@
       <div class="ah-form">
         <button class="ah-btn" type="button" id="ahPasskey">${t('passkey')}</button>
         <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button></div>
+      <div style="text-align:center;margin-top:6px"><button type="button" id="ahGoogleHelp" style="background:none;border:0;color:#5e7168;font-size:12px;text-decoration:underline;cursor:pointer">🤔 Google-তে সমস্যা? সমাধান দেখো</button></div>
         <div class="ah-or">${t('orPass')}</div>
         <label class="ah-lab">${t('email')}</label>
         <input class="ah-inp" id="ahId" placeholder="${t('email')}" value="${esc(draft.id)}" autocomplete="username">
@@ -273,6 +274,7 @@
       <button class="ah-btn" type="button" id="ahContinue">${t('cont')}</button>
       <div class="ah-or">${t('or')}</div>
       <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button></div>
+      <div style="text-align:center;margin-top:6px"><button type="button" id="ahGoogleHelp" style="background:none;border:0;color:#5e7168;font-size:12px;text-decoration:underline;cursor:pointer">🤔 Google-তে সমস্যা? সমাধান দেখো</button></div>
       ${errBox('ahErr')}
       <div class="ah-foot">${t('haveAcc')} <button type="button" data-go="login">${t('login')}</button></div>
     </div>
@@ -970,6 +972,35 @@
         if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; if (prev) btn.innerHTML = prev; }
       }
     }
+
+      function showGoogleHelp() {
+        const over = document.createElement('div');
+        over.id = 'ahGoogleHelpOverlay';
+        over.style.cssText = 'position:fixed;inset:0;background:rgba(10,20,16,.55);z-index:99998;display:grid;place-items:center;padding:18px';
+        const steps = lang === 'bn' ? [
+          '১. Google Cloud Console খোলো → console.cloud.google.com/apis/credentials',
+          '২. "OAuth 2.0 Client IDs" → এই অ্যাপের Client (673030739375-...) → সম্পাদনা',
+          '৩. "Authorized JavaScript origins"-এ যোগ করো: https://admissionhub.pages.dev',
+          '৪. Save → ২-৫ মিনিট পরে আবার Google দিয়ে লগইন করো'
+        ] : [
+          '1. Open Google Cloud Console → console.cloud.google.com/apis/credentials',
+          '2. "OAuth 2.0 Client IDs" → this app client (673030739375-...) → Edit',
+          '3. Add to "Authorized JavaScript origins": https://admissionhub.pages.dev',
+          '4. Save → try Google sign-in again in 2-5 minutes'
+        ];
+        over.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;padding:18px;color:#17221d;font:14px/1.6 -apple-system,BlinkMacSystemFont,sans-serif"><h3 style="margin:0 0 6px">' + (lang === 'bn' ? '🔐 Google লগইন ঠিক করতে' : '🔐 Fix Google sign-in') + '</h3><ol style="margin:8px 0 12px;padding-left:20px">' + steps.map(x => '<li style="margin-bottom:6px">' + x + '</li>').join('') + '</ol><div style="display:flex;gap:8px"><button class="ah-btn" type="button" id="ahGhUseEmail" style="flex:1">' + (lang === 'bn' ? '✉️ ইমেইল দিয়ে ঢুকি' : 'Use email instead') + '</button><button class="ah-btn sec" type="button" id="ahGhClose" style="flex:1">' + (lang === 'bn' ? 'বুঝেছি' : 'Got it') + '</button></div></div>';
+        document.body.appendChild(over);
+        document.getElementById('ahGhClose').onclick = () => { try { over.remove(); } catch (_) {} };
+        document.getElementById('ahGhUseEmail').onclick = () => {
+          try { over.remove(); } catch (_) {}
+          const em = document.getElementById('ahEmail') || document.querySelector('input[type=email]');
+          if (em) { try { em.focus(); } catch (_) {} }
+        };
+      }
+      document.addEventListener('click', (ev) => {
+        const tgt = (ev && ev.target && ev.target.closest) ? ev.target.closest('#ahGoogleHelp') : null;
+        if (tgt) { ev.preventDefault(); showGoogleHelp(); }
+      }, true);
 
       async function afterAuth(data) {
     clearWait();

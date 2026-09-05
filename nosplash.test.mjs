@@ -35,7 +35,7 @@ t('১২. ⏱ watchdog = 5000ms (৫ সেকেন্ড, ১০s নয়)'
 t('১৩. recovery টেক্সট "একটু বেশি সময় লাগছে" + রিট্রাই/ড্যাশবোর্ড বাটন', html.includes('একটু বেশি সময় লাগছে') && html.includes('আবার চেষ্টা করো') && html.includes('ড্যাশবোর্ডে যাও'));
 
 /* — ভার্সন সামঞ্জস্য — */
-t('১৪. index ↔ sw BUILD_ID v186-idbkeep-20260905 মিলেছে', html.includes('v186-idbkeep-20260905') && sw.includes("const BUILD_ID = 'v186-idbkeep-20260905'"));
+t('১৪. index ↔ sw BUILD_ID v187-fastai-20260905 মিলেছে', html.includes('v187-fastai-20260905') && sw.includes("const BUILD_ID = 'v187-fastai-20260905'"));
 t('১৫. phase1-upgrade v=4-nosplash সব জায়গায় (index + sw)', html.includes('phase1-upgrade.js?v=4-nosplash') && sw.includes('phase1-upgrade.js?v=4-nosplash'));
 t('১৬. session-persist + premium-auth guest-first অক্ষত', html.includes('session-persist.js?v=session-v1') && html.includes('premium-auth.js?v=p3-auth-guest-v177'));
 

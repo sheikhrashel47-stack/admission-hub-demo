@@ -256,6 +256,14 @@ ${cfg().sendData && localStorage.getItem('studyAiCtx') ? `শিক্ষার�
         if (atts2.length) lastMsg.attachments = atts2.slice(0, 4).map(a => ({ mime: a.mime || 'image/jpeg', data: String(a.data).slice(0, 4e6) }));
         if (hist.length) hist[hist.length - 1] = lastMsg;
         else hist.push(lastMsg);
+        /* ⚡ D-V187: ব্রাউজার-ফার্স্ট Gemini — সেটিংসে key থাকলে সরাসরি (ক্লাউড-হপ ছাড়া, কয়েক সেকেন্ড); ব্যর্থ হলে সার্ভার-ফলব্যাক */
+        const lkey = (keyList('gemini') || [])[0] || '';
+        if (lkey && window.AH_AI && window.AH_AI.askLocal) {
+          try {
+            const local = await window.AH_AI.askLocal({ key: lkey, system: sysPrompt() + '\n\n' + buildBrain(question), messages: hist });
+            if (local && local.text) return { text: local.text, sources: [] };
+          } catch (_) {}
+        }
         const ah = await window.AH_AI.ask({ messages: hist, kind: 'chat' });
         return { text: ah.text || 'উত্তর পাইনি — আবার লেখো?', sources: [] };
       } catch (e) {
