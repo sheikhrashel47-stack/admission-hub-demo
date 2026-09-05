@@ -99,7 +99,7 @@
 
 ## 🌍 P19 — Production, SEO & Global Infrastructure — 🟡 ~৫০%
 **আছে:** live HTTPS (workers.dev) · title+description · CI-deploy (admin+public, GitHub Actions) · `/api/health` · আপডেট-লগ (sw-build-header) · PWA-মেটাডেটা।
-**বাকি:** ① **robots.txt + sitemap.xml (নেই — grep-প্রমাণ)** ② Open-Graph/সোশ্যাল-শেয়ার (`og:` কাউন্ট **0**) ③ কাস্টম-ডোমেইন ④ সার্চ-ইনডেক্সিং-যাচাই ⑤ monitoring/error-tracking ⑥ backup/recovery ⑦ staging-env ⑧ Core-Web-Vitals-অডিট।
+**বাকি:** ① **robots.txt + sitemap.xml (নেই — grep-প্রমাণ)** ② Open-Graph/সোশ্যাল-শেয়ার (`og:` কাউন্ট **0**) ③ কাস্টম-ডোমেইন — **চলমান**: docs/PHASE-19-DOMAIN.md (প্রাপ্যতা-যাচাই সম্পন্ন; ডোমেইন-ক্রয়+CF-সেটআপ মালিক-পক্ষে অপেক্ষমাণ) ④ সার্চ-ইনডেক্সিং-যাচাই ⑤ monitoring/error-tracking ⑥ backup/recovery ⑦ staging-env ⑧ Core-Web-Vitals-অডিট।
 
 ## 🚀 P20 — Final QA + World-Class Launch — 🔴 ০%
 **বাকি:** সম্পূর্ণ QA-ম্যাট্রিক্স (UI/workflow/exam/cloud/users/security/AI/performance/PWA/mobile/desktop) → আপনার নিজে ব্যবহার → **NO-লঞ্চ ছাড়া APPROVED**। শুধু আপনার "✅ APPROVED FOR PUBLIC LAUNCH"-এর পর।
