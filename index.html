@@ -703,6 +703,17 @@ function useMemoryStorage(error){
   DB=null; STORAGE_MODE='memory'; window.__admissionStorageFallback={active:true,error:String(error?.message||error||'IndexedDB unavailable'),persistent:false};
   console.warn('[Admission Hub] IndexedDB is unavailable; memory mode is session-only.',error);
 }
+let __dbReopenPromise = null;
+function reopenDb(){
+  if(__dbReopenPromise) return __dbReopenPromise;
+  __dbReopenPromise = (async()=>{
+    DB = null; window.__ahDbStale = false;
+    try { await openDB(); }
+    catch(err){ useMemoryStorage(err); console.warn('[Admission Hub] DB reopen failed — memory mode.', err); }
+  })().finally(()=>{ __dbReopenPromise = null; });
+  return __dbReopenPromise;
+}
+window.__ahReopenDb = reopenDb;
 function showStorageRecovery(error){
   const detail=String(error?.message||error||'The local database could not be opened.').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   window.__admissionStorageFallback={active:true,error:detail,persistent:false,recoveryRequired:true};
@@ -743,7 +754,8 @@ async function openDB(){
     req.onsuccess=async(e)=>{
       if(blockedTimer) clearTimeout(blockedTimer);
       DB=e.target.result; STORAGE_MODE='indexeddb'; window.__admissionStorageFallback={active:false};
-      DB.onversionchange=()=>{try{DB.close();}catch(_){} showStorageRecovery(new Error('Another app tab requested a database update. Close old tabs and try again.'));};
+      DB.onversionchange=()=>{ /* D-V186: অন্য-ট্যাব/আপগ্রেড → ব্লক-স্ক্রিন নয়; সংযোগ পুনরায় খুলে চলা */
+        window.__ahDbStale=true; try{DB.close();}catch(_){} reopenDb(); };
       try{
         if(protection&&protection.verifyMigration) await protection.verifyMigration(DB,preparation?.before);
       }catch(error){console.warn('[Admission Hub] Migration verification reported a warning; database remains open.',error);}
@@ -757,7 +769,10 @@ function runDbRequest(store,mode,requestFactory,attempts=2){
   return queueDb(()=>new Promise((resolve,reject)=>{
     let remaining=Math.max(0,Number(attempts)||0);
     const attempt=()=>{
-      if(!DB){reject(new Error('IndexedDB is unavailable'));return;}
+      if(!DB||window.__ahDbStale){
+        reopenDb().then(()=>{ if(DB) attempt(); else reject(new Error('IndexedDB is unavailable')); }).catch(()=>reject(new Error('IndexedDB is unavailable')));
+        return;
+      }
       if(!DB.objectStoreNames.contains(store)){reject(new Error(`Missing local data store: ${store}`));return;}
       let databaseTransaction,request,settled=false,result,attemptEnded=false;
       const retryOrReject=error=>{
@@ -3949,9 +3964,9 @@ async function boot(){
     // Startup remains read/validate-only; no automatic content migration runs here.
     await loadCache();
   }catch(err){
-    console.error('Data load failed',err);
-    toast('Could not load data — check storage permission and reload.');
-    return;
+    console.error('Data load failed — memory fallback',err);
+    useMemoryStorage(err);
+    toast('ডেটা লোডে সমস্যা — সাময়িক মেমোরি-মোডে চলছে। রিলোড করো ⚠️');
   }
   window.__admissionBootStatus='ready';
   window.__admissionFinalModulesReady=true;
@@ -5118,7 +5133,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v185-aigw-fix-20260904',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v186-idbkeep-20260905',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
@@ -5255,20 +5270,20 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
   render=function(){return oldRenderFinal();};
 })();
 </script>
-<script src="qbank-redesign.js?v=practice15"></script>
-<script src="urgent-fix.js?v=practice13"></script>
-<script src="phase12-ui.js?v=nav-resume-router-v7"></script>
-<script src="phase23-ui.js?v=swipe-fix-0f10a28-safe-capture"></script>
-<script src="upgrade-features.js?v=4"></script>
-<script src="phase3-intelligence.js?v=command-tools-v15-greet3d"></script>
-<script src="phase1-upgrade.js?v=4-nosplash"></script>
-<script src="web-search-fix.js?v=1"></script>
-<script src="study-tools-restore.js?v=3"></script>
-<script src="urgent-topic-fix.js?v=practice10"></script>
-<script src="phase2-dictionary-parser.js?v=5"></script>
-<script src="phase3-question-bank-route.js?v=practice10"></script>
-<script src="routine90.js?v=design-mint-card-v2"></script>
-<script src="routine90-parser.js?v=1"></script>
+<script defer src="qbank-redesign.js?v=practice15"></script>
+<script defer src="urgent-fix.js?v=practice13"></script>
+<script defer src="phase12-ui.js?v=nav-resume-router-v7"></script>
+<script defer src="phase23-ui.js?v=swipe-fix-0f10a28-safe-capture"></script>
+<script defer src="upgrade-features.js?v=4"></script>
+<script defer src="phase3-intelligence.js?v=command-tools-v15-greet3d"></script>
+<script defer src="phase1-upgrade.js?v=4-nosplash"></script>
+<script defer src="web-search-fix.js?v=1"></script>
+<script defer src="study-tools-restore.js?v=3"></script>
+<script defer src="urgent-topic-fix.js?v=practice10"></script>
+<script defer src="phase2-dictionary-parser.js?v=5"></script>
+<script defer src="phase3-question-bank-route.js?v=practice10"></script>
+<script defer src="routine90.js?v=design-mint-card-v2"></script>
+<script defer src="routine90-parser.js?v=1"></script>
 
 
 <!-- INLINE FINAL FIX: web-chat-rebuild.js -->
@@ -5407,27 +5422,27 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 })();
 </script>
 
-<script src="admission-hub-feature-suite.js?v=clear-topic-questions-v12"></script>
-<script src="ai-mentor-integration.js?v=gemini-v2-0816"></script>
-<script src="mistake-analysis.js?v=gemini-v4-0816"></script>
-<script src="question-bank-performance.js?v=11-aiex"></script>
-<script src="hierarchy-and-exam-fix.js?v=19-clear-topic-questions"></script>
+<script defer src="admission-hub-feature-suite.js?v=clear-topic-questions-v12"></script>
+<script defer src="ai-mentor-integration.js?v=gemini-v2-0816"></script>
+<script defer src="mistake-analysis.js?v=gemini-v4-0816"></script>
+<script defer src="question-bank-performance.js?v=11-aiex"></script>
+<script defer src="hierarchy-and-exam-fix.js?v=19-clear-topic-questions"></script>
 
-<script src="global-app-fix.js?v=3"></script>
-<script src="exam-dropdowns.js?v=1"></script>
-<script src="mobile-ux-fix.js?v=1"></script>
-<script src="notes-tool.js?v=dashboard-notes-v9-compact-pages"></script>
+<script defer src="global-app-fix.js?v=3"></script>
+<script defer src="exam-dropdowns.js?v=1"></script>
+<script defer src="mobile-ux-fix.js?v=1"></script>
+<script defer src="notes-tool.js?v=dashboard-notes-v9-compact-pages"></script>
 
 <script src="ai-explain-tool.js?v=aiex-v4-ph4" defer></script>
-<script src="nav-resume-fix.js?v=1"></script>
-<script src="mistake-note-icon.js?v=16-aiex"></script>
-<script src="experience-studio-store.js?v=2"></script>
-<script src="experience-studio-themes.js?v=2"></script>
-<script src="experience-studio-animations.js?v=2"></script>
-<script src="experience-studio-cards.js?v=2"></script>
-<script src="experience-studio-hooks.js?v=1"></script>
-<script src="experience-studio-shell.js?v=6"></script>
-<script src="performance-hardening.js?v=1"></script>
+<script defer src="nav-resume-fix.js?v=1"></script>
+<script defer src="mistake-note-icon.js?v=16-aiex"></script>
+<script defer src="experience-studio-store.js?v=2"></script>
+<script defer src="experience-studio-themes.js?v=2"></script>
+<script defer src="experience-studio-animations.js?v=2"></script>
+<script defer src="experience-studio-cards.js?v=2"></script>
+<script defer src="experience-studio-hooks.js?v=1"></script>
+<script defer src="experience-studio-shell.js?v=6"></script>
+<script defer src="performance-hardening.js?v=1"></script>
 <script>
 (() => {
   const renderFinalRoute = () => {
@@ -5641,7 +5656,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script src="./vocabulary-master-tool.js?v=vm-autoimg-v106" defer></script>
 <script src="./vocabulary-pronunciation.js?v=voice-el-v104" defer></script>
 <script src="./vocabulary-elevenlabs.js?v=el-voice-v105" defer></script>
-<script src="./notification-hub.js?v=notify-v110"></script>
+<script defer src="./notification-hub.js?v=notify-v110"></script>
 <script src="./gk-agent-tool.js?v=gk-v115" defer></script>
 <script src="./study-ai-tool.js?v=studyai-v135-server" defer></script>
 <script src="./bug-agent-tool.js?v=bugagent-v112" defer></script>
@@ -5658,23 +5673,23 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
     <script src="./weekly-report-tool.js?v=wr-v2-real-payload" defer></script>
     <script src="./dashboard-greeting-3d.js?v=greet3d-v110" defer></script>
     <script src="./daily-streak-card.js?v=streak-under-greet-v110" defer></script>
-<script src="./result-interaction-polish.js?v=result-interaction-polish-v1"></script>
-<script src="./today-command-center-live.js?v=today-command-center-live-v5-card"></script>
+<script defer src="./result-interaction-polish.js?v=result-interaction-polish-v1"></script>
+<script defer src="./today-command-center-live.js?v=today-command-center-live-v5-card"></script>
 
-<script src="./settings-command-cleanup.js?v=settings-command-cleanup-v2"></script>
-<script src="./navigation-tools-pronunciation.js?v=navigation-tools-pronunciation-v5-home-escape"></script>
-<script src="./progress-tool.js?v=progress-v6-live-score-ledger-reconcile"></script>
-<script src="./mistakes-bank-tool.js?v=mistakes-bank-v1"></script>
-<script src="./smart-revision-tool.js?v=smart-revision-v2-safe-session"></script>
-<script src="./source-course-tool.js?v=bangla-only-courses-v23-freshfetch"></script>
-<script src="./android-runtime-fix.js?v=and-scroll-v1"></script>
+<script defer src="./settings-command-cleanup.js?v=settings-command-cleanup-v2"></script>
+<script defer src="./navigation-tools-pronunciation.js?v=navigation-tools-pronunciation-v5-home-escape"></script>
+<script defer src="./progress-tool.js?v=progress-v6-live-score-ledger-reconcile"></script>
+<script defer src="./mistakes-bank-tool.js?v=mistakes-bank-v1"></script>
+<script defer src="./smart-revision-tool.js?v=smart-revision-v2-safe-session"></script>
+<script defer src="./source-course-tool.js?v=bangla-only-courses-v23-freshfetch"></script>
+<script defer src="./android-runtime-fix.js?v=and-scroll-v1"></script>
 <script>window.AH_CLOUD_ROLE='public';</script>
-<script src="./cloud-content-sync.js?v=p2-cloud-v2"></script>
+<script defer src="./cloud-content-sync.js?v=p2-cloud-v2"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
-<script src="./auth-svg.js?v=p3-auth-prof-v177"></script>
-<script src="./premium-auth.js?v=p3-auth-guest-v177"></script>
-<script src="./curriculum-config.js?v=p6-onboard-v12"></script>
-<script src="./onboarding.js?v=p6-onboard-v12"></script>
+<script defer src="./auth-svg.js?v=p3-auth-prof-v177"></script>
+<script defer src="./premium-auth.js?v=p3-auth-guest-v177"></script>
+<script defer src="./curriculum-config.js?v=p6-onboard-v12"></script>
+<script defer src="./onboarding.js?v=p6-onboard-v12"></script>
 <script src="./app-seed.js?v=p1" defer></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */

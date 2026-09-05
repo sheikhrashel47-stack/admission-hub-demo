@@ -30,21 +30,33 @@
   const putManyFast = async (store, items) => {
     const rows = Array.isArray(items) ? items.filter(x => x && x.id) : [];
     if (!rows.length) return true;
-    const db = (typeof DB !== 'undefined' && DB) ? DB : null;
     const chunkSize = 400;
     for (let i = 0; i < rows.length; i += chunkSize) {
       const chunk = rows.slice(i, i + chunkSize);
+      const liveDb = () => (typeof DB !== 'undefined' && DB) ? DB : null;
+      const db = liveDb();
       if (db && db.objectStoreNames.contains(store)) {
         await new Promise((resolve, reject) => {
-          let settled = false;
-          try {
-            const tx = db.transaction(store, 'readwrite');
-            const os = tx.objectStore(store);
-            for (let n = 0; n < chunk.length; n++) os.put(chunk[n]);
-            tx.oncomplete = () => { settled = true; resolve(true); };
-            tx.onabort = () => { if (!settled) { settled = true; reject(tx.error || new Error('abort')); } };
-            tx.onerror = () => { if (!settled) { settled = true; reject(tx.error); } };
-          } catch (err) { reject(err); }
+          let settled = false, retried = false;
+          const doTx = () => {
+            const d = liveDb();
+            if (!d || !d.objectStoreNames.contains(store)) { settled = true; reject(new Error('IndexedDB unavailable')); return; }
+            try {
+              const tx = d.transaction(store, 'readwrite');
+              const os = tx.objectStore(store);
+              for (let n = 0; n < chunk.length; n++) os.put(chunk[n]);
+              tx.oncomplete = () => { settled = true; resolve(true); };
+              tx.onabort = () => { if (!settled) { settled = true; reject(tx.error || new Error('abort')); } };
+              tx.onerror = () => { if (!settled) { settled = true; reject(tx.error); } };
+            } catch (err) {
+              /* D-V186: connection-is-closing → একবার রি-ওপেন করে পুনরায় */
+              if (!retried && /closing|InvalidState|not active|connection/i.test(String((err && err.message) || err)) && window.__ahReopenDb) {
+                retried = true;
+                window.__ahReopenDb().then(() => { if (!settled) doTx(); }).catch(() => { if (!settled) { settled = true; reject(err); } });
+              } else { settled = true; reject(err); }
+            }
+          };
+          doTx();
         });
       } else {
         for (let n = 0; n < chunk.length; n++) await dbPut(store, chunk[n]);
