@@ -258,7 +258,7 @@ export default {
     try {
       if (p === '/api/health') return json({ ok: true, at: Date.now() });
       if (p === '/api/content/meta' && request.method === 'GET') {
-        await authUser(request, env);
+        /* D-V189: public content — সবার জন্য read-only (global data) */
         const raw = await env.PUB_KV.get('pubContentMeta');
         if (raw) return json(JSON.parse(raw));
         const full = await env.PUB_KV.get('pubContent');
@@ -266,7 +266,7 @@ export default {
         return json({ v: d.v || 0, at: d.at || 0, sig: d.sig || '', counts: countsOf(d) });
       }
       if (p === '/api/content' && request.method === 'GET') {
-        await authUser(request, env);
+        /* D-V189: public content — সবার জন্য read-only (global data) */
         const raw = await env.PUB_KV.get('pubContent');
         const q = new URL(request.url).searchParams;
         return json(paginateContent(raw ? JSON.parse(raw) : { v: 0, at: 0, questions: [], vocabulary: [], exams: [] }, q.get('limit'), q.get('offset')));

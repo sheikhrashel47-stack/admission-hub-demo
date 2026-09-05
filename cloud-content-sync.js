@@ -228,8 +228,93 @@
     });
   };
 
-  window.AdmissionCloudContent = { publish, pull, role: ROLE, putManyFast };
-  const kick = () => { start().catch(() => {}); };
+  /* ── D-V189: Sync Now UI — visible sync button + status indicator ── */
+  const createSyncUI = () => {
+    if (document.getElementById('ah-sync-panel')) return;
+    const panel = document.createElement('div');
+    panel.id = 'ah-sync-panel';
+    panel.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:6px 14px 6px 12px;box-shadow:0 4px 20px rgba(0,0,0,0.3);backdrop-filter:blur(12px);font-family:system-ui,-apple-system,sans-serif;transition:all 0.3s ease;opacity:0.95;';
+    panel.innerHTML = `
+      <span id="ah-sync-dot" style="width:8px;height:8px;border-radius:50%;background:#ffc107;flex-shrink:0;transition:background 0.3s;"></span>
+      <span id="ah-sync-text" style="color:#e0e0e0;font-size:12px;white-space:nowrap;">ডেটা লোড হচ্ছে...</span>
+      <button id="ah-sync-btn" style="background:linear-gradient(135deg,#4361ee,#3a0ca3);color:#fff;border:none;border-radius:16px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s;" title="Server থেকে নতুন ডেটা আনুন">🔄 Sync</button>
+    `;
+    document.body.appendChild(panel);
+
+    const btn = panel.querySelector('#ah-sync-btn');
+    btn.addEventListener('click', () => {
+      btn.disabled = true;
+      btn.textContent = '⏳ Syncing...';
+      setSyncStatus('syncing');
+      pull().then(() => {
+        setSyncStatus('synced');
+        btn.disabled = false;
+        btn.textContent = '🔄 Sync';
+      }).catch(() => {
+        setSyncStatus('error');
+        btn.disabled = false;
+        btn.textContent = '🔄 Sync';
+      });
+    });
+    btn.addEventListener('mouseenter', () => { btn.style.transform = 'scale(1.05)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.transform = 'scale(1)'; });
+  };
+
+  const setSyncStatus = (status) => {
+    const dot = document.getElementById('ah-sync-dot');
+    const text = document.getElementById('ah-sync-text');
+    if (!dot || !text) return;
+    switch (status) {
+      case 'syncing':
+        dot.style.background = '#4361ee';
+        dot.style.animation = 'ah-pulse 0.8s infinite';
+        text.textContent = 'ডেটা sync হচ্ছে...';
+        break;
+      case 'synced':
+        dot.style.background = '#00c853';
+        dot.style.animation = '';
+        text.textContent = '✅ ডেটা আপ-টু-ডেট';
+        setTimeout(() => { if (document.getElementById('ah-sync-panel')) setSyncStatus('ready'); }, 3000);
+        break;
+      case 'error':
+        dot.style.background = '#ff5252';
+        dot.style.animation = '';
+        text.textContent = '❌ Sync ব্যর্থ — আবার চেষ্টা করুন';
+        break;
+      case 'ready':
+        dot.style.background = '#00c853';
+        dot.style.animation = '';
+        text.textContent = '📚 ডেটা প্রস্তুত';
+        break;
+      default:
+        dot.style.background = '#ffc107';
+        dot.style.animation = '';
+    }
+  };
+
+  // Inject pulse animation
+  if (!document.getElementById('ah-sync-style')) {
+    const style = document.createElement('style');
+    style.id = 'ah-sync-style';
+    style.textContent = '@keyframes ah-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.3)}}';
+    document.head.appendChild(style);
+  }
+
+  window.AdmissionCloudContent = { publish, pull, role: ROLE, putManyFast, syncStatus: setSyncStatus };
+  const kick = async () => {
+    createSyncUI();
+    try {
+      await start();
+      const qs = await dbGetAll('questions').catch(() => []);
+      if (qs && qs.length > 0) {
+        setSyncStatus('synced');
+      } else {
+        setSyncStatus('error');
+      }
+    } catch (_) {
+      setSyncStatus('error');
+    }
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(kick, 50));
   else setTimeout(kick, 50);
 })();

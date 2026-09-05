@@ -5133,7 +5133,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v188-gfix-20260905',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v189-gfix-20260905',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
@@ -5684,13 +5684,13 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script defer src="./source-course-tool.js?v=bangla-only-courses-v23-freshfetch"></script>
 <script defer src="./android-runtime-fix.js?v=and-scroll-v1"></script>
 <script>window.AH_CLOUD_ROLE='public';</script>
-<script defer src="./cloud-content-sync.js?v=p2-cloud-v2"></script>
+<script defer src="./cloud-content-sync.js?v=v189-sync"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script defer src="./auth-svg.js?v=p3-auth-prof-v177"></script>
 <script defer src="./premium-auth.js?v=p3-auth-guest-v177"></script>
 <script defer src="./curriculum-config.js?v=p6-onboard-v12"></script>
 <script defer src="./onboarding.js?v=p6-onboard-v12"></script>
-<script src="./app-seed.js?v=p1" defer></script>
+<script src="./app-seed.js?v=v189-empty" defer></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */
 </script>
