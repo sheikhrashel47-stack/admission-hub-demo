@@ -16,3 +16,9 @@
 
 ## যাচাই
 idb-hardening **22/22** (D-V187-সেকশনসহ) · ai-phase4 35 · auth-ux 33 · nosplash 16 · GUARD ✓ · session 12 · phase23 13 · phase4 16 · phase5 37।
+
+
+## ↪ D-V188 (sw v188-gfix-20260905) — Google-হেল্প ওভারলে উন্নত (এক-ট্যাপ)
+- "🚀 Google Console খোলো" → সরাসরি console.cloud.google.com/apis/credentials?authuser=0
+- Client ID + 📋 কপি-বাটন; ধাপে-ধাপে ফিল্টার-বক্স টিপ (673030739375) সহ ৪-ধাপ; "ইমেইল দিয়ে ঢুকি" শর্টকাট
+- মালিক-পাশে মাত্র একবার: GCP → OAuth Client → Authorized JavaScript origins → https://admissionhub.pages.dev → SAVE

@@ -973,24 +973,44 @@
       }
     }
 
+      document.addEventListener('click', (ev) => {
+        const tgt = (ev && ev.target && ev.target.closest) ? ev.target.closest('#ahGoogleHelp') : null;
+        if (tgt) { ev.preventDefault(); showGoogleHelp(); }
+      }, true);
+
       function showGoogleHelp() {
+        const CID = String(cfg.googleClientId || '673030739375-i91ini3ianip5sa88qemhjcao2hl3e3s.apps.googleusercontent.com');
+        const openConsole = () => { try { window.open('https://console.cloud.google.com/apis/credentials?authuser=0', '_blank'); } catch (_) {} };
+        const copyCid = () => { try { if (navigator.clipboard) navigator.clipboard.writeText(CID).catch(()=>{}); } catch (_) {} };
         const over = document.createElement('div');
         over.id = 'ahGoogleHelpOverlay';
         over.style.cssText = 'position:fixed;inset:0;background:rgba(10,20,16,.55);z-index:99998;display:grid;place-items:center;padding:18px';
         const steps = lang === 'bn' ? [
-          '১. Google Cloud Console খোলো → console.cloud.google.com/apis/credentials',
-          '২. "OAuth 2.0 Client IDs" → এই অ্যাপের Client (673030739375-...) → সম্পাদনা',
-          '৩. "Authorized JavaScript origins"-এ যোগ করো: https://admissionhub.pages.dev',
-          '৪. Save → ২-৫ মিনিট পরে আবার Google দিয়ে লগইন করো'
+          '<b>১.</b> নিচের সবুজ বাটনে চাপো — Google Console খুলবে (GCP-র মালিক-অ্যাকাউন্ট দিয়ে ঢুকো)',
+          '<b>২.</b> "OAuth 2.0 Client IDs"-এর নিচে <b>673030739375-...</b> লেখাটায় ক্লিক করো (খুঁজতে উপরের ফিল্টার-বক্সে 673030739375 বসাও)',
+          '<b>৩.</b> খোলা পেজে <b>"Authorized JavaScript origins"</b> খুঁজো → <b>ADD URI</b> → এটা বসাও: <b>https://admissionhub.pages.dev</b>',
+          '<b>৪.</b> নিচে <b>SAVE</b> → ২-৫ মিনিট পরে আবার Google দিয়ে লগইন — হবে ✅'
         ] : [
-          '1. Open Google Cloud Console → console.cloud.google.com/apis/credentials',
-          '2. "OAuth 2.0 Client IDs" → this app client (673030739375-...) → Edit',
-          '3. Add to "Authorized JavaScript origins": https://admissionhub.pages.dev',
-          '4. Save → try Google sign-in again in 2-5 minutes'
+          '<b>1.</b> Tap the green button below — Google Console opens (log in with the GCP owner account)',
+          '<b>2.</b> Click the <b>673030739375-...</b> row under "OAuth 2.0 Client IDs" (type 673030739375 in the filter box)',
+          '<b>3.</b> Find <b>"Authorized JavaScript origins"</b> → <b>ADD URI</b> → enter: <b>https://admissionhub.pages.dev</b>',
+          '<b>4.</b> <b>SAVE</b> → try Google sign-in again in 2-5 minutes ✅'
         ];
-        over.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;padding:18px;color:#17221d;font:14px/1.6 -apple-system,BlinkMacSystemFont,sans-serif"><h3 style="margin:0 0 6px">' + (lang === 'bn' ? '🔐 Google লগইন ঠিক করতে' : '🔐 Fix Google sign-in') + '</h3><ol style="margin:8px 0 12px;padding-left:20px">' + steps.map(x => '<li style="margin-bottom:6px">' + x + '</li>').join('') + '</ol><div style="display:flex;gap:8px"><button class="ah-btn" type="button" id="ahGhUseEmail" style="flex:1">' + (lang === 'bn' ? '✉️ ইমেইল দিয়ে ঢুকি' : 'Use email instead') + '</button><button class="ah-btn sec" type="button" id="ahGhClose" style="flex:1">' + (lang === 'bn' ? 'বুঝেছি' : 'Got it') + '</button></div></div>';
+        over.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:430px;width:100%;padding:18px;color:#17221d;font:14px/1.65 -apple-system,BlinkMacSystemFont,sans-serif;max-height:86dvh;overflow:auto">' +
+          '<h3 style="margin:0 0 4px">🔐 Google লগইন — ৪ ধাপ</h3>' +
+          '<p style="margin:4px 0 10px;font-size:12.5px;color:#5e7168">একবারই করুন — এরপর pages.dev-এ Google লগইন চিরকাল চলবে। (ইমেইল-OTP এখনো চলছে, তাই আটকে নেই।)</p>' +
+          '<ol style="margin:0 0 10px;padding-left:18px">' + steps.map(x => '<li style="margin-bottom:8px">' + x + '</li>').join('') + '</ol>' +
+          '<div style="background:#f1faf6;border:1px solid #d5e8df;border-radius:10px;padding:8px 10px;font-size:12px;word-break:break-all;margin-bottom:12px">Client ID (গোপন নয়)<br><b style="color:#0f6b4f">' + CID + '</b> <button type="button" id="ahGhCopyCid" style="background:#0f6b4f;color:#fff;border:0;border-radius:8px;padding:3px 9px;font-size:11px;cursor:pointer;margin-left:6px">📋 কপি</button></div>' +
+          '<div style="display:flex;flex-wrap:wrap;gap:8px">' +
+          '<button class="ah-btn" type="button" id="ahGhOpen" style="flex:1;min-width:150px">🚀 Google Console খোলো</button>' +
+          '<button class="ah-btn sec" type="button" id="ahGhUseEmail" style="flex:1;min-width:110px">✉️ ইমেইল দিয়ে ঢুকি</button>' +
+          '</div>' +
+          '<div style="text-align:right;margin-top:8px"><button type="button" id="ahGhClose" style="background:none;border:0;color:#0f6b4f;font-size:12px;cursor:pointer;text-decoration:underline">বন্ধ করো</button></div>' +
+          '</div>';
         document.body.appendChild(over);
         document.getElementById('ahGhClose').onclick = () => { try { over.remove(); } catch (_) {} };
+        document.getElementById('ahGhOpen').onclick = () => { openConsole(); };
+        document.getElementById('ahGhCopyCid').onclick = () => { copyCid(); };
         document.getElementById('ahGhUseEmail').onclick = () => {
           try { over.remove(); } catch (_) {}
           const em = document.getElementById('ahEmail') || document.querySelector('input[type=email]');

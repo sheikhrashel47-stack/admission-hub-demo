@@ -1,4 +1,4 @@
-# LATEST — 2026-09-05 · ⚡ D-V187: ব্রাউজার-ফার্স্ট Gemini + Google-গাইড + Pages-অটো-ডিপ্লয় (v187-fastai)
+# LATEST — 2026-09-05 · 🔐 D-V188: Google-হেল্প এক-ট্যাপ (v188-gfix) — GCP-গাইড+"Console খোলো"+কপি-CID · ব্রাউজার-ফার্স্ট AI v187 · Pages-অটো-ডিপ্লয় চালু
 - **ঠিকানা:** https://admissionhub.pages.dev (ফ্রি CF-Pages; পূর্ণ-অ্যাপ+PWA) — GitHub-রিপো `admission-hub-demo`-ই সোর্স-অব-ট্রুথ (মুভ হয়নি)।
 - **D-V186:** IDB "connection is closing" ক্র্যাশ ফিক্স (reopenDb+স্টেল-রিট্রাই+putManyFast-রিট্রাই; ব্লক-স্ক্রিন বাদ) · বুট-লোডার-আটক ফিক্স (memory-fallback) · ৪৭ স্ক্রিপ্ট defer (দ্রুত প্রথম-পেইন্ট) · +idb-hardening 14/14; সব-স্যুট সবুজ।
 - **D-V187:** AI ব্রাউজার-ফার্স্ট (নিজস্ব Gemini key→সরাসরি কল, কয়েক সেকেন্ড; না-থাকলে সার্ভার-ফলব্যাক) · Google-বাটনের নিচে ৪-ধাপ গাইড (origin_mismatch) · cf-pages.yml — push-থেকেই pages.dev অটো-ডিপ্লয়।

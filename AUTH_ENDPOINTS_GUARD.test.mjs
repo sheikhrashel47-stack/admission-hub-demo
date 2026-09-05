@@ -73,8 +73,8 @@ if (files.includes(pa)) {
 const read = p => { try { return readFileSync(p, 'utf8'); } catch { return ''; } };
 const sw = read(join(ROOT, 'sw.js'));
 const idx = read(join(ROOT, 'index.html'));
-const swVer = (sw.match(/BUILD_ID = 'v([0-9]+)-(?:authapi|uniunit|email|splash3d|blankfix|introfix|guest|nosplash|aiengine|kvfix|aigw|idbkeep|fastai)(?:-(?:fix|guard|design))?-?(\d{8})'/) || [])[1];
-const idxVer = (idx.match(/sw\.js\?v=v([0-9]+)-(?:authapi|uniunit|email|splash3d|blankfix|introfix|guest|nosplash|aiengine|kvfix|aigw|idbkeep|fastai)(?:-(?:fix|guard|design))?-?(\d{8})/) || [])[1];
+const swVer = (sw.match(/BUILD_ID = 'v([0-9]+)-(?:authapi|uniunit|email|splash3d|blankfix|introfix|guest|nosplash|aiengine|kvfix|aigw|idbkeep|fastai|gfix)(?:-(?:fix|guard|design))?-?(\d{8})'/) || [])[1];
+const idxVer = (idx.match(/sw\.js\?v=v([0-9]+)-(?:authapi|uniunit|email|splash3d|blankfix|introfix|guest|nosplash|aiengine|kvfix|aigw|idbkeep|fastai|gfix)(?:-(?:fix|guard|design))?-?(\d{8})/) || [])[1];
 const shell = (s) => (s.match(/p3-auth-(?:prof|guest)-(v\d+)/) || [])[1];
 if (swVer && idxVer && swVer !== idxVer) report('sw.js', 2, `BUILD_ID v${swVer} ≠ index.html v${idxVer} — cache-version mismatch`);
 if (shell(sw) && shell(idx) && shell(sw) !== shell(idx)) report('sw.js', 2, `APP_SHELL ${shell(sw)} ≠ index ${shell(idx)}`);
