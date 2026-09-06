@@ -30,3 +30,10 @@
 ## ডিপ্লয়
 - push → cf-pages.yml অটো (pages.dev+github.io → v191)
 - **Deploy Worker** (main.yml, workflow_dispatch) ট্রিগার → admission-gk নতুন বান্ডল
+
+## v192 — ক্যাশ-বাস্ট (আসল-কারণ-ফিক্স)
+- **মালিক-রিপোর্ট:** deploy-এর পরও ফোনে হেল্প-ওভারলে। কারণ: `premium-auth.js?v=p3-auth-guest-v177` —
+  asset-query v177-থেকে কখনো বদলায়নি → SW-ক্যাশ থেকে পুরনো ফাইল (বাটন-সহ) সেবা।
+- **ফিক্স (commit 6b98301):** সব `p3-auth-*` query → v192 (premium-auth.js/css + auth-svg.js),
+  sw.js APP_SHELL-এ একই, BUILD_ID → `v192-gfix-20260906` → নতুন ক্যাশ-নেমস্পেস, activate-এ পুরনো ক্যাশ পার্জ।
+- **লাইভ:** pages.dev+github.io v192; premium-auth.js?v=v192 → বাটন ০; CI ৩/৩; ১১/১১ স্যুট।
