@@ -123,12 +123,14 @@
               const data2 = await res.json().catch(() => ({}));
               if (!res.ok) {
                 last = new Error(data2.error || ('http-' + res.status));
+                if (data2.code) last.code = data2.code;
                 if (canRetry && retryableStatus(res.status) && attempt < 2) { await wait(350 * (attempt + 1)); continue; }
                 throw last;
               }
               return data2;
             }
             last = new Error(data.error || ('http-' + res.status));
+            if (data.code) last.code = data.code;
             if (canRetry && retryableStatus(res.status) && attempt < 2) { await wait(350 * (attempt + 1)); continue; }
             throw last;
           }
@@ -240,8 +242,7 @@
       <div class="ah-form">
         <button class="ah-btn" type="button" id="ahPasskey">${t('passkey')}</button>
         <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button></div>
-      <div style="text-align:center;margin-top:6px"><button type="button" id="ahGoogleHelp" style="background:none;border:0;color:#5e7168;font-size:12px;text-decoration:underline;cursor:pointer">🤔 Google-তে সমস্যা? সমাধান দেখো</button></div>
-        <div class="ah-or">${t('orPass')}</div>
+              <div class="ah-or">${t('orPass')}</div>
         <label class="ah-lab">${t('email')}</label>
         <input class="ah-inp" id="ahId" placeholder="${t('email')}" value="${esc(draft.id)}" autocomplete="username">
         <label class="ah-lab">${t('password')}</label>${passRow('ahPass', t('password'), 'current-password')}
@@ -274,8 +275,7 @@
       <button class="ah-btn" type="button" id="ahContinue">${t('cont')}</button>
       <div class="ah-or">${t('or')}</div>
       <div id="ahGoogleSlot"><button class="ah-btn sec" type="button" id="ahGoogle">${ico('g')} ${t('google')}</button></div>
-      <div style="text-align:center;margin-top:6px"><button type="button" id="ahGoogleHelp" style="background:none;border:0;color:#5e7168;font-size:12px;text-decoration:underline;cursor:pointer">🤔 Google-তে সমস্যা? সমাধান দেখো</button></div>
-      ${errBox('ahErr')}
+            ${errBox('ahErr')}
       <div class="ah-foot">${t('haveAcc')} <button type="button" data-go="login">${t('login')}</button></div>
     </div>
   </section>`);
@@ -695,15 +695,21 @@
     } catch (e) {
       if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; btn.innerHTML = prev || t('sendLink'); }
       const m = String((e && e.message) || e || '');
-      if (/আগেই আছে|ইতিমধ্যে|already exists/i.test(m)) {
-        // এটা ভুল বার্তা নয় — এই ইমেইল আগে থেকেই registered। ইউজারকে সরাসরি লগইন স্ক্রিনে নিয়ে যাও।
+      const code = String((e && e.code) || '');
+      const toLoginWith = (msgBn, msgEn) => {
         draft.id = (document.getElementById('ahId') && document.getElementById('ahId').value.trim()) || draft.id;
         setGate(true);
         go('login');
         const box = document.getElementById('ahErr');
-        if (box) box.textContent = lang==='bn'
-          ? 'এই ইমেইল দিয়ে আগেই অ্যাকাউন্ট খোলা হয়েছে — নিচে পাসওয়ার্ড দিয়ে লগইন করো। পাসওয়ার্ড ভুলে গেলে "পাসওয়ার্ড ভুলে গেছেন?" চাপো।'
-          : 'An account already exists for this email — sign in below. Forgot your password? Use "Forgot password?".';
+        if (box) box.textContent = lang==='bn' ? msgBn : msgEn;
+      };
+      if (code === 'provider_google') {
+        toLoginWith('এই ইমেইল দিয়ে আগে Google-লগইন হয়েছে — উপরের "Continue with Google" বাটন চাপো। কোনো পাসওয়ার্ড লাগবে না।', 'This email is already linked to a Google account — tap "Continue with Google" above. No password needed.');
+      } else if (code === 'provider_passkey') {
+        toLoginWith('এই ইমেইল দিয়ে আগে পাসকি দিয়ে অ্যাকাউন্ট খোলা হয়েছে — পাসকি দিয়ে লগইন করো।', 'This email already has a passkey account — sign in with passkey.');
+      } else if (/আগেই আছে|ইতিমধ্যে|already exists/i.test(m)) {
+        // এটা ভুল বার্তা নয় — এই ইমেইল আগে থেকেই registered। ইউজারকে সরাসরি লগইন স্ক্রিনে নিয়ে যাও।
+        toLoginWith('এই ইমেইল দিয়ে আগেই অ্যাকাউন্ট খোলা হয়েছে — নিচে পাসওয়ার্ড দিয়ে লগইন করো। পাসওয়ার্ড ভুলে গেলে "পাসওয়ার্ড ভুলে গেছেন?" চাপো।', 'An account already exists for this email — sign in below. Forgot your password? Use "Forgot password?".');
       } else {
         showErr('ahErr', authFriendly(e));
       }
@@ -1016,6 +1022,7 @@
           const em = document.getElementById('ahEmail') || document.querySelector('input[type=email]');
           if (em) { try { em.focus(); } catch (_) {} }
         };
+        try { window.__ahShowGoogleHelp = showGoogleHelp; } catch (_) {} // শুধু owner-কনসোল/ডক-গাইডে (public UI-তে নেই)
       }
       document.addEventListener('click', (ev) => {
         const tgt = (ev && ev.target && ev.target.closest) ? ev.target.closest('#ahGoogleHelp') : null;

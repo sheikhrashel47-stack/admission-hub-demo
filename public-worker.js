@@ -1002,7 +1002,13 @@ const authRegisterEmail = async (request, env) => {
   if (!name || name.length < 2) return json({ error: 'পূর্ণ নাম লেখো' }, 400);
   if (!id.startsWith('em:')) return json({ error: 'সঠিক ইমেইল লেখো' }, 400);
   const existing = await getUserById(env, id);
-  if (existing && existing.status === 'active') return json({ error: 'এই ইমেইল আগেই আছে — লগইন করো' }, 409);
+  if (existing && existing.status === 'active') {
+    const hasPass = !!(existing.passHash || existing.passSalt);
+    const provs = (existing.providers || []).map(String);
+    if (hasPass) return json({ error: 'এই ইমেইল আগেই আছে — পাসওয়ার্ড দিয়ে লগইন করো' }, 409);
+    if (provs.includes('google')) return json({ error: 'এই ইমেইল দিয়ে আগে Google-লগইন হয়েছে — উপরের "Continue with Google" দিয়ে প্রবেশ করো', code: 'provider_google' }, 409);
+    return json({ error: 'এই ইমেইল দিয়ে আগে পাসকি দিয়ে অ্যাকাউন্ট খোলা হয়েছে — পাসকি দিয়ে লগইন করো', code: 'provider_passkey' }, 409);
+  }
   const password = String(b.password || '');
   const confirm = String(b.confirm || b.password2 || '');
   const weak = strongPass(password);

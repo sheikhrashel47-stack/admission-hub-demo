@@ -25,8 +25,8 @@ t('৪৭+ অভ্যন্তরীণ-স্ক্রিপ্ট defer (ক
 t('বুট-ক্রিটিকাল ৩-স্ক্রিপ্ট অ-ডিফার', /<script src="\.\/session-persist\.js/.test(H) && /<script src="\.\/ah-ai-client\.js/.test(H) && /<script src="data-protection\.js/.test(H));
 t('হেভি app-seed/result-analysis defer', /src="[^"]*app-seed\.js[^>]*defer|<script defer src="[^"]*app-seed\.js/.test(H) && /src="[^"]*result-analysis-500\.js[^>]*defer|defer src="[^"]*result-analysis-500\.js/.test(H));
 /* ৪ — ভার্সন */
-t('sw BUILD_ID v190-ac3-fix-20260906', SW.includes("const BUILD_ID = 'v190-ac3-fix-20260906'"));
-t('index sw-marker v190-ac3-fix-20260906', H.includes('sw.js?v=v190-ac3-fix-20260906'));
+t('sw BUILD_ID v191-gfix-20260906', SW.includes("const BUILD_ID = 'v191-gfix-20260906'"));
+t('index sw-marker v191-gfix-20260906', H.includes('sw.js?v=v191-gfix-20260906'));
 /* ৫ — data-protection count-ভিত্তিক (ধীর-নয়) */
 t('summarizeDatabase: count()-ভিত্তিক (পূর্ণ-কোরে নয়)', DP.includes('tx.objectStore(name).count()'));
 
@@ -40,7 +40,17 @@ t('askLocal: ১৪s abort + ৯০০ maxOutputTokens', AC.includes('14000') &&
 t('AH_AI.askLocal এক্সপোজড', AC.includes('ask, askImage, askLocal'));
 t('study-ai: সার্ভার-কলের আগে ব্রাউজার-ফার্স্ট (D-V187)', SAI.includes('D-V187') && SAI.indexOf('askLocal') < SAI.indexOf('AH_AI.ask({ messages: hist'));
 t('study-ai: সার্ভার ফলব্যাক অক্ষত', SAI.includes("const ah = await window.AH_AI.ask({ messages: hist, kind: 'chat' })"));
-t('premium-auth: Google-হেল্প বাটন + গাইড (origin)', PA.includes('ahGoogleHelp') && PA.includes('Authorized JavaScript origins') && PA.includes('admissionhub.pages.dev'));
+/* D-v191: Google-হেল্প আর পাবলিক-নয় + Google-অ্যাকাউন্ট সাইনআপ-ডেডএন্ড-ফিক্স */
+const PW = readFileSync('public-worker.js', 'utf8');
+const WB = readFileSync('worker-bundle.mjs', 'utf8');
+t('public-UI-তে Google-হেল্প বাটন নেই (লগইন/সাইনআপ টেমপ্লেট)', !/id="ahGoogleHelp" style=/.test(PA));
+t('গাইড+ওভারলে এখনো আছে, শুধু owner-কনসোল/ডক-এ (__ahShowGoogleHelp)', PA.includes('Authorized JavaScript origins') && PA.includes('admissionhub.pages.dev') && PA.includes('window.__ahShowGoogleHelp = showGoogleHelp'));
+t('worker: google-only অ্যাকাউন্ট → provider_google কোড + Continue with Google-নোটিশ', PW.includes("code: 'provider_google'") && PW.includes('Continue with Google') && WB.includes('provider_google'));
+t('worker: পাসকি-অ্যাকাউন্ট → provider_passkey', PW.includes("code: 'provider_passkey'") && WB.includes('provider_passkey'));
+t('client: provider_google/provider_passkey শাখা (সঠিক বার্তাসহ লগইন)', PA.includes("code === 'provider_google'") && PA.includes("code === 'provider_passkey'"));
+t('client: api() error-এ code সংযুক্ত', PA.includes('if (data.code) last.code = data.code;') && PA.includes('if (data2.code) last.code = data2.code;'));
+t('client: পুরনো পাসওয়ার্ড-আছে-শাখা অক্ষত', PA.includes('ইতিমধ্যে|already exists'));
+
 t('cf-pages.yml: push-অন-মেইন অটো-ডিপ্লয়', WF.includes('branches: [main]') && WF.includes('pages deploy dist --project-name admissionhub'));
 t('index study-ai marker v136', H.includes('studyai-v136-browser'));
 

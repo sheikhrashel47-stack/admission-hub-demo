@@ -1011,7 +1011,13 @@ var authRegisterEmail = async (request, env) => {
   if (!name || name.length < 2) return json({ error: "\u09AA\u09C2\u09B0\u09CD\u09A3 \u09A8\u09BE\u09AE \u09B2\u09C7\u0996\u09CB" }, 400);
   if (!id.startsWith("em:")) return json({ error: "\u09B8\u09A0\u09BF\u0995 \u0987\u09AE\u09C7\u0987\u09B2 \u09B2\u09C7\u0996\u09CB" }, 400);
   const existing = await getUserById(env, id);
-  if (existing && existing.status === "active") return json({ error: "\u098F\u0987 \u0987\u09AE\u09C7\u0987\u09B2 \u0986\u0997\u09C7\u0987 \u0986\u099B\u09C7 \u2014 \u09B2\u0997\u0987\u09A8 \u0995\u09B0\u09CB" }, 409);
+  if (existing && existing.status === "active") {
+  const hasPass = !!(existing.passHash || existing.passSalt);
+  const provs = (existing.providers || []).map(String);
+  if (hasPass) return json({ error: "\u098f\u0987 \u0987\u09ae\u09c7\u0987\u09b2 \u0986\u0997\u09c7\u0987 \u0986\u099b\u09c7 \u2014 \u09aa\u09be\u09b8\u0993\u09af\u09bc\u09be\u09b0\u09cd\u09a1 \u09a6\u09bf\u09af\u09bc\u09c7 \u09b2\u0997\u0987\u09a8 \u0995\u09b0\u09cb" }, 409);
+  if (provs.includes("google")) return json({ error: "\u098f\u0987 \u0987\u09ae\u09c7\u0987\u09b2 \u09a6\u09bf\u09af\u09bc\u09c7 \u0986\u0997\u09c7 Google-\u09b2\u0997\u0987\u09a8 \u09b9\u09af\u09bc\u09c7\u099b\u09c7 \u2014 \u0989\u09aa\u09b0\u09c7\u09b0 \"Continue with Google\" \u09a6\u09bf\u09af\u09bc\u09c7 \u09aa\u09cd\u09b0\u09ac\u09c7\u09b6 \u0995\u09b0\u09cb", code: "provider_google" }, 409);
+  return json({ error: "\u098f\u0987 \u0987\u09ae\u09c7\u0987\u09b2 \u09a6\u09bf\u09af\u09bc\u09c7 \u0986\u0997\u09c7 \u09aa\u09be\u09b8\u0995\u09bf \u09a6\u09bf\u09af\u09bc\u09c7 \u0985\u09cd\u09af\u09be\u0995\u09be\u0989\u09a8\u09cd\u099f \u0996\u09cb\u09b2\u09be \u09b9\u09af\u09bc\u09c7\u099b\u09c7 \u2014 \u09aa\u09be\u09b8\u0995\u09bf \u09a6\u09bf\u09af\u09bc\u09c7 \u09b2\u0997\u0987\u09a8 \u0995\u09b0\u09cb", code: "provider_passkey" }, 409);
+}
   const password = String(b.password || "");
   const confirm = String(b.confirm || b.password2 || "");
   const weak = strongPass(password);

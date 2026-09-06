@@ -1,4 +1,4 @@
-# LATEST — 2026-09-06 · 🔒 v190-ac3 — P08 টাইমার-অটো-সাবমিট (v189-cloud-sync-এর ওপরে)
+# LATEST — 2026-09-06 · v191-gfix — Google-হেল্প পাবলিক-নয় + Google-অ্যাকাউন্ট ডেডএন্ড-ফিক্স (v190-ac3-এর ওপরে)
 - **অবস্থা:** v190 লাইভ — P08-AC3 টাইমার-শেষ-অটো-সাবমিট হার্ডেনিং। স্বাক্ষর `v190-ac3-fix-20260906`।
 - **মার্জ-ইতিহাস:** remote-এ v189-cloud-sync (`ae3d0b8`→`b5e9bc1`→`d054f8f`) পাওয়া যায়; আমার AC3-commit
   সেটির ওপরে **rebase** (সংঘর্ষ: শুধু BUILD_ID+sw-marker)। ভার্সন v189-সংঘর্ষ এড়াতে **v190**।
@@ -15,3 +15,9 @@
 - **পরে (মালিক-সিদ্ধান্তে):** P08-AC1/AC2-ভেরিফাই → P10 Mistakes → P12 Vocabulary → P19-SEO → P14 Security।
 - **নোট:** GitHub-টোকেন সেশন-ভিত্তিক (যা মালিক দেন); .git/config স্ন্যাপশট-বহির্ভূত — প্রতি-সেশনে
   remote+auth পুনঃসেট করতে হয়। রিপো-তে কোনো সিক্রেট নেই।
+- **v191 (মালিক-রিপোর্ট-ফিক্স, ২০২৬-০৯-০৬):** পাবলিক-তে Google-ডিবাগ-ওভারলে বাদ (বাটন সরানো;
+  শুধু `window.__ahShowGoogleHelp` = owner-কনসোল/ডক-গাইড)। Google-অ্যাকাউন্ট (পাসওয়ার্ড-নেই) দিয়ে
+  সাইন-আপ করলে "আগেই আছে-পাসওয়ার্ড" ডেড-এন্ড নয় — server `provider_google`/`provider_passkey` কোড →
+  ক্লায়েন্ট সঠিক নোটিশ (Continue with Google / পাসকি)। ফাইল: worker-bundle.mjs (ডিপ্লয়-এন্ট্রি) +
+  public-worker.js (demo+hub) + premium-auth.js। বিস্তার: `docs/V191-GOOGLE-PUBLIC-AUTH-FIX.md`।
+- **স্বর:** sw v191-gfix-20260906 · ১১/১১ স্যুট সবুজ (idb ২৮-সহ) · worker redeploy দরকার (main.yml dispatch)।
