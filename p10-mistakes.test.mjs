@@ -46,8 +46,8 @@ t('mistake-note-icon.js লোড (16-aiex)', H.includes('mistake-note-icon.js?v
 t('note-icon: openQuestionNoteEditor ইন্টিগ্রেশন', MN.includes('openQuestionNoteEditor') && MN.includes('__mistakeNoteIconInstalled'));
 
 /* ৬ — ভার্সন v194 */
-t('sw BUILD_ID v194-gfix-20260906', SW.includes("const BUILD_ID = 'v194-gfix-20260906'"));
-t('index sw-marker v194-gfix-20260906', H.includes('sw.js?v=v194-gfix-20260906'));
+t('sw BUILD_ID v195-gfix-20260906', SW.includes("const BUILD_ID = 'v195-gfix-20260906'"));
+t('index sw-marker v195-gfix-20260906', H.includes('sw.js?v=v195-gfix-20260906'));
 
 console.log(`\nP10-MISTAKES: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

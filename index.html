@@ -7,6 +7,7 @@
 <title>My Admission Hub</title>
 <script>(function(){try{document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')||sessionStorage.getItem('ahPubToken'))?'in':'out';}catch(e){document.documentElement.dataset.ah='out';}})();</script>
 <link rel="stylesheet" href="./premium-auth.css?v=p3-auth-guest-v193">
+<link rel="stylesheet" href="./dashboard-v2.css?v=dash2">
 <link rel="stylesheet" href="./onboarding.css?v=p6-onboard-v11">
 
 <link rel="manifest" href="manifest.json">
@@ -968,12 +969,13 @@ const NAV_TABS=[
   {key:'dashboard', icon:'🏠', label:'Home'},
   {key:'question-bank', icon:'📚', label:'Bank'},
   {key:'exam', icon:'📝', label:'Exam'},
+  {key:'ai-chat', icon:'🤖', label:'Admission AI'},
   {key:'history', icon:'📋', label:'History'},
   {key:'profile', icon:'👤', label:'Profile'},
 ];
 
 function baseTab(path){
-  if(path.startsWith('ai-chat')) return 'history';
+  if(path.startsWith('ai-chat')) return 'ai-chat';
   if(path.startsWith('smart-formatter')) return 'smart-formatter';
   if(path.startsWith('exam')) return 'exam';
   if(path.startsWith('question-bank')||path.startsWith('subject')||path.startsWith('topic')||path.startsWith('question')||path.startsWith('add-question')||path.startsWith('edit-question')) return 'question-bank';
@@ -5197,7 +5199,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v194-gfix-20260906',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v195-gfix-20260906',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
@@ -5754,6 +5756,7 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script defer src="./premium-auth.js?v=p3-auth-guest-v193"></script>
 <script defer src="./curriculum-config.js?v=p6-onboard-v12"></script>
 <script defer src="./onboarding.js?v=p6-onboard-v12"></script>
+<script defer src="./dashboard-v2.js?v=dash2"></script>
 <script src="./app-seed.js?v=v189-empty" defer></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */

@@ -1,4 +1,4 @@
-# LATEST — 2026-09-06 · v194 — P10 MISTAKES ডেল্টা (AUTH-LOCK-এর ওপরে) — Google-হেল্প পাবলিক-নয় + Google-অ্যাকাউন্ট ডেডএন্ড-ফিক্স (v190-ac3-এর ওপরে)
+# LATEST — 2026-09-06 · v195 — P11 DASHBOARD v2 (ছবি-অনুযায়ী ১৪ মডিউল) — Google-হেল্প পাবলিক-নয় + Google-অ্যাকাউন্ট ডেডএন্ড-ফিক্স (v190-ac3-এর ওপরে)
 - **অবস্থা:** v190 লাইভ — P08-AC3 টাইমার-শেষ-অটো-সাবমিট হার্ডেনিং। স্বাক্ষর `v190-ac3-fix-20260906`।
 - **মার্জ-ইতিহাস:** remote-এ v189-cloud-sync (`ae3d0b8`→`b5e9bc1`→`d054f8f`) পাওয়া যায়; আমার AC3-commit
   সেটির ওপরে **rebase** (সংঘর্ষ: শুধু BUILD_ID+sw-marker)। ভার্সন v189-সংঘর্ষ এড়াতে **v190**।
@@ -51,3 +51,6 @@
   setMistakeMastered টগল (✅ শিখে গেছি/↩️ আবার শিখি; mastered+revisionStatus+masteredAt),
   Needs-Review/Mastered ফিল্টার+কাউন্ট, MASTERED ব্যাজ। নতুন `p10-mistakes` ২৮-অ্যাসার্ট;
   **১৫/১৫ স্যুট সবুজ**। sw `v194-gfix-20260906`। বিস্তার: `docs/P10-MISTAKES.md`।
+
+- **P11 DASHBOARD v2 (v195):** additive override — dashboard-v2.js/css (?v=dash2): ১৪ মডিউল (Header/Mission-63-100/Focus-Mode-★/Streak-৭দিন/Performance-Mastery-ring/Smart-Insight/Continuous-Learning/Command-Center/Performance-Graph-SVG/Weakness-Radar/Admission-Goal-Days-Left/90-Day-Roadmap/Study-Tools/Bottom-Nav-৬-ট্যাব-আই-চ্যাট); ডেটা সব CACHE-সত্য (শূন্য-অবস্থা সৎ), phase5-Intelligence সংরক্ষিত, পুরনো-ইঞ্জিন অক্ষত, dv2AllTools ১২-টুল no-loss।
+  নতুন `p11-dashboard-v2` ৩৫-অ্যাসার্ট; **১৬/১৬ স্যুট সবুজ**। বিস্তার: `docs/P11-DASHBOARD-V2.md`।
