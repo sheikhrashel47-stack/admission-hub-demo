@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>My Admission Hub</title>
 <script>(function(){try{document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')||sessionStorage.getItem('ahPubToken'))?'in':'out';}catch(e){document.documentElement.dataset.ah='out';}})();</script>
-<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-guest-v177">
+<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-guest-v192">
 <link rel="stylesheet" href="./onboarding.css?v=p6-onboard-v11">
 
 <link rel="manifest" href="manifest.json">
@@ -5178,7 +5178,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v191-gfix-20260906',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v192-gfix-20260906',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
@@ -5731,8 +5731,8 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script>window.AH_CLOUD_ROLE='public';</script>
 <script defer src="./cloud-content-sync.js?v=v189-sync"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
-<script defer src="./auth-svg.js?v=p3-auth-prof-v177"></script>
-<script defer src="./premium-auth.js?v=p3-auth-guest-v177"></script>
+<script defer src="./auth-svg.js?v=p3-auth-prof-v192"></script>
+<script defer src="./premium-auth.js?v=p3-auth-guest-v192"></script>
 <script defer src="./curriculum-config.js?v=p6-onboard-v12"></script>
 <script defer src="./onboarding.js?v=p6-onboard-v12"></script>
 <script src="./app-seed.js?v=v189-empty" defer></script>

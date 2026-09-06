@@ -1,4 +1,4 @@
-// v177 — GUEST-FIRST AUTH UX টেস্ট (static + jsdom runtime)
+// v192 — GUEST-FIRST AUTH UX টেস্ট (static + jsdom runtime)
 import { JSDOM } from 'jsdom';
 import { readFileSync } from 'fs';
 let pass = 0, fail = 0;
@@ -13,9 +13,9 @@ const gate = doc.getElementById('ahAuthGate');
 t('১. #ahAuthGate exists', !!gate);
 t('২. gate static-first HIDDEN — প্রথম পেইন্টে কোনো login wall নেই', !!gate && /display:\s*none/i.test(gate.getAttribute('style') || '') && gate.getAttribute('aria-hidden') === 'true');
 t('৩. ইন্ট্রো বাদ — প্রথম পেইন্টে সরল লোডার (.ah-boot), কোনো 3D scene নেই', !!doc.querySelector('#ahSplash .ah-boot') && !doc.querySelector('#ahSplash .ahfs-scene'));
-t('৪. premium-auth.js/css v177 query-তে লোড হয়', /premium-auth\.js\?v=p3-auth-guest-v177/.test(html) && /premium-auth\.css\?v=p3-auth-guest-v177/.test(html));
-t('৫. sw build v191-gfix-20260906 (index + sw.js)',
-  /v191-gfix-20260906/.test(html) && /v191-gfix-20260906/.test(readFileSync('/home/user/demo/sw.js', 'utf8')));
+t('৪. premium-auth.js/css v192 (ক্যাশ-বাস্ট) query-তে লোড হয়', /premium-auth\.js\?v=p3-auth-guest-v192/.test(html) && /premium-auth\.css\?v=p3-auth-guest-v192/.test(html));
+t('৫. sw build v192-gfix-20260906 (index + sw.js)',
+  /v192-gfix-20260906/.test(html) && /v192-gfix-20260906/.test(readFileSync('/home/user/demo/sw.js', 'utf8')));
 t('৬. app-এ প্রাথমিকভাবে কোনো mandatory gate মোড নেই (data-ah not preset)',
   !html.includes('data-ah="out"'));
 
@@ -79,5 +79,5 @@ AHAuth.renderProfileRoute();
 t('৩২. guest profile route → গেস্ট প্রোফাইল (account CTA), login wall নয়', !!w.__lastShell && /গেস্ট শিক্ষার্থী/.test(w.__lastShell) && /Continue with Google/.test(w.__lastShell) && /Continue with Email/.test(w.__lastShell));
 t('৩৩. guest profile-এ ৩টা বাটন CTA আছে', /Continue with Google/.test(w.__lastShell) && /Continue with Email/.test(w.__lastShell) && /data-ah-guest-profile-later/.test(w.__lastShell));
 
-console.log(fail === 0 ? '✅ AUTH-UX v177 TEST PASS (' + pass + ')' : '❌ FAIL ' + fail + ' / ' + pass);
+console.log(fail === 0 ? '✅ AUTH-UX v192 TEST PASS (' + pass + ')' : '❌ FAIL ' + fail + ' / ' + pass);
 process.exit(fail ? 1 : 0);
