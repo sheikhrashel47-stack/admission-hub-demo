@@ -1,4 +1,4 @@
-# LATEST — 2026-09-06 · v192-gfix (ক্যাশ-বাস্ট) — v191-সহ — Google-হেল্প পাবলিক-নয় + Google-অ্যাকাউন্ট ডেডএন্ড-ফিক্স (v190-ac3-এর ওপরে)
+# LATEST — 2026-09-06 · v193-gfix — P08 AC1/AC2/AC4/AC5 state-preservation সম্পন্ন — Google-হেল্প পাবলিক-নয় + Google-অ্যাকাউন্ট ডেডএন্ড-ফিক্স (v190-ac3-এর ওপরে)
 - **অবস্থা:** v190 লাইভ — P08-AC3 টাইমার-শেষ-অটো-সাবমিট হার্ডেনিং। স্বাক্ষর `v190-ac3-fix-20260906`।
 - **মার্জ-ইতিহাস:** remote-এ v189-cloud-sync (`ae3d0b8`→`b5e9bc1`→`d054f8f`) পাওয়া যায়; আমার AC3-commit
   সেটির ওপরে **rebase** (সংঘর্ষ: শুধু BUILD_ID+sw-marker)। ভার্সন v189-সংঘর্ষ এড়াতে **v190**।
@@ -26,3 +26,9 @@
   sw APP_SHELL + BUILD_ID `v192-gfix-20260906` (নতুন ক্যাশ-নেমস্পেস → activate-এ পুরনো-ক্যাশ পার্জ; clients.claim)।
   লাইভ: pages.dev+github.io v192 ✓ · premium-auth.js?v=v192 → বাটন ০ ✓ · CI ৩/৩ ✓ · ১১/১১ স্যুট ✓।
   **মালিক-পক্ষে:** ২-৩ বার রিফ্রেশ/অ্যাপ-রিওপেন (SW আপডেট-চক্র) — এরপর ওভারলে আর আসবে না।
+- **v193 (P08-সমাপ্তি):** state-preservation — `applyExamBackup()` (emergency sessionStorage-snapshot →
+  resume-merge, id-মিল; boot + resumeActiveExam) · `pagehide`/hidden → `flushExamPersist()`-চেষ্টা + backup ·
+  `performance-hardening.js?v=1→?v=2` (ক্যাশ-কী) · sw `v193-gfix-20260906`। নতুন `p08-state-preserve` ২৪-অ্যাসার্ট;
+  **১২/১২ স্যুট সবুজ**। বিস্তার: `docs/P08-AC125-STATE-PRESERVE.md`।
+- **P08 এখন পূর্ণ:** AC1 রিফ্রেশ-রিকভারি ✓ · AC2 প্রতি-উত্তর অটো-সেভ ✓ · AC3 টাইমার-অটো-সাবমিট ✓ ·
+  AC4 নেটওয়ার্ক-ফেল (local-first+retry) ✓ · AC5 state-tests ✓ — মালিক-ব্যবহার-ভেরিফাই বাকি।

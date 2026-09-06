@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v192-gfix-20260906';
+const BUILD_ID = 'v193-gfix-20260906';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -43,7 +43,7 @@ const APP_SHELL = [
   './experience-studio-cards.js?v=2',
   './experience-studio-hooks.js?v=1',
   './experience-studio-shell.js?v=6',
-  './performance-hardening.js?v=1',
+  './performance-hardening.js?v=2',
   './one-time-mock-seed.js?v=20260824-native',
   './one-time-mock-tool.js?v=20260824-native',
   './vocabulary-master-tool.js?v=vm-autoimg-v106',
@@ -72,15 +72,15 @@ const APP_SHELL = [
   './smart-revision-tool.js?v=smart-revision-v2-safe-session',
   './source-course-tool.js?v=bangla-only-courses-v23-freshfetch',
   './cloud-content-sync.js?v=p2-cloud-v2',
-  './auth-svg.js?v=p3-auth-prof-v192',
+  './auth-svg.js?v=p3-auth-prof-v193',
   './session-persist.js?v=session-v1',
   './ah-ai-client.js?v=ahai-v3',
-  './premium-auth.js?v=p3-auth-guest-v192',
+  './premium-auth.js?v=p3-auth-guest-v193',
   './android-runtime-fix.js?v=and-scroll-v1',
   '',
-  './premium-auth.css?v=p3-auth-guest-v192',
-  './auth-svg.js?v=p3-auth-prof-v192',
-  './premium-auth.js?v=p3-auth-guest-v192',
+  './premium-auth.css?v=p3-auth-guest-v193',
+  './auth-svg.js?v=p3-auth-prof-v193',
+  './premium-auth.js?v=p3-auth-guest-v193',
   './curriculum-config.js?v=p6-onboard-v12',
   './onboarding.js?v=p6-onboard-v12',
   './onboarding.css?v=p6-onboard-v1',

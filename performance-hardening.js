@@ -398,8 +398,8 @@
     backupExamState('initial');
     installRouteCleanup();
     startExamWatch();
-    on(window, 'pagehide', () => backupExamState('pagehide'), { passive: true });
-    on(document, 'visibilitychange', () => { if (document.visibilityState !== 'visible') backupExamState('hidden'); }, { passive: true });
+    on(window, 'pagehide', () => { try { flushExamPersist(); } catch (_) {} backupExamState('pagehide'); }, { passive: true });
+    on(document, 'visibilitychange', () => { if (document.visibilityState !== 'visible') { try { flushExamPersist(); } catch (_) {} backupExamState('hidden'); } }, { passive: true });
     window.__admissionHubPerformanceReady = true;
   }
 

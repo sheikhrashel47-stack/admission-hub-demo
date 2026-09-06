@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>My Admission Hub</title>
 <script>(function(){try{document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')||sessionStorage.getItem('ahPubToken'))?'in':'out';}catch(e){document.documentElement.dataset.ah='out';}})();</script>
-<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-guest-v192">
+<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-guest-v193">
 <link rel="stylesheet" href="./onboarding.css?v=p6-onboard-v11">
 
 <link rel="manifest" href="manifest.json">
@@ -2948,6 +2948,23 @@ async function checkResumableExam(){
   }
   return null;
 }
+// AC1: emergency sessionStorage-snapshot (per-tap, performance-hardening.js) কে
+// IndexedDB-থেকে-resume-করা exam-এর সাথে merge — ট্যাব-বন্ধ/eviction-এ শেষ উত্তর হারাবে না।
+function applyExamBackup(exam){
+  try{
+    if(!exam || !window.AdmissionHubPerformance || typeof window.AdmissionHubPerformance.readExamBackup!=='function') return exam;
+    const bk=window.AdmissionHubPerformance.readExamBackup();
+    if(!bk || !bk.exam || String(bk.exam.id)!==String(exam.id)) return exam;
+    const b=bk.exam;
+    if(b.selectedAnswers) exam.selectedAnswers={...(exam.selectedAnswers||{}), ...b.selectedAnswers};
+    if(typeof b.currentIndex==='number' && b.currentIndex>=0) exam.currentIndex=b.currentIndex;
+    if(b.timing) exam.timing={...(exam.timing||{}), ...b.timing};
+    if(Array.isArray(b.bookmarks)){ if(!exam.bookmarks) exam.bookmarks=new Set(); b.bookmarks.forEach(q=>exam.bookmarks.add(q)); }
+    if(Array.isArray(b.flags)){ if(!exam.flags) exam.flags=new Set(); b.flags.forEach(q=>exam.flags.add(q)); }
+    if(b.flashResults) exam.flashResults={...(exam.flashResults||{}), ...b.flashResults};
+    return exam;
+  }catch(_){ return exam; }
+}
 function computeRemaining(exam){
   if(!exam || exam.mode!=='mock' || !exam.endTime) return null;
   return Math.max(0, Math.ceil((exam.endTime - Date.now())/1000));
@@ -4037,7 +4054,7 @@ async function boot(){
     returningFromManualAi=!!pending && pending.source==='Flash Test' && pending.returnPath==='exam/running';
   } catch (_) {}
   if(resumable){
-    ActiveExam=resumable;
+    ActiveExam=applyExamBackup(resumable);
     if(resumable.mode==='mock' && computeRemaining(resumable)<=0){
       try{ await submitExam(true); } catch(submitErr){ console.warn('[AdmissionHub] boot auto-submit deferred', submitErr); }
     } else if(!returningFromManualAi) {
@@ -4058,6 +4075,7 @@ async function discardActiveExam(){
 }
 function resumeActiveExam(){
   closeModal();
+  if(ActiveExam) ActiveExam=applyExamBackup(ActiveExam);
   startTimerLoop();
   navigate('exam/running');
 }
@@ -5178,7 +5196,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v192-gfix-20260906',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v193-gfix-20260906',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
@@ -5487,7 +5505,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script defer src="experience-studio-cards.js?v=2"></script>
 <script defer src="experience-studio-hooks.js?v=1"></script>
 <script defer src="experience-studio-shell.js?v=6"></script>
-<script defer src="performance-hardening.js?v=1"></script>
+<script defer src="performance-hardening.js?v=2"></script>
 <script>
 (() => {
   const renderFinalRoute = () => {
@@ -5731,8 +5749,8 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script>window.AH_CLOUD_ROLE='public';</script>
 <script defer src="./cloud-content-sync.js?v=v189-sync"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
-<script defer src="./auth-svg.js?v=p3-auth-prof-v192"></script>
-<script defer src="./premium-auth.js?v=p3-auth-guest-v192"></script>
+<script defer src="./auth-svg.js?v=p3-auth-prof-v193"></script>
+<script defer src="./premium-auth.js?v=p3-auth-guest-v193"></script>
 <script defer src="./curriculum-config.js?v=p6-onboard-v12"></script>
 <script defer src="./onboarding.js?v=p6-onboard-v12"></script>
 <script src="./app-seed.js?v=v189-empty" defer></script>
