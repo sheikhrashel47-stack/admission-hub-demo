@@ -1012,12 +1012,10 @@ var authRegisterEmail = async (request, env) => {
   if (!id.startsWith("em:")) return json({ error: "\u09B8\u09A0\u09BF\u0995 \u0987\u09AE\u09C7\u0987\u09B2 \u09B2\u09C7\u0996\u09CB" }, 400);
   const existing = await getUserById(env, id);
   if (existing && existing.status === "active") {
-  const hasPass = !!(existing.passHash || existing.passSalt);
-  const provs = (existing.providers || []).map(String);
-  if (hasPass) return json({ error: "\u098f\u0987 \u0987\u09ae\u09c7\u0987\u09b2 \u0986\u0997\u09c7\u0987 \u0986\u099b\u09c7 \u2014 \u09aa\u09be\u09b8\u0993\u09af\u09bc\u09be\u09b0\u09cd\u09a1 \u09a6\u09bf\u09af\u09bc\u09c7 \u09b2\u0997\u0987\u09a8 \u0995\u09b0\u09cb" }, 409);
-  if (provs.includes("google")) return json({ error: "\u098f\u0987 \u0987\u09ae\u09c7\u0987\u09b2 \u09a6\u09bf\u09af\u09bc\u09c7 \u0986\u0997\u09c7 Google-\u09b2\u0997\u0987\u09a8 \u09b9\u09af\u09bc\u09c7\u099b\u09c7 \u2014 \u0989\u09aa\u09b0\u09c7\u09b0 \"Continue with Google\" \u09a6\u09bf\u09af\u09bc\u09c7 \u09aa\u09cd\u09b0\u09ac\u09c7\u09b6 \u0995\u09b0\u09cb", code: "provider_google" }, 409);
-  return json({ error: "\u098f\u0987 \u0987\u09ae\u09c7\u0987\u09b2 \u09a6\u09bf\u09af\u09bc\u09c7 \u0986\u0997\u09c7 \u09aa\u09be\u09b8\u0995\u09bf \u09a6\u09bf\u09af\u09bc\u09c7 \u0985\u09cd\u09af\u09be\u0995\u09be\u0989\u09a8\u09cd\u099f \u0996\u09cb\u09b2\u09be \u09b9\u09af\u09bc\u09c7\u099b\u09c7 \u2014 \u09aa\u09be\u09b8\u0995\u09bf \u09a6\u09bf\u09af\u09bc\u09c7 \u09b2\u0997\u0987\u09a8 \u0995\u09b0\u09cb", code: "provider_passkey" }, 409);
-}
+    const hasPassOnly = !!(existing.passHash || existing.passSalt);
+    if (hasPassOnly) return json({ error: "এই ইমেইল আগেই আছে — পাসওয়ার্ড দিয়ে লগইন করো" }, 409);
+    // google/passkey-মাত্র অ্যাকাউন্ট (পাসওয়ার্ড-নেই): ব্লক নয় — ইমেইল-OTP মালিকানা-প্রমাণে পাসওয়ার্ড-সংযুক্তি (merge)
+  }
   const password = String(b.password || "");
   const confirm = String(b.confirm || b.password2 || "");
   const weak = strongPass(password);
@@ -1039,7 +1037,7 @@ var authRegisterEmail = async (request, env) => {
     passSalt: hp.salt,
     waitId,
     created: Date.now(),
-    providers: ["email", "password"],
+    providers: Array.from(new Set(["email", "password", ...((existing && existing.providers) || [])])),
     verified: false,
     emailVerified: false,
     status: "pending"

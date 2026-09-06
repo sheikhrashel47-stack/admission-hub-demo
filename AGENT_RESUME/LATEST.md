@@ -1,4 +1,4 @@
-# LATEST — 2026-09-06 · v193-gfix — P08 AC1/AC2/AC4/AC5 state-preservation সম্পন্ন — Google-হেল্প পাবলিক-নয় + Google-অ্যাকাউন্ট ডেডএন্ড-ফিক্স (v190-ac3-এর ওপরে)
+# LATEST — 2026-09-06 · P08-OTP-মার্জ — Google-মাত্র-অ্যাকাউন্ট ডেডএন্ড-ফিক্স (v193-এর ওপরে) — Google-হেল্প পাবলিক-নয় + Google-অ্যাকাউন্ট ডেডএন্ড-ফিক্স (v190-ac3-এর ওপরে)
 - **অবস্থা:** v190 লাইভ — P08-AC3 টাইমার-শেষ-অটো-সাবমিট হার্ডেনিং। স্বাক্ষর `v190-ac3-fix-20260906`।
 - **মার্জ-ইতিহাস:** remote-এ v189-cloud-sync (`ae3d0b8`→`b5e9bc1`→`d054f8f`) পাওয়া যায়; আমার AC3-commit
   সেটির ওপরে **rebase** (সংঘর্ষ: শুধু BUILD_ID+sw-marker)। ভার্সন v189-সংঘর্ষ এড়াতে **v190**।
@@ -32,3 +32,9 @@
   **১২/১২ স্যুট সবুজ**। বিস্তার: `docs/P08-AC125-STATE-PRESERVE.md`।
 - **P08 এখন পূর্ণ:** AC1 রিফ্রেশ-রিকভারি ✓ · AC2 প্রতি-উত্তর অটো-সেভ ✓ · AC3 টাইমার-অটো-সাবমিট ✓ ·
   AC4 নেটওয়ার্ক-ফেল (local-first+retry) ✓ · AC5 state-tests ✓ — মালিক-ব্যবহার-ভেরিফাই বাকি।
+
+- **P08-auth-merge (মালিক-রিপোর্ট):** একদম-নতুন-ইমেইলে OTP-পথ লাইভ-প্রুবে কাজ-করা সত্ত্বেও "আগে Google-লগইন" দেখানো —
+  কারণ ওই ইমেইলে আগের Google-পরীক্ষায় google-only রেকর্ড (password-নেই)। ফিক্স: register-email-এ google/passkey-মাত্র
+  → 409-না, OTP-মার্জ (verify-তে providers merge: email+password+google), password-আছে-এ 409-অক্ষত; ৩-কপি
+  (worker-bundle.mjs ডিপ্লয় + public-worker.js demo+hub)। নতুন `p08-auth-otp-merge` ১৬-অ্যাসার্ট; **১৩/১৩ স্যুট সবুজ।**
+  বিস্তার: `docs/P08-GOOGLE-OTP-MERGE-FIX.md`।

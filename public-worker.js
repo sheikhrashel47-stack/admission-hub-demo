@@ -1003,11 +1003,9 @@ const authRegisterEmail = async (request, env) => {
   if (!id.startsWith('em:')) return json({ error: 'সঠিক ইমেইল লেখো' }, 400);
   const existing = await getUserById(env, id);
   if (existing && existing.status === 'active') {
-    const hasPass = !!(existing.passHash || existing.passSalt);
-    const provs = (existing.providers || []).map(String);
-    if (hasPass) return json({ error: 'এই ইমেইল আগেই আছে — পাসওয়ার্ড দিয়ে লগইন করো' }, 409);
-    if (provs.includes('google')) return json({ error: 'এই ইমেইল দিয়ে আগে Google-লগইন হয়েছে — উপরের "Continue with Google" দিয়ে প্রবেশ করো', code: 'provider_google' }, 409);
-    return json({ error: 'এই ইমেইল দিয়ে আগে পাসকি দিয়ে অ্যাকাউন্ট খোলা হয়েছে — পাসকি দিয়ে লগইন করো', code: 'provider_passkey' }, 409);
+    const hasPassOnly = !!(existing.passHash || existing.passSalt);
+    if (hasPassOnly) return json({ error: 'এই ইমেইল আগেই আছে — পাসওয়ার্ড দিয়ে লগইন করো' }, 409);
+    // google/passkey-মাত্র অ্যাকাউন্ট (পাসওয়ার্ড-নেই): ব্লক নয় — ইমেইল-OTP মালিকানা-প্রমাণে পাসওয়ার্ড-সংযুক্তি (merge)
   }
   const password = String(b.password || '');
   const confirm = String(b.confirm || b.password2 || '');
@@ -1023,7 +1021,7 @@ const authRegisterEmail = async (request, env) => {
     school: String(b.school || '').slice(0, 80),
     college: String(b.college || '').slice(0, 80),
     passHash: hp.hash, passSalt: hp.salt, waitId,
-    created: Date.now(), providers: ['email', 'password'], verified: false, emailVerified: false, status: 'pending'
+    created: Date.now(), providers: Array.from(new Set(['email', 'password', ...((existing && existing.providers) || [])])), verified: false, emailVerified: false, status: 'pending'
   };
   await env.PUB_KV.put('pending:' + id, JSON.stringify(pending), { expirationTtl: 900 });
   await env.PUB_KV.put('wait:' + waitId, JSON.stringify({ id, status: 'pending' }), { expirationTtl: 150 });
