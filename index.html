@@ -2917,7 +2917,7 @@ async function beginExam(){
     duration: durationSec,
     endTime: durationSec ? (startTime + durationSec*1000) : null,
     negative: Math.max(0, Math.min(Number(st.negative)||0, (Number(st.marksPerQ)||1) - 0.05)),
-    status:'running', isSubmitting:false, configuration:{...st},
+    status:'running', isSubmitting:false, timeExpired:false, configuration:{...st},
     bookmarks: new Set(),
     flags: new Set(),
     timing: {}, // qid -> {ms, startedAt, answeredAt}
@@ -2936,6 +2936,9 @@ let ActiveExam=null;
 // Expose a read-only getter for additive reliability modules; the exam object remains owned by the existing engine.
 window.__admissionHubGetActiveExam=()=>ActiveExam;
 let timerHandle=null;
+let timerExpiryHandle=null;
+let timerWakeBound=false;
+function clearExamTimers(){ clearInterval(timerHandle); timerHandle=null; clearTimeout(timerExpiryHandle); timerExpiryHandle=null; }
 
 async function checkResumableExam(){
   const running=CACHE.exams.filter(e=>e.status==='running');
@@ -2975,26 +2978,47 @@ function updateLiveScore(){
   const chip=document.getElementById('liveScoreChip'); if(!chip) return;
   try { chip.innerHTML=liveScoreChipHtml(e); } catch(_){}
 }
-function startTimerLoop(){
-  clearInterval(timerHandle);
-  if(!ActiveExam || ActiveExam.mode!=='mock') return;
-  const tick=async ()=>{
-    if(!ActiveExam || ActiveExam.status!=='running'){clearInterval(timerHandle); return;}
-    const remaining=computeRemaining(ActiveExam);
-    const tb=document.getElementById('examTimer');
-    if(tb){
-      tb.textContent=fmtTime(remaining);
-      tb.classList.remove('timer-warn','timer-danger');
-      const cls=timerVisualClass(remaining);
-      if(cls) tb.classList.add(cls);
-    }
-    if(remaining<=0){
-      clearInterval(timerHandle);
-      await submitExam(true);
-    }
+async function examTimerTick(){
+  if(!ActiveExam || ActiveExam.status!=='running'){ clearExamTimers(); return; }
+  const remaining=computeRemaining(ActiveExam);
+  const tb=document.getElementById('examTimer');
+  if(tb){
+    tb.textContent=fmtTime(remaining);
+    tb.classList.remove('timer-warn','timer-danger');
+    const cls=timerVisualClass(remaining);
+    if(cls) tb.classList.add(cls);
+  }
+  if(remaining<=0){
+    if(!ActiveExam.timeExpired) ActiveExam.timeExpired=true;
+    clearExamTimers();
+    await submitExam(true);
+    return;
+  }
+  scheduleExamExpiry();
+}
+function scheduleExamExpiry(){
+  clearTimeout(timerExpiryHandle);
+  if(!ActiveExam || ActiveExam.mode!=='mock' || !ActiveExam.endTime) return;
+  timerExpiryHandle=setTimeout(()=>{ void examTimerTick(); }, Math.max(0, ActiveExam.endTime - Date.now()) + 250);
+}
+function bindExamWakeHandlers(){
+  if(timerWakeBound) return;
+  timerWakeBound=true;
+  const wake=()=>{
+    if(document.hidden) return;
+    if(!ActiveExam || ActiveExam.status!=='running' || ActiveExam.mode!=='mock' || ActiveExam.isSubmitting) return;
+    void examTimerTick();
   };
-  tick();
-  timerHandle=setInterval(tick,1000);
+  document.addEventListener('visibilitychange', wake);
+  window.addEventListener('pageshow', wake);
+  window.addEventListener('focus', wake);
+}
+function startTimerLoop(){
+  clearExamTimers();
+  if(!ActiveExam || ActiveExam.mode!=='mock') return;
+  bindExamWakeHandlers();
+  void examTimerTick();
+  timerHandle=setInterval(()=>{ void examTimerTick(); },1000);
 }
 
 function renderExamRunning(){
@@ -3133,6 +3157,7 @@ async function toggleExamFlag(qid){
 async function selectMockAnswer(qid,idx){
   const e=ActiveExam;
   if(!e) return;
+  if(e.timeExpired) return;
   if(e.mode==='mock' && e.selectedAnswers[qid]!==undefined) return;
   if(e.selectedAnswers[qid]===idx) delete e.selectedAnswers[qid];
   else {
@@ -3155,6 +3180,7 @@ function mockNav(dir){
 function jumpMock(i){ ActiveExam.currentIndex=i; dbPut('exams',ActiveExam); render(); }
 function skipMock(){
   const e=ActiveExam;
+  if(e.timeExpired) return;
   delete e.selectedAnswers[e.questions[e.currentIndex].id];
   if(e.currentIndex<e.questions.length-1) e.currentIndex++;
   dbPut('exams',e); render();
@@ -3320,11 +3346,15 @@ function renderFlashSummary(){
 }
 
 /* ---- submit & scoring (shared) ---- */
+let submitRetryAttempt=0;
+let submitRetryHandle=null;
 async function submitExam(autoSubmit){
   const e=ActiveExam;
   if(!e || e.isSubmitting) return;
   e.isSubmitting=true;
-  clearInterval(timerHandle);
+  const examId=e.id;
+  clearExamTimers();
+  try {
   const timeUsed = e.mode==='mock' ? (e.duration-computeRemaining(e)) : Math.round((Date.now()-e.startTime)/1000);
   let correct=0, wrong=0, skipped=0;
 
@@ -3402,11 +3432,25 @@ async function submitExam(autoSubmit){
   e.status='completed';
   await dbPut('exams', e);
   await loadCache();
+  submitRetryAttempt=0;
 
   LastResult=result;
   FlashSummaryResult = e.mode==='flash' ? result : null;
   ActiveExam=null;
   navigate(e.mode==='flash' ? 'exam/flash-summary' : 'exam/result');
+  } catch(submitErr){
+    console.warn('[AdmissionHub] exam submit failed — retrying…', submitErr);
+    e.isSubmitting=false;
+    if(e.status==='running' && submitRetryAttempt<6){
+      submitRetryAttempt++;
+      const waitMs=Math.min(30000, Math.pow(2,submitRetryAttempt-1)*1500);
+      clearTimeout(submitRetryHandle);
+      submitRetryHandle=setTimeout(()=>{ const cur=ActiveExam; if(cur && cur.id===examId && cur.status==='running') void submitExam(!!autoSubmit); }, waitMs);
+      try{ toast('ফলাফল সেভ হয়নি — '+(waitMs/1000)+' সেকেন্ডে আবার চেষ্টা হবে…'); }catch(_){}
+    } else {
+      try{ toast('ফলাফল সেভ করা গেল না — পেজ রিফ্রেশ করো; পরীক্ষা সংরক্ষিত আছে'); }catch(_){}
+    }
+  }
 }
 
 let LastResult=null;
@@ -3995,7 +4039,7 @@ async function boot(){
   if(resumable){
     ActiveExam=resumable;
     if(resumable.mode==='mock' && computeRemaining(resumable)<=0){
-      await submitExam(true);
+      try{ await submitExam(true); } catch(submitErr){ console.warn('[AdmissionHub] boot auto-submit deferred', submitErr); }
     } else if(!returningFromManualAi) {
       openModal(`<h3>Resume Active Exam?</h3>
         <p class="muted">You have an unfinished ${resumable.mode==='mock'?'Mock':'Flash'} test with ${Object.keys(resumable.selectedAnswers).length}/${resumable.questions.length} answered.</p>
@@ -4007,6 +4051,7 @@ async function boot(){
   }
 }
 async function discardActiveExam(){
+  clearTimeout(submitRetryHandle);
   await dbDel('exams', ActiveExam.id);
   CACHE.exams=await dbGetAll('exams');
   ActiveExam=null; closeModal(); navigate('dashboard');
@@ -5133,7 +5178,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v189-gfix-20260905',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v190-ac3-fix-20260906',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.

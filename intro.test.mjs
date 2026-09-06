@@ -1,4 +1,6 @@
-// ✅ অতি-গুরুত্বপূর্ণ: আসল index.html-এর inline static intro টেস্ট
+// ✅ বুট-শেল স্ট্যাটিক-কন্ট্রাক্ট টেস্ট (v189-ac3)
+// ইতিহাস: v176-এ ইনলাইন 3D-splash (ahfs-scene) ছিল; v178-nosplash-এ তা ইচ্ছাকৃতভাবে বাদ
+// হয়ে index.html-এ এখন JS-নির্ভরহীন বুট-শেল (#ahSplash=লোডার)। এই স্যুট বর্তমান কন্ট্রাক্ট যাচাই করে।
 import { JSDOM } from 'jsdom';
 import { readFileSync } from 'fs';
 
@@ -14,32 +16,19 @@ let pass = 0, fail = 0;
 const t = (n, c) => { if (c) { pass++; console.log('  ✓', n); } else { fail++; console.log('  ✗', n); } };
 
 const ah = doc.getElementById('ahSplash');
-t('১. #ahSplash exists', !!ah);
-const scene = ah && ah.querySelector('.ahfs-scene');
-t('২. FULL 3D scene inline (JS ছাড়াই) — prefill নয়', !!scene);
-t('৩. scene classes ahfs-play + ahfs-idle (অ্যানিমেশন চালু)', scene && scene.classList.contains('ahfs-play') && scene.classList.contains('ahfs-idle'));
-t('৪. data-played (JS mount-এ duplicate নয়)', scene && scene.getAttribute('data-played') === '1');
-t('৫. hero tile + spark', !!scene.querySelector('.ahfs-tile .ahfs-spark'));
-t('৬. ৬টি floating objects', scene.querySelectorAll('.ahfs-obj').length === 6);
-t('৭. ২ orbit rings + platform ৩ স্তর', scene.querySelectorAll('.ahfs-ring').length === 2 && scene.querySelectorAll('.ahfs-platform i').length === 4);
-t('৮. title + বাংলা tagline', scene.querySelector('.ahfs-title').textContent.includes('Admission') && scene.querySelector('.ahfs-tag').textContent.includes('ভর্তি প্রস্তুতির'));
-t('৯. NO demo data (DU/unit/subject নেই)', !/DU|বিশ্ববিদ্যালয়|A Unit|B Unit|Bangla|English|GK/.test(scene.textContent));
-t('১০. loading copy বাংলা + প্রগ্রেস বার', scene.querySelector('.ahfs-stage-text').textContent.includes('স্টাডি স্পেস') && !!scene.querySelector('.ahfs-bar'));
-t('১১. inline CSS style আছে (ah-splash3d-css)', !!doc.getElementById('ah-splash3d-css'));
-const cssTxt = doc.getElementById('ah-splash3d-css') ? doc.getElementById('ah-splash3d-css').textContent : '';
-t('১২. CSS-এ keyframes আছে', cssTxt.includes('@keyframes ahfsFloat') && cssTxt.includes('@keyframes ahfsSpin'));
-t('১৩. reduced-motion CSS আছে', cssTxt.includes('prefers-reduced-motion'));
-t("১৪. loading copy (প্রস্তুত হচ্ছে) এখনো scene-এ", /প্রস্তুত হচ্ছে/.test(scene.textContent));
-// JS লোড করেও mount() duplicate করবে না
-dom.window.eval(readFileSync('/home/user/demo/splash-3d.js', 'utf8'));
-const A = dom.window.AdmissionSplash3D;
-t('১৫. AdmissionSplash3D available', !!A);
-A.mount(ah);
-t('১৬. mount → scene duplicate হয়নি (একটাই)', ah.querySelectorAll('.ahfs-scene').length === 1);
-A.dismiss(100).then(() => {
-  t('১৭. dismiss-এর পরও root খালি নয়', ah.innerHTML.trim().length > 20 && ah.textContent.trim().length > 0);
-  t('১৮. overlay removable done', !doc.querySelector('.ahfs-overlay'));
-  console.log(fail === 0 ? `✅ INTRO STATIC TEST PASS (${pass})` : `❌ FAIL ${fail} / ${pass}`);
-  process.exit(fail ? 1 : 0);
-});
-setTimeout(() => { console.log('⏰ timeout'); process.exit(1); }, 5000);
+t('১. #ahSplash লোডার exist (JS ছাড়াই)', !!ah);
+t('২. main.app-loading + role=status', ah && ah.tagName === 'MAIN' && ah.classList.contains('app-loading') && ah.getAttribute('role') === 'status');
+const boot = ah && ah.querySelector('.ah-boot');
+t('৩. .ah-boot শেল exist', !!boot);
+t('৪. .ah-boot-mark ✦ চিহ্ন', boot && boot.querySelector('.ah-boot-mark') && boot.querySelector('.ah-boot-mark').textContent.trim() === '✦');
+t('৫. ব্র্যান্ড টাইটেল "Admission Hub"', boot && boot.querySelector('b') && boot.querySelector('b').textContent.includes('Admission Hub'));
+t('৬. লোডিং-কপি বাংলা "লোড হচ্ছে…"', boot && boot.querySelector('i') && boot.querySelector('i').textContent.includes('লোড হচ্ছে'));
+t('৭. বুট-মিনিমাল CSS inline (ah-boot-min + keyframes ahBootPulse)', !!doc.getElementById('ah-boot-min') && doc.getElementById('ah-boot-min').textContent.includes('@keyframes ahBootPulse'));
+t('৮. reduced-motion গার্ড (মোশন-সংবেদনশীল)', doc.getElementById('ah-boot-min').textContent.includes('prefers-reduced-motion'));
+t('৯. পুরনো ইনলাইন-3D-splash আর নেই (v178-nosplash; ahfs-scene = 0)', !doc.querySelector('.ahfs-scene') && !html.includes('ahfs-scene'));
+t('১০. app-id + #app রুট exist', !!doc.getElementById('app'));
+t('১১. externl-স্ক্রিপ্ট-না-থাকলেও শেল রেন্ডার (static-first প্রমাণ)', !!doc.getElementById('app').querySelector('#ahSplash'));
+t('১২. sw-marker v190-ac3-fix-20260906', html.includes('sw.js?v=v190-ac3-fix-20260906'));
+
+console.log(`\nINTRO-BOOTSHELL: ${pass} pass / ${fail} fail`);
+if (fail) process.exit(1);
