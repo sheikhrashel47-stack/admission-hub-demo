@@ -37,4 +37,4 @@
   কারণ ওই ইমেইলে আগের Google-পরীক্ষায় google-only রেকর্ড (password-নেই)। ফিক্স: register-email-এ google/passkey-মাত্র
   → 409-না, OTP-মার্জ (verify-তে providers merge: email+password+google), password-আছে-এ 409-অক্ষত; ৩-কপি
   (worker-bundle.mjs ডিপ্লয় + public-worker.js demo+hub)। নতুন `p08-auth-otp-merge` ১৬-অ্যাসার্ট; **১৩/১৩ স্যুট সবুজ।**
-  বিস্তার: `docs/P08-GOOGLE-OTP-MERGE-FIX.md`।
+  বিস্তার: `docs/P08-GOOGLE-OTP-MERGE-FIX.md`। **ডিপ্লয়: f35aa67 → Deploy Worker success ✅ (লাইভ-প্রোব pending:true/sent:true; Pages v193 অপরিবর্তিত; ১৩/১৩ স্যুট সবুজ)।**
