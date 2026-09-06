@@ -20,4 +20,4 @@
   সাইন-আপ করলে "আগেই আছে-পাসওয়ার্ড" ডেড-এন্ড নয় — server `provider_google`/`provider_passkey` কোড →
   ক্লায়েন্ট সঠিক নোটিশ (Continue with Google / পাসকি)। ফাইল: worker-bundle.mjs (ডিপ্লয়-এন্ট্রি) +
   public-worker.js (demo+hub) + premium-auth.js। বিস্তার: `docs/V191-GOOGLE-PUBLIC-AUTH-FIX.md`।
-- **স্বর:** sw v191-gfix-20260906 · ১১/১১ স্যুট সবুজ (idb ২৮-সহ) · worker redeploy দরকার (main.yml dispatch)।
+- **স্বর:** sw v191-gfix-20260906 · ১১/১১ স্যুট সবুজ (idb ২৮-সহ) · worker redeployed ✅ (c1ac8fd, dispatch success)।
