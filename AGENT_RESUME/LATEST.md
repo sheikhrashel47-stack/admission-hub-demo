@@ -1,8 +1,17 @@
-# LATEST — 2026-09-05 · 🔒 LOCKED (v189) — ক্লাউড-ফার্স্ট ডেটা সিস্টেম
-- **অবস্থা:** v189 — ক্লাউড-ফার্স্ট sync system লাইভ। সব content (3000 questions, 81 vocabulary, 5 subjects, 14 topics) এখন server (KV) থেকে আসে। app-seed.js খালি।
-- **নতুন:** `/api/content` public (login লাগে না) — সবার জন্য read-only global data। Sync Now বাটন + status UI যোগ হয়েছে।
-- **লাইভ:** https://admissionhub.pages.dev (v189-gfix-20260905)
-- **Worker:** admission-gk.admissionhub.workers.dev (fad9693b)
-- **টেস্ট:** GUARD ✓ · phase23-core ✓ · 9-স্যুট গ্রিন (v188 থেকে অপরিবর্তিত)
-- **ইতিহাস:** v184 P05-AI → v185 cache-fix → v186 IDB → v187 fast-AI → v188 Google-help → **v189 cloud-sync**
-- **পরে:** P06 Personal AI Tutor · P08 Exam Recovery
+# LATEST — 2026-09-06 · 🔒 v190-ac3 — P08 টাইমার-অটো-সাবমিট (v189-cloud-sync-এর ওপরে)
+- **অবস্থা:** v190 লাইভ — P08-AC3 টাইমার-শেষ-অটো-সাবমিট হার্ডেনিং। স্বাক্ষর `v190-ac3-fix-20260906`।
+- **মার্জ-ইতিহাস:** remote-এ v189-cloud-sync (`ae3d0b8`→`b5e9bc1`→`d054f8f`) পাওয়া যায়; আমার AC3-commit
+  সেটির ওপরে **rebase** (সংঘর্ষ: শুধু BUILD_ID+sw-marker)। ভার্সন v189-সংঘর্ষ এড়াতে **v190**।
+- **AC3-সম্পন্ন:** exact-endTime ব্যাকআপ-টাইমার + visibilitychange/pageshow/focus wake (থ্রটল-ট্যাব-প্রুফ);
+  submitExam fail-safe (try/catch + ব্যাকঅফ-রিট্রাই ১.৫s×2^n ≤৩০s, ৬-বার, examId-গার্ড, toast-নোটিশ, isSubmitting-আনলক);
+  timeExpired উত্তর-লক; boot-এ expired-সাবমিট try/catch; discard-এ retry-clear। বিস্তার: `docs/P08-AC3-AUTOSUBMIT.md`।
+- **টেস্ট:** ১১/১১ স্যুট সবুজ: GUARD · ai4 · auth-ux · idb22 · intro-বুটশেল(হালনাগাদ) · nosplash ·
+  p08-ac3 **২৩** · phase23-13 · phase4-16 · phase5-37 · session — মার্জ-পরবর্তী ট্রিতেও।
+- **CI:** `7ad06e9`-তে ৫/৫ check (build · guard · deploy · deploy-pages · report) success।
+- **লাইভ:** https://admissionhub.pages.dev = **v190-ac3-fix-20260906** ✓ · github.io backup = same ✓ ·
+  Worker admission-gk fad9693b (v189-cloud-sync, অপরিবর্তিত)।
+- **মালিক-পক্ষে বাকি:** (১) GCP Authorized JS origins → https://admissionhub.pages.dev (একবার;
+  docs/GOOGLE-LOGIN-MANUAL-GUIDE.md) (২) AC3-ব্যবহার-পরীক্ষা (টাইমার-শেষ অটো-সাবমিট) → APPROVE।
+- **পরে (মালিক-সিদ্ধান্তে):** P08-AC1/AC2-ভেরিফাই → P10 Mistakes → P12 Vocabulary → P19-SEO → P14 Security।
+- **নোট:** GitHub-টোকেন সেশন-ভিত্তিক (যা মালিক দেন); .git/config স্ন্যাপশট-বহির্ভূত — প্রতি-সেশনে
+  remote+auth পুনঃসেট করতে হয়। রিপো-তে কোনো সিক্রেট নেই।
