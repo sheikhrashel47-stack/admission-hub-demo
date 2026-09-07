@@ -8,9 +8,9 @@ const V2 = readFileSync('dashboard-v2.js', 'utf8');
 const CSS = readFileSync('dashboard-v2.css', 'utf8');
 
 /* ১ — ফাইল-লোড + ক্যাশ-কী */
-t('dashboard-v2.js defer-লোড (?v=dash2)', H.includes('<script defer src="./dashboard-v2.js?v=dash2f3"></script>'));
+t('dashboard-v2.js defer-লোড (?v=dash2)', H.includes('<script defer src="./dashboard-v2.js?v=dash2f4"></script>'));
 t('dashboard-v2.css link (?v=dash2)', H.includes('<link rel="stylesheet" href="./dashboard-v2.css?v=dash2">'));
-t('sw APP_SHELL-এ dashboard-v2 (js+css)', SW.includes("'./dashboard-v2.js?v=dash2f3'") && SW.includes("'./dashboard-v2.css?v=dash2'"));
+t('sw APP_SHELL-এ dashboard-v2 (js+css)', SW.includes("'./dashboard-v2.js?v=dash2f4'") && SW.includes("'./dashboard-v2.css?v=dash2'"));
 t('sw BUILD_ID v204-gfix-20260907', SW.includes("const BUILD_ID = 'v204-gfix-20260907'"));
 t('index sw-marker v195', H.includes('sw.js?v=v204-gfix-20260907'));
 
@@ -26,7 +26,7 @@ t('৮ Performance Graph (SVG লাইন-চার্ট + ৭-দিন)', V2
 t('৯ Weakness Radar (Topic-wise Accuracy + রঙিন বার)', V2.includes('Your Weakness Radar') && V2.includes('Topic-wise Accuracy') && V2.includes('topicWeak'));
 t('১০ Admission Goal (বিশ্ববিদ্যালয় + Days Left + ⚙-বদল)', V2.includes('Admission Goal') && V2.includes('Days Left') && V2.includes('dv2EditGoal') && V2.includes('Rajshahi University'));
 t('১১ 90-Day Roadmap (Day X/90 + checklist + Full Plan)', V2.includes('90-Day Roadmap') && V2.includes('Day ') && V2.includes('Study Checklist') && V2.includes('progress/plan'));
-t('১২ Study Tools (Notes/Problem Solver/Dictionary/More)', V2.includes('Study Tools') && V2.includes('Problem Solver') && V2.includes('Notes') && V2.includes('notes'));
+t('১২ Study Tools (Notes/Vocabulary/Problem Solver/Dictionary/More)', V2.includes('Study Tools') && V2.includes('Problem Solver') && V2.includes('Notes') && V2.includes("navigate(\\'notes\\')") && V2.includes("navigate(\\'vocabulary-master\\')"));
 t('১৩ Bottom Nav ৫-ট্যাব (Home/Bank/Exam/History/Profile — Admission AI ট্যাব বাদ, মালিক-নির্দেশ ২০২৬-০৯-০৭)', /NAV_TABS=.*key:'dashboard'.*key:'question-bank'.*key:'exam'.*key:'history'.*key:'profile'/s.test(H) && !H.includes("key:'ai-chat'") && !H.includes("label:'Admission AI'"));
 t('১৪ baseTab: ai-chat → কোনো-ট্যাব-হাইলাইট নয়; রুট-অক্ষত (renderAIChat + web-chat-wrap + More→ai-chat)', H.includes("if(path.startsWith('ai-chat')) return '';") && H.includes('renderAIChat') && H.includes('renderWebChatRebuild') && (/navigate\('ai-chat'\)/.test(H) || (typeof V2 !== 'undefined' && /navigate\('ai-chat'\)/.test(String(V2)))));
 t('পুরনো-ড্যাশ-সম্পূর্ণ-বিলুপ্ত (মালিক-নির্দেশ ২০২৬-০৯-০৭): renderV2-এ previous()/intel-ক্যাপচার-নেই + dv2Cleanup-পরিচ্ছন্নতা', !V2.includes('data-dv2-phase5') && !V2.includes('intel = el.outerHTML') && V2.includes('function dv2Cleanup') && V2.includes('[data-phase5-dashboard],[data-phase34-dashboard]') && !/previous\(\);[\s\S]{0,300}data-phase5-dashboard/.test(V2));
@@ -43,7 +43,7 @@ t('insightText: নিয়ম-ভিত্তিক (weak topic + streak-উ�
 t('renderDashboard override: path-গার্ড + previous-ডেলিগেট', /if \(path !== 'dashboard'\) \{ if \(typeof previous === 'function'\) return previous\.apply/.test(V2));
 t('renderShell-রেন্ডার + no-renderShell-ফলব্যাক', V2.includes("typeof window.renderShell === 'function'") && V2.includes('renderShell(html'));
 t('__dashboardV2Installed গার্ড (দ্বিগুণ-ইনস্টল নয়)', V2.includes('window.__dashboardV2Installed'));
-t('dv2AllTools: পুরনো ১১+ টুল No-loss (Bank/Mock/Progress/Settings…)', V2.includes("navigate('question-bank')") && V2.includes("navigate('progress')") && V2.includes("navigate('settings')") && V2.includes("navigate('vocabulary')"));
+t('dv2AllTools: পুরনো ১১+ টুল No-loss (Bank/Mock/Progress/Settings…)', V2.includes("navigate('question-bank')") && V2.includes("navigate('progress')") && V2.includes("navigate('settings')") && V2.includes("navigate('vocabulary-master')"));
 
 /* ৫ — রিগ্রেশন লক (অর্থাৎ আগের পোস্টার-কি অক্ষত) */
 t('p3-auth-* query: index↔sw মিল (auth-lock D1)', new Set(H.match(/p3-auth-[a-z]*-v[0-9]+/g)).size === new Set(SW.match(/p3-auth-[a-z]*-v[0-9]+/g)).size && H.includes('p3-auth-guest-v201') && SW.includes('p3-auth-guest-v201'));
