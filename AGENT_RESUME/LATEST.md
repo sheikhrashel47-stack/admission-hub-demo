@@ -1,4 +1,6 @@
-# LATEST — v199 (P15) PUSHED+VERIFIED ✅
-- commit `3be085f`; CI ৩/৩ success; **লাইভ-প্রুব**: GET pages.dev/api/auth/config → worker-JSON (same-origin প্রক্সি ডিপ্লয়+কাজরত), POST otp/send → worker-এর বৈধ-প্রতিক্রিয়া; sw v199 + premium-auth?v=p3-auth-guest-v199 দুই-হোস্ট।
-- P15: Pages Advanced-Mode _worker.js + ক্লায়েন্ট same-origin (auth/sync/AI); p15 ১৫/১৫; স্যুট ২০/২০।
-- বাকি: মালিক-ফোন-ভেরিফাই (অ্যাপ বন্ধ→খোলা→ইমেইল-OTP/Google) → APPROVE। github.io-মিররে /api-404 হলে canonical-ফলব্যাক (কোনো রিগ্রেশন নেই) — মূল-হোস্ট pages.dev।
+# LATEST — v200 (P16: দ্বৈত-ড্যাশবোর্ড-ফিক্স) — push-বাকি
+- মালিক 😡: "একসাথে ২ ড্যাশবোর্ড — পুরোনোটা সম্পূর্ণ ডিলিট করো"।
+- কারণ: renderV2-র previous() (phase5-intel-নিতে) পুরনো renderDashboard-র্যাপার-চেইন-চালাত → পুরনো-ড্যাশ DOM-এ (অর্ডার: পুরনো-উপরে, নতুন-নিচে)।
+- ফিক্স: renderV2-এ previous()/intel সম্পূর্ণ-বাদ + dv2Cleanup (একাধিক .page→শুধু-dv2; পুরনো-মার্কার-শূন্য); ?v=dash2f3; sw v200-gfix-20260907।
+- টেস্ট: p16 ৭/৭ (২ রানটাইম-দ্বৈত-সিনারিও) + p11 ৩৫/৩৫ + স্যুট ২১/২১ সবুজ।
+- বাকি: push→CI→live-প্রুব→মালিক-ফোন-ভেরিফাই (এক-ড্যাশবোর্ড) → APPROVE।

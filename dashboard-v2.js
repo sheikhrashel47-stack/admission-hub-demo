@@ -292,23 +292,35 @@
     return renderV2();
   };
   function renderV2() {
-    let intel = '';
-    try {
-      if (typeof previous === 'function') { previous(); const el = document.querySelector('#app [data-phase5-dashboard]'); if (el) intel = el.outerHTML; }
-    } catch (_) {}
+    /* 😡 মালিক-নির্দেশ 2026-09-07: "পুরোনো ড্যাশবোর্ড সম্পূর্ণ ডিলিট করো" —
+       আগের-কোড এখানে previous() চালিয়ে phase5-intel-নিত, আর পুরনো renderDashboard-চেইন
+       (study-hub/vocab/greeting/phase345-র্যাপর-সহ) সেই-রেন্ডারে পুরনো-ড্যাশবোর্ড DOM-এ ফেলে দিত
+       → দুটো ড্যাশবোর্ড। এখন: পুরনো-চেইন কখনোই চালানো হয় না। */
     let html;
     try { html = build(); }
     catch (e) {
-      /* চূড়ান্ত-নিরাপত্তা: dv2-এর যেকোনো ভুলে পুরনো ড্যাশবোর্ড — অ্যাপ কখনো "Something went wrong"-এ পড়ে না */
+      /* চূড়ান্ত-নিরাপত্তা: dv2-র যেকোনো ভুলে পুরনো ড্যাশবোর্ড — অ্যাপ কখনো "Something went wrong"-এ পড়ে না */
       console.warn('[dv2] build পতন — পুরনো ড্যাশবোর্ডে ফলব্যাক', e);
       try { if (typeof previous === 'function') previous(); } catch (_) {}
+      dv2Cleanup();
       return undefined;
     }
     if (typeof window.renderShell === 'function') window.renderShell(html, { title: 'Dashboard', topbar: false });
     else { const app = document.getElementById('app'); if (app) app.innerHTML = '<main class="page">' + html + '</main>'; }
-    if (intel) {
-      const page = document.querySelector('#app .page') || document.getElementById('app');
-      if (page && !page.querySelector('[data-dv2-phase5]')) page.insertAdjacentHTML('beforeend', '<section data-dv2-phase5 style="margin-top:14px">' + intel + '</section>');
-    }
+    dv2Cleanup();
+    return undefined;
   }
-})();
+
+  /* পুরনো-চেইনের সম্ভব্য-অবশিষ্ট-পরিচ্ছন্নতা: একাধিক .page / পুরনো-ড্যাশ-মার্কর → কেবল dv2-পেজ */
+  function dv2Cleanup() {
+    try {
+      const app = document.getElementById('app');
+      if (!app) return;
+      const pages = Array.from(app.querySelectorAll('.page'));
+      if (pages.length > 1) {
+        const keep = pages.filter((p) => p.querySelector('.dv2-root')).pop() || pages[pages.length - 1];
+        pages.forEach((p) => { if (p !== keep) p.remove(); });
+      }
+      app.querySelectorAll('[data-phase5-dashboard],[data-phase34-dashboard],[data-dashboard-comparison],[data-phase5-quicklinks],.daily-gk-teaser,.p3-dashboard-v3,.dashboard-v2,.p3-dashboard').forEach((n) => n.remove());
+    } catch (_) {}
+  }})();
