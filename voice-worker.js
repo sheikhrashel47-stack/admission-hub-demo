@@ -28,7 +28,10 @@ const rateBuckets = new Map(); // per-isolate best effort (KV ছাড়াই
 
 const corsHeaders = request => {
   const origin = request.headers.get('Origin') || '';
+  /* P20 (v204): pages.dev-ও-অনুমোদিত — আগে ছিল শুধু github.io+localhost, তাই pages.dev-পেজ থেকে
+     সরাসরি-ডাক CORS-এ আটকাত। (অ্যাপ-এখন same-origin-প্রক্সি-ব্যবহার-করে; তবু-allowlist-অসম্পূর্ণ-ছিল।) */
   const ok = /^https:\/\/([a-z0-9-]+\.)?github\.io$/.test(origin)
+    || /^https:\/\/([a-z0-9-]+\.)?pages\.dev$/.test(origin)
     || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
   const headers = {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',

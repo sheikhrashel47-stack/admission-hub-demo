@@ -8,15 +8,17 @@
    নিরাপত্তা: কোনো টোকেন/সিক্রেট নেই; শুধু প্রক্সি + static-পরিসেবা।
    ============================================================ */
 const ORIGIN = 'https://admission-gk.admissionhub.workers.dev';
+const VOICE_ORIGIN = 'https://admission-voice.admissionhub.workers.dev'; /* P20: vocabulary-voice অডিও — same-origin পথ (মালিক-নেট workers.dev-ব্লক + CORS-মুক্ত) */
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    /* ── API প্রক্সি: same-origin /api/* → মূল worker ── */
+    /* ── API প্রক্সি: same-origin /api/* → মূল worker (P20: /api/voice* → voice-worker) ── */
     if (url.pathname.startsWith('/api/')) {
       try {
-        const target = new URL(ORIGIN + url.pathname + url.search);
+        const base = url.pathname.startsWith('/api/voice') ? VOICE_ORIGIN : ORIGIN;
+        const target = new URL(base + url.pathname + url.search);
         const headers = new Headers(request.headers);
         headers.delete('host');
         headers.set('x-ah-pages-proxy', '1');

@@ -35,8 +35,8 @@ t('১৪. dashboard-v2 টুল-গ্রিডে Admission AI অক্ষ�
 
 /* ৫ — ভার্সন-অখণ্ডতা: premium-auth v196 + sw v196 (স্টেল-ক্যাশ নিষিদ্ধ) */
 t('১৫. premium-auth js/css ?v=p3-auth-guest-v196 (index+sw APP_SHELL)', H.includes("premium-auth.js?v=p3-auth-guest-v201") && H.includes("premium-auth.css?v=p3-auth-guest-v196") && SW.includes("'./premium-auth.js?v=p3-auth-guest-v201'") && SW.includes("'./premium-auth.css?v=p3-auth-guest-v196'"));
-t('১৬. sw BUILD_ID v203-gfix-20260907 (index-marker + sw.js)', SW.includes("const BUILD_ID = 'v203-gfix-20260907'") && H.includes('sw.js?v=v203-gfix-20260907'));
-t('১৭. SW-ব্লক expectedSwVersion/cur = v196 (মৃত v179-হার্ডকোড বাদ)', H.includes("const expectedSwVersion = 'v203-gfix-20260907'") && H.includes("const cur = 'admission-hub-shell-v203-gfix-20260907'") && !H.includes('v179-aiengine-20260903'));
+t('১৬. sw BUILD_ID v204-gfix-20260907 (index-marker + sw.js)', SW.includes("const BUILD_ID = 'v204-gfix-20260907'") && H.includes('sw.js?v=v204-gfix-20260907'));
+t('১৭. SW-ব্লক expectedSwVersion/cur = v196 (মৃত v179-হার্ডকোড বাদ)', H.includes("const expectedSwVersion = 'v204-gfix-20260907'") && H.includes("const cur = 'admission-hub-shell-v204-gfix-20260907'") && !H.includes('v179-aiengine-20260903'));
 
 console.log(`\nP12-LOGIN-GRACE: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

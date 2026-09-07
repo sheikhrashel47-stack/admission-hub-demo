@@ -44,19 +44,28 @@
   const delRow = key => dbReady() ? Promise.resolve(dbDelRaw('voiceCache', key)).catch(() => false) : (mem.delete(key), Promise.resolve(true));
 
   // ── Secure endpoint (worker URL — secret নয়, key নয়) ────────────────────────
-  const DEFAULT_ENDPOINT = 'https://admission-voice.admissionhub.workers.dev';
+  /* P20 (v204) — ডিফল্ট এখন same-origin: pages._worker.js /api/voice → admission-voice worker।
+     কেন: ① মালিক-নেটে *.workers.dev ব্লক (P15-প্রমাণ); ② voice-worker-এর CORS-allowlist-এ pages.dev ছিল না
+     (শুধু github.io/localhost) → সরাসরি-ডাকে ব্রাউজার "Failed to fetch"; ③ hub-অ্যাপের পুরনো
+     এন্ডপয়েন্ট-মৃত (DNS-নেই); ④ পাইরেট-কপিতে অন্য-এন্ডপয়েন্ট-সেভ-থাকতে-পারে। same-origin-পথে সব পার। */
+  const DEFAULT_ENDPOINT = ''; /* '' = same-origin (/api/voice) — পছন্দের পথ */
   let proxyUrl = DEFAULT_ENDPOINT;
+  let voiceOff = false;
   try {
-    const saved = String(localStorage.getItem(LS_ENDPOINT) || '').trim();
-    proxyUrl = saved === 'off' ? '' : (saved || DEFAULT_ENDPOINT);
+    let saved = String(localStorage.getItem(LS_ENDPOINT) || '').trim();
+    if (saved && saved.includes('.workers.dev')) saved = ''; /* মাইগ্রেশন: পুরনো workers.dev → same-origin */
+    voiceOff = saved === 'off';
+    proxyUrl = saved === '' ? DEFAULT_ENDPOINT : saved;
+    try { if (saved === '' && localStorage.getItem(LS_ENDPOINT)) localStorage.removeItem(LS_ENDPOINT); } catch (_) {}
   } catch (_) {}
   const saveEndpoint = url => {
     const value = String(url || '').trim().replace(/\/+$/, '');
-    proxyUrl = value === 'off' ? '' : (value || DEFAULT_ENDPOINT);
+    voiceOff = value === 'off';
+    proxyUrl = value === '' ? DEFAULT_ENDPOINT : value;
     try { localStorage.setItem(LS_ENDPOINT, value); } catch (_) {}
     return proxyUrl;
   };
-  const configured = () => !!proxyUrl;
+  const configured = () => !voiceOff;
 
   // ── Duplicate-request protection + global audio manager ─────────────────────
   const pending = new Map();   // cacheKey → in-flight generate promise
@@ -174,10 +183,12 @@
       btnState(btn, 'ok');
       window.toast?.('✓ Voice saved — এখন অফলাইনেও বাজবে');
       return done('generated', word, 1);
-    } catch (_) {
+    } catch (err) {
       cooldown.set(key, Date.now() + VOICE_CONFIG.errorCooldownMs);
       btnState(btn, 'error');
-      window.toast?.('⚠ Voice generate হয়নি — বিল্ট-ইন voice চলছে');
+      const why = String((err && err.message) || '').slice(0, 90);
+      window.__lastVoiceError = why || 'unknown';
+      window.toast?.('⚠ Voice হয়নি (' + (why || 'অজানা') + ') — বিল্ট-ইন voice চলছে');
       return fallbackTts(word, btn, 'error');
     } finally { pending.delete(key); }
   };
@@ -247,7 +258,8 @@
       const status = await categoryStatus(category);
       if (status.total) statusLine = `<br>${escape(String(category || 'ALL'))} category: Total <b>${status.total}</b> · Voice Ready <b>${status.ready}</b> · Not generated <b>${status.missing}</b>`;
     } catch (_) {}
-    box.innerHTML = `Endpoint: <code style="font-size:11px">${escape(proxyUrl || 'সেট করা হয়নি')}</code><br>Saved voices: <b>${summary.count}</b> · Storage: <b>${fmtBytes(summary.bytes)}</b>${statusLine}${!proxyUrl ? '<br>⚠ Endpoint ছাড়া নতুন voice generate হবে না — cached ও বিল্ট-ইন voice চলবে।' : ''}`;
+    const endpointLabel = voiceOff ? 'বন্ধ (off)' : (proxyUrl ? escape(proxyUrl) : 'same-origin (অ্যাপ-প্রক্সি) — ডিফল্ট');
+    box.innerHTML = `Endpoint: <code style="font-size:11px">${endpointLabel}</code><br>Saved voices: <b>${summary.count}</b> · Storage: <b>${fmtBytes(summary.bytes)}</b>${statusLine}${voiceOff ? '<br>⚠ Voice generation বন্ধ আছে — cached ও বিল্ট-ইন voice চলবে।' : ''}`;
     const input = document.getElementById('vmVoiceEndpoint');
     if (input && proxyUrl && !input.value) input.value = proxyUrl;
   };
