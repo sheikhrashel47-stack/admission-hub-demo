@@ -1,5 +1,4 @@
-# LATEST — v198 (P14: লগইন-প্রবেশ-দৃশ্যমানতা)
-- মালিক-রিপোর্ট (০৯-০৭): Google-লগইন হচ্ছে কিন্তু অ্যাপে কিছু বদলায় না — কারণ: প্রবেশ-পথের ত্রুটি নীরব + enterApp নেটওয়ার্ক-সিঙ্কের অপেক্ষায় UI-আটক।
-- ফিক্স (premium-auth.js, শুধু ক্লায়েন্ট): syncAuthUI (সিঙ্ক্রোনাস-প্রবেশ, enterApp-এর প্রথম-লাইন) + showAuthErr (ahErr+টোস্ট) + গুগল-৬০সে-ওয়াচডগ + afterAuth-গার্ড + goGoogle-pendingRoute + ✅-টোস্ট + মৃত-দ্বৈত-enterApp-বিলুপ্ত; premium-auth ?v=v198; sw v198-gfix-20260907।
-- টেস্ট: p14 ১২/১২ (২ রানটাইম-jsdom: প্রম্পট→Google→প্রবেশ; বাতিল→টোস্ট) + স্যুট ১৯/১৯ সবুজ।
-- বাকি: push→CI→live-ভেরিফাই→মালিক-ফোন-ভেরিফাই→APPROVE।
+# LATEST — v198 (P14) PUSHED+VERIFIED
+- commit `ec759e7`; CI ৩/৩ (Guard+Deploy-CF+pages-build); লাইভ দুই-হোস্ট: sw v198-gfix-20260907 + premium-auth.js?v=p3-auth-guest-v198 (ফাইল-ভেতরে syncAuthUI/showAuthErr/watchdog-সার্ভিং) + dv2 dash2f1।
+- P14: লগইন-প্রবেশ-দৃশ্যমানতা — syncAuthUI (সিঙ্ক্রোনাস), showAuthErr (টোস্ট), ৬০সে-গুগল-ওয়াচডগ, afterAuth-গার্ড, pendingRoute-ফেরা, ✅-টোস্ট; p14 ১২/১২ (২ রানটাইম-jsdom); স্যুট ১৯/১৯।
+- বাকি: মালিক-ফোন-ভেরিফাই → APPROVE। সতর্কতা: পপআপ-নতুন-ট্যাবে খুললে এখনও ব্যাখ্যামূলক-টোস্ট দেবে; যদি Google-তবু না-কাজ করে তাহলে ইমেইল-OTP-পথ (লাইভ-প্রমাণিত) — মালিককে বলা।
