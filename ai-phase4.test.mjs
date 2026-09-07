@@ -57,8 +57,8 @@ t('১৬চ. SYS-নাম-নিয়ম: নাম থাকলে ডাক
 t('১৭. Study AI → server-first (AH_AI.ask) + chat owner-স্কোপ (স্পেক ১৩)', sai.includes('window.AH_AI') && sai.includes('ownerOf()') && sai.includes("(c.owner || '') === ownerOf()"));
 t('১৮. Study AI ছবি → server-first; client-পথ শুধু fallback', sai.includes('window.AH_AI.askImage') && sai.includes('const gk = keyList'));
 t('১৯. AI Explain → server-first + question-aware (refs.questionId)', aie.includes('window.AH_AI') && aie.includes("refs: { questionId: qid }"));
-t('২০. index.html-এ gateway লোড + v179 markers + AI টুল নতুন ভার্সন',
-  idx.includes('ah-ai-client.js?v=ahai-v3') && idx.includes('v179-aiengine-20260903') && idx.includes('studyai-v136-browser') && idx.includes('aiex-v4-ph4'));
+t('২০. index.html-এ gateway লোড + v196 markers + AI টুল নতুন ভার্সন',
+  idx.includes('ah-ai-client.js?v=ahai-v3') && idx.includes('v196-gfix-20260907') && idx.includes('studyai-v136-browser') && idx.includes('aiex-v4-ph4'));
 
 /* ── RUNTIME: gateway-র আচরণ (jsdom) ── */
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/' });

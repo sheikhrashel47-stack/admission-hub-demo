@@ -92,6 +92,12 @@
     };
     write(LS_TOKEN, tok || '');
     write(LS_USER, u ? JSON.stringify(u) : '');
+    if (tok) {
+      /* লগইন-এইমাত্র-মার্কার: boot-এর প্রথম /auth/me KV-রিপ্লিকেশন-বিলম্বে ৪০১ দিলেও
+         সেশন মুছে ফেলা হবে না (গ্রেস-উইন্ডো ৩ মিনিট) — মালিক-রিপোর্ট: \"Google/OTP ঠিক আছে কিন্তু অ্যাপ লগইন হচ্ছে না\" */
+      try { sessionStorage.setItem('ahJustAuthed', String(Date.now())); } catch (_) {}
+      window.__ahJustAuthed = Date.now();
+    }
   };
   const authed = () => !!token();
   const authH = () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() });
@@ -2317,16 +2323,47 @@
       try {
         /* KV-রিপ্লিকেশন-সহন: লগইন-পর প্রথম me ৪০১ দিলেও রিট্রাই (৪×backoff) — সেশন ভুলে গেস্টে ফেলা না */
         let me = null, meErr = null;
-        for (let att = 0; att < 4; att++) {
+        const fresh = (() => {
+          try {
+            const w = Number(window.__ahJustAuthed || 0);
+            const s = Number(sessionStorage.getItem('ahJustAuthed') || 0);
+            const at = Math.max(w, s);
+            return !!at && (Date.now() - at) < 180000; /* লগইন-পর ৩ মিনিটের গ্রেস-উইন্ডো */
+          } catch (_) { return false; }
+        })();
+        /* লগইন-এইমাত্র হলে ৪০১-ও সহনীয়: KV-রিপ্লিকেশন সর্বোচ্চ ~৬০সে লাগতে পারে (প্রমাণ: Cloudflare KV eventual consistency) —
+           এই ৪০১ মানে সেশন-মৃত্যু নয়, শুধু অন্য PoP-এ টোকেন পৌঁছায়নি। সেশন রাখা বাধ্যতামূলক (মালিক-রিপোর্ট:
+           \"Google/OTP ঠিক আছে কিন্তু অ্যাপ লগইন হচ্ছে না\" — কারণই এই রেস)। ৩০সে-পর আবার যাচাই হবে। */
+        for (let att = 0; att < (fresh ? 9 : 4); att++) {
           try { me = await api('/auth/me', { headers: authH() }); break; }
-          catch (e) { meErr = e; await new Promise((r) => setTimeout(r, 700 * (att + 1))); }
+          catch (e) { meErr = e; await new Promise((r) => setTimeout(r, (fresh ? 800 : 700) * (att + 1))); }
         }
-        if (!me) throw (meErr || new Error('http-401'));
-        if (me.user && (me.user.status === 'disabled' || me.user.status === 'suspended')) {
-          setSession('', null); setGate(true); go('login'); return;
+        if (!me && !fresh) throw (meErr || new Error('http-401'));
+        if (me) {
+          if (me.user && (me.user.status === 'disabled' || me.user.status === 'suspended')) {
+            setSession('', null); setGate(true); go('login'); return;
+          }
+          if (me.user) setSession(token(), me.user);
+          /* যাচাই-সফল: গ্রেস-মার্কার শেষ */
+          try { sessionStorage.removeItem('ahJustAuthed'); } catch (_) {}
+          window.__ahJustAuthed = 0;
+        } else {
+          /* fresh + ৪০১ → সেশন রাখো; KV-পৌঁছালে ব্যাকগ্রাউন্ডে আবার যাচাই (সফল হলে ইউজার-রিফ্রেশ) */
+          setGate(false);
+          try {
+            if (window.__ahMeRetry) clearTimeout(window.__ahMeRetry);
+            window.__ahMeRetry = setTimeout(async () => {
+              try {
+                const m2 = await api('/auth/me', { headers: authH() });
+                if (m2 && m2.user) setSession(token(), m2.user);
+                if (m2 && m2.user && (m2.user.status === 'disabled' || m2.user.status === 'suspended')) {
+                  setSession('', null); setGate(true); go('login');
+                }
+              } catch (_) {}
+            }, 30000);
+          } catch (_) {}
         }
-        if (me.user) setSession(token(), me.user);
-        setGate(false);
+        setGate(false); /* যেকোনো-পথে (me-সফল বা fresh-গ্রেস) গেট বন্ধ — সেশন রাখা হয়েছে */
         await pullState();
         if (window.AdmissionCloudContent) AdmissionCloudContent.pull().catch(() => {});
         if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {

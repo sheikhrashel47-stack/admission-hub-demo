@@ -11,8 +11,8 @@ const CSS = readFileSync('dashboard-v2.css', 'utf8');
 t('dashboard-v2.js defer-লোড (?v=dash2)', H.includes('<script defer src="./dashboard-v2.js?v=dash2"></script>'));
 t('dashboard-v2.css link (?v=dash2)', H.includes('<link rel="stylesheet" href="./dashboard-v2.css?v=dash2">'));
 t('sw APP_SHELL-এ dashboard-v2 (js+css)', SW.includes("'./dashboard-v2.js?v=dash2'") && SW.includes("'./dashboard-v2.css?v=dash2'"));
-t('sw BUILD_ID v195-gfix-20260906', SW.includes("const BUILD_ID = 'v195-gfix-20260906'"));
-t('index sw-marker v195', H.includes('sw.js?v=v195-gfix-20260906'));
+t('sw BUILD_ID v196-gfix-20260907', SW.includes("const BUILD_ID = 'v196-gfix-20260907'"));
+t('index sw-marker v195', H.includes('sw.js?v=v196-gfix-20260907'));
 
 /* ২ — ১৪ মডিউল (ছবির প্রতিটি সেকশন) */
 t('১ Personal Header (avatar+তারিখ+🔔)', V2.includes('dv2-header') && V2.includes('Intl.DateTimeFormat') && V2.includes('dv2-bell'));
@@ -27,8 +27,8 @@ t('৯ Weakness Radar (Topic-wise Accuracy + রঙিন বার)', V2.includ
 t('১০ Admission Goal (বিশ্ববিদ্যালয় + Days Left + ⚙-বদল)', V2.includes('Admission Goal') && V2.includes('Days Left') && V2.includes('dv2EditGoal') && V2.includes('Rajshahi University'));
 t('১১ 90-Day Roadmap (Day X/90 + checklist + Full Plan)', V2.includes('90-Day Roadmap') && V2.includes('Day ') && V2.includes('Study Checklist') && V2.includes('progress/plan'));
 t('১২ Study Tools (Notes/Problem Solver/Dictionary/More)', V2.includes('Study Tools') && V2.includes('Problem Solver') && V2.includes('Notes') && V2.includes('notes'));
-t('১৩ Bottom Nav ৬-ট্যাব (Home/Bank/Exam/Admission AI/History/Profile)', /NAV_TABS=.*key:'dashboard'.*key:'question-bank'.*key:'exam'.*key:'ai-chat'.*key:'history'.*key:'profile'/s.test(H) && H.includes("label:'Admission AI'"));
-t('১৪ baseTab: ai-chat → ai-chat (হাইলাইট-অ্যাক্টিভ)', H.includes("if(path.startsWith('ai-chat')) return 'ai-chat';"));
+t('১৩ Bottom Nav ৫-ট্যাব (Home/Bank/Exam/History/Profile — Admission AI ট্যাব বাদ, মালিক-নির্দেশ ২০২৬-০৯-০৭)', /NAV_TABS=.*key:'dashboard'.*key:'question-bank'.*key:'exam'.*key:'history'.*key:'profile'/s.test(H) && !H.includes("key:'ai-chat'") && !H.includes("label:'Admission AI'"));
+t('১৪ baseTab: ai-chat → কোনো-ট্যাব-হাইলাইট নয়; রুট-অক্ষত (renderAIChat + web-chat-wrap + More→ai-chat)', H.includes("if(path.startsWith('ai-chat')) return '';") && H.includes('renderAIChat') && H.includes('renderWebChatRebuild') && H.includes("'More','ai-chat'"));
 t('দৃশ্য-সংরক্ষণ: phase5 Daily Intelligence (data-phase5 + data-dv2-phase5)', V2.includes('[data-phase5-dashboard]') && V2.includes('[data-dv2-phase5]'));
 
 /* ৩ — ডেটা-সততা: CACHE-ভিত্তিক, কোনো ফেক সংখ্যা নয় */
@@ -46,7 +46,7 @@ t('__dashboardV2Installed গার্ড (দ্বিগুণ-ইনস্ট
 t('dv2AllTools: পুরনো ১১+ টুল No-loss (Bank/Mock/Progress/Settings…)', V2.includes("navigate('question-bank')") && V2.includes("navigate('progress')") && V2.includes("navigate('settings')") && V2.includes("navigate('vocabulary')"));
 
 /* ৫ — রিগ্রেশন লক (অর্থাৎ আগের পোস্টার-কি অক্ষত) */
-t('p3-auth-* query: index↔sw মিল (auth-lock D1)', new Set(H.match(/p3-auth-[a-z]*-v[0-9]+/g)).size === new Set(SW.match(/p3-auth-[a-z]*-v[0-9]+/g)).size && H.includes('p3-auth-guest-v193') && SW.includes('p3-auth-guest-v193'));
+t('p3-auth-* query: index↔sw মিল (auth-lock D1)', new Set(H.match(/p3-auth-[a-z]*-v[0-9]+/g)).size === new Set(SW.match(/p3-auth-[a-z]*-v[0-9]+/g)).size && H.includes('p3-auth-guest-v196') && SW.includes('p3-auth-guest-v196'));
 t('performance-hardening.js?v=2 (index↔sw)', H.includes('performance-hardening.js?v=2') && SW.includes("'./performance-hardening.js?v=2'"));
 
 /* ৬ — CSS-শৈলী-উপস্থিতি */
