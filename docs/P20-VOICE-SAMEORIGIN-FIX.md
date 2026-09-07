@@ -34,3 +34,9 @@
 - ভয়েস-ফ্লো: 🔊 ক্লিক → (অ্যাপ-প্রক্সির-পথে-পেজ-থেকে) ElevenLabs-অডিও → **একবারই**-নামে → IndexedDB-তে-ব্লব-সেভ → পরের-ক্লিকে-নেট-দরকার-নেই → **অফলাইনেও-বাজে** (টোস্ট: "✓ Voice saved — এখন অফলাইনেও বাজবে")।
 - আগে-কেন-হত-না: দুটি-পথ-বন্ধ-ছিল (CORS + পুরনো-মৃত-এন্ডপয়েন্ট) — দুটোই-এখন-বন্ধ-না-করে-সোজা-খোলা।
 - ফোনে-২-বার-রিফ্রেশের-পরে-ভোকাব-কার্ড-থেকে-পরীক্ষা।
+
+## P20-final — admission-hub-এও-কাজ-করানো (২০২৬-০৯-০৭)
+- মালিক-স্পষ্ট: "admission-hub-এ-বলে-voice-কাজ-করে-না" — hub-অ্যাপ-লাইভ `https://sheikhrashel47-stack.github.io/admission-hub/` (রুট-github.io-নয়! আগে-রুট-চেক-করে-ভুল-হয়েছিল)।
+- hub GitHub-Pages-স্ট্যাটিক → নিজে-workers.dev-ডাকতে-পারে-না; তা-ছাড়া-অ্যাপ-নেটে-workers.dev-ব্লক। তাই-hub-ভয়েস-ডিফল্ট → `https://admissionhub.pages.dev` (নেটে-খোলে + তার-Pages-Worker `/api/voice` → voice-worker; CORS-অ্যালো-লিস্ট-এ-github.io/pages.dev-দুই-ই)।
+- **লাইভ-প্রুব-চেইন (হুবহু-ব্রাউজার-পথ):** OPTIONS-204-সহ-`ACAO: https://sheikhrashel47-stack.github.io` → POST-200-`audio/mpeg`-আসল-MP3।
+- hub-কমিট: `c4707f8` (voice) + `4d05e5b` (public-worker-parity); hub-টেস্ট `voice-endpoint.test.mjs` ৪/৪; demo-স্যুট-২৪-ফাইল-০-ব্যর্থ।

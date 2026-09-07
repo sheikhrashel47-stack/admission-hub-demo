@@ -22,7 +22,7 @@ t('১. _worker.js: /api/voice → voice-worker (এবং /api/* → মূল-
 t('২. ক্লায়েন্ট-ডিফল্ট same-origin ("" → /api/voice) + voiceOff-পৃথক', VE.includes("const DEFAULT_ENDPOINT = '';") && VE.includes('fetch(proxyUrl + \'/api/voice\',') && VE.includes('const configured = () => !voiceOff;'));
 t('৩. মাইগ্রেশন: পুরনো workers.dev সেভ-ভ্যালু → same-origin', VE.includes("if (saved && saved.includes('.workers.dev')) saved = '';"));
 t('৪. voice-worker-allowlist-এ pages.dev (CORS-ফাঁক-বন্ধ)', VW.includes("pages\\.dev$/.test(origin)") && VW.includes('P20 (v204)'));
-t('৫. hub-অ্যাপ: লাইভ admissionhub-voice-worker-ডিফল্ট + .workers.dev-মাইগ্রেশন', HUB.includes("const DEFAULT_ENDPOINT = 'https://admission-voice.admissionhub.workers.dev'") && HUB.includes("saved.includes('.workers.dev')") && !HUB.includes('rashelzayan213'));
+t('৫. hub-অ্যাপ: ডিফল্ট-এন্ডপয়েন্ট = pages.dev-প্রক্সি (github.io-স্ট্যাটিক-হওয়ায়-এটাই-সঠিক-পথ) + .workers.dev-সেভ-মাইগ্রেশন', HUB.includes("const DEFAULT_LIVE = 'https://admissionhub.pages.dev'") && HUB.includes("proxyUrl.includes('.workers.dev')") && !HUB.includes('rashelzayan213'));
 
 /* ── ২. ভার্সন-অখণ্ডতা v204 ── */
 t('৬. el-voice-v106 (index+sw) + BUILD_ID v204-gfix-20260907 (সব-মার্কার)', H.includes('vocabulary-elevenlabs.js?v=el-voice-v106') && SW.includes("'./vocabulary-elevenlabs.js?v=el-voice-v106'") && SW.includes("const BUILD_ID = 'v204-gfix-20260907'") && H.includes('sw.js?v=v204-gfix-20260907') && H.includes("const expectedSwVersion = 'v204-gfix-20260907'") && H.includes("const cur = 'admission-hub-shell-v204-gfix-20260907'"));
