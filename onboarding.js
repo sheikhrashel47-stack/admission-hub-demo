@@ -10,7 +10,8 @@
   'use strict';
   if (window.AHOnboard) return;
 
-  const PUB = 'https://admission-gk.admissionhub.workers.dev/api';
+  const PUB = '/api'; /* P15: same-origin-প্রক্সি-প্রথম */
+  const PUB_CANON = 'https://admission-gk.admissionhub.workers.dev/api';
   const TOTAL = 10;
 
   const UNIVERSITIES = [
@@ -115,7 +116,9 @@
     } catch (_) {}
   }
   async function api(path, opts) {
-    const res = await fetch(PUB + path, opts);
+    let res = null;
+    try { res = await fetch(PUB + path, opts); } catch (_) { res = null; }
+    if (!res) { try { res = await fetch(PUB_CANON + path, opts); } catch (_) { throw new Error('network-error'); } }
     const j = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(j.error || ('http-' + res.status));
     return j;

@@ -11,8 +11,8 @@ const CSS = readFileSync('dashboard-v2.css', 'utf8');
 t('dashboard-v2.js defer-লোড (?v=dash2)', H.includes('<script defer src="./dashboard-v2.js?v=dash2f1"></script>'));
 t('dashboard-v2.css link (?v=dash2)', H.includes('<link rel="stylesheet" href="./dashboard-v2.css?v=dash2">'));
 t('sw APP_SHELL-এ dashboard-v2 (js+css)', SW.includes("'./dashboard-v2.js?v=dash2f1'") && SW.includes("'./dashboard-v2.css?v=dash2'"));
-t('sw BUILD_ID v198-gfix-20260907', SW.includes("const BUILD_ID = 'v198-gfix-20260907'"));
-t('index sw-marker v195', H.includes('sw.js?v=v198-gfix-20260907'));
+t('sw BUILD_ID v199-gfix-20260907', SW.includes("const BUILD_ID = 'v199-gfix-20260907'"));
+t('index sw-marker v195', H.includes('sw.js?v=v199-gfix-20260907'));
 
 /* ২ — ১৪ মডিউল (ছবির প্রতিটি সেকশন) */
 t('১ Personal Header (avatar+তারিখ+🔔)', V2.includes('dv2-header') && V2.includes('Intl.DateTimeFormat') && V2.includes('dv2-bell'));
@@ -46,7 +46,7 @@ t('__dashboardV2Installed গার্ড (দ্বিগুণ-ইনস্ট
 t('dv2AllTools: পুরনো ১১+ টুল No-loss (Bank/Mock/Progress/Settings…)', V2.includes("navigate('question-bank')") && V2.includes("navigate('progress')") && V2.includes("navigate('settings')") && V2.includes("navigate('vocabulary')"));
 
 /* ৫ — রিগ্রেশন লক (অর্থাৎ আগের পোস্টার-কি অক্ষত) */
-t('p3-auth-* query: index↔sw মিল (auth-lock D1)', new Set(H.match(/p3-auth-[a-z]*-v[0-9]+/g)).size === new Set(SW.match(/p3-auth-[a-z]*-v[0-9]+/g)).size && H.includes('p3-auth-guest-v198') && SW.includes('p3-auth-guest-v198'));
+t('p3-auth-* query: index↔sw মিল (auth-lock D1)', new Set(H.match(/p3-auth-[a-z]*-v[0-9]+/g)).size === new Set(SW.match(/p3-auth-[a-z]*-v[0-9]+/g)).size && H.includes('p3-auth-guest-v199') && SW.includes('p3-auth-guest-v199'));
 t('performance-hardening.js?v=2 (index↔sw)', H.includes('performance-hardening.js?v=2') && SW.includes("'./performance-hardening.js?v=2'"));
 
 /* ৬ — CSS-শৈলী-উপস্থিতি */

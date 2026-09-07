@@ -8,7 +8,7 @@
 (function () {
   'use strict';
   if (window.AH_AI) return;
-  const WORKER = 'https://admission-gk.admissionhub.workers.dev/api';
+  const WORKER = '/api'; /* P15: same-origin-প্রক্সি */
   const tok = () => {
     try { return localStorage.getItem('ahPubToken') || sessionStorage.getItem('ahPubToken') || ''; } catch (_) { return ''; }
   };

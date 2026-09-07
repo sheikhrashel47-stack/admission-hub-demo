@@ -4,7 +4,7 @@
   if (window.__ahPremiumAuth) return;
   window.__ahPremiumAuth = true;
   const WORKER = 'https://admission-gk.admissionhub.workers.dev';
-  const PUB = WORKER + '/api'; // auth/API routes live under /api on the live Worker
+  const PUB = '/api'; /* P15: same-origin Pages-প্রক্সি (_worker.js) — ফোন-নেটে workers.dev-ব্লক/CORS উভয়ই শেষ; api() ব্যর্থ হলে canonical-এ ফিরবে */
   const CANONICAL_WORKER = 'https://admission-gk.admissionhub.workers.dev'; // আজীবন-লক: ভুল ঠিকানায় পড়লেও এখানে fallback (AUTH_ENDPOINTS_GUARD.test.mjs গার্ড করে)
   const LS_TOKEN = 'ahPubToken';
   const LS_USER = 'ahPubUser';

@@ -3,7 +3,9 @@
    control → POST /api/cloud/publish ; public ← GET /pub/content */
 (() => {
   'use strict';
-  const WORKER = 'https://admission-gk.admissionhub.workers.dev';
+  const WORKER = ''; /* P15: same-origin-প্রক্সি-প্রথম */
+  const CANON = 'https://admission-gk.admissionhub.workers.dev';
+  const apiFetch = async (path, init) => { try { const r = await fetch(WORKER + path, init); return r; } catch (_) {} return fetch(CANON + path, init); };
   const ROLE = String(window.AH_CLOUD_ROLE || '').trim() || 'public';
   const GLOBAL_STORES = ['subjects', 'topics', 'questions', 'vocabulary', 'vocabularyMaster'];
   const META_KEY = 'ahCloudApplied';
@@ -109,7 +111,7 @@
     try { if (sessionStorage.getItem('ahCloudFp') === fp) return; } catch (_) {}
     publishing = true;
     try {
-      const res = await fetch(WORKER + '/api/cloud/publish', { method: 'POST', headers: APP_HEADER, body: JSON.stringify(full) });
+      const res = await apiFetch('/api/cloud/publish', { method: 'POST', headers: APP_HEADER, body: JSON.stringify(full) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || ('http-' + res.status));
       try { sessionStorage.setItem('ahCloudFp', fp); localStorage.setItem('ahCloudLastPublishAt', String(Date.now())); } catch (_) {}
@@ -196,11 +198,11 @@
     const localQs = await dbGetAll('questions').catch(() => []);
     if (!(localQs || []).length) await applySeedIfEmpty();
     let meta = null;
-    try { meta = await fetch(WORKER + '/api/content/meta', { headers: authHeaders() }).then(r => r.ok ? r.json() : null); } catch (_) { meta = null; }
+    try { meta = await apiFetch('/api/content/meta', { headers: authHeaders() }).then(r => r.ok ? r.json() : null).catch(() => null); } catch (_) { meta = null; }
     const local = appliedMeta();
     if (meta && Number(meta.v || 0) > 0 && Number(meta.v) === Number(local.v) && meta.sig && meta.sig === local.sig) return;
     let doc = null;
-    try { doc = await fetch(WORKER + '/api/content', { headers: authHeaders() }).then(r => r.ok ? r.json() : null); } catch (_) { doc = null; }
+    try { doc = await apiFetch('/api/content', { headers: authHeaders() }).then(r => r.ok ? r.json() : null).catch(() => null); } catch (_) { doc = null; }
     if (!doc || Number(doc.v || 0) <= 0) { window.__ahCloudOffline = true; return; } /* অফলাইন → লোকাল-ক্যাশ চলুক */
     window.__ahCloudOffline = false;
     if (Number(doc.v) === Number(local.v) && doc.sig && doc.sig === local.sig) return;

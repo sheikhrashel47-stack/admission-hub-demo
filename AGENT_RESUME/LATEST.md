@@ -1,4 +1,5 @@
-# LATEST — v198 (P14) PUSHED+VERIFIED
-- commit `ec759e7`; CI ৩/৩ (Guard+Deploy-CF+pages-build); লাইভ দুই-হোস্ট: sw v198-gfix-20260907 + premium-auth.js?v=p3-auth-guest-v198 (ফাইল-ভেতরে syncAuthUI/showAuthErr/watchdog-সার্ভিং) + dv2 dash2f1।
-- P14: লগইন-প্রবেশ-দৃশ্যমানতা — syncAuthUI (সিঙ্ক্রোনাস), showAuthErr (টোস্ট), ৬০সে-গুগল-ওয়াচডগ, afterAuth-গার্ড, pendingRoute-ফেরা, ✅-টোস্ট; p14 ১২/১২ (২ রানটাইম-jsdom); স্যুট ১৯/১৯।
-- বাকি: মালিক-ফোন-ভেরিফাই → APPROVE। সতর্কতা: পপআপ-নতুন-ট্যাবে খুললে এখনও ব্যাখ্যামূলক-টোস্ট দেবে; যদি Google-তবু না-কাজ করে তাহলে ইমেইল-OTP-পথ (লাইভ-প্রমাণিত) — মালিককে বলা।
+# LATEST — v199 (P15: same-origin API প্রক্সি) — ডিপ্লয়-ভেরিফাই-বাকি
+- মালিক: "Failed to fetch" + Google-লগইন-অসফল — ফোন-নেট pages.dev-লোড করে কিন্তু workers.dev-এ পৌঁছায় না (লাইভ-প্রমাণ: worker+CORS সুস্থ; নেটওয়ার্কই ব্লক)।
+- সমাধান: Pages Advanced-Mode `_worker.js` (/api/* → মূল worker; ASSETS-ফলব্যাক; নো-সিক্রেট) + ক্লায়েন্ট-বেস same-origin: premium-auth PUB='/api' (canonical-ফলব্যাক অক্ষত), cloud-content-sync apiFetch, onboarding PUB_CANON, AI-ক্লায়েন্ট-৪ (+gk override-অক্ষত)।
+- টেস্ট: p15 ১৫/১৫ + স্যুট ২০/২০ সবুজ। ভার্সন v199-gfix-20260907, premium-auth ?v=p3-auth-guest-v199।
+- বাকি: commit→push→CI→**live `pages.dev/api/auth/config`-প্রুব**→মালিক-ফোন-ভেরিফাই।
