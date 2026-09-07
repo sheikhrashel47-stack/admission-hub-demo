@@ -1,5 +1,5 @@
 # LATEST — v202 (P18: পুরোনো ড্যাশবোর্ড আজীবন-বন্ধ) PUSHED ✅
 - commit `HEAD` (P18); স্যুট ২৩-ফাইল ০-ব্যর্থ (নতুন p18 ৮/৮); `sw v202-gfix-20260907`; phase3 `?v=command-tools-v16-dv2-only`; dv2 `dash2f3` অটুট।
-- P18 (মালিক 😡: "ঐ পুরোনো dashboard এখনো লোড ও রেন্ডার করতেছে — আজীবন-বন্ধ করো"): মূল-হুক `phase3-intelligence.js`-এর `injectDashboard` (প্রতিটি-রেন্ডারে-পুরনো p3-ড্যাশ-ঢুকিয়ে-নতুন-ড্যাশ-`display:none`) → স্থায়ী-noop + hookRender-ড্যাশ-শাখা-কাটা; `daily-streak-card.js`+`dashboard-greeting-3d.js` index+sw-থেকে-সরানো + ফাইলে-মৃত-গার্ড; p18-৮-অ্যাসার্ট (রানটাইম-jsdom-সহ)।
+- P18 (মালিক 😡: "ঐ পুরোনো dashboard এখনো লোড ও রেন্ডার করতেছে — আজীবন-বন্ধ করো"): মূল-হুক `phase3-intelligence.js`-এর `injectDashboard` (প্রতিটি-রেন্ডারে-পুরনো p3-ড্যাশ-ঢুকিয়ে-নতুন-ড্যাশ-`display:none`) → স্থায়ী-noop + hookRender-ড্যাশ-শাখা-কাটা; `daily-streak-card.js`+`dashboard-greeting-3d.js` **রিপো-থেকে-ই-মুছে-ফেলা (git rm → 404)** + index+sw-থেকে-সরানো; p18-৮-অ্যাসার্ট (রানটাইম-jsdom-সহ)।
 - P17-অটুট (v201): প্রোফাইল-সততা/এডিট/পাসকি-মাল্টি-হোস্ট — লাইভ-প্রমাণিত।
 - বাকি: মালিক-ভেরিফাই (এক-ড্যাশবোর্ড + প্রোফাইল-এডিট + পাসকি)।

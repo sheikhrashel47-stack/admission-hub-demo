@@ -15,11 +15,11 @@ P16 শুধু `dashboard-v2.js`-এর renderV2-এর-ভেতরের `pr
 |---|---|
 | `phase3-intelligence.js` | `injectDashboard()` → **স্থায়ী no-op** (`return; /* P18-LEGACY-DASH-KILL */`) — নিচের-মৃত-কোড-কখনো-চলে-না; `hookRender`-এর `if(p==='dashboard')setTimeout(injectDashboard,0)`-শাখা-কাটা। **analytics/notifications/routine90/notification-ইঞ্জিন অটুট** (নিজস্ব-রুট-হ্যান্ডলার-রয়েছে)। |
 | `daily-streak-card.js` | index+sw-থেকে **চিরকাল-সরানো** (লোডই-হবে-না) + ফাইলের-ভেতরে মৃত-গার্ড (`if (true) return; /* P18-LEGACY-DASH-KILL */`)। |
-| `dashboard-greeting-3d.js` | একইভাবে index+sw-সরানো + মৃত-গার্ড। |
+| `dashboard-greeting-3d.js` | একইভাবে-রিপো-থেকে-মুছে-ফেলা। |
 | `sw.js` | APP_SHELL-থেকে-উভয়-ফাইল-বাদ; `BUILD_ID v202-gfix-20260907`। |
 | `index.html` | দুটি-`<script>`-ট্যাগ-বাদ; phase3 `?v=command-tools-v16-dv2-only`; `sw.js?v=v202-…` + expectedSwVersion/cur। |
 
-**গার্ড-স্তর:** ① লোড-স্তর (index/sw-এ-নেই) → ② রান-স্তর (phase3-inject no-op, পার্শ্ব-ফাইল-মৃত-গার্ড) → ③ টেস্ট-স্তর (p18 ৮-অ্যাসার্ট-চিরকাল)।
+**গার্ড-স্তর:** ① ফাইল-স্তর (রিপোতেই-নেই → 404) → ② লোড-স্তর (index/sw-এ-নেই) → ③ রান-স্তর (phase3-inject no-op) → ④ টেস্ট-স্তর (p18 ৮-অ্যাসার্ট-চিরকাল)।
 
 ## যাচাই
 - **p18-legacy-dashboard-kill.test.mjs — ৮/৮** (স্ট্যাটিক-গার্ড ৫টি + ভার্সন-অখণ্ডতা ২টি + **রানটাইম-jsdom**: পুরনো-স্ট্যাক-৩-ফাইল-লোড-করিয়ে dashboard-রুটে `[data-p3-command]`/`#dailyStreakCard`/`#ahGreet3d`/`.p3-header-v3` **শূন্য**, শুধু `.dv2-root` উপস্থিত)।
