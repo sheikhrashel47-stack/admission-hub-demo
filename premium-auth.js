@@ -1139,6 +1139,39 @@
     const e = Math.round(30 * Math.min(1, ex / 10));
     return { pct: Math.min(100, academic + q + e), academic, q, e };
   }
+  /* ── মালিক-নির্দেশ (২০২৬-০৯-০৭): ফেক-সংখ্যা/ফেক-বিশ্লেষণ নিষিদ্ধ ──
+     দুর্বল-বিষয় ও প্রস্তুতি-স্তর কেবল আসল-ডেটা (CACHE.examResults) থেকে;
+     অনবোর্ডিং-ডিফল্ট ('বাংলা','English','GK' / studyGoal 'top' / currentLevel 50)
+     → 'নির্বাচিত' হিসেবে দেখানো হয় না। */
+  const dv2DefaultWeak = ['বাংলা', 'English', 'GK'];
+  function realWeakSubjects() {
+    try {
+      const src = (typeof CACHE !== 'undefined' && CACHE) ? CACHE : (window.CACHE || {});
+      const agg = {};
+      (src.examResults || []).forEach((r) => (r.snapshot || []).forEach((q) => {
+        if (!q || !q.subjectId || (q.status !== 'correct' && q.status !== 'wrong')) return;
+        const a = agg[q.subjectId] || (agg[q.subjectId] = { n: 0, c: 0 });
+        a.n++; if (q.status === 'correct') a.c++;
+      }));
+      return Object.keys(agg)
+        .map((sid) => ({ sid, n: agg[sid].n, c: agg[sid].c, acc: Math.round(agg[sid].c / agg[sid].n * 100) }))
+        .filter((x) => x.n > 0)
+        .sort((a, b) => a.acc - b.acc)
+        .slice(0, 4)
+        .map((x) => ((typeof window.subjectName === 'function') ? window.subjectName(x.sid) : '') || x.sid);
+    } catch (_) { return []; }
+  }
+  function honestWeak(onbWeak) {
+    const real = realWeakSubjects();
+    if (real.length) return real; /* আসল-পরীক্ষা-ভিত্তিকই আগে */
+    const arr = Array.isArray(onbWeak) ? onbWeak.filter((x) => String(x || '').trim()) : [];
+    if (arr.length && arr.every((x) => dv2DefaultWeak.includes(String(x)))) return []; /* ডিফল্ট → সৎ-শূন্য */
+    return arr.slice(0, 4);
+  }
+  function prepOf(uu) {
+    const stats = (typeof computeLifetimeStats === 'function') ? (computeLifetimeStats() || {}) : { exams: 0, totalQuestions: 0 };
+    return prepPercent(uu || {}, stats);
+  }
   function profAvatar(u, size, cls) {
     const monogram = esc(String(u.name || 'S').trim().charAt(0).toUpperCase());
     return u.photo
@@ -1190,6 +1223,7 @@
         <div class="ah-pf-name">${esc(u.name || 'Scholar')} ${u.verified ? '<span class="ah-pf-vbadge" title="যাচাইকৃত">✓</span>' : ''}</div>
         <div class="ah-pf-tag">${esc(u.bio || (lang === 'bn' ? 'স্বপ্ন দেখো, বড় কিছু অর্জন করো' : 'Dream big, achieve bigger'))}</div>
         <div class="ah-pf-goal">${goalChip}</div>
+        <button class="ah-btn" style="margin-top:12px;padding:9px 18px;font-size:12.5px;width:auto" onclick="navigate('profile/edit')">✏️ প্রোফাইল এডিট</button>
         <div class="ah-pf-meta"><span>সদস্য ${memberSince}</span><span class="dot">·</span><span>Account ID: <b>${esc(accShort)}</b></span></div>
       </div>
 
@@ -1201,9 +1235,9 @@
               <div class="ah-pf-acad-i"><span class="ic">🎯</span><div><b>লক্ষ্য</b><i>${esc(goalLabel(u.goal) || u.goal || 'বিশ্ববিদ্যালয় ভর্তি')}</i></div></div>
               <div class="ah-pf-acad-i"><span class="ic">🏛</span><div><b>বিশ্ববিদ্যালয়</b><i>${esc(u.targetUniversity || '—')}</i></div></div>
               <div class="ah-pf-acad-i"><span class="ic">📋</span><div><b>ইউনিট</b><i>${esc(String(u.targetUnit || '').split(',').filter(Boolean).join(' · ') || '—')}</i></div></div>
-              <div class="ah-pf-acad-i"><span class="ic">🎯</span><div><b>প্রস্তুতির লক্ষ্য</b><i>${esc(aimLabel(u.studyGoal) || u.studyGoal || '—')}</i></div></div>
+              <div class="ah-pf-acad-i"><span class="ic">🎯</span><div><b>প্রস্তুতির লক্ষ্য</b><i>${esc((u.studyGoal && u.studyGoal !== 'top') ? (aimLabel(u.studyGoal) || u.studyGoal) : '—')}</i></div></div> /* ডিফল্ট 'top' → সৎ-শূন্য */
             </div>
-            <div class="ah-pf-acad-lv"><b>প্রস্তুতি স্তর</b><div class="ah-pf-bar"><i style="width:${Math.max(4, Math.min(100, Number(u.currentLevel) || 0))}%"></i></div><span>${Number(u.currentLevel) || 0}%</span></div>`
+            <div class="ah-pf-acad-lv"><b>প্রস্তুতি স্তর</b><div class="ah-pf-bar"><i style="width:${Math.max(4, Math.min(100, prep.pct))}%"></i></div><span>${prep.pct}%</span></div>`
             : `<div class="ah-pf-empty"><span class="ic">🎓</span><b>একাডেমিক প্রোফাইল এখনো তৈরি হয়নি</b><p>তোমার লক্ষ্য, পছন্দের বিশ্ববিদ্যালয় ও ইউনিট জানালে প্রস্তুতির রোডম্যাপ তৈরি হবে।</p><button class="ah-pf-cta" onclick="navigate('profile/academic')">Start Preparing →</button></div>`}
           </div>
         </section>
@@ -1316,7 +1350,9 @@
         const o = onb.onboarding;
         const slot = document.getElementById('pfAcademicSlot');
         if (slot && o.completed) {
-          const weak = Array.isArray(o.weakSubjects) && o.weakSubjects.length ? o.weakSubjects.slice(0, 4).map(esc).join(' · ') : '';
+          const weak = honestWeak(o.weakSubjects); /* আসল-ডেটা → নইলে সৎ-শূন্য (ডিফল্ট নয়) */
+          const weakHtml = weak.length ? weak.map(esc).join(' · ') : '—';
+          const prep = prepOf(user() || {});
           const unis = Array.isArray(o.targetUniversities) && o.targetUniversities.length ? esc(o.targetUniversities.join(', ')) : (user().targetUniversity ? esc(user().targetUniversity) : '');
           const units = Array.isArray(o.targetUnits) && o.targetUnits.length ? esc(o.targetUnits.join(' · ')) : '';
           const goal = o.goal ? esc(goalLabel(o.goal) || o.goal) : 'বিশ্ববিদ্যালয় ভর্তি';
@@ -1325,9 +1361,9 @@
               <div class="ah-pf-acad-i"><span class="ic">🎯</span><div><b>লক্ষ্য</b><i>${goal}</i></div></div>
               <div class="ah-pf-acad-i"><span class="ic">🏛</span><div><b>বিশ্ববিদ্যালয়</b><i>${unis || '—'}</i></div></div>
               <div class="ah-pf-acad-i"><span class="ic">📋</span><div><b>ইউনিট</b><i>${units || '—'}</i></div></div>
-              <div class="ah-pf-acad-i"><span class="ic">📖</span><div><b>দুর্বল বিষয়</b><i>${weak || '—'}</i></div></div>
+              <div class="ah-pf-acad-i"><span class="ic">📖</span><div><b>দুর্বল বিষয়</b><i>${weakHtml}</i></div></div>
             </div>
-            <div class="ah-pf-acad-lv"><b>প্রস্তুতি স্তর</b><div class="ah-pf-bar"><i style="width:${Math.max(4, Math.min(100, Number(o.currentLevel) || 0))}%"></i></div><span>${Number(o.currentLevel) || 0}%</span></div>`;
+            <div class="ah-pf-acad-lv"><b>প্রস্তুতি স্তর</b><div class="ah-pf-bar"><i style="width:${Math.max(4, Math.min(100, prep.pct))}%"></i></div><span>${prep.pct}%</span></div>`;
         }
       }
       if (sess && Array.isArray(sess.sessions)) {
@@ -1375,8 +1411,8 @@
       <label class="ah-pf-lab">পূর্ণ নাম</label><input class="ah-inp" id="pfName" value="${esc(u.name || '')}" autocomplete="name">
       <label class="ah-pf-lab">প্রদর্শন নাম</label><input class="ah-inp" id="pfDisplay" value="${esc(u.displayName || '')}" placeholder="ছোট নাম">
       <label class="ah-pf-lab">জন্ম তারিখ <span class="ah-pf-opt">(ঐচ্ছিক)</span></label><input class="ah-inp" id="pfDob" value="${esc(u.dob || '')}" placeholder="12 May 2003" inputmode="text">
-      <label class="ah-pf-lab">বিদ্যালয় <span class="ah-pf-opt">(ঐচ্ছিক)</span></label><input class="ah-inp" id="pfSchool" value="${esc(u.institution || '')}" placeholder="বিদ্যালয়ের নাম">
-      <label class="ah-pf-lab">কলেজ <span class="ah-pf-opt">(ঐচ্ছিক)</span></label><input class="ah-inp" id="pfCollege" value="${esc(u.institution || '')}" placeholder="কলেজের নাম">
+      <label class="ah-pf-lab">বিদ্যালয় <span class="ah-pf-opt">(ঐচ্ছিক)</span></label><input class="ah-inp" id="pfSchool" value="${esc(u.school || u.institution || '')}" placeholder="বিদ্যালয়ের নাম">
+      <label class="ah-pf-lab">কলেজ <span class="ah-pf-opt">(ঐচ্ছিক)</span></label><input class="ah-inp" id="pfCollege" value="${esc(u.college || '')}" placeholder="কলেজের নাম">
       <label class="ah-pf-lab">সংক্ষিপ্ত পরিচিতি <span class="ah-pf-opt">(ঐচ্ছিক)</span></label><input class="ah-inp" id="pfBio" value="${esc(u.bio || '')}" maxlength="200">
       <label class="ah-pf-lab">ইমেইল <span class="ah-pf-locknote">🔒 পরিবর্তনে পাসওয়ার্ড লাগবে</span></label>
       <div class="ah-field"><input class="ah-inp" id="pfEmail" value="${esc(u.email || '')}" type="email" autocomplete="email">${u.emailVerified ? '<span class="ah-pf-verify-badge">✓</span>' : ''}</div>
@@ -1395,6 +1431,8 @@
       name: g('pfName').value.trim(),
       displayName: g('pfDisplay').value.trim(),
       dob: g('pfDob').value.trim(),
+      school: g('pfSchool').value.trim(),
+      college: g('pfCollege').value.trim(),
       institution: g('pfSchool').value.trim() || g('pfCollege').value.trim(),
       bio: g('pfBio').value.trim(),
       targetUniversity: (user() || {}).targetUniversity || '',
@@ -1715,22 +1753,23 @@
       const goal = o.goal ? (goalLabel(o.goal) || o.goal) : (u.goal ? (goalLabel(u.goal) || u.goal) : 'বিশ্ববিদ্যালয় ভর্তি');
       const unis = (Array.isArray(o.targetUniversities) && o.targetUniversities.length) ? o.targetUniversities : ((u.targetUniversity ? [u.targetUniversity] : []));
       const units = (Array.isArray(o.targetUnits) && o.targetUnits.length) ? o.targetUnits : (u.targetUnit ? String(u.targetUnit).split(',').filter(Boolean) : []);
-      const weak = (Array.isArray(o.weakSubjects) && o.weakSubjects.length) ? o.weakSubjects : [];
-      const aim = o.studyGoal ? (aimLabel(o.studyGoal) || o.studyGoal) : (u.studyGoal ? (aimLabel(u.studyGoal) || u.studyGoal) : '');
+      const weak = honestWeak(o.weakSubjects);
+      const aim = (o.studyGoalChosen && o.studyGoal) ? (aimLabel(o.studyGoal) || o.studyGoal) : ((u.studyGoal && u.studyGoal !== 'top') ? (aimLabel(u.studyGoal) || u.studyGoal) : '');
+      const prep = prepOf(u);
       root.innerHTML = `<div class="ah-pf-card">
         <div class="ah-pf-acad-big"><span class="ic">🎯</span><div><b>লক্ষ্য</b><i>${esc(goal)}</i></div></div>
         <div class="ah-pf-acad-big"><span class="ic">🏛</span><div><b>বিশ্ববিদ্যালয়</b><i>${unis.map(esc).join(', ') || '—'}</i></div></div>
         <div class="ah-pf-acad-big"><span class="ic">📋</span><div><b>ইউনিট</b><i>${units.map(esc).join(' · ') || '—'}</i></div></div>
         <div class="ah-pf-acad-big"><span class="ic">🎯</span><div><b>প্রস্তুতির লক্ষ্য</b><i>${esc(aim) || '—'}</i></div></div>
         <div class="ah-pf-acad-big"><span class="ic">📖</span><div><b>দুর্বল বিষয়</b><i>${weak.map(esc).join(' · ') || '—'}</i></div></div>
-        <div class="ah-pf-acad-big"><span class="ic">📊</span><div><b>প্রস্তুতি স্তর</b><i>${Number(o.currentLevel) || Number(u.currentLevel) || 0}%</i></div></div>
+        <div class="ah-pf-acad-big"><span class="ic">📊</span><div><b>প্রস্তুতি স্তর</b><i>${prep.pct}%</i><span class="muted" style="display:block;font-size:11.5px">আসল-অগ্রগতি (পরীক্ষা+প্রশ্ন+একাডেমিক) থেকে</span></div></div>
       </div>
       <button class="ah-btn sec" style="margin-top:14px" onclick="AHProf.startOnboarding()">একাডেমিক প্রোফাইল আপডেট করো</button>`;
     })();
   }
   async function startOnboarding() {
     try {
-      if (window.AHOnboard && typeof AHOnboard.start === 'function') { AHOnboard.start(); return; }
+      if (window.AHOnboard && typeof AHOnboard.start === 'function') { AHOnboard.start(true); return; } /* force: সম্পন্ন-অনবোর্ডিং-ও আবার খোলে */
       if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') { await AHOnboard.maybeStart(true); return; }
       toast('অনবোর্ডিং চালু করা যায়নি');
     } catch (e) { toast(e.message); }
@@ -1923,13 +1962,14 @@
     document.body.appendChild(wrap);
     const img = wrap.querySelector('#ahCropImg');
     img.onload = () => {
-      const s = 256;
+      const s = 320; /* P17: বড়-ক্যানভাস → ফোনে-ছবি-ঝাপসা-নয় */
       const c = document.createElement('canvas');
       c.width = s; c.height = s;
       const ctx = c.getContext('2d');
       const m = Math.min(img.naturalWidth, img.naturalHeight);
       ctx.drawImage(img, (img.naturalWidth - m) / 2, (img.naturalHeight - m) / 2, m, m, 0, 0, s, s);
-      const dataUrl = c.toDataURL('image/jpeg', 0.72);
+      const dataUrl = c.toDataURL('image/jpeg', 0.82);
+      try { URL.revokeObjectURL(img.src); } catch (_) {}
       if (dataUrl.length > 220000) return toast('ছবি খুব ভারী — অন্য ছবি দাও');
       wrap.querySelector('#ahCropOk').onclick = async () => {
         try {
@@ -1942,7 +1982,7 @@
         } catch (e) { toast(e.message); }
       };
     };
-    img.onerror = () => { wrap.remove(); toast('ছবি পড়া যায়নি'); };
+    img.onerror = () => { wrap.remove(); toast('ছবি ফরম্যাট পড়া যায়নি — JPEG/PNG ছবি বেছে নাও (iPhone-এর HEIC হলে অ্যাপে-রূপান্তর-করে-নাও)'); };
     img.src = URL.createObjectURL(file);
     wrap.querySelector('#ahCropNo').onclick = () => { wrap.remove(); openPhotoSheet(); };
     wrap.addEventListener('click', e => { if (e.target === wrap) { URL.revokeObjectURL(img.src); wrap.remove(); } });

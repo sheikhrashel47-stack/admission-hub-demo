@@ -92,6 +92,9 @@
     if (!data.weeklyDays) data.weeklyDays = 5;
     if (!data.studyGoal) data.studyGoal = 'top';
     if (typeof data.currentLevel !== 'number') data.currentLevel = 50;
+    /* মালিক-নির্দেশ (০৯-০৭): ডিফল্ট-মানকে 'নির্বাচিত' দেখানো নিষিদ্ধ — বাছাই-হলেই কেবল ফ্ল্যাগ */
+    if (typeof data.weakSubjectsChosen !== 'boolean') data.weakSubjectsChosen = false;
+    if (typeof data.studyGoalChosen !== 'boolean') data.studyGoalChosen = false;
   }
 
   const uid = () => {
@@ -627,7 +630,7 @@
       }
       const aim = e.target.closest('[data-aim]');
       if (aim) {
-        data.studyGoal = aim.getAttribute('data-aim');
+        data.studyGoal = aim.getAttribute('data-aim'); data.studyGoalChosen = true;
         saveRemote(); syncSelected('[data-aim]', data.studyGoal); return;
       }
       const sub = e.target.closest('[data-sub]');
@@ -635,7 +638,7 @@
         const v = sub.getAttribute('data-sub');
         const set = new Set(data.weakSubjects);
         if (set.has(v)) set.delete(v); else set.add(v);
-        data.weakSubjects = [...set];
+        data.weakSubjects = [...set]; data.weakSubjectsChosen = true;
         saveRemote(); sub.classList.toggle('selected'); return;
       }
       const sess = e.target.closest('[data-sess]');
@@ -676,7 +679,7 @@
   }
 
   /* ---------------- boot ---------------- */
-  async function maybeStart() {
+  async function maybeStart(force) {
     if (!token()) return false;
     loadLocal();
     try {
@@ -689,7 +692,8 @@
       }
     } catch (_) {}
     ensureDefaults();
-    if (data.completed) return false;
+    if (data.completed && !force) return false; /* force(সাত): আপডেট-পথে আবার শুরু */
+    if (force && data.completed) { data.completed = false; persistLocal(); }
     step = Math.max(1, Math.min(10, Number(data.step) || 1));
     showGate(true);
     mount();
@@ -697,5 +701,5 @@
     return true;
   }
 
-  window.AHOnboard = { maybeStart, start: maybeStart };
+  window.AHOnboard = { maybeStart, start: (force) => maybeStart(!!force) };
 })();

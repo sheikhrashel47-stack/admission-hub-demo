@@ -110,7 +110,7 @@ function publicUser(u, profile) {
     email, mobile, contact: u.contact || email || mobile,
     verified: !!u.verified, emailVerified: !!u.emailVerified, mobileVerified: !!u.mobileVerified,
     status: st, created: u.created, lastSeen: u.lastSeen, photo: pf.photo || '',
-    institution: pf.institution || '', targetUniversity: pf.targetUniversity || '',
+    institution: pf.institution || '', college: pf.college || '', school: pf.school || '', targetUniversity: pf.targetUniversity || '',
     targetUnit: pf.targetUnit || '', admissionYear: pf.admissionYear || '',
     bio: pf.bio || '', dob: pf.dob || '', gender: pf.gender || '', studyGroup: pf.studyGroup || '',
     providers: u.providers || [],
@@ -375,7 +375,7 @@ export default {
           },
           profile: {
             displayName: pf.displayName || '', dob: pf.dob || '', bio: pf.bio || '',
-            institution: pf.institution || '', targetUniversity: pf.targetUniversity || '',
+            institution: pf.institution || '', college: pf.college || '', school: pf.school || '', targetUniversity: pf.targetUniversity || '',
             targetUnit: pf.targetUnit || '', admissionYear: pf.admissionYear || '',
             photo: pf.photo ? '(base64 image)' : '',
             onboarding: pf.onboarding || { completed: false }
@@ -636,8 +636,14 @@ async function getUserById(env, id) {
 }
 
 
+const RP_ORIGINS = ['https://sheikhrashel47-stack.github.io', 'https://admissionhub.pages.dev']; /* P17: পাসকি-মাল্টি-হোস্ট (pages.dev + github.io) */
 const RP_ID = 'sheikhrashel47-stack.github.io';
-const RP_ORIGIN = 'https://sheikhrashel47-stack.github.io';
+const RP_ORIGIN = RP_ORIGINS[0];
+function rpHost(req) {
+  const o = String((req && req.headers && (req.headers.get('Origin') || req.headers.get('Referer'))) || '').trim().replace(/\/+$/, '');
+  const hit = RP_ORIGINS.find((x) => o.startsWith(x));
+  return hit ? new URL(hit).hostname : RP_ID;
+}
 const APP_URL = 'https://sheikhrashel47-stack.github.io/admission-hub-demo/';
 function b64url(buf) {
   const u = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
@@ -801,7 +807,7 @@ const pkRegBegin = async (request, env) => {
     userId: uid,
     options: {
       challenge: b64url(chal),
-      rp: { id: RP_ID, name: 'Admission Hub' },
+      rp: { id: rpHost(request), name: 'Admission Hub' },
       user: { id: b64url(new TextEncoder().encode('pk:' + uid)), name: 'scholar-' + uid.slice(0, 8), displayName: 'Scholar' },
       pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
       authenticatorSelection: { authenticatorAttachment: 'platform', residentKey: 'preferred', requireResidentKey: false, userVerification: 'required' },
@@ -818,7 +824,7 @@ const pkRegFinish = async (request, env) => {
   try { cdata = JSON.parse(new TextDecoder().decode(unb64url(b.clientDataJSON))); } catch (_) { return json({ error: 'Passkey ডেটা খারাপ' }, 400); }
   if (cdata.type !== 'webauthn.create') return json({ error: 'Passkey টাইপ ভুল' }, 400);
   if (String(cdata.challenge) !== ch.challenge) return json({ error: 'Passkey মিলছে না' }, 401);
-  if (!String(cdata.origin || '').startsWith(RP_ORIGIN)) return json({ error: 'Origin মিলছে না' }, 401);
+  if (!RP_ORIGINS.some((o) => String(cdata.origin || "").startsWith(o))) return json({ error: 'Origin মিলছে না' }, 401);
   if (!b.publicKey || !b.rawId) return json({ error: 'Passkey পাবলিক কী নেই' }, 400);
   const id = 'pk:' + ch.uid;
   let passHash, passSalt;
@@ -854,7 +860,7 @@ const pkAddBegin = async (request, env, uid) => {
     chalId,
     options: {
       challenge: b64url(chal),
-      rp: { id: RP_ID, name: 'Admission Hub' },
+      rp: { id: rpHost(request), name: 'Admission Hub' },
       user: { id: b64url(new TextEncoder().encode(String(u.uid || u.id))), name: String(u.name || 'Scholar').slice(0, 32), displayName: String(u.name || 'Scholar').slice(0, 32) },
       pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
       authenticatorSelection: { authenticatorAttachment: 'platform', residentKey: 'preferred', requireResidentKey: false, userVerification: 'required' },
@@ -871,7 +877,7 @@ const pkAddFinish = async (request, env, uid) => {
   try { cdata = JSON.parse(new TextDecoder().decode(unb64url(b.clientDataJSON))); } catch (_) { return json({ error: 'Passkey ডেটা খারাপ' }, 400); }
   if (cdata.type !== 'webauthn.create') return json({ error: 'Passkey টাইপ ভুল' }, 400);
   if (String(cdata.challenge) !== ch.challenge) return json({ error: 'Passkey মিলছে না' }, 401);
-  if (!String(cdata.origin || '').startsWith(RP_ORIGIN)) return json({ error: 'Origin মিলছে না' }, 401);
+  if (!RP_ORIGINS.some((o) => String(cdata.origin || "").startsWith(o))) return json({ error: 'Origin মিলছে না' }, 401);
   if (!b.publicKey || !b.rawId) return json({ error: 'Passkey পাবলিক কী নেই' }, 400);
   const u = await getUserById(env, uid);
   if (!u) return json({ error: 'অ্যাকাউন্ট পাওয়া যায়নি' }, 404);
@@ -945,7 +951,7 @@ const pkLoginBegin = async (request, env) => {
     chalId,
     options: {
       challenge: b64url(chal),
-      rpId: RP_ID,
+      rpId: rpHost(request),
       timeout: 120000,
       userVerification: 'required'
     }
@@ -959,7 +965,7 @@ const pkLoginFinish = async (request, env) => {
   try { cdata = JSON.parse(new TextDecoder().decode(unb64url(b.clientDataJSON))); } catch (_) { return json({ error: 'Passkey ডেটা খারাপ' }, 400); }
   if (cdata.type !== 'webauthn.get') return json({ error: 'Passkey টাইপ ভুল' }, 400);
   if (String(cdata.challenge) !== ch.challenge) return json({ error: 'Passkey মিলছে না' }, 401);
-  if (!String(cdata.origin || '').startsWith(RP_ORIGIN)) return json({ error: 'Origin মিলছে না' }, 401);
+  if (!RP_ORIGINS.some((o) => String(cdata.origin || "").startsWith(o))) return json({ error: 'Origin মিলছে না' }, 401);
   const row = JSON.parse((await env.PUB_KV.get('pkid:' + b.rawId)) || 'null');
   if (!row || !row.id) return json({ error: 'এই ডিভাইসে Passkey নেই — আগে তৈরি করো' }, 404);
   const rec = JSON.parse((await env.PUB_KV.get('user:' + row.id)) || 'null');
@@ -1344,7 +1350,7 @@ const profilePut = async (request, env, uid) => {
   if (!u) return json({ error: 'অ্যাকাউন্ট পাওয়া যায়নি' }, 404);
   const b = await request.json().catch(() => ({}));
   const pf = await loadProfile(env, u.uid || u.id);
-  const fields = ['displayName', 'institution', 'targetUniversity', 'targetUnit', 'admissionYear', 'bio', 'dob', 'gender', 'studyGroup'];
+  const fields = ['displayName', 'institution', 'college', 'targetUniversity', 'targetUnit', 'admissionYear', 'bio', 'dob', 'gender', 'studyGroup'];
   for (const f of fields) if (b[f] !== undefined) pf[f] = String(b[f] || '').slice(0, f === 'bio' ? 200 : 80);
   if (b.name) { u.name = String(b.name).slice(0, 40); await env.PUB_KV.put('user:' + u.id, JSON.stringify(u)); }
   // sensitive contact changes require password re-authentication

@@ -36,8 +36,8 @@ t('১১. ai-explain + study-ai: WORKER=শূন্য-ভিত্তি (প
 t('১২. gk-agent: localStorage-override অক্ষত + ডিফল্ট same-origin', GK.includes("getItem('ahGkUrl')") && GK.includes("|| ''; } catch (_) { return ''; }"));
 
 /* ── ৪. ভার্সন-অখণ্ডতা v199 ── */
-t('১৩. premium-auth.js ?v=p3-auth-guest-v199 (index + sw APP_SHELL)', H.includes('premium-auth.js?v=p3-auth-guest-v199') && SW.includes("'./premium-auth.js?v=p3-auth-guest-v199'"));
-t('১৪. sw BUILD_ID v200-gfix-20260907 (index-marker + sw.js + expectedSwVersion + cur)', SW.includes("const BUILD_ID = 'v200-gfix-20260907'") && H.includes('sw.js?v=v200-gfix-20260907') && H.includes("const expectedSwVersion = 'v200-gfix-20260907'") && H.includes("const cur = 'admission-hub-shell-v200-gfix-20260907'"));
+t('১৩. premium-auth.js ?v=p3-auth-guest-v201 (index + sw APP_SHELL)', H.includes('premium-auth.js?v=p3-auth-guest-v201') && SW.includes("'./premium-auth.js?v=p3-auth-guest-v201'"));
+t('১৪. sw BUILD_ID v201-gfix-20260907 (index-marker + sw.js + expectedSwVersion + cur)', SW.includes("const BUILD_ID = 'v201-gfix-20260907'") && H.includes('sw.js?v=v201-gfix-20260907') && H.includes("const expectedSwVersion = 'v201-gfix-20260907'") && H.includes("const cur = 'admission-hub-shell-v201-gfix-20260907'"));
 t('১৫. _worker.js ডিপ্লয়-পথে বাদ-যাচ্ছে না (cf-pages.yml rsync-excludes-তে _worker.js নেই)', !/rsync[^\n]*--exclude='_worker\.js'/.test(W('.github/workflows/cf-pages.yml')));
 
 console.log(`\nP15-SAMEORIGIN-PROXY: ${pass} pass / ${fail} fail`);
