@@ -40,3 +40,9 @@
 - hub GitHub-Pages-স্ট্যাটিক → নিজে-workers.dev-ডাকতে-পারে-না; তা-ছাড়া-অ্যাপ-নেটে-workers.dev-ব্লক। তাই-hub-ভয়েস-ডিফল্ট → `https://admissionhub.pages.dev` (নেটে-খোলে + তার-Pages-Worker `/api/voice` → voice-worker; CORS-অ্যালো-লিস্ট-এ-github.io/pages.dev-দুই-ই)।
 - **লাইভ-প্রুব-চেইন (হুবহু-ব্রাউজার-পথ):** OPTIONS-204-সহ-`ACAO: https://sheikhrashel47-stack.github.io` → POST-200-`audio/mpeg`-আসল-MP3।
 - hub-কমিট: `c4707f8` (voice) + `4d05e5b` (public-worker-parity); hub-টেস্ট `voice-endpoint.test.mjs` ৪/৪; demo-স্যুট-২৪-ফাইল-০-ব্যর্থ।
+
+## মালিক-রিপোর্ট-২: "হচ্ছে না" — ফোন-সাইড-স্টেল (২০২৬-০৯-০৭, রাত)
+- লাইভ-সার্ভার-উভয়-হোস্ট-নিশ্চিত-নতুন: pages.dev → v204+el-voice-v106 (নেভ ৫-ট্যাব, **Parser-০**); github.io/admission-hub → v193+el-voice-v108।
+- মালিক-স্ক্রিনশটে-নিচে **Parser**-ট্যাব-দৃশ্যমান — ওটা পুরনো-বিল্ডের-চিহ্ন; নতুন-বিল্ডে নেই → **ফোনে-পুরনো-service-worker-ক্যাশ-চলছে** (কোড-নয়)।
+- দুরারোগ্য-নয়: উভয়-অ্যাপের-sw ডকুমেন্ট-নেটওয়ার্ক-ফার্স্ট + ইনডেক্স-বুট-সেলফ-হিল (unregister+purge+activateWaiting) — **১ বার-খুললেই-new-sw, ২য়-বার-খুললেই-নতুন-UI**।
+- মালিক-করণীয় (যাচাই-চিহ্ন: নেভে-Profile-থাকবে, Parser-যাবে): ① অ্যাপ-সম্পূর্ণ-বন্ধ→আবার-খোলা (২-বার); ② না-হলে Chrome→Site settings→admissionhub.pages.dev→Clear&reset; ③ ঝট-নিশ্চয়তা: **ইনকগনিটো/প্রাইভেট-ট্যাবে** খুলে-ভয়েস-টেস্ট (সেখানে-SW-নেই → সার্ভার-পক্ষ-এক-নজরে-বোঝা-যায়)।
