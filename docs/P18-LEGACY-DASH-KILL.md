@@ -19,7 +19,12 @@ P16 শুধু `dashboard-v2.js`-এর renderV2-এর-ভেতরের `pr
 | `sw.js` | APP_SHELL-থেকে-উভয়-ফাইল-বাদ; `BUILD_ID v202-gfix-20260907`। |
 | `index.html` | দুটি-`<script>`-ট্যাগ-বাদ; phase3 `?v=command-tools-v16-dv2-only`; `sw.js?v=v202-…` + expectedSwVersion/cur। |
 
-**গার্ড-স্তর:** ① ফাইল-স্তর (রিপোতেই-নেই → 404) → ② লোড-স্তর (index/sw-এ-নেই) → ③ রান-স্তর (phase3-inject no-op) → ④ টেস্ট-স্তর (p18 ৮-অ্যাসার্ট-চিরকাল)।
+**গার্ড-স্তর:** ① ফাইল-স্তর (রিপোতেই-নেই; ডিপ্লয়মেন্টে-ফাইল-নেই — পুরনো-URL-এ-কেবল-Pages-এর-SPA-ফলব্যাক-`index.html`-ফেরত, আসল-ফাইল-নয়) → ② লোড-স্তর (index/sw-এ-নেই) → ③ রান-স্তর (phase3-inject no-op) → ④ টেস্ট-স্তর (p18 ৮-অ্যাসার্ট-চিরকাল)।
+
+## লাইভ-যাচাই (আগস্ট-০৭, commit `ebfedbb`+`0f6b005`)
+- CI ৩/৩ (Auth-Guard + Deploy-CF + pages-build) — দুই-কমিটেই।
+- লাইভ pages.dev: `sw.js?v=v202-gfix-20260907` · index-এ পুরনো-ট্যাগ **০** · `phase3-intelligence.js`-তে **P18-LEGACY-DASH-KILL**-গার্ড · `dashboard-v2.js?v=dash2f3` অটুট · `/api/auth/config → passkey:true`।
+- পুরনো-ফাইল-URL → HTML-বডি (SPA-ফলব্যাক) — আসল-ফাইল-ডিপ্লয়মেন্টে-নেই; কোনো-ট্যাগ/জ্ব-নির্দেশনা-ও-না।
 
 ## যাচাই
 - **p18-legacy-dashboard-kill.test.mjs — ৮/৮** (স্ট্যাটিক-গার্ড ৫টি + ভার্সন-অখণ্ডতা ২টি + **রানটাইম-jsdom**: পুরনো-স্ট্যাক-৩-ফাইল-লোড-করিয়ে dashboard-রুটে `[data-p3-command]`/`#dailyStreakCard`/`#ahGreet3d`/`.p3-header-v3` **শূন্য**, শুধু `.dv2-root` উপস্থিত)।
