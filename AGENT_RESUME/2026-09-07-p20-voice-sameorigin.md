@@ -4,4 +4,5 @@
 - **মালিক-ফোনে-করণীয়:** ২-বার-রিফ্রেশ → Vocab-কার্ড 🔊 → '✓ Voice saved — অফলাইনেও বাজবে'।
 - GitHub-Activity: hub-repo-(admission-hub)-ফিক্স-কমিট-করা-হয়েছে-(ক্লোনে); রিমোট-পুশ-স্ট্যাটাস-নিচে।
 
+- **P20-final-২ (রাত):** মালিক-নতুন-key → GitHub-Secret ELEVENLABS_API_KEY (API-encrypted; রিপোতে-নয়) + voice-secret.yml (wrangler secret put --name admission-voice; কোড/KV-অটুট) → লাইভ-অভিনব-শব্দ cache-miss → 200/MP3 = নতুন-key-প্রমাণিত। মালিক-ফোনে-at-least-১-বার-app-reopen (২-খোলা)-দরকার — ডেটা-অটুট।
 - **মালিক-রিপোর্ট-২ "হচ্ছে না" — উপসংহার:** সার্ভার-দুই-হোস্টেই-নতুন+লাইভ-প্রমাণিত; ফোন-স্টেল-SW-চালাচ্ছে (Parser-ট্যাব-প্রমাণ)। করণীয়: ২-বার-বন্ধ-খোলা / site-data-clear / private-ট্যাব-ডায়াগনস্টিক। যাচাই-চিহ্ন: নেভ-Profile (Parser-নয়)।
