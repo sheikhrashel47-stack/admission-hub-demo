@@ -17,7 +17,15 @@
   const num = (v) => { const n = Number(v) || 0; return n; };
   const escv = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-  const C = () => (window.CACHE || {});
+  /* CACHE রেজলভার: index.html-এ `const CACHE` (ক্লাসিক-স্ক্রিপ্ট টপ-লেভেল const) window-এ যায় না —
+     তাই প্রথমে window, পরে গ্লোবাল-লেক্সিকাল (typeof-গার্ড), শেষ-ফলব্যাক {} — কোনো অবস্থায় ক্র্যাশ নয়। */
+  const C = () => {
+    try {
+      if (window.CACHE) return window.CACHE;
+      if (typeof CACHE !== 'undefined' && CACHE) return CACHE;
+    } catch (_) {}
+    return {};
+  };
   const DSTATS = () => { const m = {}; (C().dailyStats || []).forEach((s) => { m[keyOf(new Date(Number(s.date) || Number(s.id) || Date.now()))] = s; }); return m; };
 
   /* ── আজকের + সপ্তাহ-পরিসংখ্যান ── */
@@ -82,14 +90,15 @@
 
   /* ── Admission Goal (ডিফল্ট-স্যাম্পল; settings-এ পরিবর্তনযোগ্য) ── */
   function goal() {
-    const s = C().settings || {};
+    const S = C().settings;
+    const s = (S && typeof S === 'object') ? S : {};
     if (!s.dv2Goal) {
       s.dv2Goal = { university: 'Rajshahi University', unit: 'A Unit', examDate: keyOf(Date.now() + 90 * DAY) };
-      try { if (window.dbPut) window.dbPut('settings', s).catch(() => {}); } catch (_) {}
+      try { if (S && window.dbPut) window.dbPut('settings', s).catch(() => {}); } catch (_) {} /* আসল settings-অবজেক্ট থাকলেই কেবল লেখা (ফাঁকা-ফলব্যাকে DB-মোছা নিষিদ্ধ) */
     }
     const g = s.dv2Goal;
     const diff = Math.max(0, Math.ceil((new Date(g.examDate + 'T23:59:59') - Date.now()) / DAY));
-    const target = Math.max(20, num(C().settings.dailyTarget || 100));
+    const target = Math.max(20, num((C().settings || {}).dailyTarget || 100));
     const wq = weekSeries().reduce((a, x) => a + x.q, 0);
     const prep = Math.min(100, Math.round(wq / (target * 7) * 100));
     return { university: g.university, unit: g.unit, daysLeft: diff, prep };
@@ -148,7 +157,7 @@
     const t = todayStats();
     const week = weekSeries();
     const run = streakDays();
-    const target = Math.max(1, num(C().settings.dailyTarget || 100));
+    const target = Math.max(1, num((C().settings || {}).dailyTarget || 100));
     const pct = Math.min(100, Math.round(t.q / target * 100));
     const ans = t.c + t.w;
     const mastery = ans ? Math.round(t.c / ans * 100) : 0;
@@ -287,7 +296,14 @@
     try {
       if (typeof previous === 'function') { previous(); const el = document.querySelector('#app [data-phase5-dashboard]'); if (el) intel = el.outerHTML; }
     } catch (_) {}
-    const html = build();
+    let html;
+    try { html = build(); }
+    catch (e) {
+      /* চূড়ান্ত-নিরাপত্তা: dv2-এর যেকোনো ভুলে পুরনো ড্যাশবোর্ড — অ্যাপ কখনো "Something went wrong"-এ পড়ে না */
+      console.warn('[dv2] build পতন — পুরনো ড্যাশবোর্ডে ফলব্যাক', e);
+      try { if (typeof previous === 'function') previous(); } catch (_) {}
+      return undefined;
+    }
     if (typeof window.renderShell === 'function') window.renderShell(html, { title: 'Dashboard', topbar: false });
     else { const app = document.getElementById('app'); if (app) app.innerHTML = '<main class="page">' + html + '</main>'; }
     if (intel) {

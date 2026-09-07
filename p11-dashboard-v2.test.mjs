@@ -8,11 +8,11 @@ const V2 = readFileSync('dashboard-v2.js', 'utf8');
 const CSS = readFileSync('dashboard-v2.css', 'utf8');
 
 /* ১ — ফাইল-লোড + ক্যাশ-কী */
-t('dashboard-v2.js defer-লোড (?v=dash2)', H.includes('<script defer src="./dashboard-v2.js?v=dash2"></script>'));
+t('dashboard-v2.js defer-লোড (?v=dash2)', H.includes('<script defer src="./dashboard-v2.js?v=dash2f1"></script>'));
 t('dashboard-v2.css link (?v=dash2)', H.includes('<link rel="stylesheet" href="./dashboard-v2.css?v=dash2">'));
-t('sw APP_SHELL-এ dashboard-v2 (js+css)', SW.includes("'./dashboard-v2.js?v=dash2'") && SW.includes("'./dashboard-v2.css?v=dash2'"));
-t('sw BUILD_ID v196-gfix-20260907', SW.includes("const BUILD_ID = 'v196-gfix-20260907'"));
-t('index sw-marker v195', H.includes('sw.js?v=v196-gfix-20260907'));
+t('sw APP_SHELL-এ dashboard-v2 (js+css)', SW.includes("'./dashboard-v2.js?v=dash2f1'") && SW.includes("'./dashboard-v2.css?v=dash2'"));
+t('sw BUILD_ID v197-gfix-20260907', SW.includes("const BUILD_ID = 'v197-gfix-20260907'"));
+t('index sw-marker v195', H.includes('sw.js?v=v197-gfix-20260907'));
 
 /* ২ — ১৪ মডিউল (ছবির প্রতিটি সেকশন) */
 t('১ Personal Header (avatar+তারিখ+🔔)', V2.includes('dv2-header') && V2.includes('Intl.DateTimeFormat') && V2.includes('dv2-bell'));
@@ -32,7 +32,7 @@ t('১৪ baseTab: ai-chat → কোনো-ট্যাব-হাইলাই�
 t('দৃশ্য-সংরক্ষণ: phase5 Daily Intelligence (data-phase5 + data-dv2-phase5)', V2.includes('[data-phase5-dashboard]') && V2.includes('[data-dv2-phase5]'));
 
 /* ৩ — ডেটা-সততা: CACHE-ভিত্তিক, কোনো ফেক সংখ্যা নয় */
-t('সব-সংখ্যা CACHE-সূত্র (dailyStats/examResults/questions)', /const C = \(\) => \(window\.CACHE/.test(V2) && V2.includes('examResults') && V2.includes('dailyStats'));
+t('সব-সংখ্যা CACHE-সূত্র (dailyStats/examResults/questions)', V2.includes('if (window.CACHE) return window.CACHE;') && V2.includes('examResults') && V2.includes('dailyStats'));
 t('শূন্য-অবস্থা-বার্তা (সৎ, কোনো বানানো-সংখ্যা নয়)', V2.includes('কোনো ডেটা নেই') && V2.includes('এখনো') && V2.includes('নেই'));
 t('অফলাইন: dashboard-v2.js-এ কোনো fetch/XHR/https-কল নেই', !/fetch\(|XMLHttpRequest|https:\/\//.test(V2));
 t('নতুন DB-স্কিমা নেই (idb-স্টোর-স্পর্শ নয়)', !/dbCreateStore|objectStore\(/.test(V2) || /dbPut\('settings'\)/.test(V2));
