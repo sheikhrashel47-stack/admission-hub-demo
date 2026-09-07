@@ -952,15 +952,20 @@
       scope: 'openid email profile',
       prompt: 'select_account',
       callback: async (resp) => {
+        clearGoogleWatchdog();
         if (!resp || resp.error || !resp.access_token) {
-          showErr('ahErr', lang === 'bn' ? 'গুগল লগইন বাতিল হয়েছে' : 'Google sign-in cancelled');
+          showAuthErr(lang === 'bn' ? 'গুগল লগইন বাতিল হয়েছে — আবার চেষ্টা করো' : 'Google sign-in cancelled — try again');
           return;
         }
-        try { await finishGoogle({ accessToken: resp.access_token }); }
-        catch (e) { showErr('ahErr', authFriendly(e)); }
+        try {
+          window.__ahGoogleDone = true;
+          await finishGoogle({ accessToken: resp.access_token });
+        }
+        catch (e) { showAuthErr(authFriendly(e)); }
       }
     });
     client.requestAccessToken({ prompt: 'select_account' });
+    armGoogleWatchdog(); /* পপআপ খুললে ৬০সে-ওয়াচডগ: সাড়া না পেলে দৃশ্যমান বার্তা (নীরব-মৃত্যু নিষিদ্ধ) */
   }
   async function doGoogle() {
       const btn = document.getElementById('ahGoogle');
@@ -976,10 +981,12 @@
           cfg = Object.assign({}, cfg, { google: true, googleClientId: '673030739375-i91ini3ianip5sa88qemhjcao2hl3e3s.apps.googleusercontent.com' });
         }
         await loadGis();
+        window.__ahGoogleDone = false;
         startGooglePicker();
       } catch (e) {
+        clearGoogleWatchdog();
         const msg = networkFailure(e) ? (lang === 'bn' ? 'গুগল সংযোগ পাওয়া যাচ্ছে না। ইন্টারনেট ঠিক করে আবার চেষ্টা করুন, অথবা ইমেইল দিয়ে ঢুকুন।' : 'Google could not be reached. Check your connection or use email sign-in.') : (authFriendly(e) || (lang === 'bn' ? 'গুগল লগইন ব্যর্থ হয়েছে' : 'Google login failed'));
-        showErr('ahErr', msg);
+        showAuthErr(msg);
       } finally {
         if (btn) { btn.classList.remove('ah-busy'); btn.disabled = false; if (prev) btn.innerHTML = prev; }
       }
@@ -1038,20 +1045,12 @@
       async function afterAuth(data) {
     clearWait();
     setSession(data.token, data.user);
-    await enterApp();
-  }
-
-  async function enterApp() {
-    setGate(false);
-    try { await pullState(); } catch (_) {}
-    try { if (window.AdmissionCloudContent) await AdmissionCloudContent.pull(); } catch (_) {}
-    try { await pushState(); } catch (_) {}
-    if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {
-      const onb = await AHOnboard.maybeStart();
-      if (onb) return;
+    try { await enterApp(); }
+    catch (e) {
+      console.warn('[auth] enterApp ব্যতিক্রম — UI-প্রবেশ জোর করা হচ্ছে', e);
+      try { syncAuthUI(); } catch (_) {}
+      try { toast(lang === 'bn' ? '✅ লগইন হয়েছে — হোম পেজ লোড হচ্ছে' : '✅ Signed in — loading Home'); } catch (_) {}
     }
-    if (typeof navigate === 'function') navigate('dashboard');
-    else if (typeof render === 'function') render();
   }
 
   async function logout() {
@@ -1950,19 +1949,22 @@
   }
 
   async function enterApp() {
-    setGate(false);
+    syncAuthUI(); /* ① UI-প্রবেশ সবার আগে — নেটওয়ার্ক-সিঙ্কের জন্য এক মুহূর্তও অপেক্ষা নয় */
     try { await pullState(); } catch (_) {}
     try { if (window.AdmissionCloudContent) await AdmissionCloudContent.pull(); } catch (_) {}
     try { await pushState(); } catch (_) {}
-    if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {
-      const onb = await AHOnboard.maybeStart();
-      if (onb) return;
-    }
+    try {
+      if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {
+        const onb = await AHOnboard.maybeStart();
+        if (onb) return;
+      }
+    } catch (_) {}
     if (typeof navigate === 'function') navigate(pendingRoute() || 'dashboard');
     else if (typeof render === 'function') render();
     clearPendingAuth();
     stopGuestBadger();
     window.__ahGuestMode = false;
+    try { toast(lang === 'bn' ? '✅ লগইন হয়েছে' : '✅ Signed in'); } catch (_) {}
   }
 
   /* ═══════════ GUEST-FIRST AUTH UX (v177) ═══════════
@@ -1986,6 +1988,34 @@
     const ev = document.getElementById('ahAuthPrompt');
     if (ev) ev.remove();
     document.body.classList.remove('ah-prompt-open');
+  };
+  /* ── লগইন-দৃশ্যমানতা-লক (মালিক-রিপোর্ট ২০২৬-০৯-০৭: "Google-লগইন হচ্ছে কিন্তু অ্যাপে কিছু বদলায় না")
+     কারণ: প্রবেশ-পথের ভুল নীরবে মরে (আহErr শুধু গেট-স্ক্রিনে, প্রম্পট-কনটেক্সটে অদৃশ্য) + enterApp নেটওয়ার্ক-সিঙ্কের
+     অপেক্ষায় UI-বদল আটকে থাকত। ফিক্স: (১) প্রতিটি ত্রুটি টোস্টে দৃশ্যমান; (২) UI-প্রবেশ সবার আগে, সিঙ্ক পেছনে;
+     (৩) গুগল-পপআপ ৬০সে-ওয়াচডগ; (৪) সফল-প্রবেশে টোস্ট। */
+  const showAuthErr = (msg) => {
+    try { showErr('ahErr', msg); } catch (_) {}
+    try { toast(msg); } catch (_) {}
+  };
+  const clearGoogleWatchdog = () => {
+    try { if (window.__ahGoogleWatchdog) { clearTimeout(window.__ahGoogleWatchdog); window.__ahGoogleWatchdog = null; } } catch (_) {}
+  };
+  const armGoogleWatchdog = () => {
+    clearGoogleWatchdog();
+    window.__ahGoogleWatchdog = setTimeout(() => {
+      try { if (window.__ahGoogleDone) return; } catch (_) {}
+      showAuthErr(lang === 'bn' ? 'গুগল উইন্ডো থেকে সাড়া পাওয়া যায়নি — আরেকবার চেষ্টা করো, অথবা ইমেইল দিয়ে ঢুকো।' : 'No response from the Google window — try again or use Email.');
+    }, 60000);
+  };
+  /* সফল-অথ-এ UI-ট্রানজিশন: গেট-বন্ধ + প্রম্পট-সরানো + ব্যাজ-থামানো + নেভিগেট — ১০০% সিঙ্ক্রোনাস (নেটওয়ার্ক-নিরপেক্ষ) */
+  const syncAuthUI = () => {
+    setGate(false);
+    try { const w = document.getElementById('ahAuthPrompt'); if (w) w.remove(); } catch (_) {}
+    try { document.body.classList.remove('ah-prompt-open'); } catch (_) {}
+    try { stopGuestBadger(); } catch (_) {}
+    window.__ahGuestMode = false;
+    const target = pendingRoute() || routePath() || 'dashboard';
+    try { if (typeof navigate === 'function') navigate(target); else if (typeof render === 'function') render(); } catch (_) {}
   };
   const openAuthPrompt = (action, opts) => {
     if (authed()) return true;
@@ -2036,6 +2066,7 @@
     document.body.classList.add('ah-prompt-open');
     const goGoogle = () => {
       closeAuthPrompt();
+      setPendingAuth(pendingRoute() || (window.Router && Router.path) || 'dashboard'); /* লগইন-পর একই পৃষ্ঠায় ফেরা */
       doGoogle();
     };
     const goEmail = () => {
@@ -2364,6 +2395,8 @@
           } catch (_) {}
         }
         setGate(false); /* যেকোনো-পথে (me-সফল বা fresh-গ্রেস) গেট বন্ধ — সেশন রাখা হয়েছে */
+        try { stopGuestBadger(); } catch (_) {}
+        window.__ahGuestMode = false;
         await pullState();
         if (window.AdmissionCloudContent) AdmissionCloudContent.pull().catch(() => {});
         if (window.AHOnboard && typeof AHOnboard.maybeStart === 'function') {
