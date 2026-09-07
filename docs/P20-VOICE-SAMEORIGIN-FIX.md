@@ -19,6 +19,12 @@
 | `voice-worker.js` (source) | CORS-allowlist-এ `*.pages.dev` যোগ (মূল-ফিক্স; same-origin-পথের-পরেও-সঠিক) — **ডিপ্লয়-নোট:** CF-worker-এ-এই-ফাইল-আবার-deploy-করলে-সরাসরি-পথ-ও-সুস্থ-হবে (পরবর্তী-সুবিধার্থে) |
 | hub (`admission-hub`) | এন্ডপয়েন্ট → লাইভ `admission-voice.admissionhub.workers.dev` + `.workers.dev`-মাইগ্রেশন + ভুঁই-একই-এরর-টোস্ট |
 
+## লাইভ-ভেরিফিকেশন (২০২৬-০৯-০৭, v204 লাইভ)
+- `POST https://admissionhub.pages.dev/api/voice` + `X-AH-App: admission-hub` → **HTTP 200 · audio/mpeg · 3675 B · আসল MPEG-layer-III অডিও** (ফোনের-ঠিক-একই-পথ: পেজ → CF-Pages `_worker.js` → voice-worker → ElevenLabs; কোনো-CORS/workers.dev-নির্ভরতা-নেই)।
+- মার্কার-লাইভ: `sw?v=v204-gfix-20260907` · `vocabulary-elevenlabs.js?v=el-voice-v106`-এ `DEFAULT_ENDPOINT=''` (same-origin) + `.workers.dev`-মাইগ্রেশন-উপস্থিত।
+- (নোট: `X-AH-App`-হেডার-ছাড়া-403 `{"error":"forbidden"}` — voice-worker-এর-অ্যান্টি-অ্যাবিউজ; ক্লায়েন্ট-হেডার-পাঠায়, প্রক্সি-পাস-থ্রু — ঠিক-আছে।)
+- hub-রিপো: রিমোটে-আগেই-ফিক্স-ছিল (`15c4096` — ডেড-এন্ডপয়েন্ট-সরানো+প্লে-পার্সিস্টেন্স); তার-উপরে `c82c9c9` — যাচাই-করা-লাইভ-এন্ডপয়েন্ট-ডিফল্ট + মাইগ্রেশন + স্পষ্ট-এরর (`?v=el-voice-v107`)।
+
 ## যাচাই
 - p20-voice-sameorigin.test.mjs **৭/৭** (স্থির-যাচাই: _worker-রুট · same-origin-ডিফল্ট · মাইগ্রেশন · allowlist-pages.dev · hub-লাইভ-এন্ডপয়েন্ট · v204-অখণ্ডতা · **রানটাইম-jsdom**: ১ম-ক্লিক `generated` → ২য়-ক্লিক `cache` (fetch-সংখ্যা ১-ই) → `navigator.onLine=false`-এ-ও `cache`-থেকে-বাজে)।
 - পূর্ণ-স্যুট **২৪-ফাইল ০-ব্যর্থ** (AUTH-GUARD-সহ — কোনো-মৃত-host-লিটারেল-নেই)।
