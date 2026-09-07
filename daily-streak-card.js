@@ -4,6 +4,8 @@
  * কোনো fake/demo ডেটা নেই।
  */
 (() => {
+  if (true) return; /* P18-LEGACY-DASH-KILL: পুরোনো ড্যাশবোর্ড-সহযোগী চিরকাল-নিষ্ক্রিয় */
+
   'use strict';
 
   const STYLE_ID = 'daily-streak-card-style';

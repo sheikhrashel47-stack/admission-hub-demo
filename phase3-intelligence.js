@@ -315,7 +315,12 @@
 
   window.__phase3DashboardMarkup = widgetHTML;
 
+  /* ═══ P18 (v202) — মালিক-নির্দেশ: পুরোনো ড্যাশবোর্ড আজীবনের জন্য বন্ধ ═══
+     এই injectDashboard আগে প্রতিটি dashboard-রেন্ডারের পরে পুরনো p3-ড্যাশ ঢুকিয়ে
+     নতুন dashboard-কে display:none করত (মালিক: 'ঐ পুরোনো dashboard এখনো লোড ও রেন্ডার করতেছে')।
+     এখন injectDashboard শূন্য-ফাংশন — পুরনো কোড কখনোই চলে না; নিচের বডি মৃত-কোড। */
   function injectDashboard(){
+    return; /* P18-LEGACY-DASH-KILL: পুরোনো ড্যাশবোর্ড চিরকাল-নিষ্ক্রিয় */
     if(Router.path!=='dashboard')return;
     const page=document.querySelector('#app .page');
     if(!page)return;
@@ -339,7 +344,7 @@
   function motivationHTML(){const m=motivation();return `<section class="card p3-motivation"><div class="p3-kicker">আজকের অনুপ্রেরণা</div>${m.map(x=>`<div>${esc3(x)}</div>`).join('')}</section>`}
   window.__phase3ProgressExtras=()=>motivationHTML()+`<section class="card" data-p3-progress><div class="p3-section-head"><b>Learning intelligence</b><button class="btn secondary sm" onclick="navigate('analytics')">Open analytics</button></div><p>${esc3(derive().recommendation)}</p></section>`;
   function notificationsHTML(){const ns=notifications(),unread=ns.filter(n=>!n.read).length;return `<div class="explorer-head"><div class="explorer-kicker">Unified Inbox</div><div class="explorer-title">Notification Center</div><div class="explorer-subtitle">Study, revision, exam and progress alerts এক জায়গায়।</div></div><div class="p3-notify-toolbar"><span>${unread} unread · ${ns.length} history</span><button class="btn secondary sm" onclick="phase3MarkAllRead()">Mark all as read</button></div>${ns.length?`<div class="p3-notification-list">${ns.map(n=>`<article class="card ${n.read?'':'is-unread'}"><div class="row between"><span class="pill">${esc3(n.category)}</span><small>${new Date(n.createdAt).toLocaleString()}</small></div><b>${esc3(n.title)}</b><p>${esc3(n.body)}</p><button class="linkbtn" onclick="phase3MarkRead('${n.id}')">${n.read?'Read':'Mark read'}</button></article>`).join('')}</div>`:'<div class="card p3-empty">এখনও কোনো notification তৈরি হয়নি।</div>'}`}
-  function hookRender(){const old=window.render;if(window.__phase3RenderHook)return;window.__phase3RenderHook=true;window.render=function(){const p=Router.path;if(p==='analytics')return renderShell(analyticsHTML(),{title:'Analytics',back:"navigate('dashboard')"});if(p==='notifications')return renderShell(notificationsHTML(),{title:'Notifications',back:"navigate('dashboard')"});if(p==='profile'&&typeof window.__admissionIntegratedProfileRender==='function')return window.__admissionIntegratedProfileRender();const result=old.apply(this,arguments);if(p==='dashboard')setTimeout(injectDashboard,0);return result;};}
+  function hookRender(){const old=window.render;if(window.__phase3RenderHook)return;window.__phase3RenderHook=true;window.render=function(){const p=Router.path;if(p==='analytics')return renderShell(analyticsHTML(),{title:'Analytics',back:"navigate('dashboard')"});if(p==='notifications')return renderShell(notificationsHTML(),{title:'Notifications',back:"navigate('dashboard')"});if(p==='profile'&&typeof window.__admissionIntegratedProfileRender==='function')return window.__admissionIntegratedProfileRender();const result=old.apply(this,arguments);/* P18: dashboard-শাখা-কাটা — injectDashboard আর-চলে-না */return result;};}
   window.startPhase3Topic=function(id){const pool=(CACHE.questions||[]).filter(q=>q.topicId===id);if(pool.length&&typeof beginExamFromPool==='function')return beginExamFromPool(pool.slice(0,20),'flash');toast('এই topic-এ practice question নেই');};
   window.phase3AddTask=function(){const title=prompt('আজকের task লিখুন');if(!title?.trim())return;saveTasks([...tasks(),{id:'t-'+Date.now(),title:title.trim(),completed:false,createdAt:Date.now()}]);render()};
   window.phase3CompleteTask=function(id){saveTasks(tasks().map(t=>t.id===id?{...t,completed:!t.completed,completedAt:Date.now()}:t));render()};

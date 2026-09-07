@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v201-gfix-20260907';
+const BUILD_ID = 'v202-gfix-20260907';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -16,7 +16,7 @@ const APP_SHELL = [
   './phase12-ui.js?v=nav-resume-router-v7',
   './phase23-ui.js?v=swipe-fix-0f10a28-safe-capture',
   './upgrade-features.js?v=4',
-  './phase3-intelligence.js?v=command-tools-v15-greet3d',
+  './phase3-intelligence.js?v=command-tools-v16-dv2-only',
   './phase1-upgrade.js?v=4-nosplash',
   './web-search-fix.js?v=1',
   './study-tools-restore.js?v=3',
@@ -63,8 +63,6 @@ const APP_SHELL = [
   './result-ai-analysis.js?v=result-ai-live-tool-v10-real-request',
   './mistake-notebook-tool.js?v=nb-v1',
   './weekly-report-tool.js?v=wr-v2-real-payload',
-  './dashboard-greeting-3d.js?v=greet3d-v110',
-  './daily-streak-card.js?v=streak-under-greet-v110',
   './result-interaction-polish.js?v=result-interaction-polish-v1',
   './today-command-center-live.js?v=today-command-center-live-v5-card',
   './settings-command-cleanup.js?v=settings-command-cleanup-v2',

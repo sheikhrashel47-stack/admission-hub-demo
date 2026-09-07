@@ -5193,17 +5193,17 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
       // An older worker can keep serving the pre-fix navigation bundle in an
       // installed PWA. Remove that controller once, then install the current
       // worker with a fresh build URL.
-      const expectedSwVersion = 'v201-gfix-20260907';
+      const expectedSwVersion = 'v202-gfix-20260907';
       if (registration && activeUrl && !activeUrl.includes(expectedSwVersion)) {
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v201-gfix-20260907',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v202-gfix-20260907',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v201-gfix-20260907';
+        const cur = 'admission-hub-shell-v202-gfix-20260907';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -5340,7 +5340,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
 <script defer src="phase12-ui.js?v=nav-resume-router-v7"></script>
 <script defer src="phase23-ui.js?v=swipe-fix-0f10a28-safe-capture"></script>
 <script defer src="upgrade-features.js?v=4"></script>
-<script defer src="phase3-intelligence.js?v=command-tools-v15-greet3d"></script>
+<script defer src="phase3-intelligence.js?v=command-tools-v16-dv2-only"></script>
 <script defer src="phase1-upgrade.js?v=4-nosplash"></script>
 <script defer src="web-search-fix.js?v=1"></script>
 <script defer src="study-tools-restore.js?v=3"></script>
@@ -5736,8 +5736,6 @@ window.ADMISSION_HUB_TURNSTILE_SITEKEY = '0x4AAAAAAEeUzke6MqE3DUgk';
 <script src="./result-ai-analysis.js?v=result-ai-live-tool-v10-real-request" defer></script>
     <script src="./mistake-notebook-tool.js?v=nb-v1" defer></script>
     <script src="./weekly-report-tool.js?v=wr-v2-real-payload" defer></script>
-    <script src="./dashboard-greeting-3d.js?v=greet3d-v110" defer></script>
-    <script src="./daily-streak-card.js?v=streak-under-greet-v110" defer></script>
 <script defer src="./result-interaction-polish.js?v=result-interaction-polish-v1"></script>
 <script defer src="./today-command-center-live.js?v=today-command-center-live-v5-card"></script>
 
