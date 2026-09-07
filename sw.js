@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v202-gfix-20260907';
+const BUILD_ID = 'v203-gfix-20260907';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -16,7 +16,6 @@ const APP_SHELL = [
   './phase12-ui.js?v=nav-resume-router-v7',
   './phase23-ui.js?v=swipe-fix-0f10a28-safe-capture',
   './upgrade-features.js?v=4',
-  './phase3-intelligence.js?v=command-tools-v16-dv2-only',
   './phase1-upgrade.js?v=4-nosplash',
   './web-search-fix.js?v=1',
   './study-tools-restore.js?v=3',

@@ -37,7 +37,7 @@ t('১২. gk-agent: localStorage-override অক্ষত + ডিফল্ট 
 
 /* ── ৪. ভার্সন-অখণ্ডতা v199 ── */
 t('১৩. premium-auth.js ?v=p3-auth-guest-v201 (index + sw APP_SHELL)', H.includes('premium-auth.js?v=p3-auth-guest-v201') && SW.includes("'./premium-auth.js?v=p3-auth-guest-v201'"));
-t('১৪. sw BUILD_ID v202-gfix-20260907 (index-marker + sw.js + expectedSwVersion + cur)', SW.includes("const BUILD_ID = 'v202-gfix-20260907'") && H.includes('sw.js?v=v202-gfix-20260907') && H.includes("const expectedSwVersion = 'v202-gfix-20260907'") && H.includes("const cur = 'admission-hub-shell-v202-gfix-20260907'"));
+t('১৪. sw BUILD_ID v203-gfix-20260907 (index-marker + sw.js + expectedSwVersion + cur)', SW.includes("const BUILD_ID = 'v203-gfix-20260907'") && H.includes('sw.js?v=v203-gfix-20260907') && H.includes("const expectedSwVersion = 'v203-gfix-20260907'") && H.includes("const cur = 'admission-hub-shell-v203-gfix-20260907'"));
 t('১৫. _worker.js ডিপ্লয়-পথে বাদ-যাচ্ছে না (cf-pages.yml rsync-excludes-তে _worker.js নেই)', !/rsync[^\n]*--exclude='_worker\.js'/.test(W('.github/workflows/cf-pages.yml')));
 
 console.log(`\nP15-SAMEORIGIN-PROXY: ${pass} pass / ${fail} fail`);

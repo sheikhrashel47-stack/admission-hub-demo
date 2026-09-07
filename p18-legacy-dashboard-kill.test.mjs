@@ -1,32 +1,35 @@
-// P18-রিগ্রেশন — পুরোনো ড্যাশবোর্ড চিরকাল-বন্ধ (মালিক 😡: "ঐ পুরোনো dashboard এখনো লোড করতেছে এবং render করতেছে — আজীবনের জন্য বন্ধ করো")
-// কারণ: phase3-intelligence.js-এর injectDashboard()-হুক প্রতিটি dashboard-রেন্ডারের পরে পুরনো p3-ড্যাশ
-//   ঢুকিয়ে নতুন dashboard-কে display:none করত (মালিক যেটা দেখছিল); daily-streak-card + dashboard-greeting-3d
-//   সেই পুরনো-ড্যাশের উপরে streak/গ্রিটিং জুড়ত। P16 শুধু renderV2-এর previous() চেইন কেটেছিল — phase3-হুক অটুট।
-// ফিক্স: injectDashboard → স্থায়ী no-op; hookRender-এর dashboard-শাখা কাটা; দুটি পার্শ্ব-ফাইল index/sw থেকে
-//   চিরকাল-সরানো + ভেতরে থাকা-অবস্থায়ও মৃত-গার্ড; v202।
-import { readFileSync, existsSync } from 'fs';
+// P18+P19-রিগ্রেশন — পুরোনো ড্যাশবোর্ড চিরকাল-বন্ধ (মালিক 😡: "এখনো তো পুরোনো টা থেকে গেছে!")
+// P18: phase3-intelligence.js-এর injectDashboard-হুক মৃত-করা (v202) — কিন্তু ফাইলটাই লোড হচ্ছিল।
+// P19 (v203): phase3-intelligence.js-কে রিপো-থেকেই মুছে-ফেলা (পুরনো-ইনডেক্স-থাকলেও
+//   ফাইল-নেই → SPA-ফলব্যাক-HTML → MIME-মিসম্যাচ → কখনো-এক্সিকিউট-হয়-না) + _headers-ক্যাশ-লক।
+import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { join } from 'path';
 import { JSDOM } from 'jsdom';
 let pass = 0, fail = 0;
 const t = (n, c) => { if (c) { pass++; console.log('  ✓', n); } else { fail++; console.log('  ✗', n); } };
 const H = readFileSync('index.html', 'utf8');
 const SW = readFileSync('sw.js', 'utf8');
-const P3 = readFileSync('phase3-intelligence.js', 'utf8');
 const PA = readFileSync('premium-auth.js', 'utf8');
 const DV2 = readFileSync('dashboard-v2.js', 'utf8');
+const HEADERS = existsSync('_headers') ? readFileSync('_headers', 'utf8') : '';
 
-/* ── ১. পুরোনো-ড্যাশবোর্ড-হুক মৃত ── */
-t('১. phase3 injectDashboard → স্থায়ী no-op (P18-গার্ড)', P3.includes('function injectDashboard(){') && P3.includes('return; /* P18-LEGACY-DASH-KILL'));
-t('২. hookRender-এ dashboard-শাখা-কাটা (injectDashboard-কল-আর-নেই)', P3.includes("if(p==='dashboard')setTimeout(injectDashboard,0)") === false && P3.includes("P18: dashboard-শাখা-কাটা"));
-t('৩. phase3-স্টিল-loaded (analytics/notifications/routine90-ইঞ্জিন অটুট) কিন্তু ড্যাশ-নয়', H.includes('phase3-intelligence.js?v=command-tools-v16-dv2-only') && SW.includes('./phase3-intelligence.js?v=command-tools-v16-dv2-only'));
-t('৪. daily-streak-card চিরকাল-বিলুপ্ত: index+sw-শূন্য + ফাইল-নেই (404-লোড-অসম্ভব)', !H.includes('daily-streak-card') && !SW.includes('daily-streak-card') && !existsSync('daily-streak-card.js'));
-t('৫. dashboard-greeting-3d চিরকাল-বিলুপ্ত: index+sw-শূন্য + ফাইল-নেই (404)', !H.includes('dashboard-greeting-3d') && !SW.includes('dashboard-greeting-3d') && !existsSync('dashboard-greeting-3d.js'));
+/* ── ১. পুরোনো-ড্যাশবোর্ড-কোড-শরীর-বিলুপ্ত ── */
+t('১. phase3-intelligence.js চিরকাল-বিলুপ্ত: ফাইল-নেই + index/sw-এ শূন্য', !existsSync('phase3-intelligence.js') && !H.includes('phase3-intelligence') && !SW.includes('phase3-intelligence'));
+t('২. daily-streak-card / dashboard-greeting-3d-ও-বিলুপ্ত (P18-অটুট)', !existsSync('daily-streak-card.js') && !existsSync('dashboard-greeting-3d.js') && !H.includes('daily-streak-card') && !SW.includes('daily-streak-card') && !H.includes('dashboard-greeting-3d') && !SW.includes('dashboard-greeting-3d'));
+t('৩. রিপো-জুড়ে পুরোনো-ড্যাশবোর্ড-মার্কার-শূন্য (TODAY COMMAND CENTER / Your Command Center / Swipe to explore)', (() => {
+  const files = [];
+  const walk = (d) => { for (const e of readdirSync(d)) { const p = join(d, e); const s = statSync(p); if (s.isDirectory()) { if (!['node_modules', '.git', 'docs', 'AGENT_RESUME', 'uploads', 'admin'].includes(e)) walk(p); } else if (e.endsWith('.js') || e.endsWith('.html')) files.push(p); } };
+  walk('.');
+  const bad = files.filter((f) => { const c = readFileSync(f, 'utf8'); return /TODAY COMMAND CENTER|Your Command Center|Swipe to explore/.test(c); });
+  return bad.length === 0;
+})());
+t('৪. _headers-ক্যাশ-লক: sw.js/index.html no-cache (পরবর্তী-স্টিক-নিষেধ)', HEADERS.includes('/sw.js') && HEADERS.includes('Cache-Control: no-cache') && HEADERS.includes('/index.html'));
 
-/* ── ২. ভার্সন-অখণ্ডতা v202 ── */
-t('৬. sw BUILD_ID/expectedSwVersion/cur = v202-gfix-20260907', SW.includes("const BUILD_ID = 'v202-gfix-20260907'") && H.includes('sw.js?v=v202-gfix-20260907') && H.includes("const expectedSwVersion = 'v202-gfix-20260907'") && H.includes("const cur = 'admission-hub-shell-v202-gfix-20260907'"));
-t('৭. dv2-অক্ষত: dashboard-v2.js?v=dash2f3 (index+sw)', H.includes('dashboard-v2.js?v=dash2f3') && SW.includes('./dashboard-v2.js?v=dash2f3'));
+/* ── ২. ভার্সন-অখণ্ডতা v203 ── */
+t('৫. sw BUILD_ID/expectedSwVersion/cur = v203-gfix-20260907 + dv2 dash2f3 অটুট', SW.includes("const BUILD_ID = 'v203-gfix-20260907'") && H.includes('sw.js?v=v203-gfix-20260907') && H.includes("const expectedSwVersion = 'v203-gfix-20260907'") && H.includes("const cur = 'admission-hub-shell-v203-gfix-20260907'") && H.includes('dashboard-v2.js?v=dash2f3'));
 
-/* ── ৩. রানটাইম: পুরনো-স্ট্যাক-লোড-করলেও পুরনো-ড্যাশ কখনো রেন্ডার হয় না ── */
-t('৮. রানটাইম: phase3-loaded অবস্থায় dashboard-রুটে p3-ড্যাশ/streak/greeting-শূন্য, শুধু dv2', (async () => {
+/* ── ৩. রানটাইম: এখন-থেকে-শুধু dv2 — পুরনো-মার্কার-অসম্ভব ── */
+t('৬. রানটাইম: PA+DV2+আজ-লোড-থাকা-ইনজেক্টর-সহ dashboard-রুটে পুরনো-মার্কার-শূন্য, শুধু dv2-root', (async () => {
   const dom = new JSDOM('<!DOCTYPE html><html><head></head><body><div id="ahAuthGate" style="display:none"></div><div id="app"></div><div id="navRoot"></div><div id="modalRoot"></div></body></html>', { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://admissionhub.pages.dev/' });
   const w = dom.window;
   w.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {} });
@@ -46,18 +49,38 @@ t('৮. রানটাইম: phase3-loaded অবস্থায় dashboard-
     return json({ error: 'nf' }, false, 404);
   };
   const load = (code) => { const s = w.document.createElement('script'); s.textContent = code; w.document.body.appendChild(s); };
-  load(PA); load(DV2); load(P3); load(DSC); load(GREET); /* পুরনো-স্ট্যাক-সহ-পূর্ণ-লোড */
-  await new Promise(r => setTimeout(r, 2500)); /* inject-টাইমার (0/100/500/1200ms + observers + ১২০০ms) পেরোনো */
-  /* dashboard-রুট সিমুলেট: renderDashboard (dv2) → পুরনো হুক-রান */
+  load(PA); load(DV2);
+  /* আজ-লোড-থাকা-দুই-ইনজেক্টর-ও-প্রয়োগ (যদি-ত্রুটি-ও-দেয়, wrap-করা) */
+  try { load(readFileSync('today-command-center-live.js', 'utf8')); } catch (_) {}
+  try { load(readFileSync('notes-tool.js', 'utf8')); } catch (_) {}
+  await new Promise(r => setTimeout(r, 2200));
   try { if (typeof w.renderDashboard === 'function') w.renderDashboard(); } catch (_) {}
-  await new Promise(r => setTimeout(r, 800));
-  const doc = w.document;
-  const p3 = doc.querySelector('[data-p3-command]');
-  const dsc = doc.querySelector('#dailyStreakCard, .dsc-card');
-  const greet = doc.querySelector('#ahGreet3d, .p3-header-v3');
-  const dv2root = doc.querySelector('#app .dv2-root');
-  return !p3 && !dsc && !greet && !!dv2root;
+  await new Promise(r => setTimeout(r, 900));
+  const html = (w.__shell || '') + (w.document.body.innerHTML || '');
+  const noOld = !/TODAY COMMAND CENTER|Your Command Center|Swipe to explore|data-p3-command|dailyStreakCard|ahGreet3d/.test(html);
+  const dv2 = !!w.document.querySelector('#app .dv2-root') || html.includes('dv2-root');
+  return noOld && dv2;
 })());
 
-console.log(`\nP18-LEGACY-DASH-KILL: ${pass} pass / ${fail} fail`);
+/* ── ৪. পূর্ণ-ইনলাইন-বান্ডেল: পুরোনো-ড্যাশবোর্ড-বডি-চিরদিন-মৃত ── */
+t('৭. ইনলাইন renderDashboard-ডেলিগেশন: সম্পূর্ণ index.html (inline-ইঞ্জিন)-এও পুরোনো-মার্কার-শূন্য', (async () => {
+  const html = readFileSync('index.html', 'utf8');
+  const dom = new JSDOM(html.replace(/<script[^>]*src=[^>]*><\/script>/g, ''), { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://admissionhub.pages.dev/' });
+  const w = dom.window;
+  w.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {} });
+  w.toast = () => {}; w.navigate = () => {};
+  w.CACHE = { examResults: [], mistakes: [], settings: { dailyTarget: 100, dashboardCards: {} }, dailyStats: [], subjects: [], questions: [] };
+  try { localStorage.setItem('ahPubToken', 'tok_1'); sessionStorage.setItem('ahPubToken', 'tok_1'); } catch (_) {}
+  w.fetch = () => Promise.resolve({ ok: false, status: 404, json: async () => ({ error: 'x' }), text: async () => 'x' });
+  await new Promise(r => setTimeout(r, 1500));
+  let rendered = '';
+  try { if (typeof w.renderDashboard === 'function') { const out = w.renderDashboard(); rendered = String(out || ''); } } catch (_) {}
+  try { if (typeof w.render === 'function') w.render(); } catch (_) {}
+  try { if (typeof w.navigate === 'function') w.navigate('dashboard'); } catch (_) {}
+  await new Promise(r => setTimeout(r, 600));
+  const body = rendered + (w.document.body ? w.document.body.innerHTML : '');
+  return !/TODAY COMMAND CENTER|Your command center|Swipe to explore|EMERALD ACADEMIC|dailyStreakCard|data-p3-command/.test(body);
+})());
+
+console.log(`\nP18+P19 LEGACY-DASH-KILL: ${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);

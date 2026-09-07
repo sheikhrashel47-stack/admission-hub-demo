@@ -8,6 +8,7 @@ const H = readFileSync('index.html', 'utf8');
 const SW = readFileSync('sw.js', 'utf8');
 const MA = readFileSync('mistake-analysis.js', 'utf8');
 const MN = readFileSync('mistake-note-icon.js', 'utf8');
+const V2 = readFileSync('dashboard-v2.js', 'utf8');
 
 /* ১ — v194: Mastered-নিয়ন্ত্রণ UI (নতুন) */
 t('setMistakeMastered ফাংশন (window-level)', H.includes('window.setMistakeMastered=async function(qid,val)'));
@@ -30,7 +31,7 @@ t('removeMistake: dbDel + CACHE-refresh + toast', H.includes("removeMistake=asyn
 t('Practice-My-Mistakes মোডাল (10/20/50/100) + startMistakeCount', H.includes('openMistakePracticeModal') && H.includes('[10,20,50,100].map'));
 t('startMistakeExam(mock/flash) → beginExamFromPool', /window\.startMistakeExam=async function\(mode\)\{startMistakeCount/.test(H) && H.includes('beginExamFromPool(pool,mode)'));
 t('exam-setup-এ source: wrong (Mistakes) রুট+ব্যাজ', H.includes("['wrong','Mistakes']"));
-t('Dashboard-এ ❌ Mistakes টাইল', H.includes("dashboardTool('mistakes','❌','Mistakes','mistakes')"));
+t('Dashboard-এ ❌ Mistakes টাইল (নতুন-ড্যাশবোর্ড dv2-তে — পুরোনো-ড্যাশ-মৃত)', H.includes('renderMistakes') && H.includes("if(p==='mistakes') return renderMistakes();") && V2.includes("navigate('mistakes')"));
 
 /* ৪ — রেকর্ডিং-পথ (exam-submit + explorer + flash) */
 t('exam-submit: snapshot-wrong → enrichMistakeRecord + wrongCount++ + status UNRESOLVED', /for\(const s of result\.snapshot\.filter\(x=>x\.status==='wrong'\)\)/.test(H) && /m\.status='UNRESOLVED'\s*;?\s*m\.mastered=false/.test(H) && /m\.wrongCount=beforeWrong\+1;/.test(H));
@@ -46,8 +47,8 @@ t('mistake-note-icon.js লোড (16-aiex)', H.includes('mistake-note-icon.js?v
 t('note-icon: openQuestionNoteEditor ইন্টিগ্রেশন', MN.includes('openQuestionNoteEditor') && MN.includes('__mistakeNoteIconInstalled'));
 
 /* ৬ — ভার্সন v194 */
-t('sw BUILD_ID v202-gfix-20260907', SW.includes("const BUILD_ID = 'v202-gfix-20260907'"));
-t('index sw-marker v202-gfix-20260907', H.includes('sw.js?v=v202-gfix-20260907'));
+t('sw BUILD_ID v203-gfix-20260907', SW.includes("const BUILD_ID = 'v203-gfix-20260907'"));
+t('index sw-marker v203-gfix-20260907', H.includes('sw.js?v=v203-gfix-20260907'));
 
 console.log(`\nP10-MISTAKES: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

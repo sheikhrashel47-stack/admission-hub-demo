@@ -28,7 +28,7 @@ t('৮. reduced-motion গার্ড (মোশন-সংবেদনশীল
 t('৯. পুরনো ইনলাইন-3D-splash আর নেই (v178-nosplash; ahfs-scene = 0)', !doc.querySelector('.ahfs-scene') && !html.includes('ahfs-scene'));
 t('১০. app-id + #app রুট exist', !!doc.getElementById('app'));
 t('১১. externl-স্ক্রিপ্ট-না-থাকলেও শেল রেন্ডার (static-first প্রমাণ)', !!doc.getElementById('app').querySelector('#ahSplash'));
-t('১২. sw-marker v202-gfix-20260907', html.includes('sw.js?v=v202-gfix-20260907'));
+t('১২. sw-marker v203-gfix-20260907', html.includes('sw.js?v=v203-gfix-20260907'));
 
 console.log(`\nINTRO-BOOTSHELL: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

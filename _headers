@@ -1,0 +1,19 @@
+# P19 (v203) — পুরোনো বান্ডেল-ক্যাশ-স্টিকিনেস চিরকাল-নিষেধ
+# আপডেট-প্রবাহ নিশ্চিত: sw.js ও index.html কখনো HTTP-ক্যাশে আটকাবে না।
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/index.html
+  Cache-Control: no-cache, must-revalidate
+
+/dashboard-v2.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/phase3-intelligence.js*
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/daily-streak-card.js*
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/dashboard-greeting-3d.js*
+  Cache-Control: no-cache, no-store, must-revalidate

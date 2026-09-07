@@ -4668,22 +4668,14 @@ async function executeAIAction(act){
   function accuracyOf(a){return a.correct+a.wrong?round2(a.correct/(a.correct+a.wrong)*100):0;}
   function bestStreak(){const days=new Set(CACHE.examResults.map(r=>todayKey(new Date(r.date)))); let best=0,run=0; const all=[...days].sort(); for(let i=0;i<all.length;i++){if(i&&new Date(all[i])-new Date(all[i-1])===86400000) run++; else run=1; best=Math.max(best,run);} return best;}
   function dashboardTool(key,icon,label,path){return `<button class="command-tile" onclick="${path?`navigate('${path}')`:'openSmartPracticeModal()'}"><span class="ic">${icon}</span><span class="label">${label}</span></button>`;}
+  /* ═══ P19 (v203) — পুরোনো ড্যাশবোর্ড আজীবন-বন্ধ (মালিক: 'এখনো তো পুরোনো টা থেকে গেছে!') ═══
+     এই inline renderDashboard ছিল আসল পুরোনো ড্যাশবোর্ড-ইঞ্জিন (EMERALD অ্যাকাডেমিক-হেডার,
+     নমুনা-লক্ষ্য-কার্ড, 'কমান্ড সেন্টার'-কার্ড-গ্রিড, Bank/Courses/Mock টাইল)।
+     এখন স্থায়ী delegation: নতুন ড্যাশবোর্ড থাকলে সেটাই; না-থাকলে শূন্য — পুরোনো আর কখনো নয়। */
   renderDashboard=function(){
-    const life=aggregateResults(CACHE.examResults), today=aggregateResults(dayResults()), target=Number(CACHE.settings.dailyTarget||100), pct=Math.min(100,Math.round(today.questions/Math.max(1,target)*100)), streak=computeStreak(), unfinished=CACHE.exams.find(e=>e.status==='running'), focus=getSmartFocusTopics();
-    const greeting=(new Date().getHours()<12?'সুপ্রভাত':new Date().getHours()<18?'শুভ দুপুর':new Date().getHours()<21?'শুভ সন্ধ্যা':'শুভ রাত্রি');
-    const cards=CACHE.settings.dashboardCards||{};
-    const html=`<div class="fade-in">
-      <div class="row between" style="margin-bottom:14px"><div><div class="explorer-kicker">Emerald Academic</div><div class="muted">${localDate()}</div><h1 style="font-size:24px;margin:4px 0">${greeting}, Scholar</h1></div></div>
-      ${cards.goal!==false?`<section class="premium-hero fade-in"><div class="row between"><div><div style="font-size:11px;letter-spacing:.08em;font-weight:800;opacity:.8">TODAY COMMAND CENTER</div><div style="font-size:20px;font-weight:800;margin-top:4px">${target} MCQ Goal</div></div><button class="iconbtn" style="color:#fff" onclick="openTargetModal()">✎</button></div><div class="row between" style="align-items:flex-end;margin-top:18px"><div style="font-size:28px;font-weight:800">${today.questions}<span style="font-size:14px;font-weight:500;opacity:.75"> / ${target}</span></div><b>${pct}%</b></div><div class="progbar" style="height:9px;margin-top:8px"><div style="width:${pct}%"></div></div><div class="grid2" style="margin-top:16px"><div><b>${today.correct}</b><div class="muted">Correct</div></div><div><b>${today.wrong}</b><div class="muted">Wrong</div></div><div><b>${accuracyOf(today)}%</b><div class="muted">Accuracy</div></div><div><b>${fmtTime(today.time)}</b><div class="muted">Study time</div></div></div></section>`:''}
-      <div class="h2">Your command center</div><div class="command-grid">${dashboardTool('bank','📚','Bank','question-bank')}${dashboardTool('mock','📝','Mock','exam/setup')}${dashboardTool('quick','⚡','Quick','smart-practice')}${dashboardTool('mistakes','❌','Mistakes','mistakes')}${dashboardTool('progress','📊','Progress','progress')}${dashboardTool('goals','🎯','Goals','progress/plan')}${dashboardTool('revision','🔁','Revision',null)}${dashboardTool('history','🕘','History','history')}${dashboardTool('search','🔍','Search','question-bank')}${dashboardTool('settings','⚙️','Settings','settings')}${dashboardTool('more','⋯','More','ai-chat')}</div>
-      ${cards.streak!==false?`<div class="metric-grid" style="margin-top:12px"><div class="metric-card"><div class="metric-value">🔥 ${streak} days</div><div class="metric-label">Current streak</div></div><div class="metric-card"><div class="metric-value">🏆 ${bestStreak()} days</div><div class="metric-label">Best streak</div></div></div>`:''}
-      ${unfinished?`<div class="card" style="border-left:4px solid var(--orange);margin-top:12px"><div class="row between"><div><b>Continue ${unfinished.mode==='mock'?'Mock':'Practice'}</b><div class="muted">${unfinished.currentIndex+1} / ${unfinished.questions.length} questions saved</div></div><button class="btn sm" onclick="navigate('exam/running')">Continue</button></div></div>`:''}
-      ${cards.revision!==false?`<div class="card" style="margin-top:12px"><div class="row between"><div><b>Smart recommendations</b><div class="muted">${focus.length?`Revise ${esc(focus[0].name)} next.`:'Complete a practice set to unlock real weakness insights.'}</div></div><button class="btn secondary sm" onclick="openSmartPracticeModal()">Practice</button></div>${focus.slice(0,3).map(f=>`<div class="listitem"><span>${esc(f.name)}</span><span class="pill ${f.cls==='revision'?'red':'orange'}">${round2(f.acc)}%</span></div>`).join('')}</div>`:''}
-      ${cards.performance!==false?`<div class="h2">Performance</div><div class="metric-grid"><div class="metric-card"><div class="metric-value">${today.questions}</div><div class="metric-label">Today's questions</div></div><div class="metric-card"><div class="metric-value">${accuracyOf(today)}%</div><div class="metric-label">Today's accuracy</div></div><div class="metric-card"><div class="metric-value">${round2(today.score)}</div><div class="metric-label">Today's score</div></div><div class="metric-card"><div class="metric-value">${life.exams}</div><div class="metric-label">Total exams</div></div></div>`:''}
-      ${cards.lifetime!==false?`<div class="h2">Lifetime</div><div class="metric-grid"><div class="metric-card"><div class="metric-value">${life.questions}</div><div class="metric-label">Questions solved</div></div><div class="metric-card"><div class="metric-value">${life.correct}</div><div class="metric-label">Correct</div></div><div class="metric-card"><div class="metric-value">${accuracyOf(life)}%</div><div class="metric-label">Lifetime accuracy</div></div><div class="metric-card"><div class="metric-value">${fmtTime(life.time)}</div><div class="metric-label">Study time</div></div></div>`:''}
-    </div>`; renderShell(html,{title:'Dashboard',topbar:false});
+    if(typeof window.dv2RenderDashboard==='function') return window.dv2RenderDashboard();
+    return; /* P19-LEGACY-DASH-KILL: পুরোনো ড্যাশবোর্ড মৃত */
   };
-
   function setupPage(){return Math.max(1,Math.min(3,Number(ExamSetup.wizardStep||1)));}
   function setupChoice(active,label,onclick,desc=''){return `<button class="choice ${active?'active':''}" onclick="${onclick}"><b>${label}</b>${desc?`<small>${desc}</small>`:''}</button>`;}
   renderExamSetup=function(){
@@ -5193,17 +5185,17 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
       // An older worker can keep serving the pre-fix navigation bundle in an
       // installed PWA. Remove that controller once, then install the current
       // worker with a fresh build URL.
-      const expectedSwVersion = 'v202-gfix-20260907';
+      const expectedSwVersion = 'v203-gfix-20260907';
       if (registration && activeUrl && !activeUrl.includes(expectedSwVersion)) {
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v202-gfix-20260907',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v203-gfix-20260907',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v202-gfix-20260907';
+        const cur = 'admission-hub-shell-v203-gfix-20260907';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -5340,7 +5332,6 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
 <script defer src="phase12-ui.js?v=nav-resume-router-v7"></script>
 <script defer src="phase23-ui.js?v=swipe-fix-0f10a28-safe-capture"></script>
 <script defer src="upgrade-features.js?v=4"></script>
-<script defer src="phase3-intelligence.js?v=command-tools-v16-dv2-only"></script>
 <script defer src="phase1-upgrade.js?v=4-nosplash"></script>
 <script defer src="web-search-fix.js?v=1"></script>
 <script defer src="study-tools-restore.js?v=3"></script>
