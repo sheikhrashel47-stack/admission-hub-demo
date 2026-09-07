@@ -10,10 +10,6 @@ const W = (f) => readFileSync(f, 'utf8');
 const PA = W('premium-auth.js');
 const CCS = W('cloud-content-sync.js');
 const OB = W('onboarding.js');
-const AI = W('ah-ai-client.js');
-const AE = W('ai-explain-tool.js');
-const SA = W('study-ai-tool.js');
-const GK = W('gk-agent-tool.js');
 const H = W('index.html');
 const SW = W('sw.js');
 
@@ -31,13 +27,12 @@ t('৭. premium-auth: WORKER-const + CANONICAL_WORKER আজীবন-লক অ
 /* ── ৩. ডেটা-সিঙ্ক/অনবোর্ডিং/AI-ক্লায়েন্টসমূহ same-origin ── */
 t('৮. cloud-content-sync: apiFetch same-origin-প্রথম + CANON ফলব্যাক', CCS.includes("const WORKER = '';") && CCS.includes('const apiFetch =') && CCS.includes("const CANON = 'https://admission-gk.admissionhub.workers.dev';") && CCS.includes("apiFetch('/api/cloud/publish'"));
 t('৯. onboarding: PUB=/api + PUB_CANON ফলব্যাক', OB.includes("const PUB = '/api';") && OB.includes("const PUB_CANON = 'https://admission-gk.admissionhub.workers.dev/api';") && OB.includes("fetch(PUB_CANON + path"));
-t('১০. ah-ai-client: WORKER = /api (AI-গেটওয়ে same-origin)', AI.includes("const WORKER = '/api';"));
-t('১১. ai-explain + study-ai: WORKER=শূন্য-ভিত্তি (পথ-কম্পোজিশন অপরিবর্তিত)', AE.includes("const WORKER = '';") && SA.includes("const WORKER = '';"));
-t('১২. gk-agent: localStorage-override অক্ষত + ডিফল্ট same-origin', GK.includes("getItem('ahGkUrl')") && GK.includes("|| ''; } catch (_) { return ''; }"));
+t('১০. AI-ক্লায়েন্ট-ফাইল-নেই (মালিক-নির্দেশ ২০২৬-০৯-০৮ — সব AI বাদ)', !existsSync('ah-ai-client.js') && !existsSync('ai-explain-tool.js') && !existsSync('study-ai-tool.js') && !existsSync('gk-agent-tool.js'));
+t('১১. index.html-এ AI-স্ক্রিপ্ট-ট্যাগ নেই', !H.includes('ah-ai-client') && !H.includes('ai-explain-tool') && !H.includes('study-ai-tool') && !H.includes('gk-agent-tool'));
 
 /* ── ৪. ভার্সন-অখণ্ডতা v199 ── */
 t('১৩. premium-auth.js ?v=p3-auth-guest-v201 (index + sw APP_SHELL)', H.includes('premium-auth.js?v=p3-auth-guest-v201') && SW.includes("'./premium-auth.js?v=p3-auth-guest-v201'"));
-t('১৪. sw BUILD_ID v204-gfix-20260907 (index-marker + sw.js + expectedSwVersion + cur)', SW.includes("const BUILD_ID = 'v204-gfix-20260907'") && H.includes('sw.js?v=v204-gfix-20260907') && H.includes("const expectedSwVersion = 'v204-gfix-20260907'") && H.includes("const cur = 'admission-hub-shell-v204-gfix-20260907'"));
+t('১৪. sw BUILD_ID v205-gfix-20260908 (index-marker + sw.js + expectedSwVersion + cur)', SW.includes("const BUILD_ID = 'v205-gfix-20260908'") && H.includes('sw.js?v=v205-gfix-20260908') && H.includes("const expectedSwVersion = 'v205-gfix-20260908'") && H.includes("const cur = 'admission-hub-shell-v205-gfix-20260908'"));
 t('১৫. _worker.js ডিপ্লয়-পথে বাদ-যাচ্ছে না (cf-pages.yml rsync-excludes-তে _worker.js নেই)', !/rsync[^\n]*--exclude='_worker\.js'/.test(W('.github/workflows/cf-pages.yml')));
 
 console.log(`\nP15-SAMEORIGIN-PROXY: ${pass} pass / ${fail} fail`);

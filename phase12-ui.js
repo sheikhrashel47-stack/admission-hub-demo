@@ -49,8 +49,6 @@
   ];
 
   const specialTools = [
-    ['🧠', 'Daily GK', 'আজকের গুরুত্বপূর্ণ সাধারণ জ্ঞান', 'daily-gk'],
-    ['🌐', 'Web Chat', 'দ্রুত তথ্য খুঁজুন', 'web-chat'],
     ['📖', 'Dictionary', 'শব্দের অর্থ ও Vocabulary', 'dictionary'],
     ['🧩', 'Memorizing', 'Smart memorization tools', 'memorizing']
   ];

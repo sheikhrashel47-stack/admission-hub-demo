@@ -30,13 +30,13 @@ t('১০. logout() অক্ষত (setSession("",null) → enterGuest → ট�
 /* ৪ — নেভ-রিভার্স (মালিক-নির্দেশ ২০২৬-০৯-০৭): Admission AI ট্যাব বাদ, ফিচার-রুট অক্ষত */
 t('১১. NAV_TABS ৫-ট্যাব (ai-chat ট্যাব-এন্ট্রি নেই)', /NAV_TABS=.*key:'dashboard'.*key:'question-bank'.*key:'exam'.*key:'history'.*key:'profile'/s.test(H) && !H.includes("key:'ai-chat'") && !H.includes("label:'Admission AI'"));
 t("১২. baseTab: ai-chat → খালি (কোনো ট্যাব-হাইলাইট নয়)", H.includes("if(path.startsWith('ai-chat')) return '';"));
-t('১৩. Admission AI পেজ-রুট অক্ষত (renderAIChat + web-chat + More→ai-chat)', H.includes('renderAIChat') && H.includes('renderWebChatRebuild') && (/navigate\('ai-chat'\)/.test(H) || (typeof V2 !== 'undefined' && /navigate\('ai-chat'\)/.test(String(V2)))));
-t('১৪. dashboard-v2 টুল-গ্রিডে Admission AI অক্ষত (ফিচার হারায়নি)', V2.includes("'Admission AI'") && V2.includes("navigate('ai-chat')"));
+t('১৩. AI রুট-সম্পূর্ণ-বিলুপ্ত (মালিক-নির্দেশ ২০২৬-০৯-০৮): renderAIChat/web-chat-wrap/ai-chat-নেভ নেই + removedRoute-এ ai-chat/study-ai/gk-agent', !H.includes('renderAIChat') && !H.includes('renderWebChatRebuild') && !H.includes("navigate('ai-chat')") && H.includes("p === 'ai-chat'") && H.includes("p === 'study-ai'") && H.includes("p === 'gk-agent'"));
+t('১৪. dashboard-v2 টুল-গ্রিডে Admission AI নেই (AI টুল বাদ)', !String(V2).includes("'Admission AI'") && !String(V2).includes("navigate('ai-chat')"));
 
 /* ৫ — ভার্সন-অখণ্ডতা: premium-auth v196 + sw v196 (স্টেল-ক্যাশ নিষিদ্ধ) */
 t('১৫. premium-auth js/css ?v=p3-auth-guest-v196 (index+sw APP_SHELL)', H.includes("premium-auth.js?v=p3-auth-guest-v201") && H.includes("premium-auth.css?v=p3-auth-guest-v196") && SW.includes("'./premium-auth.js?v=p3-auth-guest-v201'") && SW.includes("'./premium-auth.css?v=p3-auth-guest-v196'"));
-t('১৬. sw BUILD_ID v204-gfix-20260907 (index-marker + sw.js)', SW.includes("const BUILD_ID = 'v204-gfix-20260907'") && H.includes('sw.js?v=v204-gfix-20260907'));
-t('১৭. SW-ব্লক expectedSwVersion/cur = v196 (মৃত v179-হার্ডকোড বাদ)', H.includes("const expectedSwVersion = 'v204-gfix-20260907'") && H.includes("const cur = 'admission-hub-shell-v204-gfix-20260907'") && !H.includes('v179-aiengine-20260903'));
+t('১৬. sw BUILD_ID v205-gfix-20260908 (index-marker + sw.js)', SW.includes("const BUILD_ID = 'v205-gfix-20260908'") && H.includes('sw.js?v=v205-gfix-20260908'));
+t('১৭. SW-ব্লক expectedSwVersion/cur = v196 (মৃত v179-হার্ডকোড বাদ)', H.includes("const expectedSwVersion = 'v205-gfix-20260908'") && H.includes("const cur = 'admission-hub-shell-v205-gfix-20260908'") && !H.includes('v179-aiengine-20260903'));
 
 console.log(`\nP12-LOGIN-GRACE: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

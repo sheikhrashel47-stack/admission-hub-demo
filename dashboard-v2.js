@@ -250,7 +250,6 @@
     const studyTools = '<section class="dv2-card"><div class="dv2-title">Study Tools</div><div class="dv2-tools">' +
       '<div class="dv2-tool" onclick="navigate(\'notes\')"><span class="ic">📒</span><span>Notes</span></div>' +
       '<div class="dv2-tool" onclick="navigate(\'vocabulary-master\')"><span class="ic">📖</span><span>Vocabulary</span></div>' +
-      '<div class="dv2-tool" onclick="navigate(\'web-chat\')"><span class="ic">🧮</span><span>Problem Solver</span></div>' +
       '<div class="dv2-tool" onclick="navigate(\'dictionary\')"><span class="ic">📖</span><span>Dictionary</span></div>' +
       '<div class="dv2-tool" onclick="window.dv2AllTools&&dv2AllTools()"><span class="ic">🗂️</span><span>More Tools</span></div>' +
       '</div></section>';
@@ -264,7 +263,7 @@
       ['📚', 'Bank', "navigate('question-bank')"], ['📝', 'Mock', "navigate('exam/setup')"], ['⚡', 'Quick', "window.openSmartPracticeModal?openSmartPracticeModal():navigate('smart-practice')"],
       ['❌', 'Mistakes', "navigate('mistakes')"], ['📊', 'Progress', "navigate('progress')"], ['🎯', 'Goals', "navigate('progress/plan')"],
       ['🔁', 'Revision', "navigate('vocabulary-master')"], ['📖', 'Vocab', "navigate('vocabulary-master')"], ['🕘', 'History', "navigate('history')"], ['🔍', 'Search', "navigate('question-bank')"],
-      ['🎓', 'Courses', "navigate('courses')"], ['🤖', 'Admission AI', "navigate('ai-chat')"], ['⚙️', 'Settings', "navigate('settings')"]
+      ['⚙️', 'Settings', "navigate('settings')"]
     ];
     window.openModal('<h3>সব টুল</h3><div class="dv2-tools" style="margin-top:8px">' + tools.map((x) => '<div class="dv2-tool" onclick="closeModal();' + x[2] + '"><span class="ic">' + x[0] + '</span><span>' + x[1] + '</span></div>').join('') + '</div><div style="text-align:right;margin-top:10px"><button class="btn ghost sm" onclick="closeModal()">বন্ধ</button></div>');
   };

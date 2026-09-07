@@ -1,5 +1,5 @@
 // D-V186 — IDB-ক্র্যাশ + লোডিং-হার্ডেনিং কোর-টেস্ট
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 let pass = 0, fail = 0;
 const t = (n, c) => { if (c) { pass++; console.log('  ✓', n); } else { fail++; console.log('  ✗', n); } };
 const H = readFileSync('index.html', 'utf8');
@@ -22,24 +22,19 @@ t('putManyFast: doTx-এ তাজা DB (DB-রিফ্রেশ)', CCS.includ
 /* ৩ — লোডিং: defer পার্স-অপটিমাইজেশন */
 const deferCount = (H.match(/<script defer src=/g) || []).length;
 t('৪৭+ অভ্যন্তরীণ-স্ক্রিপ্ট defer (কমপক্ষে ৪৫)', deferCount >= 45);
-t('বুট-ক্রিটিকাল ৩-স্ক্রিপ্ট অ-ডিফার', /<script src="\.\/session-persist\.js/.test(H) && /<script src="\.\/ah-ai-client\.js/.test(H) && /<script src="data-protection\.js/.test(H));
+t('বুট-ক্রিটিকাল ৩-স্ক্রিপ্ট অ-ডিফার', /src="\.\/session-persist\.js/.test(H) && /premium-auth\.js/.test(H) && /data-protection\.js/.test(H));
 t('হেভি app-seed/result-analysis defer', /src="[^"]*app-seed\.js[^>]*defer|<script defer src="[^"]*app-seed\.js/.test(H) && /src="[^"]*result-analysis-500\.js[^>]*defer|defer src="[^"]*result-analysis-500\.js/.test(H));
 /* ৪ — ভার্সন */
-t('sw BUILD_ID v204-gfix-20260907', SW.includes("const BUILD_ID = 'v204-gfix-20260907'"));
-t('index sw-marker v204-gfix-20260907', H.includes('sw.js?v=v204-gfix-20260907'));
+t('sw BUILD_ID v205-gfix-20260908', SW.includes("const BUILD_ID = 'v205-gfix-20260908'"));
+t('index sw-marker v205-gfix-20260908', H.includes('sw.js?v=v205-gfix-20260908'));
 /* ৫ — data-protection count-ভিত্তিক (ধীর-নয়) */
 t('summarizeDatabase: count()-ভিত্তিক (পূর্ণ-কোরে নয়)', DP.includes('tx.objectStore(name).count()'));
 
 /* ৬ — D-V187: ব্রাউজার-ফার্স্ট Gemini + Google-হেল্প + অটো-ডিপ্লয় */
-const AC = readFileSync('ah-ai-client.js', 'utf8');
-const SAI = readFileSync('study-ai-tool.js', 'utf8');
 const PA = readFileSync('premium-auth.js', 'utf8');
 const WF = readFileSync('.github/workflows/cf-pages.yml', 'utf8');
-t('askLocal: gemini-3.1-flash-lite ব্রাউজার-কল', AC.includes('askLocal') && AC.includes('generativelanguage.googleapis.com/v1beta/models/') && AC.includes('gemini-3.1-flash-lite') && AC.includes('gemini-3-flash-preview'));
-t('askLocal: ১৪s abort + ৯০০ maxOutputTokens', AC.includes('14000') && AC.includes('maxOutputTokens: 900'));
-t('AH_AI.askLocal এক্সপোজড', AC.includes('ask, askImage, askLocal'));
-t('study-ai: সার্ভার-কলের আগে ব্রাউজার-ফার্স্ট (D-V187)', SAI.includes('D-V187') && SAI.indexOf('askLocal') < SAI.indexOf('AH_AI.ask({ messages: hist'));
-t('study-ai: সার্ভার ফলব্যাক অক্ষত', SAI.includes("const ah = await window.AH_AI.ask({ messages: hist, kind: 'chat' })"));
+t('AI-ক্লায়েন্ট-ফাইল বিলুপ্ত (মালিক-নির্দেশ ২০২৬-০৯-০৮)', !existsSync('ah-ai-client.js') && !existsSync('study-ai-tool.js') && !existsSync('gk-agent-tool.js') && !existsSync('ai-explain-tool.js') && !existsSync('web-chat-rebuild.js'));
+t('index.html-এ AI-স্ক্রিপ্ট-লোড নেই', !H.includes('ah-ai-client') && !H.includes('study-ai-tool') && !H.includes('gk-agent-tool') && !H.includes('ai-explain-tool'));
 /* D-v191: Google-হেল্প আর পাবলিক-নয় + Google-অ্যাকাউন্ট সাইনআপ-ডেডএন্ড-ফিক্স */
 const PW = readFileSync('public-worker.js', 'utf8');
 const WB = readFileSync('worker-bundle.mjs', 'utf8');
@@ -52,7 +47,7 @@ t('client: api() error-এ code সংযুক্ত', PA.includes('if (data.co
 t('client: পুরনো পাসওয়ার্ড-আছে-শাখা অক্ষত', PA.includes('ইতিমধ্যে|already exists'));
 
 t('cf-pages.yml: push-অন-মেইন অটো-ডিপ্লয়', WF.includes('branches: [main]') && WF.includes('pages deploy dist --project-name admissionhub'));
-t('index study-ai marker v136', H.includes('studyai-v136-browser'));
+t('index study-ai/AI-মার্কার-নেই (মালিক-নির্দেশ ২০২৬-০৯-০৮)', !H.includes('studyai-v136-browser') && !H.includes('gk-agent-tool') && !H.includes('ah-ai-client') && !H.includes('ai-explain-tool'));
 
 console.log(`\nIDB-HARDENING: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);
