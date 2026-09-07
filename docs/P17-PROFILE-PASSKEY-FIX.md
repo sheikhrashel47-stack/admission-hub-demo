@@ -52,3 +52,13 @@
 - পাসকি **github.io-তে-আগে-থেকেই-চাইলে; pages.dev-এ-চাইলে-নতুন-ফিক্সে** (উভয়-হোস্ট-অনুমোদিত) — তবে পাসকি ঐ-অরিজিনে-তৈরি-হলে অন্য-অরিজিনে-ব্রাউজার-নিজেই-ব্লক-করতে-পারে (ডিভাইস-নির্ভর)।
 - স্ক্রিনশটের-ডেটা (বাংলা·English·GK / ৫০%) **অনবোর্ডিং-ডিফল্ট** ছিল — এখন-শুধু-আসল-পরীক্ষা-থেকে-দুর্বল-বিষয়; না-থাকলে "—"।
 - "একাডেমিক প্রোফাইল আপডেট করো" এখন-সত্যিই-অনবোর্ডিং-খোলে; ✏️-বাটন-থেকে-নাম/ছবি/স্কুল-এডিট।
+
+
+## লাইভ-ভেরিফিকেশন (২০২৬-০৯-০৭)
+- commit `574dd35` push; CI **৪/৪ success** (Auth-Endpoints-Guard, Deploy-Cloudflare-Pages, pages-build, Deploy-Worker workflow_dispatch)।
+- pages.dev লাইভ: `sw.js?v=v201-gfix-20260907` · `premium-auth.js?v=p3-auth-guest-v201` · `onboarding.js?v=p6-onboard-v13`।
+- worker-live-প্রমাণ (নতুন-কোড-ডিপ্লয়েড): `POST /api/auth/passkey/register/begin`
+  - Origin `https://admissionhub.pages.dev` → `rp.id = admissionhub.pages.dev` (পূর্বে-401-era-dead-end);
+  - Origin `https://sheikhrashel47-stack.github.io` → `rp.id = sheikhrashel47-stack.github.io`।
+- `GET /api/auth/config` → `passkey:true` (pages.dev-প্রক্সি-পথে)।
+- **টীকা:** github.io-হোস্ট এখন HTTP-404 (GitHub-Pages-সাইট-অপসারিত) — একমাত্র-লাইভ-হোস্ট pages.dev; passkey-নিবন্ধন-এখন-সেই-অরিজিনে-নিশ্চিত-চলে।
