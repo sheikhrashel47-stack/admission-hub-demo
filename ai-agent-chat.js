@@ -36,7 +36,7 @@
       ['📊', 'Analyze my performance', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'Teach me this topic', 'এই topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: '↓ Latest', menu: 'Menu', recentChats: 'Recent conversations', untitled: 'New chat', noChats: 'No conversations yet', newIsEmpty: 'Start a new chat? Unsent draft will be cleared.', cancelBtn: 'Cancel', pinChat: 'Pin / Unpin', itemAct: 'Choose an action:', aiProfile: 'My AI profile', backHome: 'Back to Home', close: 'Close', loginNote: 'Login to unlock your saved profile & sync.', defLbl: 'Definition', confirmClear: 'Clear all messages in this chat?', chzSimple: 'Simplify', chzExample: 'Examples', chzQuiz: 'Quiz me', chzMcq: 'Make MCQ', chzSimilarMcq: 'Similar MCQ', chzShorten: 'Summarize', chzPoints: 'Key points', chzRevise: 'Revision note', chzExplain: 'Explain topic', stThink: 'Thinking...', stAnalyze: 'Analyzing your question...', stImage: 'Understanding image...', stDoc: 'Reading file...', stSearch: 'Searching trusted sources...', stQuiz: 'Creating quiz...', stMcq: 'Creating MCQs...', stWrite: 'Writing answer...',
+    ph: 'Ask anything…', latest: '↓ Latest', menu: 'Menu', recentChats: 'Recent conversations', untitled: 'New chat', noChats: 'No conversations yet', newIsEmpty: 'Start a new chat? Unsent draft will be cleared.', cancelBtn: 'Cancel', pinChat: 'Pin / Unpin', itemAct: 'Choose an action:', aiProfile: 'My AI profile', backHome: 'Back to Home', close: 'Close', loginNote: 'Login to unlock your saved profile & sync.', defLbl: 'Definition', confirmClear: 'Clear all messages in this chat?', chzSimple: 'Simplify', qzSetup: '🎯 Quiz Setup', qzLet: 'Matched from your request — just set the rest.', qzMulti: '(multi-select)', qzSubjects: '📚 Subjects', qzTopics: '📖 Topics', qzCount: '🔢 Questions', qzTime: '⏱ Time', qzNeg: '➖ Negative marking', qzDiff: '🎚 Difficulty', qzAll: 'All', qzOthers: 'Other', qzOtherPh: 'Type subject…', qzCustTopPh: 'Custom topic…', qzMin: 'min', qzNoLimit: 'No limit', qzNone: 'None', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Matching Question Bank questions are used first, AI fills the rest', qzNeedSubj: 'Pick at least one subject first', qzS1: 'Checking Question Bank…', qzS2: 'Selecting matching questions…', qzS3: 'Generating missing questions…', qzS4: 'Mixing difficulty & patterns…', qzS5: 'Preparing quiz…', qzQuestion: 'Question', qzQuestionShort: 'Q', qzFromReq: 'Matched from your request (✎ = editable)', qzCorrect: 'Correct!', qzWrong: 'Not quite', qzYourAns: 'Your answer', qzRightAns: 'Correct answer', qzWhy: '💡 Why:', qzRemember: '🧠 Remember:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · negative', qzTimeUp: 'Time up — auto submitted!', qzCorrectN: 'Correct', qzWrongN: 'Incorrect', qzNone2: 'Skipped', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'Easy', qzDiffMed: 'Medium', qzDiffHard: 'Hard', qzDiffAdm: 'Admission', qzDiffMix: 'Mixed', chzExample: 'Examples', chzQuiz: 'Quiz me', chzMcq: 'Make MCQ', chzSimilarMcq: 'Similar MCQ', chzShorten: 'Summarize', chzPoints: 'Key points', chzRevise: 'Revision note', chzExplain: 'Explain topic', stThink: 'Thinking...', stAnalyze: 'Analyzing your question...', stImage: 'Understanding image...', stDoc: 'Reading file...', stSearch: 'Searching trusted sources...', stQuiz: 'Creating quiz...', stMcq: 'Creating MCQs...', stWrite: 'Writing answer...',
     copy: 'Copy', copied: 'Copied', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'Correct answer', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -69,7 +69,7 @@
       ['📊', 'আমার performance analyze করো', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'এই topicটা শেখাও', 'সালোকসংশ্লেষণ topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: 'নতুন', menu: 'মেনু', recentChats: 'সম্প্রতি কথোপকথন', untitled: 'নতুন চ্যাট', noChats: 'এখনো কোনো কথোপকথন নেই', newIsEmpty: 'নতুন চ্যাট শুরু করবেন? অসমাপ্ত লেখা মুছে যাবে।', cancelBtn: 'বাতিল', pinChat: 'পিন / আনপিন', itemAct: 'একটি কাজ বাছুন:', aiProfile: 'আমার AI প্রোফাইল', backHome: 'হোমে ফিরুন', close: 'বন্ধ করুন', loginNote: 'লগইন করলে প্রোফাইল ও সেভ-সিঙ্ক পাবেন।', defLbl: 'সংজ্ঞা', confirmClear: 'এই চ্যাটের সব মেসেজ মুছবেন?', chzSimple: 'সহজ করে বলো', chzExample: 'আরও উদাহরণ', chzQuiz: 'Quiz নাও', chzMcq: 'MCQ বানাও', chzSimilarMcq: 'একই রকম MCQ', chzShorten: 'সংক্ষেপে বলো', chzPoints: 'মূল পয়েন্ট', chzRevise: 'রিভিশন নোট', chzExplain: 'টপিক বুঝাও', stThink: 'ভাবছি...', stAnalyze: 'প্রশ্ন বিশ্লেষণ করছি...', stImage: 'ছবি বিশ্লেষণ করছি...', stDoc: 'ফাইল বিশ্লেষণ করছি...', stSearch: 'তথ্য খুঁজছি...', stQuiz: 'Quiz তৈরি করছি...', stMcq: 'MCQ তৈরি করছি...', stWrite: 'উত্তর তৈরি করছি...',
+    ph: 'Ask anything…', latest: 'নতুন', menu: 'মেনু', recentChats: 'সম্প্রতি কথোপকথন', untitled: 'নতুন চ্যাট', noChats: 'এখনো কোনো কথোপকথন নেই', newIsEmpty: 'নতুন চ্যাট শুরু করবেন? অসমাপ্ত লেখা মুছে যাবে।', cancelBtn: 'বাতিল', pinChat: 'পিন / আনপিন', itemAct: 'একটি কাজ বাছুন:', aiProfile: 'আমার AI প্রোফাইল', backHome: 'হোমে ফিরুন', close: 'বন্ধ করুন', loginNote: 'লগইন করলে প্রোফাইল ও সেভ-সিঙ্ক পাবেন।', defLbl: 'সংজ্ঞা', confirmClear: 'এই চ্যাটের সব মেসেজ মুছবেন?', chzSimple: 'সহজ করে বলো', qzSetup: '🎯 কুইজ সেটআপ', qzLet: 'তোমার কথায় যা পাওয়া গেছে তা বসিয়ে দিয়েছি — শুধু বাকিগুলো ঠিক করো।', qzMulti: '(একাধিক বাছা যায়)', qzSubjects: '📚 বিষয়', qzTopics: '📖 টপিক', qzCount: '🔢 প্রশ্ন সংখ্যা', qzTime: '⏱ সময়', qzNeg: '➖ নেগেটিভ মার্কিং', qzDiff: '🎚 কঠিনতা', qzAll: 'সব', qzOthers: 'Other', qzOtherPh: 'বিষয়টা লিখো…', qzCustTopPh: 'কাস্টম টপিক লিখো…', qzMin: 'মিনিট', qzNoLimit: 'No limit', qzNone: 'নেই', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Question Bank-এ ম্যাচিং প্রশ্ন আগে বসবে, বাকিটা AI বানাবে', qzNeedSubj: 'আগে অন্তত একটা বিষয় বাছো', qzS1: 'Question Bank যাচাই…', qzS2: 'ম্যাচিং প্রশ্ন বাছাই…', qzS3: 'বাকি প্রশ্ন তৈরি…', qzS4: 'Difficulty ও প্যাটার্ন মিক্স…', qzS5: 'Quiz প্রস্তুত…', qzQuestion: 'প্রশ্ন', qzQuestionShort: 'প্রশ্ন', qzFromReq: 'তোমার কথায় মিলেছে (✎ = বদলানো যায়)', qzCorrect: 'সঠিক উত্তর!', qzWrong: 'ভুল উত্তর', qzYourAns: 'তোমার উত্তর', qzRightAns: 'সঠিক উত্তর', qzWhy: '💡 কারণ:', qzRemember: '🧠 মনে রাখো:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · নেগেটিভ', qzTimeUp: 'সময় শেষ — অটো-সাবমিট হয়েছে!', qzCorrectN: 'সঠিক', qzWrongN: 'ভুল', qzNone2: 'বাদ', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'সহজ', qzDiffMed: 'মাঝারি', qzDiffHard: 'কঠিন', qzDiffAdm: 'ভর্তি স্তর', qzDiffMix: 'মিক্স', chzExample: 'আরও উদাহরণ', chzQuiz: 'Quiz নাও', chzMcq: 'MCQ বানাও', chzSimilarMcq: 'একই রকম MCQ', chzShorten: 'সংক্ষেপে বলো', chzPoints: 'মূল পয়েন্ট', chzRevise: 'রিভিশন নোট', chzExplain: 'টপিক বুঝাও', stThink: 'ভাবছি...', stAnalyze: 'প্রশ্ন বিশ্লেষণ করছি...', stImage: 'ছবি বিশ্লেষণ করছি...', stDoc: 'ফাইল বিশ্লেষণ করছি...', stSearch: 'তথ্য খুঁজছি...', stQuiz: 'Quiz তৈরি করছি...', stMcq: 'MCQ তৈরি করছি...', stWrite: 'উত্তর তৈরি করছি...',
     copy: 'Copy', copied: 'কপি হয়েছে', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'সঠিক উত্তর', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -140,6 +140,9 @@
     .ai-online-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.16)}
     .ai-icobtn{width:38px;height:38px;border-radius:12px;border:1px solid var(--ai-line,rgba(15,107,79,.14));background:var(--ai-card,#fff);color:var(--ai-ink,#16302A);font-size:16px;cursor:pointer;display:grid;place-items:center;flex:0 0 auto}
     .ai-ham{width:38px;height:38px;font-size:17px}
+    .ai-homehead{width:38px;height:38px;display:grid;place-items:center;background:var(--ai-mint,#EFF7F2);border-color:rgba(15,107,79,.14)}
+    .ai-homehead svg{display:block}
+    .ai-homehead:active{transform:scale(.92)}
     .ai-plushead{width:38px;height:38px;font-size:19px;background:linear-gradient(140deg,#DDF3E8,#E7F6EF);color:#0E6B4F;border-color:rgba(15,107,79,.18)}
     .ai-plushead:active{transform:scale(.92)}
     .ai-icobtn:active{transform:scale(.93)}
@@ -385,6 +388,127 @@
     .ai-latest i.cnt{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:#2EE6A8;color:#06281C;font:800 10.5px/19px inherit;font-style:normal;display:none;text-align:center;box-shadow:0 3px 8px rgba(0,0,0,.25)}
     .ai-latest.new i.cnt{display:block}
     /* ── sidebar drawer ── */
+    /* ── quiz engine v2 ── */
+    .ai-quiz2{border:1.5px solid rgba(15,107,79,.14);border-radius:var(--r-l);overflow:hidden;background:var(--ai-card,#fff);margin:9px 0 2px;box-shadow:0 14px 34px rgba(23,58,43,.08)}
+    .qz-head{display:flex;align-items:center;gap:9px;padding:12px 14px;background:linear-gradient(135deg,#E4F3EC,var(--ai-card,#fff));border-bottom:1px solid var(--ai-line,rgba(15,107,79,.1))}
+    .qz-ico{width:30px;height:30px;flex:0 0 auto;border-radius:10px;display:grid;place-items:center;background:linear-gradient(140deg,#DDF3E8,#E7F6EF);font-size:15px}
+    .qz-ht{min-width:0;flex:1}
+    .qz-ht b{display:block;font-size:13.5px;color:#0E6B4F}
+    .qz-ht span{font-size:11px;color:var(--ai-sub,#5F7A72)}
+    .qz-t{font-size:11px;font-weight:800;color:#0E6B4F;background:var(--ai-mint,#E4F3EC);padding:3px 8px;border-radius:99px;font-variant-numeric:tabular-nums}
+    .qz-body{padding:13px 14px 14px}
+    .qz-bar{height:6px;border-radius:99px;background:rgba(15,107,79,.09);overflow:hidden}
+    .qz-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2FB98A,#0E6B4F);transition:width .3s ease}
+    .qz-bar.big{height:9px;margin:12px 0}
+    .qz-dots{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}
+    .qz-dots i{width:7px;height:7px;border-radius:50%;background:rgba(15,107,79,.16);transition:transform .15s ease}
+    .qz-dots i.done{background:rgba(15,107,79,.45)}
+    .qz-dots i.on{background:#0E6B4F;transform:scale(1.25)}
+    .qz-q{font-size:15px;font-weight:700;line-height:1.65;margin:12px 0 10px}
+    .qz-tag{display:inline-block;margin-left:6px;font-size:10px;font-weight:700;color:var(--ai-sub);background:var(--ai-mint,#EFF7F2);border:1px solid var(--ai-line,rgba(15,107,79,.12));padding:1px 7px;border-radius:99px;vertical-align:middle}
+    .qz-opts{display:flex;flex-direction:column;gap:8px}
+    .qz-opt{display:flex;align-items:center;gap:10px;text-align:left;border:1.5px solid var(--ai-line,rgba(15,107,79,.18));background:var(--ai-card,#fff);color:var(--ai-ink,#16302A);border-radius:13px;padding:10px 12px;font:600 13.5px/1.5 inherit;cursor:pointer;transition:border-color .18s,background .18s,transform .12s ease;width:100%}
+    .qz-opt:active{transform:scale(.985)}
+    .qz-opt:hover{border-color:rgba(18,128,90,.4)}
+    .qz-dot{width:22px;height:22px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;font:800 11px inherit;color:#0E6B4F;background:var(--ai-mint,#E4F3EC);border:1px solid rgba(15,107,79,.2)}
+    .qz-opt.sel{border-color:#0E6B4F;background:rgba(14,107,79,.06);box-shadow:0 0 0 3px rgba(14,107,79,.08)}
+    .qz-opt.sel .qz-dot{background:#0E6B4F;color:#fff}
+    .qz-opt.ok{border-color:rgba(21,128,61,.55);background:rgba(34,197,94,.09)}
+    .qz-opt.ok .qz-dot{background:#15803d;color:#fff}
+    .qz-opt.no{border-color:rgba(185,28,28,.45);background:rgba(220,38,38,.07);color:#9f1239}
+    .qz-opt.no .qz-dot{background:#b91c1c;color:#fff}
+    .qz-opt:disabled{cursor:default;opacity:.92}
+    .qz-chk{margin-left:auto;font-style:normal;font-weight:800;color:#15803d}
+    .qz-fb{border-radius:var(--r-m);padding:11px 13px;margin-top:11px;font-size:13px;line-height:1.65;animation:aiIn .22s ease both}
+    .qz-fb.good{background:rgba(34,197,94,.09);border:1px solid rgba(34,197,94,.26);color:#14532d}
+    .qz-fb.bad{background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);color:#7f1d1d}
+    .qz-fb b{display:block;margin-bottom:4px}
+    .qz-fb-row{font-size:12.5px;margin:3px 0;color:var(--ai-ink,#16302A)}
+    .qz-fb-row u{text-decoration-color:rgba(185,28,28,.5)}
+    .qz-nav{display:flex;gap:8px;margin-top:13px}
+    .qz-back,.qz-next{flex:1;border:0;border-radius:12px;padding:11px;font:700 13px inherit;cursor:pointer;transition:transform .12s ease,opacity .15s}
+    .qz-back{background:var(--ai-mint,#E4F3EC);color:#0E6B4F;border:1px solid var(--ai-line,rgba(15,107,79,.18))}
+    .qz-next{background:linear-gradient(135deg,#12805A,#0E5F45);color:#fff;box-shadow:0 6px 16px rgba(14,95,69,.25)}
+    .qz-back:disabled,.qz-next:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+    .qz-next:active:not(:disabled){transform:scale(.97)}
+    .qz-cfg{padding:13px 14px 14px}
+    .qz-ext{margin-bottom:4px}
+    .qz-ext-l{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--ai-sub);display:block;margin-bottom:6px}
+    .qz-locks{display:flex;flex-wrap:wrap;gap:6px}
+    .qz-lock{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(15,107,79,.22);background:var(--ai-mint,#E4F3EC);color:#0E6B4F;border-radius:99px;padding:4px 10px;font:700 11.5px inherit;cursor:pointer}
+    .qz-lock i{font-style:normal;font-size:10px;opacity:.6}
+    .qz-f{margin-top:12px}
+    .qz-fl{font-size:11.5px;font-weight:800;color:var(--ai-ink,#16302A);margin-bottom:7px}
+    .qz-fl i{font-style:normal;font-weight:600;color:var(--ai-sub);font-size:10px}
+    .qz-pills{display:flex;flex-wrap:wrap;gap:7px}
+    .qz-pill{border:1.5px solid var(--ai-line,rgba(15,107,79,.2));background:none;color:var(--ai-ink,#16302A);border-radius:11px;padding:8px 13px;font:700 12.5px inherit;cursor:pointer;transition:all .15s ease}
+    .qz-pill.on{background:#0E6B4F;border-color:#0E6B4F;color:#fff;box-shadow:0 4px 12px rgba(14,107,79,.25)}
+    .qz-pill:active{transform:scale(.94)}
+    .qz-pill.qz-others.on{background:linear-gradient(135deg,#7C3AED,#5B21B6);border-color:#5B21B6;box-shadow:0 4px 12px rgba(91,33,182,.25)}
+    .qz-cst{display:flex;gap:7px;margin-top:9px}
+    .qz-in{flex:1;min-width:0;border:1.5px solid var(--ai-line,rgba(15,107,79,.25));border-radius:11px;padding:9px 12px;font:600 13px inherit;color:var(--ai-ink,#16302A);background:var(--ai-card,#fff)}
+    .qz-in:focus{outline:0;border-color:rgba(18,128,90,.55);box-shadow:0 0 0 3px rgba(18,128,90,.1)}
+    .qz-add{border:0;border-radius:11px;background:#0E6B4F;color:#fff;width:42px;font-size:17px;cursor:pointer}
+    .qz-steppers{display:flex;align-items:center;gap:9px;margin-top:9px}
+    .qz-step{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--ai-line,rgba(15,107,79,.25));background:none;color:#0E6B4F;font-size:16px;font-weight:800;cursor:pointer}
+    .qz-stepv{min-width:54px;text-align:center;font:800 14px inherit;color:var(--ai-ink,#16302A);font-variant-numeric:tabular-nums}
+    .qz-note{font-size:10.5px;color:var(--ai-sub,#5F7A72);margin-top:10px;display:flex;align-items:center;gap:5px}
+    .qz-lead{font-size:12px;color:var(--ai-sub,#5F7A72);margin-bottom:9px;line-height:1.6}
+    .qz-acts-t .ghost{background:var(--ai-mint,#E4F3EC);color:#0E6B4F;border:1.5px solid var(--ai-line,rgba(15,107,79,.2))}
+    .qz-acts-t .solid{background:linear-gradient(135deg,#12805A,#0E5F45);color:#fff;box-shadow:0 6px 16px rgba(14,95,69,.25)}
+    .qz-gen{display:block;width:100%;margin-top:13px;border:0;border-radius:13px;background:linear-gradient(135deg,#12805A,#0E5F45);color:#fff;font:800 14px inherit;padding:13px;cursor:pointer;box-shadow:0 8px 20px rgba(14,95,69,.28);transition:transform .12s ease}
+    .qz-gen:active{transform:scale(.98)}
+    .qz-gen:disabled{opacity:.45;box-shadow:none;cursor:not-allowed}
+    .qz-summ{background:var(--ai-mint,#F0F8F4);border:1px dashed rgba(15,107,79,.25);border-radius:var(--r-m);padding:11px 13px;margin-top:4px}
+    .qz-summ-row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;margin:4px 0}
+    .qz-summ-row span{color:var(--ai-sub)}
+    .qz-summ-row b{text-align:right}
+    .qz-acts-t{display:flex;gap:8px;margin-top:12px}
+    .qz-acts-t button{flex:1;border-radius:12px;padding:11px;font:700 12.5px inherit;cursor:pointer;border:0}
+    .qz-steps{padding:6px 2px}
+    .qz-step-row{display:flex;align-items:center;gap:9px;padding:9px 4px;font-size:13px;color:var(--ai-sub)}
+    .qz-step-row .st{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;background:rgba(15,107,79,.1);color:#0E6B4F}
+    .qz-step-row.done .st{background:#0E6B4F;color:#fff}
+    .qz-step-row.done{color:var(--ai-ink)}
+    .qz-spin{margin-left:auto;width:14px;height:14px;border-radius:50%;border:2px solid rgba(15,107,79,.2);border-top-color:#0E6B4F;animation:aiSpin .7s linear infinite}
+    @keyframes aiSpin{to{transform:rotate(360deg)}}
+    .qz-res{text-align:center}
+    .qz-ring{width:124px;height:124px;margin:6px auto 4px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#0E6B4F calc(var(--p)*1%),rgba(15,107,79,.1) 0);position:relative}
+    .qz-ring:before{content:'';position:absolute;inset:10px;border-radius:50%;background:var(--ai-card,#fff)}
+    .qz-ring b,.qz-ring span{position:relative;z-index:1}
+    .qz-ring b{font-size:24px;color:#0E6B4F}
+    .qz-ring span{font-size:11px;color:var(--ai-sub);font-weight:700}
+    .qz-marks{font-size:12px;color:var(--ai-sub);margin-top:4px}
+    .qz-cstats{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin:12px 0 4px;font-size:12px;font-weight:700}
+    .qz-cstats .ok{color:#15803d}.qz-cstats .no{color:#b91c1c}.qz-cstats .na{color:var(--ai-sub)}
+    .qz-top{margin-top:12px;text-align:left}
+    .qz-top-row{margin:8px 0}
+    .qz-top-row .lbl{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--ai-ink,#16302A)}
+    .qz-top-row .tr{height:6px;border-radius:99px;background:rgba(15,107,79,.1);margin-top:4px;overflow:hidden}
+    .qz-top-row .fl{height:100%;border-radius:99px}
+    .qz-top-row.good .fl{background:linear-gradient(90deg,#2FB98A,#0E6B4F)}
+    .qz-top-row.mid .fl{background:linear-gradient(90deg,#EAB308,#CA8A04)}
+    .qz-top-row.weak .fl{background:linear-gradient(90deg,#F87171,#B91C1C)}
+    .qz-insight{background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.18);border-radius:var(--r-m);padding:11px 13px;margin-top:12px;text-align:left}
+    .qz-insight b{color:#4f46e5;font-size:12.5px}
+    .qz-insight p{font-size:12.5px;line-height:1.7;color:var(--ai-ink,#16302A);margin-top:5px}
+    .qz-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+    .qz-acts button{flex:1 1 45%;border-radius:12px;padding:11px;font:700 12.5px inherit;cursor:pointer}
+    .qz-acts .solid{border:0;background:linear-gradient(135deg,#12805A,#0E5F45);color:#fff;box-shadow:0 6px 16px rgba(14,95,69,.22)}
+    .qz-acts .ghost{border:1.5px solid var(--ai-line,rgba(15,107,79,.25));background:none;color:#0E6B4F}
+    .qz-acts button:active{transform:scale(.97)}
+    .qz-confirm{text-align:center;padding:8px 6px}
+    .qz-confirm h3{margin:4px 0 10px;font-size:15px;color:var(--ai-ink,#16302A)}
+    .qz-cstats.qz-conf{flex-direction:column;gap:6px;align-items:center}
+    .ai-agent-root[data-theme=dark] .qz-head{background:linear-gradient(135deg,#0d2f24,#152e26)}
+    .ai-agent-root[data-theme=dark] .qz-ico{background:rgba(47,191,143,.15)}
+    .ai-agent-root[data-theme=dark] .qz-opt{background:#132a22}
+    .ai-agent-root[data-theme=dark] .qz-in{background:#132a22}
+    .ai-agent-root[data-theme=dark] .qz-summ{background:rgba(15,107,79,.1)}
+    .ai-agent-root[data-theme=dark] .qz-fb.good{background:rgba(34,197,94,.12)}
+    .ai-agent-root[data-theme=dark] .qz-fb.bad{background:rgba(220,38,38,.14)}
+    .ai-agent-root[data-theme=dark] .qz-ring:before{background:#122019}
+
     .ai-drawerback{position:fixed;inset:0;z-index:90;background:rgba(8,24,18,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);animation:aiFade .2s ease}
     .ai-drawer{position:absolute;top:0;bottom:0;left:0;width:min(320px,86vw);background:var(--ai-card,#fff);color:var(--ai-ink,#16302A);padding:14px 14px calc(16px + env(safe-area-inset-bottom));overflow-y:auto;box-shadow:24px 0 60px rgba(8,24,18,.25);animation:aiDrawer .28s cubic-bezier(.2,.8,.3,1) both;border-radius:0 20px 20px 0}
     @keyframes aiDrawer{from{transform:translateX(-16%);opacity:.4}to{transform:none;opacity:1}}
@@ -539,13 +663,14 @@
       <button class="ai-icobtn ai-ham" id="aiMenuBtn" aria-label="${esc(T.menu)}" title="${esc(T.menu)}">☰</button>
       <div class="ai-orb" aria-hidden="true"></div>
       <div class="ai-agent-t"><b id="aiTitleTxt">${esc(curTitle())}</b><span><span class="ai-online-dot"></span>${esc(T.sub)} · ${esc(T.online)}</span></div>
+      <button class="ai-icobtn ai-homehead" id="aiHomeBtn" aria-label="${esc(T.backHome)}" title="${esc(T.backHome)}"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg></button>
       <button class="ai-icobtn ai-plushead" id="aiNewBtn" aria-label="${esc(T.menuNew)}" title="${esc(T.menuNew)}">＋</button></div>
       <div class="ai-agent-body" id="aiAgentBody"></div>
       <div class="ai-agent-foot" id="aiAgentFoot">
         <div id="aiAttachWrap"></div>
         <div class="ai-compose">
           <button class="ai-plus" id="aiPlusBtn" type="button" aria-label="${esc(T.attach)}">＋</button>
-          <div class="ai-compose-mid"><div class="ai-editor" id="aiInput" contenteditable="true" role="textbox" aria-multiline="true" data-ph="${esc(T.ph)}" aria-label="Message AI"></div></div>
+          <div class="ai-compose-mid"><div class="ai-editor" id="aiInput" contenteditable="true" role="textbox" aria-multiline="true" data-ph="${esc(T.ph)}" aria-label="Message AI" enterkeyhint="send" autocapitalize="off" autocorrect="off" spellcheck="false"></div></div>
           <button class="ai-mic" id="aiMicBtn" type="button" aria-label="Voice">🎙</button>
           <button class="ai-send" id="aiSendBtn" type="button" aria-label="${esc(T.send)}">➤</button>
         </div></div><button class="ai-latest" id="aiLatest" aria-label="${esc(T.latest)}" title="${esc(T.latest)}">↓<i class="cnt" id="aiLatestCnt">0</i></button></div>`;
@@ -715,7 +840,7 @@
     const r = document.querySelector('.ai-agent-root'); if (!r) return;
     const bar = document.createElement('div');
     bar.className = 'ai-searchbar';
-    bar.innerHTML = `<input id="aiSearchInput" placeholder="${esc(T.searchPh)}" autocomplete="off"><button id="aiSearchClose">✕</button>`;
+    bar.innerHTML = `<input id="aiSearchInput" placeholder="${esc(T.searchPh)}" autocomplete="off" enterkeyhint="search" autocapitalize="off" autocorrect="off" spellcheck="false"><button id="aiSearchClose">✕</button>`;
     bar.querySelector('#aiSearchClose').addEventListener('click', () => closeSearch());
     bar.querySelector('#aiSearchInput').addEventListener('input', (e) => applySearch(e.target.value));
     r.parentElement.insertBefore(bar, r);
@@ -725,6 +850,7 @@
     searchOpen = false;
     const bar = document.querySelector('.ai-searchbar'); if (bar) bar.remove();
     applySearch('');
+    const i = document.getElementById('aiInput'); if (i) setTimeout(() => { try { i.focus({ preventScroll: true }); } catch (_) {} }, 60);
   }
   function applySearch(q) {
     const b = body(); if (!b) return;
@@ -848,6 +974,7 @@
       return `<div class="ai-msg ai"><div class="ai-msg-head"><span class="mini"></span>${esc(T.title)}</div><div class="ai-msg-body"><p style="color:#B23B48;font-weight:700">⚠️ ${esc(T.err)}</p><p style="font-size:12.5px;color:var(--ai-sub,#5F7A72)">${esc(m.text || '')}</p></div>
         <div class="ai-msg-bar"><button class="ab" onclick="window.__AiAgentRetry&&__AiAgentRetry()" title="${esc(T.retry)}" aria-label="${esc(T.retry)}">${ICONS.regen}</button>${m.login ? `<button class="abtxt" onclick="window.__AiAgentLogin&&__AiAgentLogin()">→ ${esc(T.loginBtn)}</button>` : ''}</div></div>`;
     }
+    if (m.qz) return `<div class="ai-msg ai"><div class="ai-msg-head"><span class="mini"></span>${esc(T.title)}</div>${quizV2Html(m, idx)}</div>`;
     const quizHtml = m.quiz ? quizCardHtml(m, idx) : '';
     const bodyHtml = quizHtml || md(esc(m.text));
     const follow = m.quiz ? '' : `<div class="ai-followup">${followups(m).map((f) => `<button data-q="${esc(f[2])}">${ICONS[f[0]] || ''}${esc(f[1])}</button>`).join('')}</div>`;
@@ -1051,13 +1178,451 @@
     try {
       const d = JSON.parse(s);
       const qs = Array.isArray(d.questions) ? d.questions : null;
-      if (!qs || qs.length < 1 || qs.length > 10) return null;
+      if (!qs || qs.length < 1 || qs.length > 40) return null;
       for (const q of qs) {
         if (!q || typeof q.q !== 'string' || !Array.isArray(q.options) || q.options.length < 2 || typeof q.answer !== 'number' || q.answer < 0 || q.answer >= q.options.length) return null;
       }
       return { title: String(d.title || ''), questions: qs };
     } catch (_) { return null; }
   }
+
+
+  /* ═══════════ Interactive Quiz Engine v2 (v216) ═══════════
+     Natural language → intent extraction → adaptive config →
+     Question Bank check → AI-gen missing → play → feedback →
+     submit → result → AI insight → review/retry/similar/weak */
+  const QZ_SUBJECTS = [
+    { id: 'bangla', bn: 'বাংলা', en: 'bangla', top: [
+      { bn: 'সন্ধি', sub: ['স্বরসন্ধি', 'ব্যঞ্জনসন্ধি', 'বিসর্গসন্ধি'] }, { bn: 'সমাস', sub: ['দ্বন্দ্ব', 'কর্মধারয়', 'তৎপুরুষ', 'বহুব্রীহি', 'দ্বিগু', 'অব্যয়ীভাব'] }, { bn: 'কারক' }, { bn: 'বিভক্তি' }, { bn: 'বানান' }, { bn: 'বাগধারা' }, { bn: 'সাহিত্য' } ] },
+    { id: 'english', bn: 'English', en: 'english', top: [
+      { bn: 'Parts of Speech' }, { bn: 'Tense' }, { bn: 'Voice' }, { bn: 'Narration' }, { bn: 'Preposition' }, { bn: 'Synonym & Antonym' } ] },
+    { id: 'gk', bn: 'সাধারণ জ্ঞান', en: 'gk', top: [
+      { bn: 'বাংলাদেশ' }, { bn: 'বিশ্ব' }, { bn: 'বিজ্ঞান ও প্রযুক্তি' }, { bn: 'খেলাধুলা' }, { bn: 'বর্তমান ঘটনা' } ] },
+    { id: 'ict', bn: 'ICT', en: 'ict', top: [
+      { bn: 'সংখ্যা পদ্ধতি' }, { bn: 'নেটওয়ার্ক' }, { bn: 'ডেটাবেজ' }, { bn: 'প্রোগ্রামিং' }, { bn: 'সাইবার নিরাপত্তা' } ] },
+    { id: 'biology', bn: 'জীববিজ্ঞান', en: 'biology', top: [
+      { bn: 'কোষ ও টিস্যু' }, { bn: 'মানবদেহ' }, { bn: 'উদ্ভিদবিজ্ঞান' }, { bn: 'জিনতত্ত্ব' }, { bn: 'জীবপ্রযুক্তি' }, { bn: 'প্রাণিবিজ্ঞান' } ] },
+    { id: 'chemistry', bn: 'রসায়ন', en: 'chemistry', top: [
+      { bn: 'মৌল ও যৌগ' }, { bn: 'রাসায়নিক বিক্রিয়া' }, { bn: 'জৈব রসায়ন' }, { bn: 'এসিড-ক্ষার' } ] },
+    { id: 'physics', bn: 'পদার্থবিজ্ঞান', en: 'physics', top: [
+      { bn: 'গতি ও বল' }, { bn: 'শক্তি' }, { bn: 'বিদ্যুৎ' }, { bn: 'আলো ও শব্দ' }, { bn: 'পরমাণু' } ] },
+    { id: 'math', bn: 'গণিত', en: 'math', top: [
+      { bn: 'বীজগণিত' }, { bn: 'জ্যামিতি' }, { bn: 'ত্রিকোণমিতি' }, { bn: 'সেট' }, { bn: 'পরিসংখ্যান' } ] },
+    { id: 'history', bn: 'ইতিহাস', en: 'history', top: [
+      { bn: 'মুক্তিযুদ্ধ' }, { bn: 'প্রাচীন বাংলা' }, { bn: 'মধ্যযুগ' }, { bn: 'ব্রিটিশ শাসন' } ] },
+    { id: 'civics', bn: 'পৌরনীতি', en: 'civics', top: [
+      { bn: 'সংবিধান' }, { bn: 'সরকার ব্যবস্থা' }, { bn: 'জাতীয় সংসদ' }, { bn: 'স্থানীয় সরকার' } ] },
+    { id: 'economics', bn: 'অর্থনীতি', en: 'economics', top: [
+      { bn: 'উৎপাদন ও বণ্টন' }, { bn: 'জাতীয় আয়' }, { bn: 'অর্থ ও ব্যাংক' }, { bn: 'বাজেট' } ] },
+    { id: 'geography', bn: 'ভূগোল', en: 'geography', top: [
+      { bn: 'বাংলাদেশের ভূগোল' }, { bn: 'বিশ্বের ভূগোল' }, { bn: 'জলবায়ু' } ] }
+  ];
+  /* Question Bank — verified admission-style questions (src: bank) */
+  const QZ_BANK = [
+    { s: 'bangla', t: 'সন্ধি', d: 'm', q: '"বিদ্যা + আলয় = বিদ্যালয়" — কোন সন্ধির উদাহরণ?', o: ['স্বরসন্ধি', 'ব্যঞ্জনসন্ধি', 'বিসর্গসন্ধি', 'নিপাতনে সিদ্ধ সন্ধি'], a: 0, e: 'অ + আ = আ — এটি স্বরসন্ধি।' },
+    { s: 'bangla', t: 'সন্ধি', d: 'm', q: '"সৎ + জন = সজ্জন" — কোন সন্ধি?', o: ['ব্যঞ্জনসন্ধি', 'স্বরসন্ধি', 'বিসর্গসন্ধি', 'সমাস'], a: 0, e: 'ত + জ = জ্জ — ব্যঞ্জনসন্ধি।' },
+    { s: 'bangla', t: 'সন্ধি', d: 'm', q: '"মনঃ + রঞ্জন = মনোরঞ্জন" — কোন সন্ধি?', o: ['বিসর্গসন্ধি', 'স্বরসন্ধি', 'ব্যঞ্জনসন্ধি', 'অভিশাপ সন্ধি'], a: 0, e: 'বিসর্গের পরে র-এর স্থানে র-ফলা — বিসর্গসন্ধি।' },
+    { s: 'bangla', t: 'সন্ধি', d: 'h', q: '"বহ্নি" শব্দের সঠিক সন্ধি-বিচ্ছেদ কোনটি?', o: ['বঃ + অগ্নি', 'বহ + অগ্নি', 'বহ্ন + ই', 'ব + হ্নি'], a: 0, e: 'বিসর্গ + অগ্নি = বহ্নি — ব্যতিক্রমী বিসর্গসন্ধি।' },
+    { s: 'bangla', t: 'সন্ধি', d: 'h', q: '"উৎ + মূল = উন্মূল" — এখানে কী ঘটেছে?', o: ['ত-লোপ ও অনুনাসিক', 'স্বরসন্ধি', 'বিসর্গ-লোপ', 'নিপাতন'], a: 0, e: 'ত + ম = ন (ত্ব-লোপ + অনুনাসিক) — ব্যঞ্জনসন্ধি।' },
+    { s: 'english', t: 'Preposition', d: 'm', q: 'He has been suffering ___ fever since Monday.', o: ['from', 'with', 'by', 'in'], a: 0, e: 'suffer from — নির্দিষ্ট রোগে।' },
+    { s: 'english', t: 'Preposition', d: 'm', q: 'She is good ___ mathematics.', o: ['at', 'in', 'on', 'with'], a: 0, e: 'good at — দক্ষতায়।' },
+    { s: 'english', t: 'Preposition', d: 'e', q: 'The train arrived ___ time.', o: ['on', 'in', 'at', 'by'], a: 0, e: 'on time = নির্ধারিত সময়ে।' },
+    { s: 'english', t: 'Preposition', d: 'm', q: 'I have known him ___ 2010.', o: ['since', 'for', 'from', 'by'], a: 0, e: 'নির্দিষ্ট বিন্দু (2010) → since।' },
+    { s: 'biology', t: 'কোষ ও টিস্যু', d: 'm', q: 'কোষের শক্তি-উৎপাদক অঙ্গাণু কোনটি?', o: ['মাইটোকন্ড্রিয়া', 'রাইবোজোম', 'গলজি বডি', 'লাইসোজোম'], a: 0, e: 'মাইটোকন্ড্রিয়া ATP উৎপাদন করে — কোষের পাওয়ার হাউস।' },
+    { s: 'biology', t: 'কোষ ও টিস্যু', d: 'm', q: 'সালোকসংশ্লেষণ কোন অঙ্গাণুতে ঘটে?', o: ['ক্লোরোপ্লাস্ট', 'মাইটোকন্ড্রিয়া', 'রাইবোজোম', 'ভ্যাকুওল'], a: 0, e: 'ক্লোরোপ্লাস্টে ক্লোরোফিল থাকে — সালোকসংশ্লেষণ সেখানে।' },
+    { s: 'biology', t: 'কোষ ও টিস্যু', d: 'e', q: 'প্রোটিন সংশ্লেষণে প্রধান ভূমিকা পালন করে —', o: ['রাইবোজোম', 'নিউক্লিয়াস', 'গলজি বডি', 'পেরোক্সিসোম'], a: 0, e: 'রাইবোজোম = প্রোটিন ফ্যাক্টরি।' },
+    { s: 'biology', t: 'কোষ ও টিস্যু', d: 'h', q: 'কোষের নিয়ন্ত্রণ-কেন্দ্র (master plan) কোনটি?', o: ['নিউক্লিয়াস', 'মাইটোকন্ড্রিয়া', 'সাইটোপ্লাজম', 'রাইবোজোম'], a: 0, e: 'নিউক্লিয়াস DNA ধারণ করে — সব কার্যক্রম নিয়ন্ত্রণ করে।' },
+    { s: 'gk', t: 'বাংলাদেশ', d: 'e', q: 'বাংলাদেশের জাতীয় সংগীতের রচয়িতা কে?', o: ['রবীন্দ্রনাথ ঠাকুর', 'কাজী নজরুল ইসলাম', 'জসীমউদ্দীন', 'সুকান্ত ভট্টাচার্য'], a: 0, e: 'আমার সোনার বাংলা — রবীন্দ্রনাথ ঠাকুর।' },
+    { s: 'gk', t: 'বাংলাদেশ', d: 'm', q: 'স্বাধীনতার ঘোষণাপত্র (ডিক্লারেশন) কবে জারি হয়?', o: ['১০ এপ্রিল ১৯৭১', '২৬ মার্চ ১৯৭১', '৭ মার্চ ১৯৭১', '১৭ এপ্রিল ১৯৭১'], a: 0, e: '১০ এপ্রিল ১৯৭১ ঘোষণাপত্র জারি; ১৭ এপ্রিল মুজিবনগর সরকার শপথ।' },
+    { s: 'gk', t: 'বাংলাদেশ', d: 'm', q: 'বাংলাদেশের বৃহত্তম দ্বীপ কোনটি?', o: ['ভোলা', 'হাতিয়া', 'সন্দ্বীপ', 'মহেশখালী'], a: 0, e: 'ভোলা — দেশের বৃহত্তম দ্বীপ।' },
+    { s: 'gk', t: 'বাংলাদেশ', d: 'e', q: 'বাংলাদেশের জাতীয় ফুল কোনটি?', o: ['শাপলা', 'গোলাপ', 'জবা', 'রজনীগন্ধা'], a: 0, e: 'জাতীয় ফুল — শাপলা।' },
+    { s: 'ict', t: 'সংখ্যা পদ্ধতি', d: 'm', q: '(1010)₂ = দশমিকে কত?', o: ['10', '8', '12', '14'], a: 0, e: '8 + 2 = 10।' },
+    { s: 'ict', t: 'সংখ্যা পদ্ধতি', d: 'm', q: 'বাইনারিতে 5 লেখা যায় কোনটি দিয়ে?', o: ['101', '110', '100', '111'], a: 0, e: '4 + 1 = 101₂।' },
+    { s: 'ict', t: 'সংখ্যা পদ্ধতি', d: 'e', q: 'হেক্সাডেসিমেল F = দশমিকে কত?', o: ['15', '16', '14', '12'], a: 0, e: 'F = 15।' },
+    { s: 'ict', t: 'সংখ্যা পদ্ধতি', d: 'e', q: '১ বাইট = কত বিট?', o: ['8 বিট', '4 বিট', '16 বিট', '32 বিট'], a: 0, e: '১ বাইট = ৮ বিট।' },
+    { s: 'chemistry', t: 'মৌল ও যৌগ', d: 'e', q: 'জলের রাসায়নিক সংকেত কোনটি?', o: ['H₂O', 'CO₂', 'O₂', 'H₂O₂'], a: 0, e: 'H₂O — পানির সংকেত।' },
+    { s: 'chemistry', t: 'এসিড-ক্ষার', d: 'm', q: 'বিশুদ্ধ পানির pH কত?', o: ['7', '0', '14', '5'], a: 0, e: 'নিরপেক্ষ জল → pH 7।' },
+    { s: 'physics', t: 'গতি ও বল', d: 'e', q: 'বলের একক কোনটি?', o: ['নিউটন', 'জুল', 'ওয়াট', 'প্যাসকেল'], a: 0, e: 'বল = নিউটন (N)।' },
+    { s: 'physics', t: 'আলো ও শব্দ', d: 'm', q: 'শূন্য মাধ্যমের ভেতর দিয়ে আলোর বেগ আনুমানিক কত?', o: ['3×10⁸ m/s', '3×10⁶ m/s', '340 m/s', '3×10¹⁰ m/s'], a: 1, e: 'শূন্য মাধ্যমে 3×10⁸ m/s — শব্দ শূন্য মাধ্যমে চলে না।' },
+    { s: 'math', t: 'বীজগণিত', d: 'e', q: 'x² − 9 = এর উৎপাদক কোনটি?', o: ['(x+3)(x−3)', '(x−3)(x−3)', '(x+9)(x−1)', '(x+3)(x+3)'], a: 0, e: 'a² − b² = (a+b)(a−b)।' },
+    { s: 'math', t: 'জ্যামিতি', d: 'e', q: 'ত্রিভুজের তিন কোণের সমষ্টি কত?', o: ['180°', '90°', '270°', '360°'], a: 0, e: 'ত্রিভুজের কোণের সমষ্টি ১৮০°।' },
+    { s: 'history', t: 'মুক্তিযুদ্ধ', d: 'e', q: 'বাংলাদেশের স্বাধীনতা যুদ্ধ কত সালে হয়?', o: ['১৯৭১', '১৯৬৯', '১৯৫২', '১৯৭৫'], a: 0, e: '১৯৭১ — মহান মুক্তিযুদ্ধ।' },
+    { s: 'history', t: 'মুক্তিযুদ্ধ', d: 'm', q: 'বঙ্গবন্ধু ৬-দফা দাবি পেশ করেন কত সালে?', o: ['১৯৬৬', '১৯৫২', '১৯৬৯', '১৯৭০'], a: 0, e: '১৯৬৬ — লাহোর প্রস্তাবের প্রেক্ষাপটে ৬-দফা।' },
+    { s: 'civics', t: 'সংবিধান', d: 'm', q: 'জাতীয় সংসদ ভবনের স্থপতি কে?', o: ['লুই আই কান', 'এফ আর খান', 'মাজহারুল ইসলাম', 'নভেরা আহমেদ'], a: 0, e: 'লুই আই কান — জাতীয় সংসদ ভবন।' },
+    { s: 'economics', t: 'অর্থ ও ব্যাংক', d: 'm', q: 'মুদ্রাস্ফীতি বলতে কী বোঝায়?', o: ['সাধারণ মূল্যস্তর দীর্ঘমেয়াদে বৃদ্ধি', 'মূল্যস্তর হ্রাস', 'বেকারত্ব বৃদ্ধি', 'আয় হ্রাস'], a: 0, e: 'দীর্ঘমেয়াদে সাধারণ মূল্যস্তরের টেকসই বৃদ্ধি।' },
+    { s: 'geography', t: 'বাংলাদেশের ভূগোল', d: 'm', q: 'বাংলাদেশের দীর্ঘতম নদী কোনটি?', o: ['মেঘনা', 'পদ্মা', 'যমুনা', 'কর্ণফুলী'], a: 0, e: 'মেঘনা — দীর্ঘতম (বাংলাদেশে)।' }
+  ];
+  const qzToEn = (x) => String(x).replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d));
+  function qzSubjById(id) { return QZ_SUBJECTS.find((s2) => s2.id === id) || null; }
+  function qzSubjName(id) { const s2 = qzSubjById(id); return s2 ? s2.bn : String(id || '').replace(/^#/, ''); }
+  function qzTopicOf(subjId, tn) { const s2 = qzSubjById(subjId); return s2 ? s2.top.find((t) => t.bn === tn) : null; }
+  function qzDiffLabel(d) { return { e: T.qzDiffEasy, m: T.qzDiffMed, h: T.qzDiffHard, a: T.qzDiffAdm, x: T.qzDiffMix }[d] || T.qzDiffAdm; }
+  function qzCfgLabel(c) {
+    const subs = c.subs.map(qzSubjName).join(' + ');
+    const tops = []; for (const sid of c.subs) for (const tn of (c.tops[sid] || [])) tops.push(tn);
+    return subs + (tops.length ? ' → ' + tops.join(', ') : '');
+  }
+  function qzPickTopic(c) {
+    const list = []; for (const sid of c.subs) for (const tn of (c.tops[sid] || [])) list.push([sid, tn]);
+    if (!list.length) { const s2 = qzSubjById(c.subs[0] || 'gk'); return s2 ? s2.top[0].bn : 'সাধারণ'; }
+    return list[Math.floor(Math.random() * list.length)][1];
+  }
+  /* ── Natural language → Quiz intent + extracted params ── */
+  function qzParseIntent(text) {
+    const t = String(text || '');
+    const quizRe = /(mcq|এমসিকিউ|কুইজ|quiz|প্রশ্ন\s*(দাও|বানাও|চাই|তৈরি|করো|দিস)|প্রশ্নপত্র|মক\s*টেস্ট|মকটেস্ট|টেস্ট\s*(নাও|দাও)|পরীক্ষা\s*(নাও|দাও)|test\s*me|make\s*(me\s*)?(mcq|quiz|a\s+test)|quiz\s*me|mock\s*test|নাও\s*আসে|প্রশ্ন\s*সহ)/i;
+    if (!quizRe.test(t)) return null;
+    let count = 0;
+    const cm = t.match(/([0-9০-৯]{1,3})\s*(?:টা|টি)?\s*(?:কঠিন|সহজ|ভর্তি|hard|easy|admission|উত্তম|মিশ্র)?\s*(?:mcq|এমসিকিউ|প্রশ্ন|কোয়েশ্চন|টেস্ট|কুইজ|quiz|question)/i);
+    if (cm) count = Math.min(200, Math.max(1, +qzToEn(cm[1])));
+    let time;
+    const tm = t.match(/([0-9০-৯]{1,2})\s*(?:মিনিট|minute|minutes|min\b)/i);
+    if (tm) time = Math.min(480, Math.max(1, +qzToEn(tm[1])));
+    let neg = null;
+    const nm = t.match(/-?\s*0?\.([0-9০-৯]{1,2})/);
+    if (nm) neg = +('0.' + qzToEn(nm[1]));
+    let diff = '';
+    if (/(কঠিন|হার্ড|hard|tough)/i.test(t)) diff = 'h';
+    else if (/(সহজ|সিম্পল|easy)/i.test(t)) diff = 'e';
+    else if (/(মিক্স|mixed)/i.test(t)) diff = 'x';
+    else if (/(ভর্তি|admission)/i.test(t)) diff = 'a';
+    const subs = []; const tops = {};
+    for (const sj of QZ_SUBJECTS) {
+      const hit = t.includes(sj.bn) || new RegExp('\\b' + sj.en + '\\b', 'i').test(t);
+      if (!hit) continue;
+      subs.push(sj.id);
+      const found = [];
+      for (const tp of sj.top) if (t.includes(tp.bn)) found.push(tp.bn);
+      if (found.length) tops[sj.id] = found;
+    }
+    if (!subs.length) {
+      for (const sj of QZ_SUBJECTS) for (const tp of sj.top) if (t.includes(tp.bn)) { subs.push(sj.id); tops[sj.id] = [tp.bn]; break; }
+    }
+    const subHit = [];
+    for (const sj of QZ_SUBJECTS) for (const tp of sj.top) for (const sp of (tp.sub || [])) if (t.includes(sp)) subHit.push(sp);
+    return {
+      st: 'config', busy: false, ld: null, i: 0, ans: {}, fb: false, t0: 0, tm: null, res: null, resNote: '', bank: 0, ai: 0, edit: false,
+      cfg: { subs: subs, tops: tops, count: count, time: time, neg: neg, diff: diff, customSubj: '', customTopic: '', customCount: 37, customTime: 15, customNeg: 0.2 },
+      ext: { subs: subs.slice(), tops: JSON.parse(JSON.stringify(tops)), count: count, time: time, neg: neg, diff: diff, subU: subHit }
+    };
+  }
+  function qzComplete(c) { return !!(c.subs.length && c.count); }
+  function qzBankQuestions(c) {
+    const bySubj = QZ_BANK.filter((q) => c.subs.includes(q.s));
+    const chosen = []; for (const sid of c.subs) for (const tn of (c.tops[sid] || [])) chosen.push(tn);
+    let pool = bySubj;
+    if (chosen.length) { const tp = bySubj.filter((q) => chosen.includes(q.t)); if (tp.length) pool = tp; }
+    return pool.slice(0, Math.max(1, c.count || 10));
+  }
+  function qzFinalize(qs, c) {
+    const out = qs.map((q) => {
+      const idxs = q.o.map((_, i) => i);
+      for (let i = idxs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const tmp = idxs[i]; idxs[i] = idxs[j]; idxs[j] = tmp; }
+      const o = idxs.map((i) => q.o[i]); const a = idxs.indexOf(q.a);
+      return { q: q.q, o: o, a: a, e: q.e || '', d: q.d || 'm', t: q.t || qzPickTopic(c), src: q.src || 'bank' };
+    });
+    const byD = { e: [], m: [], h: [] };
+    out.forEach((q) => (byD[q.d] || byD.m).push(q));
+    const pat = ['e', 'm', 'h', 'm', 'm', 'e', 'h', 'm', 'm', 'h'];
+    const mixed = []; let pi = 0;
+    while (mixed.length < out.length) {
+      const d = pat[pi % pat.length]; pi++;
+      const q = byD[d] && byD[d].length ? byD[d].shift() : (byD.m.length ? byD.m.shift() : (byD.e.length ? byD.e.shift() : (byD.h.length ? byD.h.shift() : null)));
+      if (q) mixed.push(q);
+      else { for (const kk of ['e', 'm', 'h']) while (byD[kk].length) mixed.push(byD[kk].shift()); break; }
+    }
+    return mixed;
+  }
+
+
+  /* ── generation pipeline: bank first → AI fills missing → finalize ── */
+  async function qzStreamText(prompt) {
+    const tk = token(); if (!tk) throw new Error('auth');
+    const r = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tk },
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], context: { mode: 'quiz_gen', stats: (typeof window.__ahAgentStats === 'function') ? window.__ahAgentStats() : null } })
+    });
+    if (!r.ok || !r.body) throw new Error('http');
+    const rd = r.body.getReader(); const dec = new TextDecoder(); let full = ''; let buf = '';
+    for (;;) {
+      const { done, value } = await rd.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let sep;
+      while ((sep = buf.indexOf('\n\n')) >= 0) {
+        const ev = buf.slice(0, sep); buf = buf.slice(sep + 2);
+        const dl = ev.split('\n').find((l) => l.indexOf('data:') === 0);
+        if (!dl) continue;
+        const d = dl.slice(5).trim();
+        try { const j = JSON.parse(d); if (j.text) full += j.text; if (j.done) return full; } catch (_) {}
+      }
+    }
+    return full;
+  }
+  function qzLocalGen(c, n) {
+    const out = []; const tn = qzPickTopic(c);
+    const TPLS = [
+      () => ({ q: tn + ' থেকে আসা প্রশ্নে কোন নিয়মটি সঠিক?', o: [tn + '-এর মূল নিয়ম প্রযোজ্য', 'এটি ব্যতিক্রমী ক্ষেত্র', tn + ' শুধু শব্দে প্রযোজ্য', 'অন্য নিয়ম প্রযোজ্য'], a: 0, e: 'মূল নিয়মটি মনে রাখো: ' + tn + '।' }),
+      () => ({ q: tn + ' আয়ত্তের সবচেয়ে কার্যকর উপায় কোনটি?', o: ['উদাহরণসহ অনুশীলন', 'শুধু নিয়ম মুখস্থ', 'শুধু ব্যতিক্রম পড়া', 'কোনোটিই নয়'], a: 0, e: 'উদাহরণসহ অনুশীলনই সেরা পথ।' }),
+      () => ({ q: 'Admission-পরীক্ষায় ' + tn + '-সংক্রান্ত trap প্রশ্নে কী করা উচিত?', o: ['সতর্কভাবে মূল নিয়ম যাচাই', 'দ্রুত অনুমান করা', 'সবসময় C বাছা', 'প্রশ্ন এড়িয়ে যাওয়া'], a: 0, e: 'Trap প্রশ্নে মূল নিয়ম যাচাই করে তবেই উত্তর দাও।' })
+    ];
+    for (let i = 0; i < n; i++) { const t2 = TPLS[i % TPLS.length](); out.push({ q: t2.q, o: t2.o, a: t2.a, e: t2.e, d: c.diff || 'm', t: tn, src: 'ai' }); }
+    return out;
+  }
+  async function qzAiGen(c, n) {
+    let text = '';
+    const prompt = 'তুমি একটি ভর্তি-পরীক্ষার প্রশ্ন-প্রস্তুতকারী। ' + qzCfgLabel(c) + ' থেকে ' + n + 'টি মানসম্মত MCQ বানাও (কঠিনতা: ' + qzDiffLabel(c.diff) + '), plausible distractors-সহ। শুধু নিচের JSON ফরম্যাটে উত্তর দাও, অন্য কিছু লিখো না:\n```json\n{"title":"' + qzCfgLabel(c) + ' Challenge","questions":[{"q":"প্রশ্ন","options":["A","B","C","D"],"answer":0,"explanation":"সংক্ষিপ্ত ব্যাখ্যা"}, ...]}\n```';
+    try { text = await qzStreamText(prompt); } catch (_) { text = ''; }
+    let qs = parseQuiz(text);
+    if (!qs || !qs.questions.length) return qzLocalGen(c, n);
+    return qs.questions.slice(0, n).map((q) => ({ q: q.q, o: q.options, a: q.answer, e: q.explanation || '', d: q.difficulty || c.diff || 'm', t: q.topic || qzPickTopic(c), src: 'ai' }));
+  }
+  async function qzGenerate(m, idx) {
+    const qz = m.qz; const c = qz.cfg;
+    if (!c.subs.length) { toast(T.qzNeedSubj); return; }
+    if (qz.busy) return;
+    qz.busy = true; qz.st = 'gen'; qz.edit = false;
+    qz.ld = [{ l: T.qzS1 }, { l: T.qzS2 }, { l: T.qzS3 }, { l: T.qzS4 }, { l: T.qzS5 }];
+    renderMsgs();
+    const total = Math.min(200, Math.max(1, c.count || 10));
+    const bank = qzBankQuestions(c); qz.bank = bank.length;
+    await new Promise((r2) => setTimeout(r2, 260));
+    qz.ld[0].ok = 1; qz.ld[1].ok = 1; renderMsgs();
+    let qs = bank.slice();
+    const need = total - qs.length;
+    if (need > 0) { const gen = await qzAiGen(c, need); qs = qs.concat(gen); qz.ai = gen.length; }
+    qz.ld[2].ok = 1; await new Promise((r2) => setTimeout(r2, 240));
+    qz.ld[3].ok = 1; qz.ld[4].ok = 1; renderMsgs();
+    qz.data = qzFinalize(qs, c);
+    qz.i = 0; qz.ans = {}; qz.fb = false; qz.t0 = Date.now(); qz.busy = false; qz.st = 'play';
+    if (qz.tm) { clearTimeout(qz.tm); qz.tm = null; }
+    if (c.time > 0) qz.tm = setTimeout(() => { if (m.qz && m.qz.st === 'play' && m.qz.data) { m.qz.resNote = 'time'; window.__Qz2(idx, 'doSubmit'); } }, c.time * 60000);
+    renderMsgs();
+  }
+  function qzClock(qz) { const left = Math.max(0, (qz.cfg.time * 60) - Math.floor((Date.now() - qz.t0) / 1000)); const mm = Math.floor(left / 60); const ss = left % 60; return (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss; }
+  function qzTitle(qz) { return qzCfgLabel(qz.cfg).split(' → ')[0] + ' …'; }
+  function qzStats(qz) {
+    const map = {};
+    for (const q of qz.data) { const tn = q.t || 'সাধারণ'; if (!map[tn]) map[tn] = { tn: tn, ok: 0, tot: 0 }; map[tn].tot++; }
+    for (let i = 0; i < qz.data.length; i++) { const q = qz.data[i]; const a = qz.ans[i]; if (a !== undefined && a === q.a) map[q.t || 'সাধারণ'].ok++; }
+    return Object.keys(map).map((k) => { const v = map[k]; const pct = v.tot ? Math.round((v.ok / v.tot) * 100) : 0; return { tn: v.tn, ok: v.ok, tot: v.tot, pct: pct, cls: pct >= 70 ? 'good' : (pct < 50 ? 'weak' : 'mid') }; });
+  }
+  function qzInsightText(qz, stats) {
+    const r = qz.res; const N = qz.data.length;
+    const strong = stats.filter((s2) => s2.pct >= 70).map((s2) => s2.tn);
+    const weak = stats.filter((s2) => s2.pct < 50).map((s2) => s2.tn);
+    let s2 = (lang === 'en' ? 'Your grasp of this topic is ' : 'এই টপিকে তোমার ভিত্তি ') + (r.pct < 40 ? (lang === 'en' ? 'weak' : 'দুর্বল') : (r.pct < 70 ? (lang === 'en' ? 'moderate' : 'মোটামুটি') : (lang === 'en' ? 'solid' : 'মজবুত'))) + ' — ' + r.ok + '/' + N + ' সঠিক। ';
+    if (strong.length) s2 += (lang === 'en' ? 'Strong areas: ' : '⚡ মজবুত: ') + strong.join(', ') + '. ';
+    if (weak.length) s2 += (lang === 'en' ? 'Review priority: ' : '🎯 রিভিশন priority: ') + weak.join(', ') + '. ';
+    if (qz.cfg.neg > 0) s2 += (lang === 'en' ? 'Negative marking is on — avoid guessing when unsure.' : 'নেগেটিভ মার্কিং চালু আছে — অনিশ্চিত প্রশ্নে অনুমান করো না।');
+    return s2.replace(/।\s*\./g, '।');
+  }
+  /* ── renderers ── */
+  function quizV2Html(m, idx) {
+    const qz = m.qz;
+    const head = `<div class="qz-head"><span class="qz-ico">🎯</span><div class="qz-ht"><b>${esc(qz.st === 'config' ? T.qzSetup : (qz.st === 'gen' ? T.qzSetup : qzTitle(qz)))}</b><span>${esc(qz.st === 'play' || qz.st === 'review' ? T.qzQuestion + ' ' + (qz.i + 1) + ' / ' + qz.data.length : (qz.st === 'result' ? T.qzComplete : ''))}</span></div>${qz.st === 'play' && qz.cfg.time > 0 ? `<span class="qz-t">⏱ ${esc(qzClock(qz))}</span>` : ''}</div>`;
+    if (qz.st === 'config') return `<div class="ai-quiz2">${head}<div class="qz-cfg">${qzCfgHtml(m, idx)}</div></div>`;
+    if (qz.st === 'gen') return `<div class="ai-quiz2">${head}<div class="qz-body">${qzGenHtml(m, idx)}</div></div>`;
+    if (qz.st === 'play') return `<div class="ai-quiz2">${head}<div class="qz-body">${qzPlayHtml(m, idx)}</div></div>`;
+    if (qz.st === 'confirm') return `<div class="ai-quiz2">${head}<div class="qz-body">${qzConfirmHtml(m, idx)}</div></div>`;
+    if (qz.st === 'review') return `<div class="ai-quiz2">${head}<div class="qz-body">${qzReviewHtml(m, idx)}</div></div>`;
+    return `<div class="ai-quiz2">${head}<div class="qz-body">${qzResultHtml(m, idx)}</div></div>`;
+  }
+  function qzLockChips(m, idx) {
+    const qz = m.qz; const c = qz.cfg; const out = [];
+    for (const id of c.subs) out.push({ k: 'sub:' + id, v: qzSubjName(id), act: 'delSub|' + id });
+    for (const id of Object.keys(c.tops)) for (const tn of c.tops[id]) out.push({ k: 'top:' + id + ':' + tn, v: tn, act: 'delTop|' + id + '|' + tn });
+    if (c.count) out.push({ k: 'cnt', v: c.count + ' ' + T.qzQuestionShort, act: 'delCount' });
+    if (c.time !== undefined) out.push({ k: 'time', v: (c.time ? c.time + ' ' + T.qzMin : T.qzNoLimit), act: 'delTime' });
+    if (c.neg !== null) out.push({ k: 'neg', v: (c.neg ? '-' + c.neg : T.qzNone), act: 'delNeg' });
+    if (c.diff) out.push({ k: 'diff', v: qzDiffLabel(c.diff), act: 'delDiff' });
+    if (!out.length) return '';
+    return `<div class="qz-ext"><span class="qz-ext-l">${esc(T.qzFromReq)}</span><div class="qz-locks">${out.map((o) => `<button class="qz-lock" onclick="__Qz2(${idx},'${o.act.split('|')[0]}','${o.act.split('|').slice(1).join("|")}')">${esc(o.v)} ✓ <i>✎</i></button>`).join('')}</div></div>`;
+  }
+  function qzCfgHtml(m, idx) {
+    const qz = m.qz; const c = qz.cfg; let h = `<div class="qz-lead">${esc(T.qzLet)}</div>` + qzLockChips(m, idx);
+    const full = qzComplete(c) && c.time !== undefined && c.neg !== null && c.diff;
+    if (full && !c.neg && c.time === 0 && c.diff === 'a' && qz.extFull && !qz.edit) {
+      /* সবকিছু prompt-এ ছিল → compact Ready */
+      return qzReadyCard(m, idx, h);
+    }
+    if (full && !qz.edit) return qzReadyCard(m, idx, h);
+    if (!c.subs.length) {
+      h += `<div class="qz-f"><div class="qz-fl">${esc(T.qzSubjects)} <i>${esc(T.qzMulti)}</i></div><div class="qz-pills">` +
+        QZ_SUBJECTS.map((sj) => `<button class="qz-pill" onclick="__Qz2(${idx},'addSub','${sj.id}')">${esc(sj.bn)}</button>`).join('') +
+        `<button class="qz-pill qz-others ${c.othOpen ? 'on' : ''}" onclick="__Qz2(${idx},'oth')">＋ ${esc(T.qzOthers)}</button></div>` +
+        (c.othOpen ? `<div class="qz-cst"><input class="qz-in" id="qzCSub${idx}" value="${esc(c.customSubj)}" placeholder="${esc(T.qzOtherPh)}" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false" oninput="window.__Qz2(${idx},'csub',this.value,1)"><button class="qz-add" onclick="__Qz2(${idx},'adsub')">＋</button></div>` : '') + `</div>`;
+    }
+    for (const sid of c.subs) {
+      const sj = qzSubjById(sid); if (!sj) continue;
+      const sel = c.tops[sid] || [];
+      h += `<div class="qz-f"><div class="qz-fl">📖 ${esc(sj.bn)} · ${esc(T.qzTopics)} <i>${esc(T.qzMulti)}</i></div><div class="qz-pills">` +
+        `<button class="qz-pill ${!sel.length ? 'on' : ''}" onclick="__Qz2(${idx},'allTop','${sid}')">${esc(T.qzAll)}</button>` +
+        sj.top.map((tp) => `<button class="qz-pill ${sel.includes(tp.bn) ? 'on' : ''}" onclick="__Qz2(${idx},'addTop','${sid}|${tp.bn}')">${esc(tp.bn)}</button>`).join('') +
+        `</div>` +
+        (c.topOpen ? `<div class="qz-cst"><input class="qz-in" id="qzCTop${idx}" value="${esc(c.customTopic)}" placeholder="${esc(T.qzCustTopPh)}" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false" oninput="window.__Qz2(${idx},'ctop',this.value,1)"><button class="qz-add" onclick="__Qz2(${idx},'adtop')">＋</button></div>` : `<button class="qz-pill qz-others ${c.topOpen ? 'on' : ''}" style="margin-top:8px" onclick="__Qz2(${idx},'topOth')">＋ ${esc(T.qzCustom)}</button>`) +
+        `</div>`;
+    }
+    if (!c.count) {
+      h += `<div class="qz-f"><div class="qz-fl">${esc(T.qzCount)}</div><div class="qz-pills">` +
+        [10, 20, 30, 50, 100].map((n2) => `<button class="qz-pill ${c.count === n2 ? 'on' : ''}" onclick="__Qz2(${idx},'cnt',${n2})">${n2}</button>`).join('') +
+        `<button class="qz-pill qz-others ${c.cntOpen ? 'on' : ''}" onclick="__Qz2(${idx},'cntOth')">✎ ${esc(T.qzCustom)}</button></div>` +
+        (c.cntOpen ? `<div class="qz-steppers"><button class="qz-step" onclick="__Qz2(${idx},'cntD',-1)">−</button><span class="qz-stepv">${esc(c.customCount)}</span><button class="qz-step" onclick="__Qz2(${idx},'cntD',1)">＋</button></div>` : '') + `</div>`;
+    }
+    if (c.time === undefined) {
+      h += `<div class="qz-f"><div class="qz-fl">${esc(T.qzTime)}</div><div class="qz-pills">` +
+        [5, 10, 20, 30, 60].map((n2) => `<button class="qz-pill" onclick="__Qz2(${idx},'tim',${n2})">${n2} ${esc(T.qzMin)}</button>`).join(' ') +
+        `<button class="qz-pill" onclick="__Qz2(${idx},'tim',0)">${esc(T.qzNoLimit)}</button><button class="qz-pill qz-others" onclick="__Qz2(${idx},'timOth')">✎ ${esc(T.qzCustom)}</button></div>` +
+        (c.timOpen ? `<div class="qz-steppers"><button class="qz-step" onclick="__Qz2(${idx},'timD',-1)">−</button><span class="qz-stepv">${esc(c.customTime)} ${esc(T.qzMin)}</span><button class="qz-step" onclick="__Qz2(${idx},'timD',1)">＋</button></div>` : '') + `</div>`;
+    }
+    if (c.neg === null) {
+      h += `<div class="qz-f"><div class="qz-fl">${esc(T.qzNeg)}</div><div class="qz-pills">` +
+        `<button class="qz-pill" onclick="__Qz2(${idx},'negt',0)">${esc(T.qzNone)}</button><button class="qz-pill" onclick="__Qz2(${idx},'negt',0.25)">-0.25</button><button class="qz-pill" onclick="__Qz2(${idx},'negt',0.5)">-0.50</button><button class="qz-pill qz-others" onclick="__Qz2(${idx},'negOth')">✎ ${esc(T.qzCustom)}</button></div>` +
+        (c.negOpen ? `<div class="qz-steppers"><button class="qz-step" onclick="__Qz2(${idx},'negD',-0.05)">−</button><span class="qz-stepv">${esc(c.customNeg)}</span><button class="qz-step" onclick="__Qz2(${idx},'negD',0.05)">＋</button></div>` : '') + `</div>`;
+    }
+    if (!c.diff) {
+      h += `<div class="qz-f"><div class="qz-fl">${esc(T.qzDiff)}</div><div class="qz-pills">` +
+        ['e', 'm', 'h', 'a', 'x'].map((d2) => `<button class="qz-pill" onclick="__Qz2(${idx},'dif','${d2}')">${esc(qzDiffLabel(d2))}</button>`).join('') + `</div>`;
+    }
+    h += `<div class="qz-note">${esc(T.qzBankNote)}</div>`;
+    h += `<button class="qz-gen" onclick="__Qz2(${idx},'gen')" ${c.subs.length ? '' : 'disabled'}>${esc(T.qzGen)}</button>`;
+    return h;
+  }
+  function qzReadyCard(m, idx, h) {
+    const qz = m.qz; const c = qz.cfg;
+    const tops = []; for (const sid of c.subs) for (const tn of (c.tops[sid] || [])) tops.push(tn);
+    const rows = [
+      [T.qzSubjects, c.subs.map(qzSubjName).join(' + ')],
+      [T.qzTopics, tops.length ? tops.join(' • ') : T.qzAll],
+      [T.qzCount, c.count + ''],
+      [T.qzTime, c.time ? c.time + ' ' + T.qzMin : T.qzNoLimit],
+      [T.qzNeg, c.neg ? '- ' + c.neg : T.qzNone],
+      [T.qzDiff, qzDiffLabel(c.diff)]
+    ];
+    return h + `<div class="qz-summ">${rows.map((r2) => `<div class="qz-summ-row"><span>${esc(r2[0])}</span><b>${esc(r2[1])}</b></div>`).join('')}</div>
+      <div class="qz-acts-t"><button class="ghost" onclick="__Qz2(${idx},'edit')">${esc(T.qzEdit)}</button><button class="solid" onclick="__Qz2(${idx},'gen')">${esc(T.qzGen)}</button></div>`;
+  }
+  function qzGenHtml(m, idx) {
+    const qz = m.qz;
+    return `<div class="qz-steps">` + (qz.ld || []).map((s2) => `<div class="qz-step-row ${s2.ok ? 'done' : ''}"><span class="st">${s2.ok ? '✓' : (s2.ok === undefined ? '·' : '·')}</span>${esc(s2.l)}${s2.ok ? '' : '<span class="qz-spin"></span>'}</div>`).join('') + `</div>`;
+  }
+  function qzPlayHtml(m, idx) {
+    const qz = m.qz; const q = qz.data[qz.i]; const N = qz.data.length; const fb = qz.fb;
+    const opts = q.o.map((o, oi) => {
+      let cls = 'qz-opt';
+      if (fb) { if (oi === q.a) cls += ' ok'; else if (oi === qz.ans[qz.i]) cls += ' no'; }
+      else if (oi === qz.ans[qz.i]) cls += ' sel';
+      return `<button class="${cls}" onclick="__Qz2(${idx},'ans',${oi})" ${fb ? 'disabled' : ''}><span class="qz-dot">${'ABCDEF'[oi] || oi}</span><span>${esc(o)}</span>${(!fb && oi === qz.ans[qz.i]) || (fb && oi === q.a) ? '<i class="qz-chk">✓</i>' : ''}</button>`;
+    }).join('');
+    let fbHtml = '';
+    if (fb) {
+      const good = qz.ans[qz.i] === q.a;
+      fbHtml = `<div class="qz-fb ${good ? 'good' : 'bad'}"><b>${good ? '✓ ' + esc(T.qzCorrect) : '✕ ' + esc(T.qzWrong)}</b>` +
+        (!good ? `<div class="qz-fb-row">${esc(T.qzYourAns)}: <u>${esc(q.o[qz.ans[qz.i]])}</u></div><div class="qz-fb-row">${esc(T.qzRightAns)}: <b>${esc(q.o[q.a])}</b></div>` : '') +
+        `<div class="qz-fb-row">${esc(good ? T.qzWhy : T.qzRemember)} ${esc(q.e || '')}</div></div>`;
+    }
+    const dots = N <= 12 ? `<div class="qz-dots">${qz.data.map((qq, ii) => `<i class="${ii === qz.i ? 'on' : (qz.ans[ii] !== undefined ? 'done' : '')}"></i>`).join('')}</div>` : '';
+    const nav = `<div class="qz-nav"><button class="qz-back" onclick="__Qz2(${idx},'nav',-1)" ${qz.i === 0 ? 'disabled' : ''}>← ${esc(T.qzBack2)}</button>` +
+      (qz.i < N - 1 ? `<button class="qz-next" onclick="__Qz2(${idx},'nav',1)" ${fb ? '' : 'disabled'}>${esc(T.qzNext2)} →</button>` : `<button class="qz-next" onclick="__Qz2(${idx},'submit')" ${fb ? '' : 'disabled'}>🎯 ${esc(T.qzSubmit)}</button>`) + `</div>`;
+    return `<div class="qz-bar"><i style="width:${Math.round(((qz.i + (fb ? 1 : 0)) / N) * 100)}%"></i></div>${dots}
+      <div class="qz-q">${esc(q.q)}${q.topic ? `<span class="qz-tag">${esc(q.topic)}${q.src === 'bank' ? ' · ' + esc(T.qzBank) : ''}</span>` : ''}</div>
+      <div class="qz-opts">${opts}</div>${fbHtml}${nav}`;
+  }
+  function qzConfirmHtml(m, idx) {
+    const qz = m.qz; const N = qz.data.length; const answered = Object.keys(qz.ans).length;
+    return `<div class="qz-confirm"><h3>${esc(T.qzReadySub)}</h3>
+      <div class="qz-cstats qz-conf"><span>${esc(T.qzAnswered)}: ${answered} / ${N}</span><span class="na">${esc(T.qzUnanswered)}: ${N - answered}</span></div>
+      <div class="qz-nav" style="margin-top:14px"><button class="qz-back" onclick="__Qz2(${idx},'confBack')">← ${esc(T.qzBack2)}</button><button class="qz-next" onclick="__Qz2(${idx},'doSubmit')">✓ ${esc(T.qzSubmit)}</button></div></div>`;
+  }
+  function qzResultHtml(m, idx) {
+    const qz = m.qz; const r = qz.res; const N = qz.data.length;
+    const stats = qzStats(qz);
+    const rows = stats.map((s2) => `<div class="qz-top-row ${s2.cls}"><div class="lbl"><span>${esc(s2.tn)}</span><b>${s2.ok}/${s2.tot} · ${s2.pct}%</b></div><div class="tr"><div class="fl" style="width:${s2.pct}%"></div></div></div>`).join('');
+    return `<div class="qz-res"><div class="qz-ring" style="--p:${r.pct}"><b>${r.pct}%</b><span>${r.ok} / ${N}</span></div>
+      ${qz.cfg.neg > 0 ? `<div class="qz-marks">${esc(T.qzScore)}: ${r.marks} ${esc(T.qzOf)} ${N} ${esc(T.qzMarksNote)} -${qz.cfg.neg}</div>` : ''}
+      ${r.note === 'time' ? `<div class="qz-marks">⏰ ${esc(T.qzTimeUp)}</div>` : ''}
+      <div class="qz-bar big"><i style="width:${r.pct}%"></i></div>
+      <div class="qz-cstats"><span class="ok">✓ ${esc(T.qzCorrectN)} ${r.ok}</span><span class="no">✗ ${esc(T.qzWrongN)} ${r.no}</span><span class="na">○ ${esc(T.qzNone2)} ${r.na}</span></div>
+      <div class="qz-top">${rows}</div>
+      <div class="qz-insight"><b>🧠 ${esc(T.qzInsight)}</b><p>${esc(qzInsightText(qz, stats))}</p></div>
+      <div class="qz-acts"><button class="solid" onclick="__Qz2(${idx},'review')">📋 ${esc(T.qzReviewBtn)}</button><button class="solid" onclick="__Qz2(${idx},'retry')">🔄 ${esc(T.qzRetry)}</button><button class="ghost" onclick="__Qz2(${idx},'weak')">🎯 ${esc(T.qzWeakQuiz)}</button><button class="ghost" onclick="__Qz2(${idx},'similar')">📚 ${esc(T.qzSimilar)}</button></div></div>`;
+  }
+  function qzReviewHtml(m, idx) {
+    const qz = m.qz; const q = qz.data[qz.i]; const N = qz.data.length; const a = qz.ans[qz.i];
+    const ok = a === q.a;
+    const fb = `<div class="qz-fb ${ok ? 'good' : 'bad'}"><b>${ok ? '✓ ' + esc(T.qzCorrect) : '✕ ' + esc(T.qzWrong)}</b>` +
+      `<div class="qz-fb-row">${esc(T.qzYourAns)}: ${a === undefined ? esc(T.qzNone2) : esc(q.o[a])}</div><div class="qz-fb-row">${esc(T.qzRightAns)}: <b>${esc(q.o[q.a])}</b></div>` +
+      `<div class="qz-fb-row">💡 ${esc(q.e || '')}</div></div>`;
+    const nav = `<div class="qz-nav"><button class="qz-back" onclick="__Qz2(${idx},'navR',-1)" ${qz.i === 0 ? 'disabled' : ''}>← ${esc(T.qzPrev)}</button>` +
+      (qz.i < N - 1 ? `<button class="qz-next" onclick="__Qz2(${idx},'navR',1)">${esc(T.qzNext2)} →</button>` : `<button class="qz-next" onclick="__Qz2(${idx},'resBack')">← ${esc(T.qzBackRes)}</button>`) + `</div>`;
+    return `<div class="qz-bar"><i style="width:${Math.round(((qz.i + 1) / N) * 100)}%"></i></div>
+      <div class="qz-q">${esc(q.q)}${q.topic ? `<span class="qz-tag">${esc(q.topic)}${q.src === 'bank' ? ' · ' + esc(T.qzBank) : ''}</span>` : ''}</div>${fb}${nav}`;
+  }
+  /* ── single source of truth: সব quiz-অ্যাকশন এক জায়গায় ── */
+  window.__Qz2 = function (idx, act, a, b) {
+    const m = msgs[idx]; if (!m || !m.qz) return;
+    const qz = m.qz; const c = qz.cfg; let rerender = true;
+    if (act === 'addSub') { const id = String(a); if (!c.subs.includes(id)) { c.subs.push(id); if (!c.tops[id]) c.tops[id] = []; } }
+    else if (act === 'delSub') { const id = String(a); c.subs = c.subs.filter((x) => x !== id); delete c.tops[id]; }
+    else if (act === 'addTop') { const [sid, tn] = String(a).split('|'); if (!c.tops[sid]) c.tops[sid] = []; const arr = c.tops[sid]; const ix = arr.indexOf(tn); if (ix >= 0) arr.splice(ix, 1); else arr.push(tn); }
+    else if (act === 'allTop') { c.tops[String(a)] = []; }
+    else if (act === 'delTop') { const [sid, tn] = String(a).split('|'); const arr = c.tops[sid] || []; const ix = arr.indexOf(tn); if (ix >= 0) arr.splice(ix, 1); }
+    else if (act === 'oth') { c.othOpen = !c.othOpen; }
+    else if (act === 'csub') { c.customSubj = String(a); rerender = !b; }
+    else if (act === 'adsub') { const v = (c.customSubj || '').trim(); if (v && !c.subs.includes('#' + v)) { c.subs.push('#' + v); c.tops['#' + v] = []; } c.customSubj = ''; c.othOpen = false; }
+    else if (act === 'topOth') { c.topOpen = !c.topOpen; }
+    else if (act === 'ctop') { c.customTopic = String(a); rerender = !b; }
+    else if (act === 'adtop') { const v = (c.customTopic || '').trim(); if (v) { for (const sid of c.subs) { if (!c.tops[sid]) c.tops[sid] = []; if (!c.tops[sid].includes(v)) c.tops[sid].push(v); } } c.customTopic = ''; c.topOpen = false; }
+    else if (act === 'cnt') { c.count = Number(a); }
+    else if (act === 'cntOth') { c.cntOpen = !c.cntOpen; }
+    else if (act === 'cntD') { c.customCount = Math.min(200, Math.max(1, c.customCount + Number(a))); c.count = c.customCount; }
+    else if (act === 'delCount') { c.count = 0; }
+    else if (act === 'tim') { c.time = Number(a); }
+    else if (act === 'timOth') { c.timOpen = !c.timOpen; }
+    else if (act === 'timD') { c.customTime = Math.min(480, Math.max(1, c.customTime + Number(a))); c.time = c.customTime; }
+    else if (act === 'delTime') { c.time = undefined; }
+    else if (act === 'negt') { c.neg = Number(a); }
+    else if (act === 'negOth') { c.negOpen = !c.negOpen; }
+    else if (act === 'negD') { c.customNeg = Math.min(1.5, Math.max(0, Math.round((c.customNeg + Number(a)) * 100) / 100)); c.neg = c.customNeg; }
+    else if (act === 'delNeg') { c.neg = null; }
+    else if (act === 'dif') { c.diff = String(a); }
+    else if (act === 'delDiff') { c.diff = ''; }
+    else if (act === 'edit') { qz.edit = !qz.edit; qz.extFull = true; }
+    else if (act === 'gen') { qzGenerate(m, idx); return; }
+    else if (act === 'ans') {
+      if (qz.st !== 'play' || qz.fb && qz.ans[qz.i] !== undefined) return;
+      qz.ans[qz.i] = Number(a); qz.fb = true;
+    }
+    else if (act === 'nav') { const ni = qz.i + Number(a); if (ni < 0 || ni >= qz.data.length) return; if (!qz.fb && Number(a) > 0) return; qz.i = ni; qz.fb = false; }
+    else if (act === 'submit') { if (qz.fb || Object.keys(qz.ans).length === qz.data.length) { qz.st = 'confirm'; } }
+    else if (act === 'confBack') { qz.st = 'play'; }
+    else if (act === 'doSubmit') {
+      if (qz.busy) return; qz.busy = true;
+      const N = qz.data.length; let ok = 0, no = 0, na = 0;
+      for (let i2 = 0; i2 < N; i2++) { const a2 = qz.ans[i2]; if (a2 === undefined) na++; else if (a2 === qz.data[i2].a) ok++; else no++; }
+      const neg = qz.cfg.neg || 0;
+      qz.res = { ok: ok, no: no, na: na, marks: Math.round((ok - no * neg) * 100) / 100, pct: Math.round((ok / N) * 100), acc: ok + no ? Math.round((ok / (ok + no)) * 100) : 0, secs: Math.round((Date.now() - qz.t0) / 1000), note: qz.resNote || '' };
+      qz.st = 'result'; qz.busy = false;
+      if (qz.tm) { clearTimeout(qz.tm); qz.tm = null; }
+    }
+    else if (act === 'review') { qz.st = 'review'; qz.i = 0; }
+    else if (act === 'navR') { const ni = qz.i + Number(a); if (ni < 0 || ni >= qz.data.length) return; qz.i = ni; }
+    else if (act === 'resBack') { qz.st = 'result'; }
+    else if (act === 'retry') {
+      if (qz.busy) return; qz.busy = true;
+      setTimeout(() => { qz.data = qzFinalize(qz.data, c); qz.i = 0; qz.ans = {}; qz.fb = false; qz.t0 = Date.now(); qz.busy = false; qz.st = 'play'; qz.resNote = ''; if (c.time > 0 && qz.tm) { clearTimeout(qz.tm); qz.tm = setTimeout(() => { if (m.qz && m.qz.st === 'play' && m.qz.data) { m.qz.resNote = 'time'; window.__Qz2(idx, 'doSubmit'); } }, c.time * 60000); } renderMsgs(); }, 150);
+      return;
+    }
+    else if (act === 'weak') {
+      if (qz.busy) return;
+      const stats = qzStats(qz); const weak = stats.filter((s2) => s2.pct < 50).map((s2) => s2.tn);
+      if (weak.length) { const sids = c.subs; c.tops = {}; for (const sid of sids) c.tops[sid] = []; for (const sid of sids) for (const q of qz.data) if (weak.includes(q.t) && !(c.tops[sid] || []).includes(q.t)) { if (!c.tops[sid]) c.tops[sid] = []; c.tops[sid].push(q.t); } }
+      qzGenerate(m, idx); return;
+    }
+    else if (act === 'similar') { if (qz.busy) return; qzGenerate(m, idx); return; }
+    else return;
+    save(); if (rerender) renderMsgs();
+  };
 
   /* ── send / stop ── */
   function setSendBtn(streaming) {
@@ -1083,6 +1648,9 @@
     attachments = []; renderAttach();
     const m = { role: 'user', text: fullText, ts: Date.now(), image: imgItem ? imgItem.dataUrl : '' };
     msgs.push(m); save(); renderMsgs();
+    /* ── Quiz intent → interactive configuration engine (কোনো বাটন লাগবে না) ── */
+    const qi = qzParseIntent(fullText);
+    if (qi) { msgs.push({ role: 'ai', text: '', ts: Date.now(), qz: qi }); save(); renderMsgs(); return; }
     stopVoice(true);
     stoppedEarly = false;
     streamingEl = null;
@@ -1272,11 +1840,9 @@
     const menuBtn = document.getElementById('aiMenuBtn');
     const newBtn = document.getElementById('aiNewBtn');
     if (inp) {
-      /* iOS form-accessory (↑↓✓) দমন */
-      inp.addEventListener('touchstart', () => { if (inp.getAttribute('contenteditable') === 'true') { inp.setAttribute('contenteditable', 'false'); } }, { passive: true });
-      inp.addEventListener('pointerdown', () => { if (inp.getAttribute('contenteditable') === 'true') { inp.setAttribute('contenteditable', 'false'); } }, { passive: true });
-      inp.addEventListener('touchend', () => { if (inp.getAttribute('contenteditable') === 'false') { setTimeout(() => inp.setAttribute('contenteditable', 'true'), 260); } }, { passive: true });
-      inp.addEventListener('blur', () => { if (inp.getAttribute('contenteditable') === 'false') { inp.setAttribute('contenteditable', 'true'); } });
+      /* এক-ট্যাপ = instant focus। contenteditable কখনো toggle হয় না — element-identity স্থির */
+      const composeEl = document.querySelector('.ai-compose');
+      if (composeEl) composeEl.addEventListener('pointerdown', (e) => { if (e.target.closest('button') || e.target.closest('[onclick]')) return; try { if (document.activeElement !== inp) inp.focus({ preventScroll: true }); } catch (_) {} }, { passive: true });
       inp.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter' || e.isComposing) return;
         if (e.ctrlKey || e.metaKey) { e.preventDefault(); send(); return; }
@@ -1291,9 +1857,9 @@
     /* ফুল-স্ক্রিন: AI-পেজে navigation-bar hide */
     const navBar = document.querySelector('.bottomnav');
     if (navBar) navBar.style.display = 'none';
-    /* back → nav ফেরত + dashboard */
-    const backBtn = document.getElementById('aiBackBtn');
-    if (backBtn) backBtn.addEventListener('click', () => { const nb = document.querySelector('.bottomnav'); if (nb) nb.style.display = ''; if (window.navigate) window.navigate('dashboard'); else history.back(); });
+    /* home icon → dashboard (nav ফেরত) */
+    const homeBtn = document.getElementById('aiHomeBtn');
+    if (homeBtn) homeBtn.addEventListener('click', () => backHome());
     /* keyboard-aware: composer keyboard-এর ঠিক উপরে */
     const kbd = (() => {
       const vv = window.visualViewport;
