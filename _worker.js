@@ -6,14 +6,18 @@ const ORIGIN = 'https://admission-gk.admissionhub.workers.dev';
 const VOICE_ORIGIN = 'https://admission-voice.admissionhub.workers.dev';
 const RETIRED_ASSETS = new Set([
   '/premium-auth.js', '/premium-auth.css', '/auth-svg.js', '/user-account.js',
-  '/onboarding.js', '/onboarding.css', '/curriculum-config.js', '/preview-onboarding.html'
+  '/onboarding.js', '/onboarding.css', '/curriculum-config.js', '/preview-onboarding.html',
+  '/email-preview-otp.html', '/otp-gmail.gs'
 ]);
+const RETIRED_ASSET_PREFIXES = ['/auth-art', '/auth-screens'];
+const isRetiredAsset = pathname => RETIRED_ASSETS.has(pathname) ||
+  RETIRED_ASSET_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(prefix + '/'));
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (RETIRED_ASSETS.has(url.pathname)) {
+    if (isRetiredAsset(url.pathname)) {
       return new Response('Retired', {
         status: 410,
         headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }

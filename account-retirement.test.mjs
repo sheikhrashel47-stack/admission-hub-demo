@@ -52,12 +52,20 @@ const STUDIO_CARDS = readFileSync('experience-studio-cards.js', 'utf8');
 
 const retiredFiles = [
   'premium-auth.js', 'premium-auth.css', 'auth-svg.js', 'user-account.js',
-  'onboarding.js', 'onboarding.css', 'curriculum-config.js', 'preview-onboarding.html'
+  'onboarding.js', 'onboarding.css', 'curriculum-config.js', 'preview-onboarding.html',
+  'email-preview-otp.html', 'otp-gmail.gs', 'auth-art', 'auth-screens'
+];
+const retiredStaticUrls = [
+  ...retiredFiles.filter(file => !['auth-art', 'auth-screens'].includes(file)),
+  'auth-art/login-crest.jpg', 'auth-art/otp-shield.jpg', 'auth-art/signup-book.jpg',
+  'auth-art/success-medal.jpg', 'auth-art/welcome-hero.jpg',
+  'auth-screens/login.jpg', 'auth-screens/otp.jpg', 'auth-screens/signup.jpg',
+  'auth-screens/success.jpg', 'auth-screens/welcome.jpg'
 ];
 const retiredMarkers = [
   'premium-auth', 'auth-svg', 'user-account', 'ahAuthGate', 'ahOnboardGate',
   'AHAuth', 'ahPubToken', 'accounts.google.com/gsi', 'curriculum-config.js',
-  'onboarding.js', 'onboarding.css'
+  'onboarding.js', 'onboarding.css', 'auth-art', 'auth-screens', 'email-preview-otp', 'otp-gmail.gs'
 ];
 const retiredRoutes = [
   '/api/auth/config', '/api/auth/login', '/api/auth/register', '/api/auth/register-email',
@@ -118,7 +126,7 @@ await test('Pages same-origin API proxy preserves request headers', PAGES.includ
 await test('runtime: retired static URLs return 410 instead of the SPA shell', async () => {
   let assetReads = 0;
   const env = { ASSETS: { fetch: async () => { assetReads++; return new Response('unexpected'); } } };
-  for (const file of retiredFiles) {
+  for (const file of [...retiredStaticUrls, 'auth-art', 'auth-screens']) {
     const response = await pagesWorker.fetch(new Request('https://pages.example/' + file), env);
     if (response.status !== 410 || response.headers.get('X-Content-Type-Options') !== 'nosniff') return false;
   }
