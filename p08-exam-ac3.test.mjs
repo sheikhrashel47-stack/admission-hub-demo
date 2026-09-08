@@ -38,8 +38,8 @@ t('boot: Resume-মোডাল + discard/resume পথ অক্ষত', H.incl
 t('discardActiveExam: retry-টাইমার ক্লিয়ার', /async function discardActiveExam\(\)\{\s*\n\s*clearTimeout\(submitRetryHandle\);/.test(H));
 
 /* ৬ — ভার্সন-ট্র্যাকিং v189 */
-t('sw BUILD_ID v208-aiagent-20260908', SW.includes("const BUILD_ID = 'v208-aiagent-20260908'"));
-t('index sw-marker v208-aiagent-20260908', H.includes('sw.js?v=v208-aiagent-20260908'));
+t('sw BUILD_ID v209-aiagent-20260908', SW.includes("const BUILD_ID = 'v209-aiagent-20260908'"));
+t('index sw-marker v209-aiagent-20260908', H.includes('sw.js?v=v209-aiagent-20260908'));
 
 console.log(`\nP08-AC3: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

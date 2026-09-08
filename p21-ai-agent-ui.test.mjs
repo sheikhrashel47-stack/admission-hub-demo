@@ -12,7 +12,7 @@ const AG = existsSync('ai-agent.js') ? readFileSync('ai-agent.js', 'utf8') : '';
 
 /* ── ১. রুট + স্ক্রিপ্ট ── */
 t('১. index.html-এ ai-রুট dispatch (renderAiAgentPage)', H.includes("if(p==='ai'){ if(window.renderAiAgentPage)"));
-t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (chatv1)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv1'));
+t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (chatv1)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv2'));
 t('৩. ai-agent-chat.js ফাইল-বিদ্যমান + renderAiAgentPage-এক্সপোজ', existsSync('ai-agent-chat.js') && UI.includes('window.renderAiAgentPage = render'));
 t('৪. NAV_TABS-এ 🤖 AI ট্যাব', H.includes("{key:'ai', icon:'🤖', label:'AI'}"));
 t('৫. dashboard-v2: Command Center + All-Tools এ AI-এন্ট্রি', V2.includes("navigate(\\'ai\\')") && V2.includes("'AI', \"navigate('ai')\""));
@@ -52,8 +52,16 @@ t('২৯. Mobile-first: safe-area + keyboard (visualViewport নয়, d-i n-�
 t('৩০. ক্লায়েন্ট-কোডে SSE-পার্স (data:/event:) + AbortController', UI.includes("startsWith('data:')") && UI.includes("startsWith('event:')") && UI.includes('AbortController'));
 
 /* ── ৬. ভার্সন-অখণ্ডতা v208 ── */
-t('৩১. sw BUILD_ID v208-aiagent (index-marker + expectedSwVersion)', SW.includes("const BUILD_ID = 'v208-aiagent-20260908'") && H.includes('sw.js?v=v208-aiagent-20260908') && H.includes("const expectedSwVersion = 'v208-aiagent-20260908'"));
-t('৩২. sw APP_SHELL: ai-agent-chat chatv1 + dash2f6', SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv1') && SW.includes('./dashboard-v2.js?v=dash2f6') && H.includes('dashboard-v2.js?v=dash2f6'));
+t('৩১. sw BUILD_ID v208-aiagent (index-marker + expectedSwVersion)', SW.includes("const BUILD_ID = 'v209-aiagent-20260908'") && H.includes('sw.js?v=v209-aiagent-20260908') && H.includes("const expectedSwVersion = 'v209-aiagent-20260908'"));
+t('৩২. sw APP_SHELL: ai-agent-chat chatv1 + dash2f6', SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv2') && SW.includes('./dashboard-v2.js?v=dash2f6') && H.includes('dashboard-v2.js?v=dash2f6'));
+
+
+/* ── ৭. মালিক-ফিডব্যাক v209 (chatv2): Enter-newline · sheet-nav-hide · premium-composer · typography ── */
+t('৩৩. Enter = নতুন লাইন; Ctrl/⌘+Enter = পাঠান; বাটন-সেন্ড অটুট', UI.includes("e.key !== 'Enter'") && UI.includes("setRangeText('\\n'") && UI.includes('e.ctrlKey || e.metaKey') && UI.includes('function send('));
+t('৩৪. Sheet-খোলায় nav-bar hide + body-scroll-lock + plus-rotate', UI.includes("document.querySelector('.bottomnav')") && UI.includes("nav.style.display = open ? 'none' : ''") && UI.includes("document.body.style.overflow = open ? 'hidden' : ''") && UI.includes('plus-on'));
+t('৩৫. Premium composer: focus-ring + hint-row + বড় textarea (150px)', UI.includes('.ai-compose:focus-within') && UI.includes('ai-compose-hint') && UI.includes('enterHint') && UI.includes('Math.min(i.scrollHeight, 150)'));
+t('৩৬. টাইপোগ্রাফি-লিফট: 16px/1.8 body + 19px heading + blockquote + antialiased', UI.includes('.ai-msg-body{font-size:16px;line-height:1.8') && UI.includes('font-size:19px') && UI.includes('.ai-msg-body blockquote') && UI.includes('-webkit-font-smoothing:antialiased'));
+t('৩৭. chatv2 + v209 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv2') && H.includes('sw.js?v=v209-aiagent-20260908') && H.includes("const expectedSwVersion = 'v209-aiagent-20260908'") && SW.includes("const BUILD_ID = 'v209-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv2'));
 
 console.log(`\nP21-CHATBOT-V1: ${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);

@@ -25,7 +25,7 @@ t('৪. voice-worker-allowlist-এ pages.dev (CORS-ফাঁক-বন্ধ)', 
 t('৫. hub-অ্যাপ: ডিফল্ট-এন্ডপয়েন্ট = pages.dev-প্রক্সি (github.io-স্ট্যাটিক-হওয়ায়-এটাই-সঠিক-পথ) + .workers.dev-সেভ-মাইগ্রেশন', HUB.includes("const DEFAULT_LIVE = 'https://admissionhub.pages.dev'") && HUB.includes("proxyUrl.includes('.workers.dev')") && !HUB.includes('rashelzayan213'));
 
 /* ── ২. ভার্সন-অখণ্ডতা v204 ── */
-t('৬. el-voice-v106 (index+sw) + BUILD_ID v208-aiagent-20260908 (সব-মার্কার)', H.includes('vocabulary-elevenlabs.js?v=el-voice-v106') && SW.includes("'./vocabulary-elevenlabs.js?v=el-voice-v106'") && SW.includes("const BUILD_ID = 'v208-aiagent-20260908'") && H.includes('sw.js?v=v208-aiagent-20260908') && H.includes("const expectedSwVersion = 'v208-aiagent-20260908'") && H.includes("const cur = 'admission-hub-shell-v208-aiagent-20260908'"));
+t('৬. el-voice-v106 (index+sw) + BUILD_ID v209-aiagent-20260908 (সব-মার্কার)', H.includes('vocabulary-elevenlabs.js?v=el-voice-v106') && SW.includes("'./vocabulary-elevenlabs.js?v=el-voice-v106'") && SW.includes("const BUILD_ID = 'v209-aiagent-20260908'") && H.includes('sw.js?v=v209-aiagent-20260908') && H.includes("const expectedSwVersion = 'v209-aiagent-20260908'") && H.includes("const cur = 'admission-hub-shell-v209-aiagent-20260908'"));
 
 /* ── ৩. রানটাইম: এক-ক্লিক → generate+সেভ → ২য়-ক্লিক-নেট-নয় → অফলাইনে-বাজে ── */
 t('৭. রানটাইম: ১ম-ক্লিক generate+ক্যাশ ("generated") → ২য়-ক্লিক ক্যাশ থেকে ("cache", নেট-০) → অফলাইনেও বাজে', (async () => {
