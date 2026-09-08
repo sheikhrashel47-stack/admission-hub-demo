@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { resolve, relative, sep } from 'node:path';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve, relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import pagesWorker from './_worker.js';
 import { handleInternalEmailRequest } from './email-gateway/worker/handler.mjs';
@@ -17,6 +18,10 @@ import {
   inventoryCloudflareWorkerBindings,
   summarizeWorkerSecretBindings
 } from './email-gateway/operations/inventory-cloudflare-bindings.mjs';
+import {
+  collectInfisicalWorkerSecrets,
+  prepareInfisicalWorkerSecretFile
+} from './email-gateway/operations/prepare-infisical-worker-secrets.mjs';
 
 const root = process.cwd();
 const read = file => readFileSync(resolve(root, file), 'utf8');
@@ -28,6 +33,16 @@ const emailFiles = walk('email-gateway').filter(file => file.endsWith('.mjs'));
 const runtimeFiles = emailFiles.filter(file => !file.includes('/testing/'));
 const secret = 'test-signing-secret-that-is-at-least-thirty-two-characters';
 let nonceCounter = 0;
+const infisicalStageEnvironment = () => Object.fromEntries(REQUIRED_EMAIL_GATEWAY_BINDINGS.map(name => {
+  if (name === 'EMAIL_GATEWAY_CONFIG') return [name, JSON.stringify({ environment: 'production', providerPolicies: {} })];
+  if (name === 'EMAIL_GATEWAY_SIGNING_SECRET') return [name, 'test-stage-signing-secret-at-least-thirty-two-characters'];
+  if (name === 'EMAIL_RECIPIENT_HASH_PEPPER') return [name, 'test-stage-independent-recipient-hash-pepper'];
+  if (name === 'EMAIL_PROVIDER_ACTIVATION') return [name, 'disabled'];
+  if (name.endsWith('_FROM_ADDRESS')) return [name, `${name.split('_')[0].toLowerCase()}@example.com`];
+  if (name.endsWith('_FROM_NAME')) return [name, `Admission Hub ${name.split('_')[0]}`];
+  if (name.endsWith('_SENDER_VERIFIED')) return [name, 'false'];
+  return [name, `test-credential-for-${name.toLowerCase()}`];
+}));
 
 async function signedRequest({ path = '/internal/email/send', method = 'POST', body = '', timestamp = 1_800_000_000, nonce } = {}) {
   const actualNonce = nonce || `nonce-security-${String(++nonceCounter).padStart(8, '0')}`;
@@ -257,6 +272,44 @@ test('Cloudflare binding inventory bounds transport and never includes response 
   assert.equal(authorization, 'Bearer private-api-token');
 });
 
+test('Infisical staging allowlists every required binding and forces activation disabled', () => {
+  assert.equal(REQUIRED_EMAIL_GATEWAY_BINDINGS.length, 33);
+  assert.equal(REQUIRED_EMAIL_GATEWAY_BINDINGS.includes('EMAIL_RECIPIENT_HASH_PEPPER'), true);
+  const env = infisicalStageEnvironment();
+  env.UNRELATED_SECRET = 'must-not-enter-payload';
+  const payload = collectInfisicalWorkerSecrets(env);
+  assert.deepEqual(Object.keys(payload).sort(), [...REQUIRED_EMAIL_GATEWAY_BINDINGS]);
+  assert.equal('UNRELATED_SECRET' in payload, false);
+  assert.equal(payload.EMAIL_PROVIDER_ACTIVATION, 'disabled');
+
+  const unsafe = { ...env, EMAIL_PROVIDER_ACTIVATION: 'enabled' };
+  assert.throws(() => collectInfisicalWorkerSecrets(unsafe), /initial Infisical staging requires/i);
+});
+
+test('Infisical staging reports missing names without exposing another value', () => {
+  const env = infisicalStageEnvironment();
+  const valueThatMustStayPrivate = env.RESEND_API_KEY;
+  delete env.COURIER_API_KEY;
+  assert.throws(
+    () => collectInfisicalWorkerSecrets(env),
+    error => /COURIER_API_KEY/.test(error.message) && !error.message.includes(valueThatMustStayPrivate)
+  );
+});
+
+test('Infisical staging writes only a mode-0600 ephemeral bulk file', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'admission-hub-infisical-'));
+  const outputPath = join(directory, 'worker-secrets.json');
+  try {
+    const result = await prepareInfisicalWorkerSecretFile({ env: infisicalStageEnvironment(), outputPath });
+    assert.equal(result.bindingCount, 33);
+    assert.equal(result.activation, 'disabled');
+    assert.equal(statSync(outputPath).mode & 0o777, 0o600);
+    assert.deepEqual(Object.keys(JSON.parse(readFileSync(outputPath, 'utf8'))).sort(), [...REQUIRED_EMAIL_GATEWAY_BINDINGS]);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test('oversized body is rejected without provider call', async () => {
   const provider = new MockEmailProvider({ id: 'size-provider' });
   const { gateway, store } = await createMockGateway({ entries: [mockProviderEntry(provider)] });
@@ -306,9 +359,11 @@ test('protection contract, required operations docs, CODEOWNERS and CI guard exi
     'email-gateway/EMAIL_GATEWAY_PROTECTION_CONTRACT.md',
     'docs/email-gateway/EMAIL_ARCHITECTURE.md', 'docs/email-gateway/PROVIDER_SETUP.md',
     'docs/email-gateway/FAILOVER_POLICY.md', 'docs/email-gateway/SECURITY.md',
-    'docs/email-gateway/OPERATIONS.md', 'docs/email-gateway/TESTING.md',
+    'docs/email-gateway/OPERATIONS.md', 'docs/email-gateway/TESTING.md', 'docs/email-gateway/INFISICAL_SETUP.md',
     '.github/workflows/email-gateway-guard.yml', '.github/workflows/email-gateway-deploy.yml',
-    'email-gateway/operations/telegram-notifier.mjs', 'email-gateway/operations/notify-telegram.mjs'
+    '.github/workflows/email-gateway-infisical-sync.yml',
+    'email-gateway/operations/telegram-notifier.mjs', 'email-gateway/operations/notify-telegram.mjs',
+    'email-gateway/operations/prepare-infisical-worker-secrets.mjs'
   ];
   assert.ok(required.every(file => existsSync(resolve(root, file))));
   const owners = read('.github/CODEOWNERS');
@@ -324,6 +379,17 @@ test('protection contract, required operations docs, CODEOWNERS and CI guard exi
   assert.match(deploy, /command: deploy --config wrangler\.toml/);
   assert.match(deploy, /npm run notify:telegram/);
   assert.doesNotMatch(deploy, /RESEND_API_KEY|BREVO_API_KEY|MAILJET_API_KEY|MAILTRAP_API_KEY|MAILERSEND_API_KEY|SENDPULSE_API_KEY|EMAILOCTOPUS_API_KEY|COURIER_API_KEY/);
+  const infisical = read('.github/workflows/email-gateway-infisical-sync.yml');
+  assert.match(infisical, /id-token: write/);
+  assert.match(infisical, /inputs\.confirmation == 'STAGE_INFISICAL_SECRETS'/);
+  assert.match(infisical, /environment: email-gateway-production/);
+  assert.match(infisical, /actions\/checkout@11d5960a326750d5838078e36cf38b85af677262/);
+  assert.match(infisical, /actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020/);
+  assert.match(infisical, /Infisical\/secrets-action@6cd3f7c0e4cc0d2395ee4ef414eb6eeb5d3e73db/);
+  assert.match(infisical, /cloudflare\/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd/);
+  assert.match(infisical, /EMAIL_GATEWAY_REQUIRE_COMPLETE_BINDINGS: 'true'/);
+  assert.match(infisical, /Remove ephemeral secret payload[\s\S]*if: \$\{\{ always\(\) \}\}/);
+  assert.doesNotMatch(infisical, /client-secret:|INFISICAL_TOKEN/);
   assert.equal(existsSync(resolve(root, '.github/workflows/main.yml')), false, 'legacy unguarded Worker deploy must stay retired');
 });
 

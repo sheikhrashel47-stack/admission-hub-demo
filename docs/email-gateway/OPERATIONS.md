@@ -112,6 +112,12 @@ The credential-independent notifier is `email-gateway/operations/telegram-notifi
 
 Required protected bindings are `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. The GitHub deployment job sends a completion notification only when repository variable `TELEGRAM_NOTIFICATIONS_ENABLED=true` and both protected secrets exist. If they are unavailable, the standalone notifier returns the explicit isolated state `BLOCKED — REQUIRED_SECRET_NOT_CONFIGURED`; this does not change the truth of implementation or deployment status.
 
+## Infisical staging
+
+Infisical is the centralized source for Phase 2B provider credentials and sender/runtime bindings. The protected, manual `.github/workflows/email-gateway-infisical-sync.yml` workflow uses an environment-scoped GitHub OIDC Machine Identity, stages only the allowlisted Worker bindings, requires activation to remain disabled, removes its ephemeral payload on every outcome and reports names only. One-time setup and the exact 33-name schema are in `docs/email-gateway/INFISICAL_SETUP.md`.
+
+Staging secrets is not provider activation. Account, sender, domain, quota and non-mutating remote-health evidence remain mandatory before any provider policy or global activation gate is opened.
+
 ## Deployment and rollback
 
 - build `worker-bundle.mjs` with pinned `npm run build:worker`;

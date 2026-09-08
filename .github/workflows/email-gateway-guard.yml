@@ -12,7 +12,7 @@ on:
       - '_worker.js'
       - 'wrangler.toml'
       - 'package.json'
-      - '.github/workflows/email-gateway-guard.yml'
+      - '.github/workflows/email-gateway-*.yml'
       - '.github/CODEOWNERS'
       - 'docs/email-gateway/**'
       - 'docs/EMAIL-GATEWAY-*'

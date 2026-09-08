@@ -1,0 +1,87 @@
+name: Email Gateway Infisical Secret Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type STAGE_INFISICAL_SECRETS to stage the protected Worker bindings with activation disabled
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: admission-hub-email-gateway-production
+  cancel-in-progress: false
+
+jobs:
+  stage-worker-secrets:
+    if: ${{ inputs.confirmation == 'STAGE_INFISICAL_SECRETS' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    environment: email-gateway-production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Verify non-secret Infisical connection metadata
+        env:
+          INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID }}
+          INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG }}
+          INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG }}
+          INFISICAL_SECRET_PATH: ${{ vars.INFISICAL_SECRET_PATH }}
+        run: |
+          set -eu
+          test -n "$INFISICAL_IDENTITY_ID" || { echo "::error title=Infisical connection incomplete::Missing INFISICAL_IDENTITY_ID environment variable."; exit 1; }
+          test -n "$INFISICAL_PROJECT_SLUG" || { echo "::error title=Infisical connection incomplete::Missing INFISICAL_PROJECT_SLUG environment variable."; exit 1; }
+          test "$INFISICAL_ENV_SLUG" = "production" || { echo "::error title=Infisical connection incomplete::INFISICAL_ENV_SLUG must be production."; exit 1; }
+          test "$INFISICAL_SECRET_PATH" = "/email-gateway/worker" || { echo "::error title=Infisical connection incomplete::INFISICAL_SECRET_PATH must be /email-gateway/worker."; exit 1; }
+
+      - name: Fetch production Email Gateway secrets from Infisical using OIDC
+        uses: Infisical/secrets-action@6cd3f7c0e4cc0d2395ee4ef414eb6eeb5d3e73db # v1.0.17
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ vars.INFISICAL_ENV_SLUG }}
+          secret-path: ${{ vars.INFISICAL_SECRET_PATH }}
+          recursive: false
+          include-imports: false
+          export-type: env
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
+
+      - name: Validate names and prepare ephemeral activation-disabled payload
+        env:
+          EMAIL_GATEWAY_SECRET_BULK_PATH: ${{ runner.temp }}/admission-hub-email-gateway-secrets.json
+        run: node email-gateway/operations/prepare-infisical-worker-secrets.mjs
+
+      - name: Stage isolated secrets in the Admission Hub Worker
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: secret bulk ${{ runner.temp }}/admission-hub-email-gateway-secrets.json --name admission-gk
+
+      - name: Remove ephemeral secret payload
+        if: ${{ always() }}
+        run: rm -f -- "${RUNNER_TEMP}/admission-hub-email-gateway-secrets.json"
+
+      - name: Require complete names-only Worker inventory
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_WORKER_NAME: admission-gk
+          EMAIL_GATEWAY_REQUIRE_COMPLETE_BINDINGS: 'true'
+        run: node email-gateway/operations/inventory-cloudflare-bindings.mjs
+
+      - name: Verify public health and unsigned internal protection
+        run: |
+          set -eu
+          public_status="$(curl --silent --show-error --connect-timeout 10 --max-time 20 --output /dev/null --write-out '%{http_code}' "https://admission-gk.admissionhub.workers.dev/pub/health?infisical_stage=${GITHUB_RUN_ID}")"
+          internal_status="$(curl --silent --show-error --connect-timeout 10 --max-time 20 --output /dev/null --write-out '%{http_code}' "https://admission-gk.admissionhub.workers.dev/internal/email/health?infisical_stage=${GITHUB_RUN_ID}")"
+          test "$public_status" = "200"
+          test "$internal_status" = "403" -o "$internal_status" = "404"
+          echo "Infisical bindings are staged with activation disabled; public health is ready and the unsigned internal route is protected."

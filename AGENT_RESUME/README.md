@@ -63,6 +63,8 @@
 
 ## 🔐 গুরুত্বপূর্ণ
 
+- **Infisical Admission Hub-এর centralized secret source:** `Infisical → authorized environment → application/Worker/agent`; development, staging ও production আলাদা থাকবে এবং component-specific path/least privilege ব্যবহার হবে।
+- Existing Infisical configuration, connected integration, environment এবং required secret availability আগে inspect করতে হবে; available authorized access নিজে consume করে implementation চালাতে হবে।
 - **টোকেন/সিক্রেট কখনো resume-তে লেখা যাবে না** — repo public GitHub-এ থাকে।
 - User-কে কখনো API key, bot token, OAuth secret, private key, `.env` বা password chat-এ paste করতে বলা যাবে না।
 - Existing environment, secret manager, connected integration, authenticated CLI/session ও project configuration আগে inspect করতে হবে; securely configured credential থাকলে সেটিই ব্যবহার করতে হবে।
