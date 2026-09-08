@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v209-aiagent-20260908';
+const BUILD_ID = 'v210-aiagent-20260908';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -42,7 +42,7 @@ const APP_SHELL = [
   './performance-hardening.js?v=2',
   './dashboard-v2.css?v=dash2',
   './dashboard-v2.js?v=dash2f6',
-  './ai-agent-chat.js?v=agent-f1-ui-chatv2',
+  './ai-agent-chat.js?v=agent-f1-ui-chatv3',
   './one-time-mock-seed.js?v=20260824-native',
   './one-time-mock-tool.js?v=20260824-native',
   './vocabulary-master-tool.js?v=vm-autoimg-v106',
@@ -143,6 +143,11 @@ self.addEventListener('activate', event => {
 
     // Take control of existing PWA clients without requiring another launch.
     await self.clients.claim();
+    // নতুন ভার্সন এলে খোলা ট্যাবগুলো একবার রিলোড — যাতে পুরনো UI কখনো আটকে না থাকে।
+    try {
+      const tabs = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const c of tabs) { if ('navigate' in c) { try { c.navigate(c.url); } catch (_) {} } }
+    } catch (_) {}
   })());
 });
 
