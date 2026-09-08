@@ -14,8 +14,8 @@ t('১. #ahAuthGate exists', !!gate);
 t('২. gate static-first HIDDEN — প্রথম পেইন্টে কোনো login wall নেই', !!gate && /display:\s*none/i.test(gate.getAttribute('style') || '') && gate.getAttribute('aria-hidden') === 'true');
 t('৩. ইন্ট্রো বাদ — প্রথম পেইন্টে সরল লোডার (.ah-boot), কোনো 3D scene নেই', !!doc.querySelector('#ahSplash .ah-boot') && !doc.querySelector('#ahSplash .ahfs-scene'));
 t('৪. premium-auth.js/css v193 query-তে লোড হয়', /premium-auth\.js\?v=p3-auth-guest-v201/.test(html) && /premium-auth\.css\?v=p3-auth-guest-v196/.test(html));
-t('৫. sw build v213-aiagent-20260908 (index + sw.js)',
-  /v213-aiagent-20260908/.test(html) && /v213-aiagent-20260908/.test(readFileSync('/home/user/demo/sw.js', 'utf8')));
+t('৫. sw build v214-aiagent-20260908 (index + sw.js)',
+  /v214-aiagent-20260908/.test(html) && /v214-aiagent-20260908/.test(readFileSync('/home/user/demo/sw.js', 'utf8')));
 t('৬. app-এ প্রাথমিকভাবে কোনো mandatory gate মোড নেই (data-ah not preset)',
   !html.includes('data-ah="out"'));
 

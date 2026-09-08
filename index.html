@@ -4633,17 +4633,17 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
       // An older worker can keep serving the pre-fix navigation bundle in an
       // installed PWA. Remove that controller once, then install the current
       // worker with a fresh build URL.
-      const expectedSwVersion = 'v213-aiagent-20260908';
+      const expectedSwVersion = 'v214-aiagent-20260908';
       if (registration && activeUrl && !activeUrl.includes(expectedSwVersion)) {
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v213-aiagent-20260908',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v214-aiagent-20260908',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v213-aiagent-20260908';
+        const cur = 'admission-hub-shell-v214-aiagent-20260908';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -5119,7 +5119,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script defer src="./curriculum-config.js?v=p6-onboard-v12"></script>
 <script defer src="./onboarding.js?v=p6-onboard-v13"></script>
 <script defer src="./dashboard-v2.js?v=dash2f6"></script>
-<script defer src="./ai-agent-chat.js?v=agent-f1-ui-chatv6"></script>
+<script defer src="./ai-agent-chat.js?v=agent-f1-ui-chatv7"></script>
 <script src="./app-seed.js?v=v189-empty" defer></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */
