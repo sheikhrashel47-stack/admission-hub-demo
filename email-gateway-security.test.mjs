@@ -202,6 +202,17 @@ test('Cloudflare Pages blocks every internal path before asset or API proxy', as
   assert.equal(assetReads, 0);
 });
 
+test('Cloudflare Pages returns 404 instead of SPA fallback for protected server source', async () => {
+  let assetReads = 0;
+  const env = { ASSETS: { fetch: async () => { assetReads += 1; return new Response('unexpected'); } } };
+  for (const path of ['/worker-bundle.mjs', '/wrangler.toml', '/auth/index.mjs', '/email-gateway/index.mjs', '/docs/private.md', '/.github/workflows/private.yml']) {
+    const response = await pagesWorker.fetch(new Request(`https://pages.example${path}`), env);
+    assert.equal(response.status, 404, path);
+    assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  }
+  assert.equal(assetReads, 0);
+});
+
 test('oversized body is rejected without provider call', async () => {
   const provider = new MockEmailProvider({ id: 'size-provider' });
   const { gateway, store } = await createMockGateway({ entries: [mockProviderEntry(provider)] });

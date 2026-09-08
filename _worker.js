@@ -10,8 +10,15 @@ const RETIRED_ASSETS = new Set([
   '/email-preview-otp.html', '/otp-gmail.gs'
 ]);
 const RETIRED_ASSET_PREFIXES = ['/auth-art', '/auth-screens'];
+const SERVER_ONLY_ASSETS = new Set([
+  '/gk-agent-worker.js', '/public-worker.js', '/ai-agent.js', '/worker-bundle.mjs',
+  '/voice-worker.js', '/notification-worker.js', '/wrangler.toml', '/package.json', '/package-lock.json'
+]);
+const SERVER_ONLY_PREFIXES = ['/auth/', '/email-gateway/', '/docs/', '/AGENT_RESUME/', '/.github/'];
 const isRetiredAsset = pathname => RETIRED_ASSETS.has(pathname) ||
   RETIRED_ASSET_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(prefix + '/'));
+const isServerOnlyAsset = pathname => SERVER_ONLY_ASSETS.has(pathname) ||
+  SERVER_ONLY_PREFIXES.some(prefix => pathname.startsWith(prefix));
 
 export default {
   async fetch(request, env) {
@@ -20,6 +27,13 @@ export default {
     if (isRetiredAsset(url.pathname)) {
       return new Response('Retired', {
         status: 410,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
+      });
+    }
+
+    if (isServerOnlyAsset(url.pathname)) {
+      return new Response('Not found', {
+        status: 404,
         headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
       });
     }
