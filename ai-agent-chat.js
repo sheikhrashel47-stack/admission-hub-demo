@@ -36,7 +36,7 @@
       ['📊', 'Analyze my performance', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'Teach me this topic', 'এই topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: '↓ Latest', thinking: 'Thinking', understanding: 'Understanding your question...', creating: 'Creating questions...',
+    ph: 'Ask anything…', latest: '↓ Latest', stThink: 'Thinking...', stAnalyze: 'Analyzing your question...', stImage: 'Understanding image...', stDoc: 'Reading file...', stSearch: 'Searching trusted sources...', stQuiz: 'Creating quiz...', stMcq: 'Creating MCQs...', stWrite: 'Writing answer...',
     copy: 'Copy', copied: 'Copied', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'Correct answer', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -69,7 +69,7 @@
       ['📊', 'আমার performance analyze করো', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'এই topicটা শেখাও', 'সালোকসংশ্লেষণ topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: '↓ নতুন', thinking: 'Thinking', understanding: 'তোমার প্রশ্নটা বুঝছি…', creating: 'প্রশ্ন বানাচ্ছি…',
+    ph: 'Ask anything…', latest: '↓ নতুন', stThink: 'ভাবছি...', stAnalyze: 'প্রশ্ন বিশ্লেষণ করছি...', stImage: 'ছবি বিশ্লেষণ করছি...', stDoc: 'ফাইল বিশ্লেষণ করছি...', stSearch: 'তথ্য খুঁজছি...', stQuiz: 'Quiz তৈরি করছি...', stMcq: 'MCQ তৈরি করছি...', stWrite: 'উত্তর তৈরি করছি...',
     copy: 'Copy', copied: 'কপি হয়েছে', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'সঠিক উত্তর', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -102,6 +102,7 @@
   style.textContent = `
     .ai-agent-root{--r-s:10px;--r-m:14px;--r-card:18px;--r-l:22px;--r-float:28px;--r-pill:999px;
       height:100dvh;min-height:100dvh;display:flex;flex-direction:column;max-width:760px;margin:0 auto;overflow:hidden;
+      padding-bottom:var(--ai-kb,0px);
       background:linear-gradient(180deg,#E9F6EF 0%,var(--ai-bg,#F7F9F8) 240px);color:var(--ai-ink,#16302A);
       font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Bengali","Hind Siliguri",sans-serif;
       -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-feature-settings:'kern' 1,'liga' 1;
@@ -125,7 +126,7 @@
     .ai-back{width:34px;height:34px;font-size:22px;line-height:1;padding-bottom:2px}
     .ai-icobtn:active{transform:scale(.93)}
     /* ── body ── */
-    .ai-agent-body{flex:1;overflow-y:auto;padding:14px 14px calc(112px + env(safe-area-inset-bottom) + var(--ai-kb,0px));scroll-behavior:smooth}
+    .ai-agent-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 12px;scroll-behavior:smooth}
     .ai-hero{position:relative;display:flex;gap:10px;align-items:center;border-radius:var(--r-l);padding:18px 16px;overflow:hidden;
       background:linear-gradient(140deg,#E9F7F0 0%,#DFF3EA 55%,#EAF9F3 100%);border:1px solid rgba(15,107,79,.12);animation:aiIn .4s ease both}
     .ai-agent-root[data-theme=dark] .ai-hero{background:linear-gradient(140deg,#12332A,#0F2A22 55%,#144033);border-color:rgba(47,191,143,.15)}
@@ -199,10 +200,15 @@
     .ai-math-inline{font-family:Georgia,serif;font-style:italic}
     .ai-cursor{display:inline-block;width:2px;height:1em;background:#2EE6A8;vertical-align:-.15em;margin-left:1px;animation:aiBlink .8s steps(1) infinite}
     @keyframes aiBlink{50%{opacity:0}}
-    .ai-thinking{display:flex;align-items:center;gap:10px;background:var(--ai-card,#fff);border:1px solid var(--ai-line,rgba(15,107,79,.1));border-radius:var(--r-card);padding:13px 15px;animation:aiIn .2s ease both}
-    .ai-thinking .orb-mini{width:30px;height:30px;border-radius:50%;flex:0 0 auto;background:radial-gradient(circle at 32% 28%,#c9ffe9,#1fa87c 60%,#0d5c44);animation:aiOrbFloat 2.2s ease-in-out infinite;box-shadow:0 4px 10px rgba(13,92,68,.3)}
-    .ai-thinking b{font-size:13px;display:block}
-    .ai-thinking span{font-size:11.5px;color:var(--ai-sub,#5F7A72);display:block;margin-top:1px}
+    .ai-think{display:flex;align-items:center;gap:10px;padding:5px 4px;margin:1px 0;animation:aiIn .2s ease both;background:none;border:0;box-shadow:none;border-radius:0}
+    .ai-think .ob{width:27px;height:27px;border-radius:50%;flex:0 0 auto;position:relative;
+      background:radial-gradient(circle at 32% 28%,#c9ffe9 0%,#5fd9ae 24%,#1fa87c 56%,#0d5c44 84%,#073827 100%);
+      box-shadow:0 5px 14px rgba(13,92,68,.42),inset 0 -4px 8px rgba(0,40,28,.45),inset 0 3px 6px rgba(255,255,255,.55),0 0 14px rgba(46,230,168,.28);
+      animation:aiOrbFloat 2.4s ease-in-out infinite}
+    .ai-think .ob:after{content:'';position:absolute;left:22%;top:14%;width:7px;height:5px;border-radius:50%;background:rgba(255,255,255,.85);filter:blur(1.5px);transform:rotate(-20deg)}
+    .ai-think .tx{display:flex;align-items:baseline;gap:6px;min-width:0}
+    .ai-think .tx b{font-size:12.5px;font-weight:800;color:var(--ai-ink,#16302A);white-space:nowrap}
+    .ai-think .tx span{font-size:12px;font-weight:600;color:var(--ai-sub,#5F7A72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ai-msg-bar{display:flex;align-items:center;gap:14px;margin-top:11px;padding-top:9px;border-top:1px solid var(--ai-line,rgba(15,107,79,.08))}
     .ai-msg-bar button{border:0;background:none;color:var(--ai-sub,#5F7A72);font:600 12px inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:2px}
     .ai-msg-bar button:active{transform:scale(.94)}
@@ -246,7 +252,7 @@
     .ai-followup button{border:1px dashed rgba(15,107,79,.3);background:none;color:#0E6B4F;border-radius:var(--r-pill);padding:7px 12px;font:700 11.5px inherit;cursor:pointer}
     .ai-agent-root[data-theme=dark] .ai-followup button{color:#5FE6BD;border-color:rgba(47,191,143,.35)}
     /* ── composer ── */
-    .ai-agent-foot{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--ai-kb,0px));z-index:12;width:100%;max-width:760px;padding:8px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--ai-bg,#F7F9F8) 36%);transition:background .35s ease}
+    .ai-agent-foot{position:static;flex:0 0 auto;width:100%;z-index:12;padding:7px 12px calc(8px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--ai-bg,#F7F9F8) 36%);transition:background .35s ease}
     .ai-compose{display:flex;align-items:center;gap:7px;min-height:52px;background:var(--ai-card,#fff);border:1.5px solid var(--ai-line,rgba(15,107,79,.22));border-radius:26px;padding:6px 7px;box-shadow:0 18px 42px rgba(23,58,43,.16),0 3px 10px rgba(23,58,43,.06),inset 0 1px 0 rgba(255,255,255,.65);transition:border-color .22s ease,box-shadow .22s ease}
     .ai-compose:focus-within{border-color:rgba(18,128,90,.55);box-shadow:0 0 0 4px rgba(18,128,90,.12),0 22px 48px rgba(23,58,43,.2),inset 0 1px 0 rgba(255,255,255,.65)}
     .ai-agent-root[data-theme=dark] .ai-compose{box-shadow:0 12px 30px rgba(0,0,0,.5)}
@@ -308,7 +314,7 @@
     .ai-sheet-it:active{transform:scale(.95)}
     .ai-sheet-it .ic{font-size:19px;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--ai-mint,#E4F3EC)}
     /* ── ↓ Latest ফ্লোটিং ── */
-    .ai-latest{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom) + var(--ai-kb,0px));z-index:11;display:none;align-items:center;gap:5px;background:#0E2A20;color:#D8F3E6;border:0;border-radius:99px;padding:9px 15px;font:700 12px inherit;box-shadow:0 10px 26px rgba(0,0,0,.28);cursor:pointer;animation:aiIn .2s ease both}
+    .ai-latest{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom));z-index:11;display:none;align-items:center;gap:5px;background:#0E2A20;color:#D8F3E6;border:0;border-radius:99px;padding:9px 15px;font:700 12px inherit;box-shadow:0 10px 26px rgba(0,0,0,.28);cursor:pointer;animation:aiIn .2s ease both}
     .ai-latest.show{display:flex}
     /* ── menu / search / feedback ── */
     .ai-menu{position:absolute;top:52px;right:12px;z-index:70;min-width:210px;padding:7px;background:var(--ai-card,#fff);border:1px solid var(--ai-line,rgba(15,107,79,.16));border-radius:var(--r-card);box-shadow:0 18px 44px rgba(23,58,43,.2);animation:aiIn .16s ease both;color:var(--ai-ink,#16302A)}
@@ -323,7 +329,7 @@
     .ai-fb-opt{display:flex;align-items:center;gap:10px;width:100%;border:1px solid var(--ai-line,rgba(15,107,79,.14));background:var(--ai-card,#fff);color:var(--ai-ink,#16302A);border-radius:var(--r-m);padding:12px 13px;font:600 13.5px inherit;cursor:pointer;margin-bottom:8px}
     .ai-toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:80;background:#0E2A20;color:#D8F3E6;padding:10px 16px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.25);animation:aiIn .2s ease}
     @media(max-width:430px){.ai-msg-body{font-size:16px;line-height:1.8}}
-    @media(prefers-reduced-motion:reduce){.ai-orb,.ai-hero-orb .big,.ai-hero-orb .ring,.ai-hero-orb .ring2,.ai-hero-orb .p1,.ai-hero-orb .p2,.ai-hero-orb .p3,.ai-thinking .orb-mini,.ai-mic.rec{animation:none!important}.ai-msg,.ai-hero,.ai-notice,.ai-sheet{animation:none!important}}`;
+    @media(prefers-reduced-motion:reduce){.ai-orb,.ai-hero-orb .big,.ai-hero-orb .ring,.ai-hero-orb .ring2,.ai-hero-orb .p1,.ai-hero-orb .p2,.ai-hero-orb .p3,.ai-think .ob,.ai-mic.rec{animation:none!important}.ai-msg,.ai-hero,.ai-notice,.ai-sheet,.ai-think{animation:none!important}}`;
   document.head.appendChild(style);
 
   /* ── state ── */
@@ -724,17 +730,29 @@
 
   /* ── streaming ── */
   function thinkingCard() {
-    return `<div class="ai-thinking"><div class="orb-mini"></div><div><b>✦ ${esc(T.thinking)}</b><span id="aiThinkStatus">${esc(T.understanding)}</span></div></div>`;
+    return `<div class="ai-think"><div class="ob"></div><div class="tx"><b>✦</b><span id="aiThinkStatus">${esc(T.stThink)}</span></div></div>`;
   }
-  function appendThinking(quizMode) {
+  function thinkingStatus(label) { const el = document.getElementById('aiThinkStatus'); if (el) el.textContent = label; }
+  const thinkTimers = [];
+  function clearThinkTimers() { while (thinkTimers.length) { clearTimeout(thinkTimers.pop()); } }
+  function appendThinking(sig) {
     const b = body(); if (!b) return;
-    const t = document.createElement('template');
-    t.innerHTML = thinkingCard();
     b.insertAdjacentHTML('beforeend', thinkingCard());
-    if (quizMode) { const s = document.getElementById('aiThinkStatus'); if (s) s.textContent = T.creating; }
     scrollBottom(true);
+    clearThinkTimers();
+    const seq = [];
+    seq.push([0, T.stThink]);
+    seq.push([1000, T.stAnalyze]);
+    if (sig.image) seq.push([2200, T.stImage]);
+    else if (sig.doc) seq.push([2200, T.stDoc]);
+    else if (sig.search) seq.push([2200, T.stSearch]);
+    else if (sig.quiz && sig.mcq) seq.push([2200, T.stMcq]);
+    else if (sig.quiz) seq.push([2200, T.stQuiz]);
+    seq.push([Math.min(5600, 2200 + seq.length * 800), T.stWrite]);
+    for (const [ms, label] of seq) thinkTimers.push(setTimeout(() => thinkingStatus(label), ms));
+    thinkTimers.push(setTimeout(() => scrollBottom(true), 450));
   }
-  function removeThinking() { const el = document.querySelector('.ai-thinking'); if (el) el.remove(); }
+  function removeThinking() { clearThinkTimers(); const el = document.querySelector('.ai-think'); if (el) el.remove(); }
   function appendStream(chunk) {
     if (!streamingEl) {
       const b = body(); if (!b) return;
@@ -845,7 +863,13 @@
     stopVoice(true);
     stoppedEarly = false;
     streamingEl = null;
-    appendThinking(/mcq|quiz|প্রশ্ন দিয়ে/i.test(fullText));
+    appendThinking({
+      image: !!imgItem,
+      doc: !!docItem,
+      quiz: /quiz|প্রশ্ন দিয়ে|mcq/i.test(fullText),
+      mcq: /mcq/i.test(fullText),
+      search: /খোঁজো|খোঁজ|search|নিউজ|news|সর্বশেষ ভর্তি|ভর্তি নিউজ|আপডেট খোঁজ/i.test(fullText)
+    });
     setSendBtn(true);
     const res = await callStream(fullText, imgItem ? imgItem.dataUrl : '').catch(() => ({ code: 'net' }));
     removeThinking();
@@ -1019,6 +1043,11 @@
     const searchBtn = document.getElementById('aiSearchBtn');
     const head = document.querySelector('.ai-agent-head');
     if (inp) {
+      /* iOS form-accessory (↑↓✓) দমন */
+      inp.addEventListener('touchstart', () => { if (inp.getAttribute('contenteditable') === 'true') { inp.setAttribute('contenteditable', 'false'); } }, { passive: true });
+      inp.addEventListener('pointerdown', () => { if (inp.getAttribute('contenteditable') === 'true') { inp.setAttribute('contenteditable', 'false'); } }, { passive: true });
+      inp.addEventListener('touchend', () => { if (inp.getAttribute('contenteditable') === 'false') { setTimeout(() => inp.setAttribute('contenteditable', 'true'), 260); } }, { passive: true });
+      inp.addEventListener('blur', () => { if (inp.getAttribute('contenteditable') === 'false') { inp.setAttribute('contenteditable', 'true'); } });
       inp.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter' || e.isComposing) return;
         if (e.ctrlKey || e.metaKey) { e.preventDefault(); send(); return; }

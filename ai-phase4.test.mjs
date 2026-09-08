@@ -21,7 +21,7 @@ t('৬. phase23-ui/phase12-ui-তে AI-পথ বাদ', !H.includes("navigate
 const UI = readFileSync('/home/user/demo/ai-agent-chat.js', 'utf8');
 const AG = readFileSync('/home/user/demo/ai-agent.js', 'utf8');
 t('১১. নতুন Central Agent-রুট: ai + renderAiAgentPage + নেভ-ট্যাব', H.includes("if(p==='ai'){ if(window.renderAiAgentPage)") && H.includes("{key:'ai', icon:'🤖', label:'AI'}"));
-t('১২. নতুন Agent-প্রিমিয়াম-UI + streaming + টোকেন-ভিত্তিক কল (কোনো সিক্রেট-নেই)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv5') && UI.includes('/api/ai/chat') && UI.includes('ahPubToken') && !UI.includes('x-goog-api-key') && !UI.includes('generativelanguage'));
+t('১২. নতুন Agent-প্রিমিয়াম-UI + streaming + টোকেন-ভিত্তিক কল (কোনো সিক্রেট-নেই)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv6') && UI.includes('/api/ai/chat') && UI.includes('ahPubToken') && !UI.includes('x-goog-api-key') && !UI.includes('generativelanguage'));
 t('১৩. Server-সাইড Agent Core: ai-agent.js আছে + gateway-রুট (public-worker)', AG.includes('AGENT_VERSION') && readFileSync('/home/user/demo/public-worker.js','utf8').includes("p === '/api/ai/chat'"));
 t('১৪. Agent Core-এ mock-ইন্টিগ্রিটি-Safety: mock-running → refuse', AG.includes('mock_refused') && AG.includes('EXAM INTEGRITY'));
 
@@ -29,7 +29,7 @@ t('১৪. Agent Core-এ mock-ইন্টিগ্রিটি-Safety: mock-ru
 t('৭. ডেটা-ব্যাংক API-পথ অটুট (_worker.js /api/* + voice)', readFileSync('/home/user/demo/_worker.js','utf8').includes('/api/voice') && readFileSync('/home/user/demo/_worker.js','utf8').includes("/api/"));
 t('৮. ভয়েস-ভোকাবুলারি অটুট (vocabulary-elevenlabs + sw-এ)', SW.includes('vocabulary-elevenlabs') && H.includes('vocabulary-elevenlabs'));
 t('৯. ৬-ট্যাব-নেভি অটুট (🤖AI-সহ)', /NAV_TABS=.*key:'dashboard'.*key:'question-bank'.*key:'exam'.*key:'history'.*key:'profile'/s.test(H));
-t('১০. dashboard-v2 সংস্করণ dash2f6 + sw BUILD_ID v206 (ক্যাশ-বাস্ট)', H.includes('dashboard-v2.js?v=dash2f6') && SW.includes("const BUILD_ID = 'v212-aiagent-20260908'") && H.includes('sw.js?v=v212-aiagent-20260908'));
+t('১০. dashboard-v2 সংস্করণ dash2f6 + sw BUILD_ID v206 (ক্যাশ-বাস্ট)', H.includes('dashboard-v2.js?v=dash2f6') && SW.includes("const BUILD_ID = 'v213-aiagent-20260908'") && H.includes('sw.js?v=v213-aiagent-20260908'));
 
 console.log(fail === 0 ? '✅ AI-REMOVAL GUARD TEST PASS (' + pass + ')' : '❌ FAIL ' + fail + ' / ' + pass);
 process.exit(fail ? 1 : 0);
