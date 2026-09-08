@@ -15,6 +15,7 @@ npm run check:worker-bundle
 
 - stable public contract and `phase2b-2` version
 - strict config and global/provider-specific activation gates
+- provider-specific From-address/name isolation with safe global fallback
 - required `requestId` + `idempotencyKey`
 - central templates and input validation
 - atomic idempotency and minimized persistence
@@ -52,6 +53,13 @@ npm run check:worker-bundle
 - protected import direction and server-only static exclusion
 - checked deploy-bundle integration
 
+### `telegram-notifier.test.mjs`
+
+- bounded completion-notification schema
+- protected bot/destination binding validation
+- one-request transport and Telegram `message_id` acceptance evidence
+- provider-error redaction and explicit missing-binding blocker
+
 ### `email-gateway-load.test.mjs`
 
 No real email is sent. Deterministic Mock Providers measure:
@@ -79,7 +87,7 @@ No real email is sent. Deterministic Mock Providers measure:
 
 ## Real-provider testing gate
 
-No replacement provider secret is currently available through this workspace, so no provider is configured/activated and no real delivery claim is made. Before enabling one provider, dated evidence must show:
+No provider has yet been remotely configured or activated in a verified deployment, so no real delivery claim is made. Before enabling one provider, dated evidence must show:
 
 1. encrypted secret presence without revealing its value;
 2. provider-specific sender/domain/SPF/DKIM/DMARC readiness;

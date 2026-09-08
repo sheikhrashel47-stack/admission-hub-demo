@@ -98,6 +98,32 @@ test('provider requires explicit policy, activation, sender verification, creden
   assert.ok(octopus.activationIssues.includes('TRANSACTIONAL_CAPABILITY_MISSING'));
 });
 
+test('provider-specific sender bindings isolate From identities with a global fallback available', async () => {
+  const captures = [];
+  const fetchImpl = async (url, init) => {
+    captures.push({ url: String(url), body: JSON.parse(String(init.body)) });
+    const data = String(url).includes('resend') ? { id: 'resend-message' } : { messageId: 'brevo-message' };
+    return new Response(JSON.stringify(data), { status: 201, headers: { 'Content-Type': 'application/json' } });
+  };
+  const config = createEmailGatewayConfig({ providerPolicies: {
+    resend: { enabled: true, priority: 10, dailyLimit: 10 },
+    brevo: { enabled: true, priority: 20, dailyLimit: 10 }
+  } });
+  const entries = await createProviderEntries({ config, env: {
+    EMAIL_PROVIDER_ACTIVATION: 'enabled',
+    RESEND_API_KEY: 'private-resend-test-value', RESEND_FROM_ADDRESS: 'resend@example.com', RESEND_SENDER_VERIFIED: 'true',
+    BREVO_API_KEY: 'private-brevo-test-value', BREVO_FROM_ADDRESS: 'brevo@example.org', BREVO_SENDER_VERIFIED: 'true'
+  }, runtime: { fetchImpl } });
+  const resend = entries.find(entry => entry.id === 'resend');
+  const brevo = entries.find(entry => entry.id === 'brevo');
+  assert.equal(resend.enabled, true);
+  assert.equal(brevo.enabled, true);
+  await resend.adapter.sendEmail(renderedMessage, providerContext);
+  await brevo.adapter.sendEmail(renderedMessage, providerContext);
+  assert.match(captures[0].body.from, /resend@example\.com/);
+  assert.equal(captures[1].body.sender.email, 'brevo@example.org');
+});
+
 test('remote sender evidence can block an otherwise activated provider before mutation', async () => {
   let healthCalls = 0;
   let sendCalls = 0;

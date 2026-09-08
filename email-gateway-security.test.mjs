@@ -250,7 +250,8 @@ test('protection contract, required operations docs, CODEOWNERS and CI guard exi
     'docs/email-gateway/EMAIL_ARCHITECTURE.md', 'docs/email-gateway/PROVIDER_SETUP.md',
     'docs/email-gateway/FAILOVER_POLICY.md', 'docs/email-gateway/SECURITY.md',
     'docs/email-gateway/OPERATIONS.md', 'docs/email-gateway/TESTING.md',
-    '.github/workflows/email-gateway-guard.yml'
+    '.github/workflows/email-gateway-guard.yml', '.github/workflows/email-gateway-deploy.yml',
+    'email-gateway/operations/telegram-notifier.mjs', 'email-gateway/operations/notify-telegram.mjs'
   ];
   assert.ok(required.every(file => existsSync(resolve(root, file))));
   const owners = read('.github/CODEOWNERS');
@@ -260,6 +261,12 @@ test('protection contract, required operations docs, CODEOWNERS and CI guard exi
   assert.match(workflow, /npm run test:email/);
   assert.match(workflow, /npm run test:auth/);
   assert.match(workflow, /npm run check:worker-bundle/);
+  const deploy = read('.github/workflows/email-gateway-deploy.yml');
+  assert.match(deploy, /workflow_dispatch/);
+  assert.match(deploy, /inputs\.confirmation == 'DEPLOY'/);
+  assert.match(deploy, /command: deploy --config wrangler\.toml/);
+  assert.match(deploy, /npm run notify:telegram/);
+  assert.doesNotMatch(deploy, /RESEND_API_KEY|BREVO_API_KEY|MAILJET_API_KEY|MAILTRAP_API_KEY|MAILERSEND_API_KEY|SENDPULSE_API_KEY|EMAILOCTOPUS_API_KEY|COURIER_API_KEY/);
 });
 
 test('Durable Object binding is explicit and no email credential is stored in wrangler config', () => {

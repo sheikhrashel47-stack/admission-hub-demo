@@ -10,26 +10,26 @@ Required before any production provider can be eligible:
 - `EMAIL_RECIPIENT_HASH_PEPPER` — separate HMAC pepper, at least 32 characters
 - `EMAIL_GATEWAY_CONFIG` — non-secret JSON policy
 - `EMAIL_PROVIDER_ACTIVATION=enabled` — deliberate global activation gate
-- `EMAIL_FROM_ADDRESS` — approved transactional sender
-- `EMAIL_FROM_NAME`
+- `EMAIL_FROM_ADDRESS` — optional approved fallback sender; provider-specific bindings below take precedence
+- `EMAIL_FROM_NAME` — optional fallback display name
 - `EMAIL_COORDINATOR` — Durable Object binding from `wrangler.toml`
 
 Secrets must be added through approved Cloudflare encrypted Worker Secret storage. Never put a value in `wrangler.toml`, D1, KV, GitHub variables, source, frontend, docs, command output, reports, request URLs or ordinary tables. Secret binding names are safe to document; values are not.
 
 ## Isolated provider bindings and evidence gates
 
-| Provider | Encrypted Worker Secret binding(s) | Non-secret sender evidence flag | Transactional OTP eligibility |
-|---|---|---|---:|
-| Resend | `RESEND_API_KEY` | `RESEND_SENDER_VERIFIED=true` | yes |
-| Brevo | `BREVO_API_KEY` | `BREVO_SENDER_VERIFIED=true` | yes |
-| Mailjet | `MAILJET_API_KEY`, `MAILJET_SECRET_KEY` | `MAILJET_SENDER_VERIFIED=true` | yes |
-| Mailtrap | `MAILTRAP_API_KEY` | `MAILTRAP_SENDER_VERIFIED=true` | yes |
-| MailerSend | `MAILERSEND_API_KEY` | `MAILERSEND_SENDER_VERIFIED=true` | yes |
-| SendPulse | `SENDPULSE_API_KEY` | `SENDPULSE_SENDER_VERIFIED=true` | yes |
-| EmailOctopus | `EMAILOCTOPUS_API_KEY` | `EMAILOCTOPUS_SENDER_VERIFIED=true` | **no** |
-| Courier | `COURIER_API_KEY` | `COURIER_SENDER_VERIFIED=true` | yes |
+| Provider | Encrypted Worker Secret binding(s) | Provider-specific sender address/name | Non-secret evidence flag | OTP eligible |
+|---|---|---|---|---:|
+| Resend | `RESEND_API_KEY` | `RESEND_FROM_ADDRESS`, `RESEND_FROM_NAME` | `RESEND_SENDER_VERIFIED=true` | yes |
+| Brevo | `BREVO_API_KEY` | `BREVO_FROM_ADDRESS`, `BREVO_FROM_NAME` | `BREVO_SENDER_VERIFIED=true` | yes |
+| Mailjet | `MAILJET_API_KEY`, `MAILJET_SECRET_KEY` | `MAILJET_FROM_ADDRESS`, `MAILJET_FROM_NAME` | `MAILJET_SENDER_VERIFIED=true` | yes |
+| Mailtrap | `MAILTRAP_API_KEY` | `MAILTRAP_FROM_ADDRESS`, `MAILTRAP_FROM_NAME` | `MAILTRAP_SENDER_VERIFIED=true` | yes |
+| MailerSend | `MAILERSEND_API_KEY` | `MAILERSEND_FROM_ADDRESS`, `MAILERSEND_FROM_NAME` | `MAILERSEND_SENDER_VERIFIED=true` | yes |
+| SendPulse | `SENDPULSE_API_KEY` | `SENDPULSE_FROM_ADDRESS`, `SENDPULSE_FROM_NAME` | `SENDPULSE_SENDER_VERIFIED=true` | yes |
+| EmailOctopus | `EMAILOCTOPUS_API_KEY` | `EMAILOCTOPUS_FROM_ADDRESS`, `EMAILOCTOPUS_FROM_NAME` | `EMAILOCTOPUS_SENDER_VERIFIED=true` | **no** |
+| Courier | `COURIER_API_KEY` | `COURIER_FROM_ADDRESS`, `COURIER_FROM_NAME` | `COURIER_SENDER_VERIFIED=true` | yes |
 
-Each flag may be set only after evidence for that provider/account. A global sender claim is not a substitute for provider-specific verification. EmailOctopus remains in the owner-selected catalog for truthful status visibility, but the official API lacks direct one-to-one transactional sending; its flag/credential can never make it eligible for OTP routing.
+Sender resolution is isolated per provider: the provider-specific address/name wins, then the optional global fallback is used. Validation and readiness are evaluated against the resolved sender for that provider, so one provider's verified identity cannot activate another provider. Each evidence flag may be set only after evidence for that exact provider/account/address; a global sender claim is not a substitute. EmailOctopus remains in the owner-selected catalog for truthful status visibility, but the official API lacks direct one-to-one transactional sending; its flag/credential can never make it eligible for OTP routing.
 
 Historical provider bindings and dormant adapter files are not consumed by the active catalog. Do not rename or reuse an unrelated old secret as activation evidence.
 

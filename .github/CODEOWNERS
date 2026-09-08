@@ -5,10 +5,12 @@
 /auth-protection.test.mjs @sheikhrashel47-stack
 /email-gateway/ @sheikhrashel47-stack
 /email-gateway*.test.mjs @sheikhrashel47-stack
+/telegram-notifier.test.mjs @sheikhrashel47-stack
 /docs/AUTH-* @sheikhrashel47-stack
 /docs/EMAIL-GATEWAY-* @sheikhrashel47-stack
 /docs/email-gateway/ @sheikhrashel47-stack
 /.github/workflows/email-gateway-guard.yml @sheikhrashel47-stack
+/.github/workflows/email-gateway-deploy.yml @sheikhrashel47-stack
 /gk-agent-worker.js @sheikhrashel47-stack
 /worker-bundle.mjs @sheikhrashel47-stack
 /wrangler.toml @sheikhrashel47-stack

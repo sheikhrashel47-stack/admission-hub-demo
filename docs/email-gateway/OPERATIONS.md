@@ -2,7 +2,7 @@
 
 ## Current state
 
-Phase 2B deploys the protected boundary and Durable Object coordinator with every provider disabled. Active catalog: Resend, Brevo, Mailjet, Mailtrap, MailerSend, SendPulse, EmailOctopus and Courier. EmailOctopus is visible but transactionally ineligible. No provider sends until every activation gate in `PROVIDER_SETUP.md` is satisfied.
+Phase 2B defines the protected boundary and Durable Object coordinator with every provider disabled. Deployment is a separate verified operational state and must not be inferred from implementation. Active catalog: Resend, Brevo, Mailjet, Mailtrap, MailerSend, SendPulse, EmailOctopus and Courier. EmailOctopus is visible but transactionally ineligible. No provider sends until every activation gate in `PROVIDER_SETUP.md` is satisfied.
 
 ## Internal health
 
@@ -106,12 +106,20 @@ Provider | Configured | Healthy | Quota State | Circuit | Priority | Failover
 - existing Auth/session state remains untouched;
 - restore coordinator health before resuming sends.
 
+## Telegram completion notification
+
+The credential-independent notifier is `email-gateway/operations/telegram-notifier.mjs`; the operator command is `npm run notify:telegram`. It accepts only bounded plain-text status, summary and detail fields, sends one HTTPS request, uses a timeout, requires Telegram `message_id` acceptance evidence and reports only a redacted error code. It never logs the bot credential or response diagnostics.
+
+Required protected bindings are `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. The GitHub deployment job sends a completion notification only when repository variable `TELEGRAM_NOTIFICATIONS_ENABLED=true` and both protected secrets exist. If they are unavailable, the standalone notifier returns the explicit isolated state `BLOCKED — REQUIRED_SECRET_NOT_CONFIGURED`; this does not change the truth of implementation or deployment status.
+
 ## Deployment and rollback
 
 - build `worker-bundle.mjs` with pinned `npm run build:worker`;
 - require `npm run check:worker-bundle` exact match;
 - run Email, Auth, account-retirement and broader app guards;
-- deploy through the existing authorized Worker workflow;
+- deploy only through `.github/workflows/email-gateway-deploy.yml`, with manual `DEPLOY` confirmation and the protected `email-gateway-production` environment;
+- bind provider credentials directly as isolated Cloudflare Worker Secrets; the workflow deliberately does not map provider credentials from GitHub;
 - verify unsigned routes stay 404 and public app/AI/content remain healthy;
 - activate providers separately, one at a time, only with owner-approved evidence;
+- run the configured Telegram completion notification only after truthful completion;
 - rollback code/config without deleting Durable Object data or dormant account records.
