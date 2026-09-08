@@ -9,6 +9,7 @@
 - Phase 2B approved product commit: `391bdf2ce8f6ca4db68fab481174270296e3fc92`
 - Phase 2B implementation + no-send verification: green
 - Phase 2B owner approval: received on 2026-09-09; closeout approved
+- Approved source is committed locally; this session has no configured Git remote/GitHub authentication, so it is not pushed
 - Worker/provider deployment and real encrypted-secret/sender/remote-health/send activation: not performed
 - Concrete Supabase/Auth phase: not started; requires an explicit start instruction
 
