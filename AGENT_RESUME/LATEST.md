@@ -29,21 +29,26 @@
 - AI suite: `80/80` pass
 - Auth endpoint guard: pass (109 files)
 - Modified JS + 11 inline scripts syntax: pass
-- Mobile Chromium/Playwright 390×844 touch:
+- Local mobile Chromium/Playwright 390×844 touch:
   - cold dashboard `356 ms`
   - intentionally delayed dashboard module: usable shell `3965 ms`
   - 3000-question DB reload `307 ms`, 3000 retained
   - offline controlled-PWA reload `284 ms`, IndexedDB marker retained
-  - AI response `<details>` count `0`; long plain/rich tails visible
-  - composer focus: outline none / border 0 / shadow none
-  - runtime page errors `0`
+- Live Cloudflare production, WebKit 26 + iPhone 13 profile:
+  - cold dashboard `625 ms`
+  - dashboard module 4.5 সেকেন্ড delay: usable normal shell `4168 ms`, warning নেই, final dashboard এসেছে
+  - 3000-question DB reload `609 ms`, all 3000 + settings marker retained
+  - v220 SW active/controlling; AI response `<details>` `0`; plain/rich/code tail সব visible
+  - editor inner outline/border/shadow none; outer frame present; runtime page errors `0`
+- Live controlled-PWA mobile Chromium offline reload `342 ms`; IndexedDB marker retained; runtime errors `0`।
+- Cloudflare ও GitHub Pages live `sw.js`, `chatv13`, `dash2f7` local files-এর exact SHA-256 match; required HTTP endpoints 200।
+- GitHub Actions (`143c9b8`): auth guard, Cloudflare deploy, GitHub Pages deploy—সব success।
 - Legacy historical test debt: relative run 7 pass / 14 stale-fail (old v214/dash2f6/full-APP_SHELL expectations or missing `/home/user/hub` fixtures)।
 
 ## 🚧 Current STOP point
 
-- Product implementation + local verification complete; local product commit `d5db968`।
-- GitHub push is currently blocked because the prior ephemeral credential was intentionally not retained; anonymous push failed।
-- Still required: push commits → verify GitHub Actions/Cloudflare/GitHub Pages live `v220/chatv13` → update deploy status → mandatory Telegram completion notification।
+- Product implementation, tests, push এবং live deployment verification সম্পূর্ণ। Product commit `d5db968`; pushed handoff SHA `143c9b8`।
+- এই deploy-status resume update commit/push করার পর configured Telegram chat-এ বাধ্যতামূলক completion report পাঠানোই একমাত্র remaining close-out step।
 
 ## ⏭️ Known product backlog (unchanged)
 

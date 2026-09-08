@@ -63,16 +63,36 @@
   - runtime page errors: **0**
 - No credential/token pattern found in changed workspace files.
 
+## ✅ Verification (live production)
+
+- Product + initial handoff were pushed through `143c9b8ec9519800a3d27e0c9c1d55bc8b0f5fc1`।
+- GitHub Actions for that exact SHA all completed successfully:
+  - `Auth Endpoints Guard` — run `34251727635`
+  - `Deploy Cloudflare Pages (Auto)` — run `34251727613`
+  - `pages build and deployment` — run `34251726630`
+- `https://admissionhub.pages.dev` এবং GitHub Pages mirror—দুই জায়গায় homepage, SW, `chatv13` ও `dash2f7` HTTP 200। Live `sw.js`, `ai-agent-chat.js` ও `dashboard-v2.js` local product files-এর সঙ্গে SHA-256 byte-for-byte মিলে গেছে।
+- **Playwright WebKit 26 + iPhone 13 profile, সরাসরি Cloudflare production:**
+  - cold usable dashboard **625 ms**; correct `dash2f7`, `chatv13`, `v220` SW requested
+  - dashboard module 4.5 সেকেন্ড delay করেও normal usable shell **4168 ms**; recovery warning নেই; পরে full dashboard এসেছে
+  - 3000-question IndexedDB reload **609 ms**; সব **3000** record ও settings marker retained
+  - SW active + controlling; cache `admission-hub-shell-v220-aiagent-20260908`
+  - long plain/rich/code—৩টি AI response, AI `<details>` **0**, তিনটি tail marker visible
+  - focused editor `outline:none`, `border:0px`, `box-shadow:none`; outer composer border present
+  - runtime page errors **0**
+- **Live controlled-PWA offline, mobile Chromium:** usable shell **342 ms**; current v220 cache controlling; injected IndexedDB marker retained; runtime errors **0**।
+- Live `/api/content/meta`: 5 subjects, 14 topics, **3000 questions**, 81 vocabulary। Homepage, manifest, content API এবং তিন Worker health endpoint HTTP 200।
+
 ## ℹ️ Legacy tests
 
 Relative historical suite run: 7 suites pass / 14 fail. Failures are stale `v214`/`dash2f6`/old full-APP_SHELL assertions or missing `/home/user/hub` fixture paths; targeted v220, AI and auth guard suites are green. This stale-test debt existed before this fix and remains listed in `LATEST.md`.
 
 ## 🚀 Push/deploy status
 
-- Product code committed locally as `d5db968`.
-- Push attempt without retained ephemeral GitHub credential failed (`could not read Username`). No credential was written to the repository/workspace.
-- **Pending:** push → GitHub Actions → Cloudflare/GitHub Pages live asset + HTTP verification → this section/LATEST final update → Telegram completion message.
+- Product code: `d5db968`। Initial handoff: `143c9b8`। দুটিই `admission-hub-demo/main`-এ pushed।
+- Auth guard, Cloudflare Pages এবং GitHub Pages—তিন workflow-ই success; Cloudflare ও GitHub Pages live verification সম্পূর্ণ।
+- কোনো credential repository, resume, test artifact বা log-এ লেখা হয়নি।
+- **এই status update commit/push-এর পর শুধু বাধ্যতামূলক Telegram completion report dispatch বাকি।**
 
 ## Exact STOP point
 
-Implementation and local verification are complete. Local branch is ahead of `origin/main`; next agent must obtain an authorized fresh GitHub credential, push commits, verify workflows/live `v220/chatv13`, then send the mandatory Telegram completion notification. Do not redo implementation and do not clear IndexedDB/localStorage.
+Product implementation, local regression, iPhone-profile WebKit verification, controlled-PWA offline verification এবং live deployment verification সম্পূর্ণ। Code আর বদলানোর প্রয়োজন নেই। এই handoff status commit/push করে configured Telegram chat-এ completion report পাঠাতে হবে; student IndexedDB/localStorage clear করা যাবে না।
