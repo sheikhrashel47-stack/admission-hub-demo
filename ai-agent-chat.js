@@ -36,7 +36,7 @@
       ['📊', 'Analyze my performance', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'Teach me this topic', 'এই topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: '↓ Latest', menu: 'Menu', recentChats: 'Recent conversations', untitled: 'New chat', noChats: 'No conversations yet', newIsEmpty: 'Start a new chat? Unsent draft will be cleared.', cancelBtn: 'Cancel', pinChat: 'Pin / Unpin', itemAct: 'Choose an action:', aiProfile: 'My AI profile', backHome: 'Back to Home', close: 'Close', loginNote: 'Login to unlock your saved profile & sync.', defLbl: 'Definition', confirmClear: 'Clear all messages in this chat?', chzSimple: 'Simplify', qzSetup: '🎯 Quiz Setup', qzLet: 'Matched from your request — just set the rest.', qzMulti: '(multi-select)', qzSubjects: '📚 Subjects', qzTopics: '📖 Topics', qzCount: '🔢 Questions', qzTime: '⏱ Time', qzNeg: '➖ Negative marking', qzDiff: '🎚 Difficulty', qzAll: 'All', qzOthers: 'Other', qzOtherPh: 'Type subject…', qzCustTopPh: 'Custom topic…', qzMin: 'min', qzNoLimit: 'No limit', qzNone: 'None', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Matching Question Bank questions are used first, AI fills the rest', qzNeedSubj: 'Pick at least one subject first', qzS1: 'Checking Question Bank…', qzS2: 'Selecting matching questions…', qzS3: 'Generating missing questions…', qzS4: 'Mixing difficulty & patterns…', qzS5: 'Preparing quiz…', qzQuestion: 'Question', qzQuestionShort: 'Q', qzFromReq: 'Matched from your request (✎ = editable)', qzCorrect: 'Correct!', qzWrong: 'Not quite', qzYourAns: 'Your answer', qzRightAns: 'Correct answer', qzWhy: '💡 Why:', qzRemember: '🧠 Remember:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · negative', qzTimeUp: 'Time up — auto submitted!', qzCorrectN: 'Correct', qzWrongN: 'Incorrect', qzNone2: 'Skipped', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'Easy', qzDiffMed: 'Medium', qzDiffHard: 'Hard', qzDiffAdm: 'Admission', qzDiffMix: 'Mixed', chzExample: 'Examples', chzQuiz: 'Quiz me', chzMcq: 'Make MCQ', chzSimilarMcq: 'Similar MCQ', chzShorten: 'Summarize', chzPoints: 'Key points', chzRevise: 'Revision note', chzExplain: 'Explain topic', stThink: 'Thinking...', stAnalyze: 'Analyzing your question...', stImage: 'Understanding image...', stDoc: 'Reading file...', stSearch: 'Searching trusted sources...', stQuiz: 'Creating quiz...', stMcq: 'Creating MCQs...', stWrite: 'Writing answer...',
+    ph: 'Ask anything…', latest: '↓ Latest', menu: 'Menu', recentChats: 'Recent conversations', untitled: 'New chat', noChats: 'No conversations yet', newIsEmpty: 'Start a new chat? Unsent draft will be cleared.', cancelBtn: 'Cancel', pinChat: 'Pin / Unpin', itemAct: 'Choose an action:', aiProfile: 'My AI profile', backHome: 'Back to Home', close: 'Close', loginNote: 'Login to unlock your saved profile & sync.', defLbl: 'Definition', confirmClear: 'Clear all messages in this chat?', chzSimple: 'Simplify', qzSetup: '🎯 Quiz Setup', qzLet: 'Matched from your request — just set the rest.', qzMulti: '(multi-select)', qzSubjects: '📚 Subjects', qzTopics: '📖 Topics', qzCount: '🔢 Questions', qzTime: '⏱ Time', qzNeg: '➖ Negative marking', qzDiff: '🎚 Difficulty', qzAll: 'All', qzOthers: 'Other', qzOtherPh: 'Type subject…', qzCustTopPh: 'Custom topic…', qzMin: 'min', qzNoLimit: 'No limit', qzNone: 'None', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Matching Question Bank questions are used first, AI fills the rest', qzNeedSubj: 'Pick at least one subject first', qzS1: 'Checking Question Bank…', qzS2: 'Selecting matching questions…', qzS3: 'Generating missing questions…', qzS4: 'Mixing difficulty & patterns…', qzS5: 'Preparing quiz…', qzQuestion: 'Question', qzQuestionShort: 'Q', qzFromReq: 'Matched from your request (✎ = editable)', qzCorrect: 'Correct!', qzWrong: 'Not quite', qzYourAns: 'Your answer', qzRightAns: 'Correct answer', qzWhy: '💡 Why:', qzRemember: '🧠 Remember:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · negative', qzTimeUp: 'Time up — auto submitted!', qzCorrectN: 'Correct', qzWrongN: 'Incorrect', qzNone2: 'Skipped', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'Easy', qzDiffMed: 'Medium', qzDiffHard: 'Hard', qzDiffAdm: 'Admission', qzDiffMix: 'Mixed', chzExample: 'Examples', chzQuiz: 'Quiz me', chzMcq: 'Make MCQ', chzSimilarMcq: 'Similar MCQ', chzShorten: 'Summarize', chzPoints: 'Key points', chzRevise: 'Revision note', chzExplain: 'Explain topic', stThink: 'Thinking...', stAnalyze: 'Analyzing your question...', stImage: 'Understanding image...', stDoc: 'Reading file...', stSearch: 'Searching trusted sources...', stQuiz: 'Creating quiz...', stMcq: 'Creating MCQs...', stWrite: 'Writing answer...', stReason: 'Reasoning through it...', stCalc: 'Calculating...', stCode: 'Writing code...', stPlan: 'Structuring a plan...', stVerdict: 'Comparing options...', stSum: 'Summarizing...', stFix: 'Finding the fix...', expandAll: 'Expand full response',
     copy: 'Copy', copied: 'Copied', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'Correct answer', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -69,7 +69,7 @@
       ['📊', 'আমার performance analyze করো', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'এই topicটা শেখাও', 'সালোকসংশ্লেষণ topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: 'নতুন', menu: 'মেনু', recentChats: 'সম্প্রতি কথোপকথন', untitled: 'নতুন চ্যাট', noChats: 'এখনো কোনো কথোপকথন নেই', newIsEmpty: 'নতুন চ্যাট শুরু করবেন? অসমাপ্ত লেখা মুছে যাবে।', cancelBtn: 'বাতিল', pinChat: 'পিন / আনপিন', itemAct: 'একটি কাজ বাছুন:', aiProfile: 'আমার AI প্রোফাইল', backHome: 'হোমে ফিরুন', close: 'বন্ধ করুন', loginNote: 'লগইন করলে প্রোফাইল ও সেভ-সিঙ্ক পাবেন।', defLbl: 'সংজ্ঞা', confirmClear: 'এই চ্যাটের সব মেসেজ মুছবেন?', chzSimple: 'সহজ করে বলো', qzSetup: '🎯 কুইজ সেটআপ', qzLet: 'তোমার কথায় যা পাওয়া গেছে তা বসিয়ে দিয়েছি — শুধু বাকিগুলো ঠিক করো।', qzMulti: '(একাধিক বাছা যায়)', qzSubjects: '📚 বিষয়', qzTopics: '📖 টপিক', qzCount: '🔢 প্রশ্ন সংখ্যা', qzTime: '⏱ সময়', qzNeg: '➖ নেগেটিভ মার্কিং', qzDiff: '🎚 কঠিনতা', qzAll: 'সব', qzOthers: 'Other', qzOtherPh: 'বিষয়টা লিখো…', qzCustTopPh: 'কাস্টম টপিক লিখো…', qzMin: 'মিনিট', qzNoLimit: 'No limit', qzNone: 'নেই', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Question Bank-এ ম্যাচিং প্রশ্ন আগে বসবে, বাকিটা AI বানাবে', qzNeedSubj: 'আগে অন্তত একটা বিষয় বাছো', qzS1: 'Question Bank যাচাই…', qzS2: 'ম্যাচিং প্রশ্ন বাছাই…', qzS3: 'বাকি প্রশ্ন তৈরি…', qzS4: 'Difficulty ও প্যাটার্ন মিক্স…', qzS5: 'Quiz প্রস্তুত…', qzQuestion: 'প্রশ্ন', qzQuestionShort: 'প্রশ্ন', qzFromReq: 'তোমার কথায় মিলেছে (✎ = বদলানো যায়)', qzCorrect: 'সঠিক উত্তর!', qzWrong: 'ভুল উত্তর', qzYourAns: 'তোমার উত্তর', qzRightAns: 'সঠিক উত্তর', qzWhy: '💡 কারণ:', qzRemember: '🧠 মনে রাখো:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · নেগেটিভ', qzTimeUp: 'সময় শেষ — অটো-সাবমিট হয়েছে!', qzCorrectN: 'সঠিক', qzWrongN: 'ভুল', qzNone2: 'বাদ', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'সহজ', qzDiffMed: 'মাঝারি', qzDiffHard: 'কঠিন', qzDiffAdm: 'ভর্তি স্তর', qzDiffMix: 'মিক্স', chzExample: 'আরও উদাহরণ', chzQuiz: 'Quiz নাও', chzMcq: 'MCQ বানাও', chzSimilarMcq: 'একই রকম MCQ', chzShorten: 'সংক্ষেপে বলো', chzPoints: 'মূল পয়েন্ট', chzRevise: 'রিভিশন নোট', chzExplain: 'টপিক বুঝাও', stThink: 'ভাবছি...', stAnalyze: 'প্রশ্ন বিশ্লেষণ করছি...', stImage: 'ছবি বিশ্লেষণ করছি...', stDoc: 'ফাইল বিশ্লেষণ করছি...', stSearch: 'তথ্য খুঁজছি...', stQuiz: 'Quiz তৈরি করছি...', stMcq: 'MCQ তৈরি করছি...', stWrite: 'উত্তর তৈরি করছি...',
+    ph: 'Ask anything…', latest: 'নতুন', menu: 'মেনু', recentChats: 'সম্প্রতি কথোপকথন', untitled: 'নতুন চ্যাট', noChats: 'এখনো কোনো কথোপকথন নেই', newIsEmpty: 'নতুন চ্যাট শুরু করবেন? অসমাপ্ত লেখা মুছে যাবে।', cancelBtn: 'বাতিল', pinChat: 'পিন / আনপিন', itemAct: 'একটি কাজ বাছুন:', aiProfile: 'আমার AI প্রোফাইল', backHome: 'হোমে ফিরুন', close: 'বন্ধ করুন', loginNote: 'লগইন করলে প্রোফাইল ও সেভ-সিঙ্ক পাবেন।', defLbl: 'সংজ্ঞা', confirmClear: 'এই চ্যাটের সব মেসেজ মুছবেন?', chzSimple: 'সহজ করে বলো', qzSetup: '🎯 কুইজ সেটআপ', qzLet: 'তোমার কথায় যা পাওয়া গেছে তা বসিয়ে দিয়েছি — শুধু বাকিগুলো ঠিক করো।', qzMulti: '(একাধিক বাছা যায়)', qzSubjects: '📚 বিষয়', qzTopics: '📖 টপিক', qzCount: '🔢 প্রশ্ন সংখ্যা', qzTime: '⏱ সময়', qzNeg: '➖ নেগেটিভ মার্কিং', qzDiff: '🎚 কঠিনতা', qzAll: 'সব', qzOthers: 'Other', qzOtherPh: 'বিষয়টা লিখো…', qzCustTopPh: 'কাস্টম টপিক লিখো…', qzMin: 'মিনিট', qzNoLimit: 'No limit', qzNone: 'নেই', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Question Bank-এ ম্যাচিং প্রশ্ন আগে বসবে, বাকিটা AI বানাবে', qzNeedSubj: 'আগে অন্তত একটা বিষয় বাছো', qzS1: 'Question Bank যাচাই…', qzS2: 'ম্যাচিং প্রশ্ন বাছাই…', qzS3: 'বাকি প্রশ্ন তৈরি…', qzS4: 'Difficulty ও প্যাটার্ন মিক্স…', qzS5: 'Quiz প্রস্তুত…', qzQuestion: 'প্রশ্ন', qzQuestionShort: 'প্রশ্ন', qzFromReq: 'তোমার কথায় মিলেছে (✎ = বদলানো যায়)', qzCorrect: 'সঠিক উত্তর!', qzWrong: 'ভুল উত্তর', qzYourAns: 'তোমার উত্তর', qzRightAns: 'সঠিক উত্তর', qzWhy: '💡 কারণ:', qzRemember: '🧠 মনে রাখো:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · নেগেটিভ', qzTimeUp: 'সময় শেষ — অটো-সাবমিট হয়েছে!', qzCorrectN: 'সঠিক', qzWrongN: 'ভুল', qzNone2: 'বাদ', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'সহজ', qzDiffMed: 'মাঝারি', qzDiffHard: 'কঠিন', qzDiffAdm: 'ভর্তি স্তর', qzDiffMix: 'মিক্স', chzExample: 'আরও উদাহরণ', chzQuiz: 'Quiz নাও', chzMcq: 'MCQ বানাও', chzSimilarMcq: 'একই রকম MCQ', chzShorten: 'সংক্ষেপে বলো', chzPoints: 'মূল পয়েন্ট', chzRevise: 'রিভিশন নোট', chzExplain: 'টপিক বুঝাও', stThink: 'ভাবছি...', stAnalyze: 'প্রশ্ন বিশ্লেষণ করছি...', stImage: 'ছবি বিশ্লেষণ করছি...', stDoc: 'ফাইল বিশ্লেষণ করছি...', stSearch: 'তথ্য খুঁজছি...', stQuiz: 'Quiz তৈরি করছি...', stMcq: 'MCQ তৈরি করছি...', stWrite: 'উত্তর তৈরি করছি...', stReason: 'যুক্তি ভাবছি...', stCalc: 'হিসাব করছি...', stCode: 'কোড লিখছি...', stPlan: 'পরিকল্পনা সাজাচ্ছি...', stVerdict: 'বিকল্প মিলিয়ে দেখছি...', stSum: 'সংক্ষেপ করছি...', stFix: 'সমাধান খুঁজছি...', expandAll: 'সম্পূর্ণ দেখুন',
     copy: 'Copy', copied: 'কপি হয়েছে', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'সঠিক উত্তর', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -120,7 +120,7 @@
       height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;max-width:760px;margin:0 auto;overflow:hidden;
       padding-bottom:var(--ai-kb,0px);
       background:linear-gradient(180deg,#E9F6EF 0%,var(--ai-bg,#F7F9F8) 240px);color:var(--ai-ink,#16302A);
-      font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Bengali","Hind Siliguri",sans-serif;
+      font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Bengali","Hind Siliguri","Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji","Twemoji Mozilla",sans-serif;
       -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-feature-settings:'kern' 1,'liga' 1;
       transition:background .35s ease,color .35s ease;position:relative}
     .ai-agent-root[data-theme=dark]{background:#0F1714;color:#E8F4EF}
@@ -396,6 +396,106 @@
     .ai-latest i.cnt{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:#2EE6A8;color:#06281C;font:800 10.5px/19px inherit;font-style:normal;display:none;text-align:center;box-shadow:0 3px 8px rgba(0,0,0,.25)}
     .ai-latest.new i.cnt{display:block}
     /* ── sidebar drawer ── */
+    /* ═══════════ Universal Rich Response UI v1 (v218) ═══════════ */
+
+    /* ═══════════ Universal Rich Response UI v1 (v218) ═══════════ */
+    .ai-rb-h{margin:14px 0 6px;font-size:16.5px;font-weight:800;letter-spacing:-.01em;line-height:1.42}
+    .ai-rb-h:first-child{margin-top:2px}
+    .ai-rb-ul,.ai-rb-ol{margin:10px 0 2px;padding-left:22px}
+    .ai-rb-ul li,.ai-rb-ol li{margin:5px 0;font-size:15px;line-height:1.7}
+    .ai-rb-q{border-left:3px solid rgba(15,107,79,.4);margin:10px 0 4px;padding:8px 12px;background:var(--ai-mint,#F2FAF6);border-radius:0 12px 12px 0;font-size:14.5px;line-height:1.7;color:var(--ai-ink,#16302A)}
+    .ai-cr{display:contents}
+    .ai-twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;margin:12px 0 4px;border:1px solid var(--ai-line,rgba(15,107,79,.14));border-radius:16px;background:var(--ai-card,#fff)}
+    .ai-twrap table.ai-rb-tab{width:100%;border-collapse:collapse;font-size:13.5px;min-width:420px}
+    .ai-twrap .ai-rb-tab th{background:var(--ai-mint,#F2FAF6);color:#0E5B43;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:10px 12px;position:sticky;top:0;z-index:2}
+    .ai-twrap .ai-rb-tab td{padding:10px 12px;border-top:1px solid rgba(15,107,79,.08);vertical-align:top;line-height:1.55}
+    .ai-twrap .ai-rb-tab tr:nth-child(even) td{background:rgba(15,107,79,.028)}
+    .ai-twrap .ai-rb-tab.twide th:first-child,.ai-twrap .ai-rb-tab.twide td:first-child{position:sticky;left:0;background:#fff;box-shadow:2px 0 8px rgba(20,60,45,.05);font-weight:800;z-index:1}
+    .ai-twrap .ai-rb-tab.twide th:first-child{background:var(--ai-mint,#F2FAF6);z-index:3}
+    /* KPI */
+    .ai-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:9px;margin:12px 0 6px}
+    .ai-kpi{background:var(--ai-card,#fff);border:1px solid var(--ai-line,rgba(15,107,79,.14));border-radius:15px;padding:12px 11px;box-shadow:0 3px 12px rgba(23,58,43,.05);animation:aiIn .3s ease both}
+    .ai-kpi .v{display:block;font-size:19px;font-weight:850;letter-spacing:-.02em;color:#0E6B4F;line-height:1.15}
+    .ai-kpi .v i{font-size:11.5px;font-weight:700;font-style:normal;color:var(--ai-sub,#5F7A72);margin-left:2px}
+    .ai-kpi .k{display:block;font-size:11px;font-weight:700;color:var(--ai-sub,#5F7A72);margin-top:3px;letter-spacing:.01em}
+    /* Compare */
+    .ai-cmp{border:1px solid var(--ai-line,rgba(15,107,79,.14));border-radius:16px;background:var(--ai-card,#fff);margin:12px 0 6px;overflow:hidden;font-size:13px}
+    .ai-cmp-hed,.ai-cmp-row{display:grid;grid-template-columns:1.05fr 1fr 1fr;gap:6px;align-items:center;padding:9px 12px}
+    .ai-cmp-row{border-top:1px solid rgba(15,107,79,.07)}
+    .ai-cmp-hed{background:var(--ai-mint,#F2FAF6)}
+    .ai-cmp-hed .c{font-weight:800;color:#0E5B43;font-size:12.5px}
+    .ai-cmp .k{font-weight:700;color:var(--ai-ink,#16302A);font-size:12.5px;min-width:0}
+    .ai-cmp .c .bar{display:block;height:8px;border-radius:99px;background:rgba(15,107,79,.1);overflow:hidden}
+    .ai-cmp .c .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#1FA87C,#0E6B4F);animation:aiBar .8s cubic-bezier(.22,.9,.32,1) both;transform-origin:left}
+    .ai-cmp .c .na{color:var(--ai-sub,#93A8A0)}
+    @keyframes aiBar{from{transform:scaleX(0)}}
+    /* Steps */
+    .ai-steps{margin:12px 0 4px;padding:0;list-style:none;counter-reset:st}
+    .ai-step{display:flex;gap:11px;position:relative;padding-bottom:14px}
+    .ai-step:last-child{padding-bottom:2px}
+    .ai-step:before{content:'';position:absolute;left:14px;top:30px;bottom:0;width:2px;background:linear-gradient(var(--ai-line,rgba(15,107,79,.3)),rgba(15,107,79,.06))}
+    .ai-step:last-child:before{display:none}
+    .ai-step .n{width:29px;height:29px;flex:0 0 29px;border-radius:10px;background:linear-gradient(140deg,#DDF3E8,#CFEEE0);color:#0E6B4F;font-weight:850;font-size:12.5px;display:grid;place-items:center;border:1px solid rgba(15,107,79,.18);box-shadow:0 2px 8px rgba(15,107,79,.08)}
+    .ai-step .st{flex:1;min-width:0;padding-top:3px}
+    .ai-step .st-t{font-size:14.5px;font-weight:800;line-height:1.4}
+    .ai-step .st-d{font-size:13.5px;color:var(--ai-sub,#4A665C);line-height:1.65;margin-top:2px}
+    /* Flow */
+    .ai-flow{display:flex;flex-direction:column;gap:0;margin:12px 0 6px}
+    .ai-flow .nd{align-self:flex-start;background:var(--ai-card,#fff);border:1px solid rgba(15,107,79,.16);border-radius:12px;padding:9px 13px;font-size:13.5px;font-weight:700;box-shadow:0 3px 10px rgba(23,58,43,.06);max-width:100%}
+    .ai-flow .ar{display:block;text-align:center;color:#1FA87C;font-size:14px;line-height:1.9;font-weight:800}
+    /* Code */
+    .ai-code{border:1px solid rgba(15,107,79,.14);border-radius:16px;overflow:hidden;margin:12px 0 6px;background:#0E1B16}
+    .ai-code-h{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#13251E;color:#9CC9B8;font-size:11.5px}
+    .ai-code-h .lg{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;color:#5FE6BD;text-transform:lowercase;letter-spacing:.04em}
+    .ai-code-h .ln{color:#5E7A70;font-size:10.5px;margin-right:auto}
+    .ai-code-h .cp{border:0;background:rgba(47,191,143,.14);color:#5FE6BD;width:30px;height:28px;border-radius:9px;cursor:pointer;font-size:13px;display:grid;place-items:center}
+    .ai-code-h .cp:active{transform:scale(.92)}
+    .ai-code pre{margin:0;padding:13px 14px;overflow-x:auto;-webkit-overflow-scrolling:touch;font-size:12.5px;line-height:1.62}
+    .ai-code pre code{font-family:ui-monospace,Menlo,Consolas,monospace;color:#D8F3E6;white-space:pre}
+    .ai-code-fold summary{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;list-style:none;background:#13251E;color:#9CC9B8;font-size:12px;font-weight:700}
+    .ai-code-fold summary::-webkit-details-marker{display:none}
+    .ai-code-fold summary em{font-style:normal;margin-left:auto;color:#5FE6BD;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+    .ai-code-fold[open] summary em:after{content:' ▲'}
+    .ai-code-fold:not([open]) summary em:after{content:' ▼'}
+    .ai-code-fold[open] .ai-code-h{display:flex}
+    .ai-code-fold:not([open]) .ai-code-h{display:none}
+    /* Actions row (context-aware, never generic) */
+    .ai-rax{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 2px}
+    .ai-rax button{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(15,107,79,.18);background:var(--ai-card,#fff);color:#0E6B4F;border-radius:99px;padding:8px 13px;font-size:12.5px;font-weight:750;cursor:pointer;box-shadow:0 2px 8px rgba(23,58,43,.05);transition:transform .12s ease,background .15s ease}
+    .ai-rax button span{font-size:13.5px}
+    .ai-rax button:active{transform:scale(.95);background:var(--ai-mint,#EFF7F2)}
+    /* Collapsible long responses */
+    .ai-rb-fold{margin:12px 0;border:1px dashed rgba(15,107,79,.25);border-radius:14px;background:var(--ai-card,#fff)}
+    .ai-rb-fold summary{display:flex;align-items:center;gap:8px;padding:11px 13px;cursor:pointer;list-style:none;font-size:12.5px;color:#0E6B4F}
+    .ai-rb-fold summary::-webkit-details-marker{display:none}
+    .ai-rb-fold summary em{margin-left:auto;font-style:normal;font-size:10.5px;font-weight:800;letter-spacing:.05em;color:var(--ai-sub,#5F7A72)}
+    .ai-rb-fold[open] summary em:after{content:'▲'}
+    .ai-rb-fold:not([open]) summary em:after{content:'▼'}
+    .ai-rb-fold-b{padding:0 13px 13px}
+    /* callout additions */
+    .ai-callout.critical{background:rgba(220,38,38,.07);border-color:rgba(220,38,38,.25)}
+    .ai-callout.critical b{color:#b3261e}
+    .ai-callout.detail{background:rgba(59,130,246,.06);border-color:rgba(59,130,246,.2)}
+    .ai-callout.detail b{color:#1d4ed8}
+    .ai-callout.take{background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.24)}
+    .ai-callout.take b{color:#047857}
+    .ai-callout.sum{background:rgba(168,85,247,.06);border-color:rgba(168,85,247,.2)}
+    .ai-callout.sum b{color:#7c3aed}
+    /* dark theme */
+    .ai-agent-root[data-theme=dark] .ai-twrap,.ai-agent-root[data-theme=dark] .ai-cmp,.ai-agent-root[data-theme=dark] .ai-kpi,.ai-agent-root[data-theme=dark] .ai-code{background:#13201A}
+    .ai-agent-root[data-theme=dark] .ai-twrap .ai-rb-tab.twide td:first-child{background:#13201A}
+    .ai-agent-root[data-theme=dark] .ai-twrap .ai-rb-tab th,.ai-agent-root[data-theme=dark] .ai-cmp-hed{background:#0F1714}
+    .ai-agent-root[data-theme=dark] .ai-step .n{background:rgba(47,191,143,.16);color:#5FE6BD;border-color:rgba(47,191,143,.3)}
+    .ai-agent-root[data-theme=dark] .ai-rb-q{background:#122019}
+    @media (min-width:680px){
+      .ai-kpis{grid-template-columns:repeat(3,1fr)}
+      .ai-cmp-hed,.ai-cmp-row{grid-template-columns:1.2fr 1fr 1fr}
+      .ai-flow{flex-direction:row;align-items:stretch}
+      .ai-flow .ar{display:grid;place-items:center;padding:0 4px}
+      .ai-flow .nd{align-self:center}
+    }
+    @media (prefers-reduced-motion:reduce){.ai-cmp .c .bar i{animation:none}.ai-kpi{animation:none}}
+
     /* ── quiz engine v2 ── */
     .ai-quiz2{border:1.5px solid rgba(15,107,79,.14);border-radius:var(--r-l);overflow:hidden;background:var(--ai-card,#fff);margin:9px 0 2px;box-shadow:0 14px 34px rgba(23,58,43,.08)}
     .qz-head{display:flex;align-items:center;gap:9px;padding:12px 14px;background:linear-gradient(135deg,#E4F3EC,var(--ai-card,#fff));border-bottom:1px solid var(--ai-line,rgba(15,107,79,.1))}
@@ -663,6 +763,221 @@
     if (defLine) s = s.replace('<div class="ai-msg-body">', '<div class="ai-msg-body"><div class="ai-callout define"><b>🧠 ' + esc(T.defLbl) + '</b> ' + defLine.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>') + '</div>');
     s = s.replace(/<table>/g, '<div class="ai-twrap"><table>').replace(/<\/table>/g, '</table></div>');
     return s.replace(/\u0000CB(\d+)\u0000/g, (m, i) => '<pre><code>' + esc(codeBlocks[+i]).replace(/\n$/, '') + '</code></pre>').replace(/\u0000DX(\d+)\u0000/g, (m, i) => extra[+i]);
+  }
+
+
+  /* ═══════════ Universal Dynamic Response Engine v1 (v218) ═══════════
+     AI raw text → typed blocks → whitelisted component registry → escaped DOM.
+     RULES:
+       (1) NO FAKE DATA — every visual/number comes from the AI text itself.
+       (2) NO RAW HTML — all content passes esc(); unknown type → clean text.
+       (3) NO OVER-FORMAT — short/simple text stays plain (e.g. "2+2 → 4").
+       (4) INPUT ISOLATION — renderer touches only #aiAgentBody; composer untouched.
+  ─────────────────────────────────────────────────────────────────────── */
+  const RB_TYPES = ['text','h','ul','ol','quote','table','stats','kpi','timeline','checklist','steps','flow','callout','compare','code'];
+  const RB_RENDER = {};
+  const RB_DI = { '\u09e6':'0','\u09e7':'1','\u09e8':'2','\u09e9':'3','\u09ea':'4','\u09eb':'5','\u09ec':'6','\u09ed':'7','\u09ee':'8','\u09ef':'9' };
+  const rbNum = (x) => String(x).replace(/[\u09e6-\u09ef]/g, (d) => RB_DI[d]).replace(/,/g, '.').replace(/[^\d.]/g, '');
+  const rbEsc = (x) => esc(String(x ?? ''));
+  const rbInline = (x) => rbEsc(x)
+    .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
+    .replace(/\*([^*\n]+)\*/g, '<i>$1</i>')
+    .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+    .replace(/(^|[\s(])((?:https?:\/\/)[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
+  const rbCopy = (txt) => { try { const ta = document.createElement('textarea'); ta.value = String(txt || ''); ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('\u2713'); } catch (_) { toast('!'); } };
+
+  /* ── intent: user text → intent key (bn+en) ── */
+  const RB_INTENT = [
+    ['learn', /(ব্যাখ্যা|বুঝিয়ে|শেখাও|বুঝাও|explain|teach|concept|মানে কি|কাকে বলে|কী জিনিস|what is|define|ধারণা)/i],
+    ['calculate', /(হিসাব|কত হবে|যোগ|গুণ|ভাগ|calculate|sum|solve|ক্যালকুলেট)/i],
+    ['code', /(কোড|code|python|javascript|function|প্রোগ্রাম|programming|ডিবাগ|debug|bug|error|regex)/i],
+    ['compare', /(তুলনা|কোনটা ভালো|vs\.?|versus|difference|পার্থক্য|বনাম|compare)/i],
+    ['decision', /(কোনটা (নেব|কিনব|বাছাই)|সিদ্ধান্ত|which (one|should)|recommend|পরামর্শ দাও|best for)/i],
+    ['plan', /(পরিকল্পনা|plan|itinerary|ট্যুর|রুটিন|schedule|ভ্রমণ|সাজাও)/i],
+    ['analyze', /(বিশ্লেষণ|analy|ডেটা|data|chart|গ্রাফ|graph|trend)/i],
+    ['summarize', /(সংক্ষেপ|summary|summarize|মূল কথা|কিপয়েন্ট|key points)/i],
+    ['troubleshoot', /(কাজ করছে না|ঠিক করো|fix|সমস্যা|troubleshoot|ভুল আসছে|error)/i],
+    ['create', /(বানাও|লিখে দাও|rewrite|draft|email|চিঠি|গল্প|poem|কবিতা)/i],
+    ['translate', /(অনুবাদ|translate)/i],
+    ['search', /(খোঁজ|search|নিউজ|news|সর্বশেষ|আপডেট)/i]
+  ];
+  function rbIntent(txt) { const t = String(txt || ''); for (const [k, re] of RB_INTENT) if (re.test(t)) return k; return 'general'; }
+
+  /* ── parser: raw text → ordered blocks (document order) ── */
+  function respParse(text) {
+    const src = String(text || '');
+    const lines = src.split('\n');
+    const out = [];
+    let i = 0;
+    const push = (b) => { out.push(b); };
+    const isTbl = (l) => /^\|.*\|\s*$/.test(l.trim());
+    const isPct = (l) => { const m = l.trim().match(/^(.{1,26}?)\s*[:：]\s*([\u09e6-\u09ef\d]{1,3}(?:[.,][\u09e6-\u09ef\d]+)?)\s*%\s*$/); return m ? m : null; };
+    const isKpi = (l) => { const m = l.trim().match(/^(.{1,24}?)\s*[:：]\s*([\u09e6-\u09ef\d][\u09e6-\u09ef\d.,]*)(\s*(?:৳|টাকা|Tk|taka|GB|MB|দিব|দিন|বার|বারবার|জন|টি|টা|মিনিট|ঘণ্টা|কিমি|km|km\/h|kg|লিটার|লাখ|কোটি|হাজার|%,)?)\s*$/); return m && !isPct(l) && m[2].length <= 12 ? m : null; };
+    const isYr = (l) => { const m = l.trim().match(/^([\u09e6-\u09ef\d]{3,4})\s*[–—-]\s*(.+)$/); return m ? m : null; };
+    const isChk = (l) => { const m = l.trim().match(/^[-*+]\s*\[([ xX])\]\s*(.+)$/); return m ? m : null; };
+    const isNum = (l) => { const m = l.trim().match(/^(\d{1,2})[.)]\s+(.+)$/); return m ? m : null; };
+    const isBul = (l) => l.trim().match(/^[-*+]\s+(.+)$/);
+    const txt = (lines) => lines.join('\n');
+    while (i < lines.length) {
+      const L = lines[i], t = L.trim();
+      if (!t) { i++; continue; }
+      /* code fence */
+      if (/^```/.test(t)) {
+        const lang = t.replace(/^```/, '').trim();
+        i++; const cd = [];
+        while (i < lines.length && !/^```/.test(lines[i].trim())) { cd.push(lines[i]); i++; }
+        i++; push({ t: 'code', lang, code: cd.join('\n') }); continue;
+      }
+      /* markdown table */
+      if (isTbl(L)) {
+        const rows = [];
+        while (i < lines.length && isTbl(lines[i])) { rows.push(lines[i].trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim())); i++; }
+        push({ t: 'table', rows }); continue;
+      }
+      /* % rows → stats */
+      if (isPct(L)) {
+        const rows = []; const raw = [];
+        while (i < lines.length && isPct(lines[i])) { const m = isPct(lines[i]); rows.push([m[1], Math.max(0, Math.min(100, parseFloat(rbNum(m[2]))))]); raw.push(lines[i]); i++; }
+        if (rows.length >= 3) push({ t: 'stats', rows }); else push({ t: 'text', txt: txt(raw) });
+        continue;
+      }
+      /* kpi rows */
+      if (isKpi(L)) {
+        const rows = []; const raw = [];
+        while (i < lines.length && isKpi(lines[i])) { const m = isKpi(lines[i]); rows.push([m[1], m[2], (m[3] || '').trim()]); raw.push(lines[i]); i++; }
+        if (rows.length >= 3) push({ t: 'kpi', rows }); else push({ t: 'text', txt: txt(raw) });
+        continue;
+      }
+      /* timeline */
+      if (isYr(L)) {
+        const items = []; const raw = [];
+        while (i < lines.length && isYr(lines[i])) { const m = isYr(lines[i]); items.push([m[1], m[2].trim()]); raw.push(lines[i]); i++; }
+        if (items.length >= 3) push({ t: 'timeline', items }); else push({ t: 'text', txt: txt(raw) });
+        continue;
+      }
+      /* checklist */
+      if (isChk(L)) {
+        const items = []; const raw = [];
+        while (i < lines.length && isChk(lines[i])) { const m = isChk(lines[i]); items.push([m[1].toLowerCase() === 'x' ? 1 : 0, m[2]]); raw.push(lines[i]); i++; }
+        push({ t: 'checklist', items }); continue;
+      }
+      /* flow: arrow chain */
+      if (/[→↓›>]/.test(t) && (t.match(/[→↓]/g) || []).length >= 1) {
+        const nodes = [];
+        while (i < lines.length && /[→↓›>]/.test(lines[i])) {
+          const seg = lines[i].split(/\s*(?:→|↓|›|>)\s*/).map((x) => x.replace(/^[-*\s]+/, '').trim()).filter(Boolean);
+          for (const n of seg) nodes.push(n);
+          i++;
+        }
+        if (nodes.length >= 2) push({ t: 'flow', nodes }); else push({ t: 'text', txt: txt(nodes) });
+        continue;
+      }
+      /* numbered → steps (3+) or ol (2+) */
+      if (isNum(L)) {
+        const items = []; const raw = [];
+        while (i < lines.length && isNum(lines[i]) && !/^```/.test(lines[i].trim()) && !isTbl(lines[i]) && !isChk(lines[i])) { const m = isNum(lines[i]); items.push([m[2]]); raw.push(lines[i]); i++; }
+        if (items.length >= 3) push({ t: 'steps', items }); else if (items.length === 2) push({ t: 'ol', items }); else push({ t: 'text', txt: txt(raw) });
+        continue;
+      }
+      /* bullet list */
+      if (isBul(L)) {
+        const items = [];
+        while (i < lines.length && isBul(lines[i]) && !isChk(lines[i])) { items.push(lines[i].trim().replace(/^[-*+]\s+/, '')); i++; }
+        if (items.length >= 2) push({ t: 'ul', items }); else { push({ t: 'text', txt: txt(items) }); continue; }
+        continue;
+      }
+      /* callout line */
+      const cm = t.match(/^(✅|📌|🧠|📚|💡|⚠️|🔎|🚨|⚡|📝)\s*(.+)$/);
+      if (cm) { push({ t: 'callout', icon: cm[1], txt: cm[2] }); i++; continue; }
+      /* heading / quote / paragraph */
+      if (/^#{1,3}\s+/.test(t)) { push({ t: 'h', lvl: t.match(/^#+/)[0].length, txt: t.replace(/^#+\s+/, '') }); i++; continue; }
+      if (/^>\s?/.test(t)) { const q = []; while (i < lines.length && /^>\s?/.test(lines[i])) { q.push(lines[i].replace(/^>\s?/, '')); i++; } push({ t: 'quote', txt: txt(q) }); continue; }
+      const para = []; while (i < lines.length && lines[i].trim() && !isTbl(lines[i]) && !isPct(lines[i]) && !isKpi(lines[i]) && !isYr(lines[i]) && !isChk(lines[i]) && !isNum(lines[i]) && !/^```/.test(lines[i]) && !/^(✅|📌|🧠|📚|💡|⚠️|🔎|🚨|⚡|📝)/.test(lines[i].trim()) && !/^#{1,3}\s+/.test(lines[i]) && !/^>\s?/.test(lines[i]) && !/^[-*+]\s+/.test(lines[i].trim())) { para.push(lines[i]); i++; }
+      if (para.length) push({ t: 'text', txt: txt(para) });
+    }
+    return out;
+  }
+
+  /* comparison: 3-col tables (feature | A | B) where values look like ratings */
+  function rbCompare(rows) {
+    if (!rows || rows.length < 3 || rows[0].length !== 3) return null;
+    const head = rows[0], body = rows.slice(1).filter((r) => !r.every((c) => /^:?-{2,}:?$/.test(c)));
+    if (body.length < 2) return null;
+    const rate = (c) => { const s = (c.match(/⭐+/g) || []).join(''); if (s) return Math.min(100, (s.length / 5) * 100); const p = parseFloat(c); if (!isNaN(p) && /%/.test(c)) return Math.min(100, p); const m = c.match(/^(\d{1,2})\s*\/\s*10$/); if (m) return Math.min(100, (+m[1]) * 10); return null; };
+    const hasRate = body.some((r) => rate(r[1]) !== null || rate(r[2]) !== null);
+    if (!hasRate) return null;
+    return { t: 'compare', a: head[1], b: head[2], rows: body.map((r) => ({ k: r[0], a: r[1], b: r[2], ra: rate(r[1]), rb: rate(r[2]) })) };
+  }
+
+  /* registry: whitelisted components (all text escaped; no raw AI HTML) */
+  RB_RENDER.text = (b) => '<p>' + rbInline(b.txt).replace(/\n/g, '<br>') + '</p>';
+  RB_RENDER.h = (b) => '<h' + b.lvl + ' class="ai-rb-h">' + rbInline(b.txt) + '</h' + b.lvl + '>';
+  RB_RENDER.ul = (b) => '<ul class="ai-rb-ul">' + b.items.map((x) => '<li>' + rbInline(x) + '</li>').join('') + '</ul>';
+  RB_RENDER.ol = (b) => '<ol class="ai-rb-ol">' + b.items.map((x) => '<li>' + rbInline(x) + '</li>').join('') + '</ol>';
+  RB_RENDER.quote = (b) => '<blockquote class="ai-rb-q">' + rbInline(b.txt).replace(/\n/g, '<br>') + '</blockquote>';
+  RB_RENDER.callout = (b) => {
+    const map = { '✅': ['success', '✅'], '📌': ['keypoint', '📌'], '🧠': ['concept', '🧠'], '📚': ['revision', '📚'], '💡': ['tip', '💡'], '⚠️': ['warn', '⚠️'], '🔎': ['detail', '🔎'], '🚨': ['critical', '🚨'], '⚡': ['take', '⚡'], '📝': ['sum', '📝'] };
+    const k = map[b.icon] || ['tip', b.icon];
+    return '<div class="ai-callout ' + k[0] + '"><b>' + k[1] + '</b> ' + rbInline(b.txt) + '</div>';
+  };
+  RB_RENDER.table = (b) => {
+    const rows = b.rows;
+    const head = rows[0] || [];
+    const body = rows.slice(1).filter((r) => !r.every((c) => /^:?-{2,}:?$/.test(c)));
+    const cmp = body.length >= 2 && head.length === 3 ? rbCompare(rows) : null;
+    if (cmp) return RB_RENDER.compare(cmp);
+    const wide = Math.max(...rows.map((r) => r.length)) >= 4 ? ' twide' : '';
+    return '<div class="ai-twrap"><table class="ai-rb-tab' + wide + '"><thead><tr>' + head.map((c) => '<th>' + rbInline(c) + '</th>').join('') + '</tr></thead><tbody>' + body.map((r) => '<tr>' + r.map((c) => '<td>' + rbInline(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
+  };
+  RB_RENDER.stats = (b) => '<div class="ai-stats ai-rb">' + b.rows.map((r) => '<div class="ai-stat"><div class="lbl"><span>' + rbEsc(r[0]) + '</span><span class="v">' + r[1] + '%</span></div><div class="tr"><div class="fl" style="width:' + r[1] + '%"></div></div></div>').join('') + '</div>';
+  RB_RENDER.kpi = (b) => '<div class="ai-kpis">' + b.rows.map((r) => '<div class="ai-kpi"><span class="v">' + rbEsc(r[1]) + (r[2] ? '<i>' + rbEsc(r[2]) + '</i>' : '') + '</span><span class="k">' + rbEsc(r[0]) + '</span></div>').join('') + '</div>';
+  RB_RENDER.timeline = (b) => '<div class="ai-timeline ai-rb">' + b.items.map((it) => '<div class="ai-tl"><div class="yr">' + rbEsc(it[0]) + '</div><div class="ds">' + rbInline(it[1]) + '</div></div>').join('') + '</div>';
+  RB_RENDER.checklist = (b, ctx) => '<ul class="ai-checklist ai-rb-cl" data-ci="' + (ctx && ctx.idx != null ? ctx.idx : '') + '">' + b.items.map((it, k) => '<li class="' + (it[0] ? 'done' : '') + '" data-k="' + k + '"><span class="bx">' + (it[0] ? '✓' : '') + '</span><span>' + rbInline(it[1]) + '</span></li>').join('') + '</ul>';
+  RB_RENDER.steps = (b) => '<ol class="ai-steps">' + b.items.map((it, k) => { const sp = String(it[0]).split(/[—–:：]\s*(.+)$/); const ti = sp[0].trim(); const de = sp[1] ? sp[1].trim() : ''; return '<li class="ai-step"><div class="n">' + (k + 1) + '</div><div class="st"><div class="st-t">' + rbInline(ti) + '</div>' + (de ? '<div class="st-d">' + rbInline(de) + '</div>' : '') + '</div></li>'; }).join('') + '</ol>';
+  RB_RENDER.flow = (b) => '<div class="ai-flow">' + b.nodes.map((n, k) => (k ? '<span class="ar">↓</span>' : '') + '<span class="nd">' + rbInline(n) + '</span>').join('') + '</div>';
+  RB_RENDER.compare = (b) => {
+    const bar = (v) => v == null ? '<span class="na">—</span>' : '<span class="bar"><i style="width:' + v + '%"></i></span>';
+    return '<div class="ai-cmp"><div class="ai-cmp-hed"><span class="k"></span><span class="c">' + rbEsc(b.a || 'A') + '</span><span class="c">' + rbEsc(b.b || 'B') + '</span></div>' + b.rows.map((r) => '<div class="ai-cmp-row"><span class="k">' + rbInline(r.k) + '</span><span class="c">' + bar(r.ra) + '</span><span class="c">' + bar(r.rb) + '</span></div>').join('') + '</div>';
+  };
+  RB_RENDER.code = (b) => {
+    const code = String(b.code || '').replace(/\n$/, '');
+    const n = code.split('\n').length;
+    const lang = String(b.lang || 'code') || 'code';
+    const dd = JSON.stringify(code);
+    const body = '<pre><code>' + rbEsc(code) + '</code></pre>';
+    const head = '<div class="ai-code-h"><span class="lg">' + rbEsc(lang) + '</span><span class="ln">' + n + ' ' + (lang === 'bn' ? 'লাইন' : 'lines') + '</span><button class="cp" data-copy="' + esc(dd) + '" aria-label="Copy">📋</button></div>';
+    if (n > 18) return '<div class="ai-code"><details class="ai-code-fold"><summary><span>≡ ' + lang + ' · ' + n + ' lines</span><em>Expand</em></summary>' + head + body + '</details></div>';
+    return '<div class="ai-code">' + head + body + '</div>';
+  };
+
+  /* whitelist check + fallback (never blank, never raw) */
+  function respRender(blocks, ctx) {
+    return (blocks || []).map((b, k) => {
+      const fn = RB_RENDER[b.t];
+      if (!fn) return '<p>' + rbEsc(b.txt || '') + '</p>';
+      try { return fn(b, ctx, k); } catch (_) { return '<p>' + rbEsc(b.txt || '') + '</p>'; }
+    }).join('');
+  }
+
+  /* context-aware actions (NEVER generic Ask-more/Tell-more) */
+  function ctxActions(blocks, rawText) {
+    const EN = typeof lang !== 'undefined' && lang === 'en';
+    const has = (t) => blocks.some((b) => b.t === t);
+    const S = has('stats'), K = has('kpi'), C = has('code'), CM = has('compare'), TL = has('timeline'), ST = has('steps'), FL = has('flow');
+    const acts = [];
+    if (C) { acts.push(['📋', 'Copy code', 'copy:' + (blocks.find((b) => b.t === 'code').code || '')], ['🧪', EN ? 'Test it' : 'Test করো', 'q:' + (lang === 'en' ? 'Test this code and show the output: ' : 'এই কোডটা test করে আউটপুট দেখাও: ') + rawText.slice(0, 240)], ['🔧', EN ? 'Improve' : 'আরও ভালো করো', 'q:' + (lang === 'en' ? 'Improve this code with comments: ' : 'এই কোড আরও ভালো করো, কমেন্টসহ: ') + rawText.slice(0, 240)]); }
+    if (CM) { acts.push(['🧠', EN ? 'Verdict' : 'উপসংহার', 'q:' + (lang === 'en' ? 'Give a clear verdict on which is better and why: ' : 'কোনটা ভালো আর কেন — পরিষ্কার উপসংহার দাও: ') + rawText.slice(0, 240)], ['📋', EN ? 'Copy table' : 'টেবিল কপি', 'copy:' + rawText]); }
+    if (S || K) { acts.push(['📊', EN ? 'Explain deeper' : 'আরো ব্যাখ্যা', 'q:' + (lang === 'en' ? 'Explain these numbers in more detail with reasons: ' : 'এই সংখ্যাগুলো আরো গভীরভাবে ব্যাখ্যা করো কারণসহ: ') + rawText.slice(0, 240)], ['📋', EN ? 'Copy data' : 'ডেটা কপি', 'copy:' + rawText]); }
+    if (TL) { acts.push(['🗓', EN ? 'Make a plan' : 'প্ল্যান বানাও', 'q:' + (lang === 'en' ? 'Turn this timeline into an actionable plan: ' : 'এই টাইমলাইন থেকে একটা কাজের প্ল্যান বানাও: ') + rawText.slice(0, 240)], ['📋', lang === 'en' ? 'Copy' : 'কপি', 'copy:' + rawText]); }
+    if (ST || FL) { acts.push(['🪜', EN ? 'Step-by-step detail' : 'ধাপে ধাপে', 'q:' + (lang === 'en' ? 'Explain each step in detail: ' : 'প্রতিটা ধাপ বিস্তারিতভাবে ব্যাখ্যা করো: ') + rawText.slice(0, 240)], ['📋', lang === 'en' ? 'Copy' : 'কপি', 'copy:' + rawText]); }
+    return acts.slice(0, 3);
+  }
+
+  /* long rich response → collapsible middle (performance/scanability) */
+  function respFold(blocks) {
+    const n = (blocks || []).length;
+    if (n < 10) return null;
+    return { head: blocks.slice(0, 2), mid: blocks.slice(2, n - 2), tail: blocks.slice(n - 2) };
   }
 
   /* ── shell ── */
@@ -984,9 +1299,40 @@
     }
     if (m.qz) return `<div class="ai-msg ai"><div class="ai-msg-head"><span class="mini"></span>${esc(T.title)}</div>${quizV2Html(m, idx)}</div>`;
     const quizHtml = m.quiz ? quizCardHtml(m, idx) : '';
-    const bodyHtml = quizHtml || md(esc(m.text));
-    const follow = m.quiz ? '' : `<div class="ai-followup">${followups(m).map((f) => `<button data-q="${esc(f[2])}">${ICONS[f[0]] || ''}${esc(f[1])}</button>`).join('')}</div>`;
-    return `<div class="ai-msg ai"><div class="ai-msg-head"><span class="mini"></span>${esc(T.title)}</div>${bodyHtml}
+    const isRich = (() => {
+      if (quizHtml) return false;
+      const blocks0 = respParse(m.text);
+      /* normalize: rating-table → compare block (single source) */
+      const blocks = blocks0.map((b) => {
+        if (b.t === 'table') { const c = rbCompare(b.rows); if (c) return c; }
+        return b;
+      });
+      const rich = blocks.some((b) => ['table','stats','kpi','timeline','checklist','steps','flow','compare','code','callout','quote','ul','ol'].includes(b.t));
+      if (!rich && blocks.length < 10) return false;
+      m._rb = blocks;
+      return true;
+    })();
+    let bodyHtml = quizHtml;
+    let rax = '';
+    if (!bodyHtml) {
+      if (isRich) {
+        const blocks = m._rb || [];
+        const fold = respFold(blocks);
+        let inner;
+        if (fold) {
+          inner = respRender(fold.head, { idx }) + '<details class="ai-rb-fold"><summary><span>✦</span><b>' + esc(T.expandAll) + '</b><em></em></summary><div class="ai-rb-fold-b">' + respRender(fold.mid, { idx }) + '</div></details>' + respRender(fold.tail, { idx });
+        } else {
+          inner = respRender(blocks, { idx });
+        }
+        bodyHtml = '<div class="ai-cr">' + inner + '</div>';
+        const acts = ctxActions(blocks, m.text);
+        if (acts.length) rax = '<div class="ai-rax">' + acts.map((a) => `<button data-act="ra" data-val="${esc(a[2])}"><span>${a[0]}</span>${esc(a[1])}</button>`).join('') + '</div>';
+      } else {
+        bodyHtml = md(esc(m.text));
+      }
+    }
+    const follow = m.quiz || rax ? '' : `<div class="ai-followup">${followups(m).map((f) => `<button data-q="${esc(f[2])}">${ICONS[f[0]] || ''}${esc(f[1])}</button>`).join('')}</div>`;
+    return `<div class="ai-msg ai"><div class="ai-msg-head"><span class="mini"></span>${esc(T.title)}</div>${bodyHtml}${rax}
       <div class="ai-msg-bar">
         <button class="ab" data-t="${esc(m.text)}" onclick="window.__AiAgentCopy(this)" title="${esc(T.copy)}" aria-label="${esc(T.copy)}">${ICONS.copy}</button>
         <button class="ab ${m.fb === 'up' ? 'on' : ''}" data-fb="up" data-i="${idx}" onclick="window.__AiAgentFb(this)" title="${esc(T.liked)}" aria-label="${esc(T.liked)}">${ICONS.like}</button>
@@ -1099,11 +1445,15 @@
     scrollBottom(true);
     clearThinkTimers();
     const seq = [];
-    seq.push([0, T.stThink]);
+    seq.push([0, sig.status || T.stThink]);
     seq.push([1000, T.stAnalyze]);
     if (sig.image) seq.push([2200, T.stImage]);
     else if (sig.doc) seq.push([2200, T.stDoc]);
     else if (sig.search) seq.push([2200, T.stSearch]);
+    else if (sig.calc) seq.push([2200, T.stCalc]);
+    else if (sig.code) seq.push([2200, T.stCode]);
+    else if (sig.plan) seq.push([2200, T.stPlan]);
+    else if (sig.vs) seq.push([2200, T.stVerdict]);
     else if (sig.quiz && sig.mcq) seq.push([2200, T.stMcq]);
     else if (sig.quiz) seq.push([2200, T.stQuiz]);
     seq.push([Math.min(5600, 2200 + seq.length * 800), T.stWrite]);
@@ -1662,12 +2012,18 @@
     stopVoice(true);
     stoppedEarly = false;
     streamingEl = null;
+    const _it = rbIntent(fullText);
     appendThinking({
       image: !!imgItem,
       doc: !!docItem,
       quiz: /quiz|প্রশ্ন দিয়ে|mcq/i.test(fullText),
       mcq: /mcq/i.test(fullText),
-      search: /খোঁজো|খোঁজ|search|নিউজ|news|সর্বশেষ ভর্তি|ভর্তি নিউজ|আপডেট খোঁজ/i.test(fullText)
+      search: /খোঁজো|খোঁজ|search|নিউজ|news|সর্বশেষ ভর্তি|ভর্তি নিউজ|আপডেট খোঁজ/i.test(fullText),
+      calc: _it === 'calculate',
+      code: _it === 'code',
+      plan: _it === 'plan',
+      vs: _it === 'compare' || _it === 'decision',
+      status: (_it === 'learn' ? T.stReason : _it === 'calculate' ? T.stCalc : _it === 'code' ? T.stCode : _it === 'plan' ? T.stPlan : _it === 'compare' || _it === 'decision' ? T.stVerdict : _it === 'summarize' ? T.stSum : _it === 'analyze' ? T.stAnalyze : _it === 'troubleshoot' ? T.stFix : '')
     });
     setSendBtn(true);
     const res = await callStream(fullText, imgItem ? imgItem.dataUrl : '').catch(() => ({ code: 'net' }));
@@ -1940,7 +2296,30 @@
       }
     } catch (_) {}
   });
+  /* checklist toggle: state per-message, persisted, DOM-only update (input isolated) */
+  window.__AiAgentChk = (ci, k) => {
+    const m = msgs[ci]; if (!m) return;
+    m.chk = m.chk || {};
+    m.chk[k] = !m.chk[k];
+    save();
+    const li = document.querySelector('.ai-checklist[data-ci="' + ci + '"] li[data-k="' + k + '"]');
+    if (li) {
+      li.classList.toggle('done', !!m.chk[k]);
+      li.querySelector('.bx').textContent = m.chk[k] ? '✓' : '';
+    }
+  };
   document.addEventListener('click', (e) => {
+    const li = e.target.closest ? e.target.closest('.ai-checklist[data-ci] li[data-k]') : null;
+    if (li) { const w = li.closest('.ai-checklist'); window.__AiAgentChk(+w.getAttribute('data-ci'), +li.getAttribute('data-k')); return; }
+    const cp = e.target.closest ? e.target.closest('[data-copy]') : null;
+    if (cp) { try { rbCopy(cp.getAttribute('data-copy')); } catch (_) {} return; }
+    const ra = e.target.closest ? e.target.closest('.ai-rax button[data-act="ra"]') : null;
+    if (ra) {
+      const v = ra.getAttribute('data-val') || '';
+      if (v.startsWith('q:')) { send(v.slice(2)); }
+      else if (v.startsWith('copy:')) { rbCopy(v.slice(5)); }
+      return;
+    }
     if (menuOpen && !e.target.closest('.ai-drawer') && !e.target.closest('#aiMenuBtn')) closeMenu();
     if (attachOpen && document.getElementById('aiSheetView') && !e.target.closest('.ai-sheet') && !e.target.closest('#aiPlusBtn')) closeAttach();
   });
