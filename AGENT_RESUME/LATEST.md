@@ -1,34 +1,33 @@
-# LATEST — Email Gateway Phase 2B deployed safely; provider activation blocked
+# LATEST — Infisical bridge ready; one-time project bootstrap remains
 
 **আপডেট:** 2026-09-09 (Asia/Dhaka) · Agent: **জুজু**
 
-## Current roadmap state
+## Current state
 
-- **IMPLEMENTED:** approved Phase 2B Email Gateway, eight-provider catalog, protected internal boundary, Durable Object coordination, safe router/failover, isolated sender evidence, binding-name inventory এবং Telegram notifier।
-- **TESTED:** Email **93/93** + Worker integration **4/4**; Auth **62/62**; account retirement **28/28**; exact bundle/CI guards pass।
-- **DEPLOYED:** Worker deployment workflow run `34287838357` succeeded from `main`; GitHub production deployment `6338729879` is `success`।
-- **VERIFIED:** Worker public health `200`, AI status `200`, unsigned internal Email Gateway `404`; Pages protected server-source routes `404`।
+- **IMPLEMENTED:** Phase 2B Email Gateway and a protected GitHub OIDC → Infisical → existing Cloudflare secret-staging path.
+- **TESTED:** Email **96/96** + Worker integration **4/4**; Auth **62/62**; account retirement **28/28**; exact bundle and YAML checks pass.
+- **DEPLOYED/VERIFIED:** Existing Phase 2B Worker deployment remains healthy; public health and AI are `200`, unsigned internal Email Gateway is non-public, and Pages server-source paths are `404`.
+- **NOT STAGED:** The new Infisical workflow has not been dispatched and no Worker secret value changed.
 - **BLOCKED:** Required integration credential is not available in the authorized environment.
 
-Provider activation, provider account/sender remote validation এবং controlled real Gmail OTP send তাই করা হয়নি। কোনো provider active/verified বলে দাবি করা হয়নি। Concrete Supabase/Auth work শুরু হয়নি।
+Owner confirmed an Infisical account exists but no Admission Hub project has been created. Inspection found no connected Infisical CLI/session/configuration. Provider activation, remote provider validation and real Gmail OTP therefore remain unperformed.
 
-## Merged production chain
+## Infisical integration
 
-- PR `#4` — Phase 2B protected Email Gateway → `12431b7090401273dd157cb0c9d03e591dad026c`
-- PR `#5` — Pages server-source boundary → `c69de9535bb75a2a29f832f7503968097e2e0824`
-- PR `#6` — names-only inventory + bounded deployment verification → `da27013ffd3357527f0082834638b93f4fee36d5`
-- Production environment `email-gateway-production` permits only `main`।
+- Workflow: `.github/workflows/email-gateway-infisical-sync.yml`
+- Guide: `docs/email-gateway/INFISICAL_SETUP.md`
+- Source: environment `production`, path `/email-gateway/worker`
+- Destination: Cloudflare Worker `admission-gk` through the already-working protected GitHub Cloudflare access
+- Authentication: GitHub OIDC Machine Identity; no stored Infisical client secret in GitHub
+- Initial staging: activation must be `disabled`
+- Payload: exact allowlist only, mode `0600`, ephemeral, unconditional cleanup
+- Required names: **33**; the prior 32-name inventory omitted required `EMAIL_RECIPIENT_HASH_PEPPER` and is corrected
+- EmailOctopus remains ineligible for direct transactional OTP
 
-## Provider truth
+## Immediate next action
 
-Names-only Cloudflare inventory found **0/32 required isolated Phase 2B binding names**। Values were never read or reported। Resend, Brevo, Mailjet, Mailtrap, MailerSend, SendPulse এবং Courier remain safely disabled; EmailOctopus remains intentionally ineligible for direct transactional OTP। No provider send call or Gmail OTP occurred।
+Account owner creates the empty Infisical project `Admission Hub`. Then configure `production` + `/email-gateway/worker`, OIDC identity and values using the one-time guide. After the connection appears, the agent stages 33/33 bindings, validates providers one at a time, activates safely and performs one controlled Gmail OTP test.
 
-## Telegram
+Concrete Supabase/Auth authority work remains unstarted and requires explicit owner instruction.
 
-Configured Telegram completion/status notification was accepted: HTTP `200`, message ID `12`। The message truthfully reported successful code deployment and blocked provider activation।
-
-## STOP / next
-
-When the required isolated bindings and verified provider sender/account evidence are available in the authorized environment, rerun the protected inventory/deployment path, validate providers one at a time, and perform one controlled Gmail OTP send without blind fallback। Do not start concrete Supabase/Auth authority work without explicit owner instruction।
-
-Detailed handoff: `AGENT_RESUME/2026-09-09-juju-email-gateway-phase2b-deployment-closeout.md`
+Detailed handoff: `AGENT_RESUME/2026-09-09-juju-infisical-email-gateway-bridge.md`

@@ -8,6 +8,7 @@ export const REQUIRED_EMAIL_GATEWAY_BINDINGS = Object.freeze([
   'EMAIL_GATEWAY_CONFIG',
   'EMAIL_GATEWAY_SIGNING_SECRET',
   'EMAIL_PROVIDER_ACTIVATION',
+  'EMAIL_RECIPIENT_HASH_PEPPER',
   ...ACTIVE_TRANSACTIONAL_PREFIXES.flatMap(prefix => [
     `${prefix}_API_KEY`,
     `${prefix}_FROM_ADDRESS`,
@@ -53,16 +54,19 @@ export async function inventoryCloudflareWorkerBindings({
   return summarizeWorkerSecretBindings(payload);
 }
 
-async function main({ stdout = process.stdout } = {}) {
+async function main({ env = process.env, stdout = process.stdout } = {}) {
   const summary = await inventoryCloudflareWorkerBindings({
-    accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
-    apiToken: process.env.CLOUDFLARE_API_TOKEN,
-    scriptName: process.env.CLOUDFLARE_WORKER_NAME || 'admission-gk'
+    accountId: env.CLOUDFLARE_ACCOUNT_ID,
+    apiToken: env.CLOUDFLARE_API_TOKEN,
+    scriptName: env.CLOUDFLARE_WORKER_NAME || 'admission-gk'
   });
   const present = summary.names.length ? summary.names.join(', ') : 'none';
   stdout.write(`::notice title=Worker secret binding names::${present}\n`);
   if (!summary.requiredBindingNamesComplete) {
     stdout.write(`::warning title=Email Gateway activation prerequisites incomplete::Missing required binding names: ${summary.missingRequiredNames.join(', ')}\n`);
+    if (env.EMAIL_GATEWAY_REQUIRE_COMPLETE_BINDINGS === 'true') {
+      throw new Error(`Required Worker binding names remain missing: ${summary.missingRequiredNames.join(', ')}`);
+    }
   } else {
     stdout.write('::notice title=Email Gateway binding-name prerequisite::All required binding names are present; provider account and sender validation are still required.\n');
   }
