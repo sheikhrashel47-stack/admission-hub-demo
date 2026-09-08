@@ -45,10 +45,12 @@
 - GitHub Actions (`143c9b8`): auth guard, Cloudflare deploy, GitHub Pages deploy—সব success।
 - Legacy historical test debt: relative run 7 pass / 14 stale-fail (old v214/dash2f6/full-APP_SHELL expectations or missing `/home/user/hub` fixtures)।
 
-## 🚧 Current STOP point
+## ✅ Current STOP point
 
-- Product implementation, tests, push এবং live deployment verification সম্পূর্ণ। Product commit `d5db968`; pushed handoff SHA `143c9b8`।
-- এই deploy-status resume update commit/push করার পর configured Telegram chat-এ বাধ্যতামূলক completion report পাঠানোই একমাত্র remaining close-out step।
+- **v220/chatv13 task সম্পূর্ণ closed।** Product commit `d5db968`; initial handoff `143c9b8`; verified deploy-status commit `94254d5`।
+- `94254d5`-এর auth guard, Cloudflare deploy ও GitHub Pages deploy—তিন workflow-ই success।
+- Configured private Telegram chat-এ completion report সফলভাবে পাঠানো হয়েছে (HTTP 200; message id `7`)।
+- কোনো remaining close-out action নেই; পরের কাজ user-এর নতুন নির্দেশ থেকে শুরু হবে।
 
 ## ⏭️ Known product backlog (unchanged)
 
