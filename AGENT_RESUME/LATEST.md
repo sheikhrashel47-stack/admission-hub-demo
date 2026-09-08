@@ -1,6 +1,14 @@
-# LATEST — v221 — Legacy account/profile/onboarding retired
+# LATEST — v221 closed · New Auth roadmap saved (not started)
 
 **আপডেট:** 2026-09-09 (Asia/Dhaka) · Agent: **জুজু**
+
+## 🔐 নতুন Login System roadmap
+
+- মালিকের New Login System-এর 10-Phase roadmap save করা হয়েছে: `docs/NEW-AUTH-SYSTEM-10-PHASE-ROADMAP.md`।
+- এটি documentation-only update; নতুন Auth code বা কোনো Phase এখনো শুরু হয়নি।
+- এক Phase 100% test + verify + মালিকের স্পষ্ট approval ছাড়া পরের Phase শুরু করা যাবে না।
+- মালিক স্পষ্টভাবে Phase 1 শুরু করতে বললে শুধু Phase 1 execute হবে।
+- Login-এর 10 Phase শেষে Leaderboard 10 Phase ও Reward 20 Phase আলাদাভাবে হবে।
 
 ## ✅ বর্তমান product state
 
@@ -60,4 +68,6 @@
 
 নতুন account/login/profile/onboarding system কেবল মালিকের পরবর্তী স্পষ্ট নির্দেশে শূন্য থেকে এক ধাপ করে build করতে হবে। পুরোনো system restore/patch নয়। Dormant records explicit schema-review/migration plan ছাড়া touch করা যাবে না।
 
-**বিস্তারিত handoff:** `AGENT_RESUME/2026-09-09-juju-account-system-retirement.md`
+**সর্বশেষ roadmap handoff:** `AGENT_RESUME/2026-09-09-juju-new-auth-roadmap-saved.md`
+
+**v221 retirement handoff:** `AGENT_RESUME/2026-09-09-juju-account-system-retirement.md`
