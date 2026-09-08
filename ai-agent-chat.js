@@ -36,7 +36,7 @@
       ['📊', 'Analyze my performance', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'Teach me this topic', 'এই topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: '↓ Latest', chzSimple: 'Simplify', chzExample: 'Examples', chzQuiz: 'Quiz me', chzMcq: 'Make MCQ', chzSimilarMcq: 'Similar MCQ', chzShorten: 'Summarize', chzPoints: 'Key points', chzRevise: 'Revision note', chzExplain: 'Explain topic', stThink: 'Thinking...', stAnalyze: 'Analyzing your question...', stImage: 'Understanding image...', stDoc: 'Reading file...', stSearch: 'Searching trusted sources...', stQuiz: 'Creating quiz...', stMcq: 'Creating MCQs...', stWrite: 'Writing answer...',
+    ph: 'Ask anything…', latest: '↓ Latest', menu: 'Menu', recentChats: 'Recent conversations', untitled: 'New chat', noChats: 'No conversations yet', newIsEmpty: 'Start a new chat? Unsent draft will be cleared.', cancelBtn: 'Cancel', pinChat: 'Pin / Unpin', itemAct: 'Choose an action:', aiProfile: 'My AI profile', backHome: 'Back to Home', close: 'Close', loginNote: 'Login to unlock your saved profile & sync.', defLbl: 'Definition', confirmClear: 'Clear all messages in this chat?', chzSimple: 'Simplify', chzExample: 'Examples', chzQuiz: 'Quiz me', chzMcq: 'Make MCQ', chzSimilarMcq: 'Similar MCQ', chzShorten: 'Summarize', chzPoints: 'Key points', chzRevise: 'Revision note', chzExplain: 'Explain topic', stThink: 'Thinking...', stAnalyze: 'Analyzing your question...', stImage: 'Understanding image...', stDoc: 'Reading file...', stSearch: 'Searching trusted sources...', stQuiz: 'Creating quiz...', stMcq: 'Creating MCQs...', stWrite: 'Writing answer...',
     copy: 'Copy', copied: 'Copied', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'Correct answer', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -69,7 +69,7 @@
       ['📊', 'আমার performance analyze করো', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'এই topicটা শেখাও', 'সালোকসংশ্লেষণ topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: '↓ নতুন', chzSimple: 'সহজ করে বলো', chzExample: 'আরও উদাহরণ', chzQuiz: 'Quiz নাও', chzMcq: 'MCQ বানাও', chzSimilarMcq: 'একই রকম MCQ', chzShorten: 'সংক্ষেপে বলো', chzPoints: 'মূল পয়েন্ট', chzRevise: 'রিভিশন নোট', chzExplain: 'টপিক বুঝাও', stThink: 'ভাবছি...', stAnalyze: 'প্রশ্ন বিশ্লেষণ করছি...', stImage: 'ছবি বিশ্লেষণ করছি...', stDoc: 'ফাইল বিশ্লেষণ করছি...', stSearch: 'তথ্য খুঁজছি...', stQuiz: 'Quiz তৈরি করছি...', stMcq: 'MCQ তৈরি করছি...', stWrite: 'উত্তর তৈরি করছি...',
+    ph: 'Ask anything…', latest: 'নতুন', menu: 'মেনু', recentChats: 'সম্প্রতি কথোপকথন', untitled: 'নতুন চ্যাট', noChats: 'এখনো কোনো কথোপকথন নেই', newIsEmpty: 'নতুন চ্যাট শুরু করবেন? অসমাপ্ত লেখা মুছে যাবে।', cancelBtn: 'বাতিল', pinChat: 'পিন / আনপিন', itemAct: 'একটি কাজ বাছুন:', aiProfile: 'আমার AI প্রোফাইল', backHome: 'হোমে ফিরুন', close: 'বন্ধ করুন', loginNote: 'লগইন করলে প্রোফাইল ও সেভ-সিঙ্ক পাবেন।', defLbl: 'সংজ্ঞা', confirmClear: 'এই চ্যাটের সব মেসেজ মুছবেন?', chzSimple: 'সহজ করে বলো', chzExample: 'আরও উদাহরণ', chzQuiz: 'Quiz নাও', chzMcq: 'MCQ বানাও', chzSimilarMcq: 'একই রকম MCQ', chzShorten: 'সংক্ষেপে বলো', chzPoints: 'মূল পয়েন্ট', chzRevise: 'রিভিশন নোট', chzExplain: 'টপিক বুঝাও', stThink: 'ভাবছি...', stAnalyze: 'প্রশ্ন বিশ্লেষণ করছি...', stImage: 'ছবি বিশ্লেষণ করছি...', stDoc: 'ফাইল বিশ্লেষণ করছি...', stSearch: 'তথ্য খুঁজছি...', stQuiz: 'Quiz তৈরি করছি...', stMcq: 'MCQ তৈরি করছি...', stWrite: 'উত্তর তৈরি করছি...',
     copy: 'Copy', copied: 'কপি হয়েছে', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'সঠিক উত্তর', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -139,10 +139,12 @@
     .ai-agent-t span{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ai-sub,#5F7A72);margin-top:1px}
     .ai-online-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.16)}
     .ai-icobtn{width:38px;height:38px;border-radius:12px;border:1px solid var(--ai-line,rgba(15,107,79,.14));background:var(--ai-card,#fff);color:var(--ai-ink,#16302A);font-size:16px;cursor:pointer;display:grid;place-items:center;flex:0 0 auto}
-    .ai-back{width:34px;height:34px;font-size:22px;line-height:1;padding-bottom:2px}
+    .ai-ham{width:38px;height:38px;font-size:17px}
+    .ai-plushead{width:38px;height:38px;font-size:19px;background:linear-gradient(140deg,#DDF3E8,#E7F6EF);color:#0E6B4F;border-color:rgba(15,107,79,.18)}
+    .ai-plushead:active{transform:scale(.92)}
     .ai-icobtn:active{transform:scale(.93)}
     /* ── body ── */
-    .ai-agent-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 12px;scroll-behavior:smooth}
+    .ai-agent-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 12px;-webkit-overflow-scrolling:touch}
     .ai-hero{position:relative;display:flex;gap:10px;align-items:center;border-radius:var(--r-l);padding:18px 16px;overflow:hidden;
       background:linear-gradient(140deg,#E9F7F0 0%,#DFF3EA 55%,#EAF9F3 100%);border:1px solid rgba(15,107,79,.12);animation:aiIn .4s ease both}
     .ai-agent-root[data-theme=dark] .ai-hero{background:linear-gradient(140deg,#12332A,#0F2A22 55%,#144033);border-color:rgba(47,191,143,.15)}
@@ -191,7 +193,7 @@
     .ai-agent-root[data-theme=dark] .ai-msg-head{color:#5FE6BD}
     .ai-msg-head .mini{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#c9ffe9,#1fa87c 60%,#0d5c44);box-shadow:0 2px 6px rgba(13,92,68,.35)}
     .ai-msg-body{font-size:16.5px;line-height:1.85;text-wrap:pretty}
-    .ai-msg-body h1,.ai-msg-body h2,.ai-msg-body h3{font-size:20px;font-weight:800;color:#0E6B4F;margin:13px 0 9px;letter-spacing:-.01em;line-height:1.42}
+    .ai-msg-body h1,.ai-msg-body h2,.ai-msg-body h3{font-size:19px;font-weight:700;color:#0E6B4F;margin:10px 0 7px;letter-spacing:-.01em;line-height:1.45}
     .ai-agent-root[data-theme=dark] .ai-msg-body h1,.ai-agent-root[data-theme=dark] .ai-msg-body h2,.ai-agent-root[data-theme=dark] .ai-msg-body h3{color:#5FE6BD}
     .ai-msg-body p{margin:12px 0}
     .ai-msg-body ul,.ai-msg-body ol{margin:12px 0;padding-left:25px}
@@ -225,6 +227,44 @@
     .ai-think .tx{display:flex;align-items:baseline;gap:6px;min-width:0}
     .ai-think .tx b{font-size:12.5px;font-weight:800;color:var(--ai-ink,#16302A);white-space:nowrap}
     .ai-think .tx span{font-size:12px;font-weight:600;color:var(--ai-sub,#5F7A72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ai-think.tq-search .ob{background:radial-gradient(circle at 32% 28%,#d9f3ff 0%,#7fd0f2 24%,#2f9bd8 56%,#135a86 84%,#08324c 100%);box-shadow:0 5px 14px rgba(19,90,134,.45),inset 0 -4px 8px rgba(0,32,50,.45),inset 0 3px 6px rgba(255,255,255,.6),0 0 14px rgba(80,180,255,.32)}
+    .ai-think.tq-analyze .ob{background:radial-gradient(circle at 32% 28%,#f0e6ff 0%,#bb9bf5 24%,#7d52d6 56%,#4a2b86 84%,#2b1750 100%);box-shadow:0 5px 14px rgba(74,43,134,.45),inset 0 -4px 8px rgba(20,10,46,.45),inset 0 3px 6px rgba(255,255,255,.6),0 0 14px rgba(160,110,255,.32)}
+    .ai-think.tq-create .ob{background:radial-gradient(circle at 32% 28%,#fff3da 0%,#f4cd85 24%,#dc9e2f 56%,#8f5d12 84%,#4d3206 100%);box-shadow:0 5px 14px rgba(143,93,18,.45),inset 0 -4px 8px rgba(45,28,4,.45),inset 0 3px 6px rgba(255,255,255,.6),0 0 14px rgba(255,195,85,.32)}
+    /* ── dynamic rich-blocks ── */
+    .ai-stats{margin:12px 0;border:1px solid var(--ai-line,rgba(15,107,79,.16));border-radius:var(--r-m);padding:12px 14px;background:var(--ai-mint,#F2FAF6)}
+    .ai-stat{margin:9px 0}
+    .ai-stat .lbl{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:700;color:var(--ai-ink,#16302A)}
+    .ai-stat .lbl .v{font-weight:800;color:#0E6B4F;font-variant-numeric:tabular-nums}
+    .ai-stat .tr{height:7px;border-radius:99px;background:rgba(15,107,79,.1);margin-top:5px;overflow:hidden}
+    .ai-stat .fl{height:100%;border-radius:99px;background:linear-gradient(90deg,#2FB98A,#0E6B4F);transform-origin:left;animation:aiBarGrow .9s cubic-bezier(.2,.8,.3,1) both}
+    .ai-stat:nth-child(2) .fl{animation-delay:.12s}
+    .ai-stat:nth-child(3) .fl{animation-delay:.24s}
+    .ai-stat:nth-child(4) .fl{animation-delay:.36s}
+    .ai-stat:nth-child(5) .fl{animation-delay:.48s}
+    @keyframes aiBarGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+    .ai-timeline{margin:12px 0;padding:4px 0 6px 22px;border-left:2px solid var(--ai-line,rgba(15,107,79,.35));position:relative}
+    .ai-tl{position:relative;padding:0 0 14px 8px;animation:aiIn .35s ease both}
+    .ai-tl:last-child{padding-bottom:2px}
+    .ai-tl:before{content:'';position:absolute;left:-27px;top:4px;width:10px;height:10px;border-radius:50%;background:#0E6B4F;box-shadow:0 0 0 3px var(--ai-mint,#E4F3EC)}
+    .ai-tl .yr{font-weight:800;color:#0E6B4F;font-size:13.5px;font-variant-numeric:tabular-nums}
+    .ai-tl .ds{font-size:14.5px;color:var(--ai-ink,#16302A);line-height:1.65;margin-top:1px}
+    .ai-checklist{margin:10px 0;padding:0;list-style:none}
+    .ai-checklist li{display:flex;gap:10px;align-items:flex-start;margin:8px 0}
+    .ai-checklist .bx{width:19px;height:19px;flex:0 0 auto;border-radius:6px;border:1.6px solid var(--ai-line,rgba(15,107,79,.4));margin-top:1px;display:grid;place-items:center;font-size:11px;color:#fff;background:var(--ai-mint,#EFF7F2);font-weight:800}
+    .ai-checklist li.done .bx{background:#0E6B4F;border-color:#0E6B4F}
+    .ai-checklist li.done{opacity:.78}
+    .ai-callout.define{background:var(--ai-mint,#EFF7F2);border-color:rgba(15,107,79,.2)}
+    .ai-callout.define b{color:#0E6B4F}
+    .ai-callout.success{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.28)}
+    .ai-callout.success b{color:#15803d}
+    .ai-callout.keypoint{background:rgba(255,241,196,.32);border-color:rgba(212,160,26,.22)}
+    .ai-callout.keypoint b{color:#8a6d1c}
+    .ai-callout.concept{background:rgba(99,102,241,.07);border-color:rgba(99,102,241,.2)}
+    .ai-callout.concept b{color:#4f46e5}
+    .ai-callout.revision{background:rgba(14,107,79,.06);border-color:rgba(14,107,79,.18)}
+    .ai-callout.revision b{color:#0E6B4F}
+    .ai-twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:12px 0}
+    .ai-twrap table{margin:0}
     .ai-msg-bar{display:flex;align-items:center;gap:3px;margin-top:10px;padding-top:8px;border-top:1px solid var(--ai-line,rgba(15,107,79,.08))}
     .ai-msg-bar .ab{width:31px;height:31px;border:0;background:none;color:var(--ai-sub,#7A948B);cursor:pointer;display:grid;place-items:center;border-radius:9px;transition:background .15s,color .15s,transform .12s}
     .ai-msg-bar .ab:hover{background:var(--ai-mint,#EFF7F2);color:#0E6B4F}
@@ -340,9 +380,47 @@
     .ai-sheet-it:active{transform:scale(.95)}
     .ai-sheet-it .ic{font-size:19px;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--ai-mint,#E4F3EC)}
     /* ── ↓ Latest ফ্লোটিং ── */
-    .ai-latest{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom));z-index:11;display:none;align-items:center;gap:5px;background:#0E2A20;color:#D8F3E6;border:0;border-radius:99px;padding:9px 15px;font:700 12px inherit;box-shadow:0 10px 26px rgba(0,0,0,.28);cursor:pointer;animation:aiIn .2s ease both}
-    .ai-latest.show{display:flex}
-    /* ── menu / search / feedback ── */
+    .ai-latest{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom) + var(--ai-comp-h,76px) + 14px + var(--ai-kb,0px));z-index:11;width:42px;height:42px;border-radius:50%;border:0;background:#0E2A20;color:#D8F3E6;font-size:16px;font-weight:800;display:none;place-items:center;box-shadow:0 10px 26px rgba(0,0,0,.3);cursor:pointer;animation:aiIn .2s ease both}
+    .ai-latest.show{display:grid}
+    .ai-latest i.cnt{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:#2EE6A8;color:#06281C;font:800 10.5px/19px inherit;font-style:normal;display:none;text-align:center;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+    .ai-latest.new i.cnt{display:block}
+    /* ── sidebar drawer ── */
+    .ai-drawerback{position:fixed;inset:0;z-index:90;background:rgba(8,24,18,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);animation:aiFade .2s ease}
+    .ai-drawer{position:absolute;top:0;bottom:0;left:0;width:min(320px,86vw);background:var(--ai-card,#fff);color:var(--ai-ink,#16302A);padding:14px 14px calc(16px + env(safe-area-inset-bottom));overflow-y:auto;box-shadow:24px 0 60px rgba(8,24,18,.25);animation:aiDrawer .28s cubic-bezier(.2,.8,.3,1) both;border-radius:0 20px 20px 0}
+    @keyframes aiDrawer{from{transform:translateX(-16%);opacity:.4}to{transform:none;opacity:1}}
+    .ai-dr-head{display:flex;align-items:center;gap:10px;padding-bottom:11px;border-bottom:1px solid var(--ai-line,rgba(15,107,79,.1))}
+    .ai-dr-head .ai-orb.small{width:34px;height:34px;animation:none}
+    .ai-dr-head .x{margin-left:auto;border:0;background:none;color:var(--ai-sub);font-size:19px;cursor:pointer;width:32px;height:32px;border-radius:9px}
+    .ai-dr-head .x:active{transform:scale(.92)}
+    .ai-dr-t{min-width:0}
+    .ai-dr-t b{display:block;font-size:14.5px}
+    .ai-dr-t span{font-size:11px;color:var(--ai-sub)}
+    .ai-dr-acts{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+    .ai-dr-acts button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:0;background:none;color:var(--ai-ink,#16302A);padding:10px 10px;border-radius:12px;font:600 13.5px inherit;cursor:pointer}
+    .ai-dr-acts button b{font-weight:700}
+    .ai-dr-acts button .hint{font-size:10.5px;color:var(--ai-sub);margin-left:auto;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%}
+    .ai-dr-acts button:hover{background:var(--ai-mint,#EFF7F2)}
+    .ai-dr-note{font-size:10.5px;color:var(--ai-sub);padding:0 10px 8px}
+    .ai-dr-lbl{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ai-sub);padding:12px 10px 5px}
+    .ai-dr-list{display:flex;flex-direction:column;gap:1px;max-height:38vh;overflow-y:auto}
+    .ai-recent{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:11px;cursor:pointer;font-size:13px}
+    .ai-recent:hover{background:var(--ai-mint,#EFF7F2)}
+    .ai-recent.on{background:var(--ai-mint,#E4F3EC);font-weight:700}
+    .ai-recent .ic{font-size:12px}
+    .ai-recent .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ai-recent .ts{font-size:10.5px;color:var(--ai-sub);flex:0 0 auto}
+    .ai-recent .rs{border:0;background:none;color:var(--ai-sub);font-size:14px;cursor:pointer;padding:2px 5px;border-radius:7px}
+    .ai-recent .rs:hover{background:rgba(15,107,79,.1)}
+    .ai-dr-empty{font-size:12.5px;color:var(--ai-sub);padding:8px 10px}
+    .ai-dr-themes{display:flex;gap:6px;padding:2px 10px}
+    .ai-dr-themes button{flex:1;border:1px solid var(--ai-line,rgba(15,107,79,.16));background:none;color:var(--ai-ink,#16302A);border-radius:10px;padding:8px 4px;font:600 11.5px inherit;cursor:pointer}
+    .ai-dr-themes button:hover{background:var(--ai-mint,#EFF7F2)}
+    .ai-dr-foot{margin-top:10px;border-top:1px solid var(--ai-line,rgba(15,107,79,.1));padding-top:6px}
+    .ai-dr-foot button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:0;background:none;color:var(--ai-ink,#16302A);padding:8px 10px;border-radius:10px;font:600 12.5px inherit;cursor:pointer}
+    .ai-dr-foot button:hover{background:var(--ai-mint,#EFF7F2)}
+    .ai-dr-foot .danger{color:#B23B48}
+    .ai-agent-root[data-theme=dark] .ai-dr-themes button{border-color:rgba(47,191,143,.22)}
+    /* ── legacy menu (অটুট নয়, নিরাপত্তা) ── */
     .ai-menu{position:absolute;top:52px;right:12px;z-index:70;min-width:210px;padding:7px;background:var(--ai-card,#fff);border:1px solid var(--ai-line,rgba(15,107,79,.16));border-radius:var(--r-card);box-shadow:0 18px 44px rgba(23,58,43,.2);animation:aiIn .16s ease both;color:var(--ai-ink,#16302A)}
     .ai-menu .lbl{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ai-sub,#5F7A72);padding:8px 10px 4px}
     .ai-menu button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 10px;border-radius:10px;background:none;border:0;color:var(--ai-ink,#16302A);font:600 13px inherit;cursor:pointer}
@@ -370,12 +448,25 @@
   let feedbackTarget = -1;
   let attachments = [];
   let voiceState = null; /* {rec, timer, chunks, start} */
-  try { const s = JSON.parse(localStorage.getItem(STORE) || '[]'); if (Array.isArray(s)) msgs = s.slice(-MAX_MSGS); } catch (_) { msgs = []; }
+  const mkSession = (nm, arr) => ({ id: Date.now() + Math.random().toString(36).slice(2, 6), name: nm || '', msgs: (arr || []).slice(-MAX_MSGS), pin: 0, ts: Date.now() });
+  let sessions = [];
+  let cur = 0;
+  let aiUnread = 0;
+  let aiPinned = true;
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE) || '[]');
+    if (Array.isArray(raw)) sessions = [mkSession((() => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (_) { return ''; } })(), raw)];
+    else if (raw && raw.v === 2 && Array.isArray(raw.list) && raw.list.length) { sessions = raw.list; cur = Math.min(+raw.cur || 0, sessions.length - 1); }
+    else sessions = [mkSession('', [])];
+  } catch (_) { sessions = [mkSession('', [])]; }
+  msgs = sessions[cur].msgs;
   let theme = (() => { try { const t = localStorage.getItem(THEME_KEY); return THEMES[t] ? t : 'light'; } catch (_) { return 'light'; } })();
 
   const esc = (s) => { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; };
   const token = () => { try { return localStorage.getItem('ahPubToken') || sessionStorage.getItem('ahPubToken') || ''; } catch (_) { return ''; } };
-  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(msgs.slice(-MAX_MSGS))); } catch (_) {} };
+  const save = () => { try { sessions[cur].msgs = msgs.slice(-MAX_MSGS); sessions[cur].ts = Date.now(); localStorage.setItem(STORE, JSON.stringify({ v: 2, list: sessions, cur: cur })); } catch (_) {} };
+  const curTitle = () => (sessions[cur] && sessions[cur].name ? sessions[cur].name : T.title);
+  const fmtDay = (ts) => { try { const d = new Date(ts), n = new Date(); return d.toDateString() === n.toDateString() ? fmtTime(ts) : d.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { day: 'numeric', month: 'short' }); } catch (_) { return ''; } };
   const fmtTime = (ts) => { try { return new Date(ts).toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', { hour: '2-digit', minute: '2-digit' }); } catch (_) { return ''; } };
   const toast = (m) => { const old = document.querySelector('.ai-toast'); if (old) old.remove(); const el = document.createElement('div'); el.className = 'ai-toast'; el.textContent = m; document.body.appendChild(el); setTimeout(() => el.remove(), 2300); };
   const isAuthed = () => !!token();
@@ -383,6 +474,8 @@
   /* ── markdown-lite v3 (escape-first; heading/para/bullets/num/code/formula/tip/example/warn/table/links) ── */
   function md(html) {
     const codeBlocks = [];
+    const extra = [];
+    const put = (h) => { extra.push(h); return '\u0000DX' + (extra.length - 1) + '\u0000'; };
     html = html.replace(/```([\s\S]*?)```/g, (m, c) => { codeBlocks.push(c); return '\u0000CB' + (codeBlocks.length - 1) + '\u0000'; });
     html = html.replace(/((?:^\|.*\|\s*$\n?)+)/gm, (block) => {
       const rows = block.trim().split('\n').map((r) => r.replace(/^\||\|$/g, '').split('|').map((c) => c.trim()));
@@ -391,9 +484,39 @@
       for (const r of rows.slice(1)) { if (r.length === 1 && /^:?-{2,}:?$/.test(r[0])) continue; out += '<tr>' + r.map((c) => '<td>' + c + '</td>').join('') + '</tr>'; }
       return out + '</tbody></table>';
     });
+    let defLine = '';
+    if (html.length < 520) {
+      const dm = html.match(/^(?:[^\n]{0,44}?)(?:হলো|হল|মানে|বলে|কে বোঝায়|definition|means|is the)[^\n]{0,210}/i);
+      if (dm && dm[0] && dm[0].length <= 240) { defLine = dm[0]; html = html.slice(dm[0].length).replace(/^\n+/, ''); }
+    }
+    /* ── ডেটা: ৩+ লাইন 'নাম: NN%' → বার-চার্ট ── */
+    html = html.replace(/((?:^[^\n]{1,30}?[:：]\s*[\d০-৯]{1,3}(?:[.,][\d০-৯]+)?\s*%\s*\n){3,})/gm, (block) => {
+      const bnD = { '০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9' };
+      const toEn = (x) => String(x).replace(/[০-৯]/g, (d) => bnD[d]).replace(/,/g, '.');
+      const rows = block.trim().split('\n').map((r) => { const mm = r.match(/^\s*(.{1,28}?)\s*[:：]\s*([\d০-৯]{1,3}(?:[.,][\d০-৯]+)?)\s*%\s*$/); return mm ? [mm[1], Math.max(0, Math.min(100, parseFloat(toEn(mm[2]))))] : null; }).filter(Boolean);
+      if (rows.length < 3) return block;
+      return put('<div class="ai-stats">' + rows.map((r) => '<div class="ai-stat"><div class="lbl"><span>' + r[0] + '</span><span class="v">' + r[1] + '%</span></div><div class="tr"><div class="fl" style="width:' + r[1] + '%"></div></div></div>').join('') + '</div>') + '\n';
+    });
+    /* ── টাইমলাইন: ৩+ লাইন 'YYYY — বিবরণ' ── */
+    html = html.replace(/((?:^[^\n]*[\d০-৯]{3,4}\s*[–—-]\s*[^\n]*\n|^[ \t]*\n){3,})/gm, (block) => {
+      const items = block.trim().split('\n').map((r) => { const mm = r.match(/^\s*([\d০-৯]{3,4})\s*[–—-]\s*(.+)$/); return mm ? [mm[1], mm[2].trim()] : null; }).filter(Boolean);
+      if (items.length < 3) return block;
+      return put('<div class="ai-timeline">' + items.map((it) => '<div class="ai-tl"><div class="yr">' + it[0] + '</div><div class="ds">' + it[1] + '</div></div>').join('') + '</div>') + '\n';
+    });
+    /* ── চেকলিস্ট ── */
+    html = html.replace(/((?:^[*+-]\s*\[[ xX]\]\s*[^\n]*\n?)+)/gm, (block) => {
+      const items = block.trim().split('\n').map((r) => { const mm = r.match(/^\s*[*+-]\s*\[([ xX])\]\s*(.+)$/); return mm ? [mm[1].toLowerCase() === 'x' ? 1 : 0, mm[2]] : null; }).filter(Boolean);
+      if (!items.length) return block;
+      return put('<ul class="ai-checklist">' + items.map((it) => '<li class="' + (it[0] ? 'done' : '') + '"><span class="bx">' + (it[0] ? '✓' : '') + '</span><span>' + it[1] + '</span></li>').join('') + '</ul>') + '\n';
+    });
     let s = html
       .replace(/^### (.*)$/gm, '<h3>$1</h3>').replace(/^## (.*)$/gm, '<h2>$1</h2>').replace(/^# (.*)$/gm, '<h1>$1</h1>')
-      .replace(/^⚠️?\s*(.*)$/gm, '<div class="ai-callout warn"><b>⚠️</b> $1</div>')
+      .replace(/^([✅📌🧠📚💡⚠️])?\s*(.*)$/gm, (m, ic, txt) => {
+        if (!ic || !txt.trim()) return m;
+        const map = { '✅': ['success', '✅'], '📌': ['keypoint', '📌'], '🧠': ['concept', '🧠'], '📚': ['revision', '📚'], '💡': ['tip', '💡'], '⚠️': ['warn', '⚠️'] };
+        const k = map[ic]; if (!k) return m;
+        return '<div class="ai-callout ' + k[0] + '"><b>' + k[1] + '</b> ' + txt + '</div>';
+      })
       .replace(/^&gt; (.*)$/gm, '<blockquote>$1</blockquote>')
       .replace(/^\s*[-*] (.*)$/gm, '<li>$1</li>').replace(/^\s*\d+\. (.*)$/gm, '<li>$1</li>')
       .replace(/(?:<li>[\s\S]*?<\/li>)(?=(?:<li>|$))/g, (m) => '<ul>' + m + '</ul>')
@@ -405,17 +528,18 @@
       .replace(/(^|[\s(])((?:https?:\/\/)[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>')
       .replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>');
     s = '<div class="ai-msg-body">' + (s.includes('<p>') ? s : '<p>' + s + '</p>') + '</div>';
-    return s.replace(/\u0000CB(\d+)\u0000/g, (m, i) => '<pre><code>' + esc(codeBlocks[+i]).replace(/\n$/, '') + '</code></pre>');
+    if (defLine) s = s.replace('<div class="ai-msg-body">', '<div class="ai-msg-body"><div class="ai-callout define"><b>🧠 ' + esc(T.defLbl) + '</b> ' + defLine.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>') + '</div>');
+    s = s.replace(/<table>/g, '<div class="ai-twrap"><table>').replace(/<\/table>/g, '</table></div>');
+    return s.replace(/\u0000CB(\d+)\u0000/g, (m, i) => '<pre><code>' + esc(codeBlocks[+i]).replace(/\n$/, '') + '</code></pre>').replace(/\u0000DX(\d+)\u0000/g, (m, i) => extra[+i]);
   }
 
   /* ── shell ── */
   function shell() {
     return `<div class="ai-agent-root" data-theme="${theme}"><div class="ai-agent-head">
-      <button class="ai-icobtn ai-back" id="aiBackBtn" aria-label="Back">‹</button>
+      <button class="ai-icobtn ai-ham" id="aiMenuBtn" aria-label="${esc(T.menu)}" title="${esc(T.menu)}">☰</button>
       <div class="ai-orb" aria-hidden="true"></div>
-      <div class="ai-agent-t"><b>${esc(T.title)}</b><span><span class="ai-online-dot"></span>${esc(T.sub)} · ${esc(T.online)}</span></div>
-      <button class="ai-icobtn" id="aiSearchBtn" aria-label="${esc(T.menuSearch)}">🔍</button>
-      <button class="ai-icobtn" id="aiMenuBtn" aria-label="Menu">⋯</button></div>
+      <div class="ai-agent-t"><b id="aiTitleTxt">${esc(curTitle())}</b><span><span class="ai-online-dot"></span>${esc(T.sub)} · ${esc(T.online)}</span></div>
+      <button class="ai-icobtn ai-plushead" id="aiNewBtn" aria-label="${esc(T.menuNew)}" title="${esc(T.menuNew)}">＋</button></div>
       <div class="ai-agent-body" id="aiAgentBody"></div>
       <div class="ai-agent-foot" id="aiAgentFoot">
         <div id="aiAttachWrap"></div>
@@ -424,39 +548,76 @@
           <div class="ai-compose-mid"><div class="ai-editor" id="aiInput" contenteditable="true" role="textbox" aria-multiline="true" data-ph="${esc(T.ph)}" aria-label="Message AI"></div></div>
           <button class="ai-mic" id="aiMicBtn" type="button" aria-label="Voice">🎙</button>
           <button class="ai-send" id="aiSendBtn" type="button" aria-label="${esc(T.send)}">➤</button>
-        </div></div><button class="ai-latest" id="aiLatest">${esc(T.latest)}</button></div>`;
+        </div></div><button class="ai-latest" id="aiLatest" aria-label="${esc(T.latest)}" title="${esc(T.latest)}">↓<i class="cnt" id="aiLatestCnt">0</i></button></div>`;
   }
-  function menuPanel() {
+  function drawerPanel() {
     const p = document.createElement('div');
-    p.className = 'ai-menu';
-    p.innerHTML = `<div class="lbl">${esc(T.menuSearch)}</div>
-      <button data-act="new">🆕 ${esc(T.menuNew)}</button>
-      <button data-act="rename">✏️ ${esc(T.menuRename)}</button>
-      <button data-act="search">🔍 ${esc(T.menuSearch)}</button>
-      <button data-act="export">📤 ${esc(T.menuExport)}</button>
-      <div class="lbl">${esc(T.themeOpt)}</div>
-      <button data-theme="light">☀️ ${esc(T.themeLight)}</button>
-      <button data-theme="dark">🌙 ${esc(T.themeDark)}</button>
-      <button data-theme="oled">⬛ ${esc(T.themeOled)}</button>
-      <div class="lbl">${esc(T.title)}</div>
-      <button data-act="clear">🧹 ${esc(T.menuClear)}</button>
-      <button data-act="del" class="danger">🗑 ${esc(T.menuDelete)}</button>`;
-    p.querySelector('[data-act="new"]').addEventListener('click', () => { closeMenu(); newChat(); });
-    p.querySelector('[data-act="rename"]').addEventListener('click', () => { closeMenu(); renameChat(); });
-    p.querySelector('[data-act="search"]').addEventListener('click', () => { closeMenu(); openSearch(); });
-    p.querySelector('[data-act="export"]').addEventListener('click', () => { closeMenu(); exportChat(); });
-    p.querySelector('[data-act="clear"]').addEventListener('click', () => { closeMenu(); clearMsgs(); });
-    p.querySelector('[data-act="del"]').addEventListener('click', () => { closeMenu(); delChat(); });
-    p.querySelectorAll('[data-theme]').forEach((b) => b.addEventListener('click', () => { setTheme(b.getAttribute('data-theme')); closeMenu(); }));
+    p.className = 'ai-drawerback';
+    const list = sessions.slice().sort((a, b) => (b.pin - a.pin) || (b.ts - a.ts));
+    p.innerHTML = `<div class="ai-drawer" role="dialog" aria-label="${esc(T.menu)}">
+      <div class="ai-dr-head"><div class="ai-orb small"></div><div class="ai-dr-t"><b>${esc(T.title)}</b><span>${esc(T.sub)} · ${esc(T.online)}</span></div><button class="x" id="aiDrawerX" aria-label="${esc(T.close)}">×</button></div>
+      <div class="ai-dr-acts">
+        <button data-act="new">＋ <b>${esc(T.menuNew)}</b>${msgs.length ? `<span class="hint">${esc(T.newIsEmpty)}</span>` : ''}</button>
+        <button data-act="search">🔍 <b>${esc(T.menuSearch)}</b></button>
+      </div>
+      <div class="ai-dr-lbl">${esc(T.recentChats)}</div>
+      <div class="ai-dr-list">${list.map((s2) => {
+        const i = sessions.indexOf(s2);
+        return `<div class="ai-recent ${i === cur ? 'on' : ''}" data-i="${i}"><span class="ic">${s2.pin ? '📌' : '💬'}</span><span class="nm">${esc(s2.name || T.untitled)}</span><span class="ts">${esc(fmtDay(s2.ts))}</span><button class="rs" data-rm="${i}" aria-label="${esc(T.menu)}">⋯</button></div>`;
+      }).join('') || `<div class="ai-dr-empty">${esc(T.noChats)}</div>`}</div>
+      <div class="ai-dr-lbl">${esc(T.themeOpt)}</div>
+      <div class="ai-dr-themes">
+        <button data-theme="light">☀️ ${esc(T.themeLight)}</button>
+        <button data-theme="dark">🌙 ${esc(T.themeDark)}</button>
+        <button data-theme="oled">⬛ ${esc(T.themeOled)}</button>
+      </div>
+      <div class="ai-dr-acts">
+        ${isAuthed() ? `<button data-act="profile">👤 <b>${esc(T.aiProfile)}</b></button>` : `<button data-act="login">👤 <b>${esc(T.loginBtn)}</b></button>`}
+        <button data-act="home">‹ <b>${esc(T.backHome)}</b></button>${isAuthed() ? '' : `<span class="ai-dr-note">${esc(T.loginNote)}</span>`}
+      </div>
+      <div class="ai-dr-foot">
+        <button data-act="rename">✏️ ${esc(T.menuRename)}</button>
+        <button data-act="export">📤 ${esc(T.menuExport)}</button>
+        <button data-act="clear">🧹 ${esc(T.menuClear)}</button>
+        <button data-act="del" class="danger">🗑 ${esc(T.menuDelete)}</button>
+      </div></div>`;
+    p.addEventListener('click', (e) => { if (e.target === p) closeMenu(); });
+    p.querySelectorAll('[data-act]').forEach((b) => {
+      const act = b.getAttribute('data-act');
+      b.addEventListener('click', () => {
+        if (act === 'new') { closeMenu(); newChat(); }
+        else if (act === 'rename') { closeMenu(); renameChat(); }
+        else if (act === 'search') { closeMenu(); openSearch(); }
+        else if (act === 'export') { closeMenu(); exportChat(); }
+        else if (act === 'clear') { closeMenu(); clearMsgs(); }
+        else if (act === 'del') { closeMenu(); delChat(); }
+        else if (act === 'login') { closeMenu(); if (window.__AiAgentLogin) window.__AiAgentLogin(); }
+        else if (act === 'profile') { closeMenu(); toast(T.aiProfile); }
+        else if (act === 'home') { closeMenu(); backHome(); }
+      });
+    });
+    p.querySelectorAll('[data-theme]').forEach((b) => b.addEventListener('click', () => { setTheme(b.getAttribute('data-theme')); }));
+    p.querySelectorAll('[data-i]').forEach((row) => row.addEventListener('click', (e) => { if (e.target.closest('.rs')) return; const i = +row.getAttribute('data-i'); if (i !== cur) switchChat(i); closeMenu(); }));
+    p.querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); itemMenu(+b.getAttribute('data-rm'), b); }));
+    const x = p.querySelector('#aiDrawerX'); if (x) x.addEventListener('click', closeMenu);
     return p;
   }
+  function itemMenu(i, anchor) {
+    const s2 = sessions[i]; if (!s2) return;
+    const act = prompt(T.itemAct + '\n1. ' + T.pinChat + '\n2. ' + T.menuRename + '\n3. ' + T.menuDelete + '\n4. ' + T.cancelBtn, '1');
+    if (act === '1') { s2.pin = s2.pin ? 0 : 1; save(); }
+    else if (act === '2') { const nm = prompt(T.menuRename + ':', s2.name || ''); if (nm !== null) { s2.name = nm.trim(); if (i === cur) { try { localStorage.setItem(NAME_KEY, s2.name); } catch (_) {} } } save(); }
+    else if (act === '3') { if (!confirm(T.confirmDel)) return; const wasCur = i === cur; sessions.splice(i, 1); if (!sessions.length) sessions = [mkSession('', [])]; if (wasCur || cur >= sessions.length) { cur = Math.min(i, sessions.length - 1); msgs = sessions[cur].msgs; render(); return; } save(); }
+    if (menuOpen) { closeMenu(); menuOpen = true; document.body.appendChild(drawerPanel()); }
+  }
+  function backHome() { const nb = document.querySelector('.bottomnav'); if (nb) nb.style.display = ''; if (window.navigate) window.navigate('dashboard'); else history.back(); }
   function applyThemeVars() {
     const r = document.querySelector('.ai-agent-root'); if (!r) return;
     const t = THEMES[theme] || THEMES.light;
     for (const k of ['bg', 'card', 'ink', 'sub', 'primary', 'mint', 'line', 'user']) r.style.setProperty('--ai-' + k, t[k]);
   }
   function setTheme(t) { theme = THEMES[t] ? t : 'light'; try { localStorage.setItem(THEME_KEY, theme); } catch (_) {} const r = document.querySelector('.ai-agent-root'); if (r) r.setAttribute('data-theme', theme); applyThemeVars(); renderChrome(); }
-  function closeMenu() { menuOpen = false; const m = document.querySelector('.ai-menu'); if (m) m.remove(); }
+  function closeMenu() { menuOpen = false; const m = document.querySelector('.ai-drawerback') || document.querySelector('.ai-menu'); if (m) m.remove(); }
   function setSheetUI(open) { attachOpen = open;
     const plus = document.getElementById('aiPlusBtn'); if (plus) plus.classList.toggle('plus-on', open);
     const nav = document.querySelector('.bottomnav');
@@ -579,18 +740,26 @@
   }
 
   /* ── renew / delete / export ── */
-  function newChat() { msgs = []; try { localStorage.removeItem(STORE); } catch (_) {} render(); }
-  function clearMsgs() { msgs = []; try { localStorage.removeItem(STORE); } catch (_) {} render(); }
+  function newChat() { if (msgs.length === 0) { render(); return; } sessions.push(mkSession('', [])); cur = sessions.length - 1; msgs = sessions[cur].msgs; aiPinned = true; save(); render(); }
+  function switchChat(i) { if (i === cur || !sessions[i]) return; save(); cur = i; msgs = sessions[cur].msgs; aiPinned = true; render(); }
+  function clearMsgs() { if (!confirm(T.confirmClear)) return; msgs = []; aiPinned = true; save(); render(); }
   function delChat() {
     if (!confirm(T.confirmDel)) return;
-    newChat(); toast(T.delDone);
+    sessions.splice(cur, 1);
+    if (!sessions.length) sessions = [mkSession('', [])];
+    cur = Math.min(cur, sessions.length - 1);
+    msgs = sessions[cur].msgs;
+    save(); render(); toast(T.delDone);
   }
   function renameChat() {
-    const cur = (() => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (_) { return ''; } })();
-    const name = prompt(T.menuRename + ':', cur || T.title);
+    const prev = (sessions[cur] && sessions[cur].name) || (() => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (_) { return ''; } })();
+    const name = prompt(T.menuRename + ':', prev || T.title);
     if (name === null) return;
-    try { localStorage.setItem(NAME_KEY, name.trim() || ''); } catch (_) {}
-    const b = document.querySelector('.ai-agent-t b'); if (b) b.textContent = (name.trim() || T.title);
+    sessions[cur].name = name.trim(); sessions[cur].ts = Date.now();
+    try { localStorage.setItem(NAME_KEY, sessions[cur].name); } catch (_) {}
+    save();
+    const b = document.getElementById('aiTitleTxt') || document.querySelector('.ai-agent-t b');
+    if (b) b.textContent = sessions[cur].name || T.title;
   }
   function exportChat() {
     const txt = msgs.map((m) => (m.role === 'user' ? T.you + ': ' : T.title + ': ') + (m.text || '')).join('\n\n') || '(empty)';
@@ -754,6 +923,17 @@
     if (searchOpen) { applySearch(document.getElementById('aiSearchInput').value || ''); return; }
     b.innerHTML = msgs.map((m, i) => m.quiz && m.quiz.done ? quizDoneHtml(m, i) : msgHtml(m, i)).join('');
     scrollBottom();
+    const lastM = msgs[msgs.length - 1];
+    if (lastM && lastM.role === 'ai' && typeof window.__aiMarkNew === 'function' && window.__aiMarkLast !== lastM) { window.__aiMarkLast = lastM; window.__aiMarkNew(); }
+    requestAnimationFrame(() => {
+      b.querySelectorAll('.ai-stat .v').forEach((el) => {
+        if (el.dataset.cd) return; el.dataset.cd = '1';
+        const t = el.textContent; const v = parseFloat(t); if (!isFinite(v)) return;
+        const units = t.replace(/[\d.]+/, ''); const t0 = performance.now(); const dur = 750;
+        const step = (now) => { const k = Math.min(1, (now - t0) / dur); el.textContent = Math.round(v * (k < 1 ? 1 - Math.pow(1 - k, 3) : 1)) + units; if (k < 1) requestAnimationFrame(step); };
+        requestAnimationFrame(step);
+      });
+    });
   }
   function wireEmpty() {
     const cta = document.getElementById('aiHeroCta');
@@ -766,19 +946,21 @@
   function scrollBottom(force) {
     const b = body(); if (!b) return;
     const near = b.scrollHeight - b.scrollTop - b.clientHeight < 150;
-    if (force || near) b.scrollTop = b.scrollHeight;
+    if (force || aiPinned || near) b.scrollTop = b.scrollHeight;
   }
+  /* ব্যবহারকারী উপরে থাকলে টেনে নামাই না */
+  function scrollPinStart() { const b = body(); if (!b) return; if (b.scrollHeight - b.scrollTop - b.clientHeight < 320) b.scrollTop = b.scrollHeight; }
 
   /* ── streaming ── */
-  function thinkingCard() {
-    return `<div class="ai-think"><div class="ob"></div><div class="tx"><b>✦</b><span id="aiThinkStatus">${esc(T.stThink)}</span></div></div>`;
+  function thinkingCard(cls) {
+    return `<div class="ai-think ${cls || ''}"><div class="ob"></div><div class="tx"><b>✦</b><span id="aiThinkStatus">${esc(T.stThink)}</span></div></div>`;
   }
   function thinkingStatus(label) { const el = document.getElementById('aiThinkStatus'); if (el) el.textContent = label; }
   const thinkTimers = [];
   function clearThinkTimers() { while (thinkTimers.length) { clearTimeout(thinkTimers.pop()); } }
   function appendThinking(sig) {
     const b = body(); if (!b) return;
-    b.insertAdjacentHTML('beforeend', thinkingCard());
+    b.insertAdjacentHTML('beforeend', thinkingCard(sig.search ? 'tq-search' : (sig.image || sig.doc) ? 'tq-analyze' : (sig.quiz || sig.mcq) ? 'tq-create' : ''));
     scrollBottom(true);
     clearThinkTimers();
     const seq = [];
@@ -791,7 +973,7 @@
     else if (sig.quiz) seq.push([2200, T.stQuiz]);
     seq.push([Math.min(5600, 2200 + seq.length * 800), T.stWrite]);
     for (const [ms, label] of seq) thinkTimers.push(setTimeout(() => thinkingStatus(label), ms));
-    thinkTimers.push(setTimeout(() => scrollBottom(true), 450));
+    thinkTimers.push(setTimeout(scrollPinStart, 450));
   }
   function removeThinking() { clearThinkTimers(); const el = document.querySelector('.ai-think'); if (el) el.remove(); }
   function appendStream(chunk) {
@@ -801,7 +983,7 @@
       streamingEl.className = 'ai-msg ai';
       streamingEl.innerHTML = `<div class="ai-msg-head"><span class="mini"></span>${esc(T.title)}</div><div class="ai-msg-body"><p><span class="ai-cursor"></span></p></div>`;
       b.appendChild(streamingEl);
-      scrollBottom(true);
+      scrollPinStart();
     }
     const p = streamingEl.querySelector('.ai-msg-body p');
     if (p) { const cur = p.querySelector('.ai-cursor'); if (cur) cur.remove(); p.textContent += chunk; const sp = document.createElement('span'); sp.className = 'ai-cursor'; p.appendChild(sp); }
@@ -1088,8 +1270,7 @@
     const plusBtn = document.getElementById('aiPlusBtn');
     const micBtn = document.getElementById('aiMicBtn');
     const menuBtn = document.getElementById('aiMenuBtn');
-    const searchBtn = document.getElementById('aiSearchBtn');
-    const head = document.querySelector('.ai-agent-head');
+    const newBtn = document.getElementById('aiNewBtn');
     if (inp) {
       /* iOS form-accessory (↑↓✓) দমন */
       inp.addEventListener('touchstart', () => { if (inp.getAttribute('contenteditable') === 'true') { inp.setAttribute('contenteditable', 'false'); } }, { passive: true });
@@ -1133,13 +1314,17 @@
     const body = document.getElementById('aiAgentBody');
     const latest = document.getElementById('aiLatest');
     let raf = null;
+    const updCnt = () => { const c = document.getElementById('aiLatestCnt'); if (c) c.textContent = aiUnread > 9 ? '9+' : String(aiUnread); if (latest) latest.classList.toggle('new', aiUnread > 0); };
     const scrollUpd = () => {
       if (!body || !latest) return;
       const off = body.scrollHeight - body.scrollTop - body.clientHeight;
-      latest.classList.toggle('show', off > 320);
+      aiPinned = off < 150;
+      latest.classList.toggle('show', off > 300);
+      if (off <= 300 && aiUnread) { aiUnread = 0; updCnt(); }
     };
+    window.__aiMarkNew = () => { if (!body || !latest) return; const off = body.scrollHeight - body.scrollTop - body.clientHeight; if (off > 300) { aiUnread++; updCnt(); } };
     if (body) body.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = null; scrollUpd(); }); }, { passive: true });
-    if (latest) latest.addEventListener('click', () => { if (body) body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' }); });
+    if (latest) latest.addEventListener('click', () => { aiUnread = 0; updCnt(); if (body) body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' }); });
     scrollUpd();
     updateComposeState();
     if (sendBtn) sendBtn.addEventListener('click', () => { activeReq ? stop() : send(); });
@@ -1150,18 +1335,26 @@
     if (micBtn) micBtn.addEventListener('click', (e) => { e.stopPropagation(); startVoice(); });
     if (menuBtn) menuBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (menuOpen) closeMenu(); else { menuOpen = true; closeAttach(); const run = menuPanel(); run.style.position = 'fixed'; head.appendChild(run); }
+      if (menuOpen) closeMenu(); else { menuOpen = true; closeAttach(); document.body.appendChild(drawerPanel()); }
     });
-    if (searchBtn) searchBtn.addEventListener('click', () => openSearch());
+    if (newBtn) newBtn.addEventListener('click', () => {
+      if (inputVal() && !window.confirm(T.newIsEmpty)) return;
+      newChat();
+    });
+    /* composer actual-height reserve (fixed-layout safety) */
+    const compRO = () => { const c = document.querySelector('.ai-compose'); const r = document.querySelector('.ai-agent-root'); if (c && r) r.style.setProperty('--ai-comp-h', Math.round(c.getBoundingClientRect().height) + 'px'); };
+    compRO(); if (window.__aiCompRO) { try { window.__aiCompRO.disconnect(); } catch (_) {} }
+    if (window.ResizeObserver) { try { window.__aiCompRO = new ResizeObserver(compRO); const c = document.querySelector('.ai-compose'); if (c) window.__aiCompRO.observe(c); } catch (_) {} }
     setSendBtn(!!activeReq);
     renderMsgs();
-    try { const nm = localStorage.getItem(NAME_KEY); if (nm) { const b = document.querySelector('.ai-agent-t b'); if (b) b.textContent = nm; } } catch (_) {}
+    const tbx = document.getElementById('aiTitleTxt') || document.querySelector('.ai-agent-t b');
+    if (tbx) tbx.textContent = sessions[cur] && sessions[cur].name ? sessions[cur].name : T.title;
   }
 
   window.renderAiAgentPage = render;
   window.__AiAgentTest = { get msgs() { return msgs.slice(); }, send, retry, regen, stop, newChat, T, parseQuiz };
   document.addEventListener('click', (e) => {
-    if (menuOpen && !e.target.closest('.ai-menu') && !e.target.closest('#aiMenuBtn')) closeMenu();
+    if (menuOpen && !e.target.closest('.ai-drawer') && !e.target.closest('#aiMenuBtn')) closeMenu();
     if (attachOpen && document.getElementById('aiSheetView') && !e.target.closest('.ai-sheet') && !e.target.closest('#aiPlusBtn')) closeAttach();
   });
 })();

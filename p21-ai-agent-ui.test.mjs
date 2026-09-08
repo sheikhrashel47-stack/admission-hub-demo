@@ -12,7 +12,7 @@ const AG = existsSync('ai-agent.js') ? readFileSync('ai-agent.js', 'utf8') : '';
 
 /* ── ১. রুট + স্ক্রিপ্ট ── */
 t('১. index.html-এ ai-রুট dispatch (renderAiAgentPage)', H.includes("if(p==='ai'){ if(window.renderAiAgentPage)"));
-t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (chatv1)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7'));
+t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (chatv1)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8'));
 t('৩. ai-agent-chat.js ফাইল-বিদ্যমান + renderAiAgentPage-এক্সপোজ', existsSync('ai-agent-chat.js') && UI.includes('window.renderAiAgentPage = render'));
 t('৪. NAV_TABS-এ 🤖 AI ট্যাব', H.includes("{key:'ai', icon:'🤖', label:'AI'}"));
 t('৫. dashboard-v2: Command Center + All-Tools এ AI-এন্ট্রি', V2.includes("navigate(\\'ai\\')") && V2.includes("'AI', \"navigate('ai')\""));
@@ -52,8 +52,8 @@ t('২৯. Mobile-first: safe-area + keyboard (visualViewport নয়, d-i n-�
 t('৩০. ক্লায়েন্ট-কোডে SSE-পার্স (data:/event:) + AbortController', UI.includes("startsWith('data:')") && UI.includes("startsWith('event:')") && UI.includes('AbortController'));
 
 /* ── ৬. ভার্সন-অখণ্ডতা v208 ── */
-t('৩১. sw BUILD_ID v208-aiagent (index-marker + expectedSwVersion)', SW.includes("const BUILD_ID = 'v214-aiagent-20260908'") && H.includes('sw.js?v=v214-aiagent-20260908') && H.includes("const expectedSwVersion = 'v214-aiagent-20260908'"));
-t('৩২. sw APP_SHELL: ai-agent-chat chatv1 + dash2f6', SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7') && SW.includes('./dashboard-v2.js?v=dash2f6') && H.includes('dashboard-v2.js?v=dash2f6'));
+t('৩১. sw BUILD_ID v208-aiagent (index-marker + expectedSwVersion)', SW.includes("const BUILD_ID = 'v215-aiagent-20260908'") && H.includes('sw.js?v=v215-aiagent-20260908') && H.includes("const expectedSwVersion = 'v215-aiagent-20260908'"));
+t('৩২. sw APP_SHELL: ai-agent-chat chatv1 + dash2f6', SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8') && SW.includes('./dashboard-v2.js?v=dash2f6') && H.includes('dashboard-v2.js?v=dash2f6'));
 
 
 /* ── ৭. মালিক-ফিডব্যাক v209 (chatv2): Enter-newline · sheet-nav-hide · premium-composer · typography ── */
@@ -61,14 +61,14 @@ t('৩৩. Enter = নতুন লাইন; Ctrl/⌘+Enter = পাঠান; 
 t('৩৪. Sheet-খোলায় nav-bar hide + body-scroll-lock + plus-rotate', UI.includes("document.querySelector('.bottomnav')") && UI.includes("(open || onAi) ? 'none' : ''") && UI.includes("document.body.style.overflow = open ? 'hidden' : ''") && UI.includes('plus-on'));
 t('৩৫. Premium composer: focus-ring + hint-row + বড় textarea (150px)', UI.includes('.ai-compose:focus-within') && UI.includes('Math.min(i.scrollHeight, 128)') && UI.includes('.ai-editor:empty::before') && !UI.includes('ai-compose-hint'));
 t('৩৬. টাইপোগ্রাফি-লিফট: 16.5px/1.85 body + 20px emerald heading + blockquote + antialiased', UI.includes('.ai-msg-body{font-size:16.5px;line-height:1.85') && UI.includes('font-size:20px') && UI.includes('.ai-msg-body blockquote') && UI.includes('-webkit-font-smoothing:antialiased') && UI.includes('.ai-editor') && UI.includes('contenteditable="true"') && !UI.includes('ai-compose-hint') && !UI.includes('aiCharCount') && !UI.includes('enterHint'));
-t('৩৭. chatv3 + v210 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7') && H.includes('sw.js?v=v214-aiagent-20260908') && H.includes("const expectedSwVersion = 'v214-aiagent-20260908'") && SW.includes("const BUILD_ID = 'v214-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7'));
+t('৩৭. chatv3 + v210 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8') && H.includes('sw.js?v=v215-aiagent-20260908') && H.includes("const expectedSwVersion = 'v215-aiagent-20260908'") && SW.includes("const BUILD_ID = 'v215-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8'));
 
 
 /* ── ৮. v211 (chatv4): ফুল-স্ক্রিন AI + Final Composer Workflow ── */
 t('৩৮. AI-পেজ ফুল-স্ক্রিন: nav-hide + back-button + নিজস্ব-scroll root', UI.includes("document.querySelector('.bottomnav')") && UI.includes("navBar.style.display = 'none'") && UI.includes('aiBackBtn') && UI.includes("window.navigate('dashboard')") && UI.includes('height:100dvh;min-height:100dvh'));
 t('৩৯. Composer workflow: 52px compact + 128px max + mic↔send swap + dirty/streaming', UI.includes('min-height:52px') && UI.includes('max-height:128px') && UI.includes(".ai-compose.dirty .ai-send{display:grid}") && UI.includes('.ai-compose.streaming .ai-send{display:grid}') && UI.includes("'Ask anything…'"));
 t('৪০. Keyboard-aware + ↓ Latest + char-count', UI.includes('--ai-kb') && UI.includes('visualViewport') && UI.includes('__aiKbUpd') && UI.includes('aiLatest') && UI.includes("latest.classList.toggle('show'") && !UI.includes('aiCharCount'));
-t('৪১. chatv4 + v211 অখণ্ডতা (index+sw)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7') && H.includes('sw.js?v=v214-aiagent-20260908') && SW.includes("const BUILD_ID = 'v214-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7'));
+t('৪১. chatv4 + v211 অখণ্ডতা (index+sw)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8') && H.includes('sw.js?v=v215-aiagent-20260908') && SW.includes("const BUILD_ID = 'v215-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8'));
 
 
 /* ── ৯. v212 (chatv5): মালিক-ফিডব্যাক — no-hint/no-counter, contenteditable, theme-vars, long-cap ── */
@@ -77,7 +77,7 @@ t('৪৩. Theme-CSS-vars apply হয় (dark-mode-র সাদা-লেখ�
 t('৪৪. Dark-mode overrides: plus/mic/link/callout/th', UI.includes("[data-theme=dark] .ai-plus{background:rgba(47,191,143,.16)") && UI.includes('[data-theme=dark] .ai-msg-body a') && UI.includes('[data-theme=dark] .ai-callout.tip') && UI.includes('[data-theme=dark] .ai-msg-body th'));
 t('৪৫. বড়-টেক্সট গার্ড: 4000-অক্ষর ক্যাপ + msgTooLong toast + focus', UI.includes('q.length > 4000') && UI.includes('msgTooLong') && UI.includes('মেসেজ খুব বড়'));
 t('৪৬. Paste → plain-text-only + IME-safe Enter', UI.includes("getData('text/plain')") && UI.includes('e.isComposing'));
-t('৪৭. chatv5 + v212 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7') && H.includes('sw.js?v=v214-aiagent-20260908') && SW.includes("const BUILD_ID = 'v214-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7'));
+t('৪৭. chatv5 + v212 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8') && H.includes('sw.js?v=v215-aiagent-20260908') && SW.includes("const BUILD_ID = 'v215-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8'));
 
 
 /* ── ১০. v213 (chatv6): কিবোর্ড-নিরাপদ layout + inline thinking + iOS-accessory fix ── */
@@ -85,7 +85,7 @@ t('৪৮. Thinking কোনো কার্ড-নয়: inline .ai-think row
 t('৪৯. কিবোর্ড-নিরাপদ layout: static-foot (fixed-নয়) + root --ai-kb padding + body-তে কোনো giant padding নেই', UI.includes('.ai-agent-foot{position:static') && UI.includes('padding-bottom:var(--ai-kb,0px)') && UI.includes('.ai-agent-body{flex:1;min-height:0;overflow-y:auto;padding:12px'));
 t('৫০. iOS ↑↓✓ দমন: contenteditable focus-refresh (touch/pointer/blur)', UI.includes("inp.setAttribute('contenteditable', 'false')") && UI.includes("inp.setAttribute('contenteditable', 'true')") && UI.includes('touchend') && UI.includes('pointerdown'));
 t('৫১. send()-এ payload-aware thinking signals (image/doc/search/quiz/mcq)', UI.includes('image: !!imgItem') && UI.includes('doc: !!docItem') && UI.includes('search: /খোঁজো|খোঁজ|search') && UI.includes('mcq: /mcq/i'));
-t('৫২. chatv6 + v213 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7') && H.includes('sw.js?v=v214-aiagent-20260908') && SW.includes("const BUILD_ID = 'v214-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7'));
+t('৫২. chatv6 + v213 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8') && H.includes('sw.js?v=v215-aiagent-20260908') && SW.includes("const BUILD_ID = 'v215-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8'));
 
 
 /* ── ১১. v214 (chatv7): মালিক-স্পেক — SVG icon action-row + dynamic chips ── */
@@ -93,7 +93,14 @@ t('৫৩. Consistent SVG icon-system (stroke: currentColor, 16px, একই-wei
 t('৫৪. Action-row: icon-only Copy/Like/Dislike/Share/Regenerate/More + __AiAgentShare + navigator.share', UI.includes('__AiAgentShare') && UI.includes('navigator.share') && UI.includes('ICONS.share') && UI.includes('ICONS.regen') && UI.includes('ICONS.more') && UI.includes('.ai-msg-bar .ab{'));
 t('৫৫. Suggested chips: compact premium (solid border, mint bg, pill, no shadow/dash)', UI.includes('.ai-followup button{display:inline-flex') && UI.includes('border-radius:999px') && UI.includes('rgba(15,107,79,.15)') && UI.includes('padding:5.5px') && !UI.includes('border:1px dashed rgba(15,107,79,.3)'));
 t('৫৬. Dynamic context-based suggestions (long/mcq/def/default branches + চিপ-click delegation)', UI.includes('const long = t.length > 750') && UI.includes('hasMcqList') && UI.includes('chzSimilarMcq') && UI.includes('chzShorten') && UI.includes('chzRevise') && UI.includes('__aiFollowupDeleg'));
-t('৫৭. chatv7 + v214 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7') && H.includes('sw.js?v=v214-aiagent-20260908') && SW.includes("const BUILD_ID = 'v214-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv7'));
+t('৫৭. chatv7 + v214 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8') && H.includes('sw.js?v=v215-aiagent-20260908') && SW.includes("const BUILD_ID = 'v215-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8'));
+
+/* ── ১২. v215 (chatv8): মালিক-স্পেক — sessions v2 + drawer + final header + dynamic renderer ── */
+t('৫৮. Sessions v2 (multichat: mkSession + {v:2,list,cur} + switchChat + rename/delete/pin)', UI.includes('const mkSession =') && UI.includes('{ v: 2, list: sessions, cur: cur }') && UI.includes('function switchChat(i)') && UI.includes('s2.pin = s2.pin ? 0 : 1') && UI.includes('const curTitle = () =>'));
+t('৫৯. Sidebar drawer (drawerPanel: recents/pin/rename/delete + new/search/themes/profile + ×)', UI.includes('function drawerPanel()') && UI.includes('ai-dr-list') && UI.includes('ai-drawerback') && UI.includes('data-rm=') && UI.includes('recentChats') && UI.includes('itemMenu'));
+t('৬০. Final header ☰ + title + ＋ (no search/⋯) + floating ↓ + unread badge', UI.includes('ai-ham') && UI.includes('aiNewBtn') && UI.includes('ai-plushead') && !UI.includes("id='aiSearchBtn'") && !UI.includes('id="aiSearchBtn"') && UI.includes('aiLatestCnt') && UI.includes('__aiMarkNew') && UI.includes("'--ai-comp-h'"));
+t('৬১. Dynamic AI presentation (stats/timeline/checklist/define-callout/table-wrap/orb-states/count-up)', UI.includes('ai-stats') && UI.includes('aiBarGrow') && UI.includes('ai-timeline') && UI.includes('ai-checklist') && UI.includes('ai-callout.define') && UI.includes('ai-twrap') && UI.includes('tq-search') && UI.includes('tq-analyze') && UI.includes('tq-create') && UI.includes('ai-stat .v'));
+t('৬২. chatv8 + v215 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8') && H.includes('sw.js?v=v215-aiagent-20260908') && SW.includes("const BUILD_ID = 'v215-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv8'));
 
 console.log(`\nP21-CHATBOT-V1: ${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);
