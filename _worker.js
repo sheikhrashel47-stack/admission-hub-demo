@@ -4,10 +4,21 @@
    stored here. */
 const ORIGIN = 'https://admission-gk.admissionhub.workers.dev';
 const VOICE_ORIGIN = 'https://admission-voice.admissionhub.workers.dev';
+const RETIRED_ASSETS = new Set([
+  '/premium-auth.js', '/premium-auth.css', '/auth-svg.js', '/user-account.js',
+  '/onboarding.js', '/onboarding.css', '/curriculum-config.js', '/preview-onboarding.html'
+]);
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (RETIRED_ASSETS.has(url.pathname)) {
+      return new Response('Retired', {
+        status: 410,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
+      });
+    }
 
     if (url.pathname.startsWith('/api/')) {
       try {

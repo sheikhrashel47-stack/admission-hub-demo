@@ -2,6 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import publicWorker, { publishGlobal } from './public-worker.js';
 import bundledWorker from './worker-bundle.mjs';
+import pagesWorker from './_worker.js';
 
 let passed = 0;
 let failed = 0;
@@ -114,8 +115,17 @@ await test('dispatcher forwards only content/admin/anonymous-AI environment',
 await test('non-account Worker capabilities remain bundled',
   ['GK_SCHEMA', 'NEWS_SCHEMA', 'GK_PROMPT', 'ASK_PROMPT', 'createWithFailover', 'bankUpload', 'scheduled(event, env, ctx)'].every(marker => BUNDLE.includes(marker)));
 await test('Pages same-origin API proxy preserves request headers', PAGES.includes("url.pathname.startsWith('/api/')") && PAGES.includes('new Headers(request.headers)') && PAGES.includes("headers.set('x-ah-pages-proxy', '1')"));
+await test('runtime: retired static URLs return 410 instead of the SPA shell', async () => {
+  let assetReads = 0;
+  const env = { ASSETS: { fetch: async () => { assetReads++; return new Response('unexpected'); } } };
+  for (const file of retiredFiles) {
+    const response = await pagesWorker.fetch(new Request('https://pages.example/' + file), env);
+    if (response.status !== 410 || response.headers.get('X-Content-Type-Options') !== 'nosniff') return false;
+  }
+  return assetReads === 0;
+});
 
-await test('runtime: health declares retired account identity model', async () => {
+await test('runtime: health declares retired account identity model',  async () => {
   const kv = new MemoryKV();
   const response = await publicWorker.fetch(new Request('https://worker/api/health'), { PUB_KV: kv });
   const data = await response.json();
