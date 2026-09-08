@@ -1,71 +1,63 @@
-# LATEST — v220 / chatv13 — iPhone fast-start + full AI responses
+# LATEST — v221 — Legacy account/profile/onboarding retired
 
-**আপডেট:** 2026-09-08 (Asia/Dhaka) · Agent: **জুজু**
+**আপডেট:** 2026-09-09 (Asia/Dhaka) · Agent: **জুজু**
 
 ## ✅ বর্তমান product state
 
-- Product commit: `d5db968` (`fix(ios): guarantee fast startup and expand AI responses`)
-- Build: `v220-aiagent-20260908`
-- AI UI: `ai-agent-chat.js?v=agent-f1-ui-chatv13`
+- Final product-code commit: `c45a4e3ec427475b8a9dcd525b84f117589251e0`
+- Main retirement commit: `07cdc102ac78569fac778d9938383a09918cdc8c`
+- Build: `v221-account-retired-20260908`
+- AI UI: `ai-agent-chat.js?v=agent-f1-ui-chatv14-guest`
 - Dashboard: `dashboard-v2.js?v=dash2f7`
-- Primary repository: `admission-hub-demo/main`
-- Live target: `https://admissionhub.pages.dev`
+- Repository: `admission-hub-demo/main`
+- Production: `https://admissionhub.pages.dev`
 - Mirror: `https://sheikhrashel47-stack.github.io/admission-hub-demo/`
 
-## ✅ সর্বশেষ পরিবর্তন
+## ✅ Account retirement result
 
-1. Boot/deferred-dashboard race ঠিক: boot আর module-ready আগেভাগে set করে না; dashboard-ready + boot-ready handshake first real render চালায়।
-2. ৩.৮ সেকেন্ড hard usable-shell deadline; “একটু বেশি সময় লাগছে”/retry recovery screen production থেকে বাদ।
-3. IndexedDB open bounded, readonly startup reads parallel, protection/settings work idle; failure non-destructive memory fallback।
-4. Automatic removed-feature data purge বাদ—saved questions/progress/settings/vocabulary/dormant records startup-এ clear বা rewrite হয় না।
-5. Guest-first app auth-config network-এর জন্য hidden থাকে না; installed PWA shell-first এবং offline launch দ্রুত।
-6. SW lean essential precache; activation client reload/navigation ও pre-update unregister বাদ।
-7. AI composer contenteditable inner focus frame বাদ; outer capsule একমাত্র frame।
-8. AI plain/rich/code response সবসময় full; `সম্পূর্ণ দেখুন`/accordion/details response fold সম্পূর্ণ বাদ।
+1. পুরোনো Login/Auth frontend ও deployed Worker implementation সম্পূর্ণ সরানো হয়েছে; এটি কোনো patch নয়।
+2. শুধু Profile primary navigation, Profile routes/CTA/tools এবং Profile-only Studio items সরানো হয়েছে।
+3. Home, Question Bank, Exam, AI ও History—পাঁচ tab অক্ষত ও usable।
+4. Personalization Onboarding UI/gate/flow/API/source/assets সরানো হয়েছে।
+5. residual auth media, screenshots, OTP preview/helper এবং deleted-file URLs-ও retired।
+6. Cloudflare-এ retired static URL `410 Retired`; GitHub mirror-এ `404`।
+7. existing KV account/profile/onboarding records এবং local questions/results/progress/settings/study data delete বা migrate করা হয়নি।
+8. AI এখন `ahAiGuestV1` → `X-AH-Guest` anonymous-device contract-এ login/token/profile ছাড়া কাজ করে।
+9. public content hydration account-independent; admin publishing authorization অক্ষত।
+10. নতুন login/profile/onboarding system ইচ্ছাকৃতভাবে বানানো হয়নি।
 
 ## 🔎 Verification
 
-- Focused fast-start/data/AI regression: `22/22` pass
-- AI suite: `80/80` pass
-- Auth endpoint guard: pass (109 files)
-- Modified JS + 11 inline scripts syntax: pass
-- Local mobile Chromium/Playwright 390×844 touch:
-  - cold dashboard `356 ms`
-  - intentionally delayed dashboard module: usable shell `3965 ms`
-  - 3000-question DB reload `307 ms`, 3000 retained
-  - offline controlled-PWA reload `284 ms`, IndexedDB marker retained
-- Live Cloudflare production, WebKit 26 + iPhone 13 profile:
-  - cold dashboard `625 ms`
-  - dashboard module 4.5 সেকেন্ড delay: usable normal shell `4168 ms`, warning নেই, final dashboard এসেছে
-  - 3000-question DB reload `609 ms`, all 3000 + settings marker retained
-  - v220 SW active/controlling; AI response `<details>` `0`; plain/rich/code tail সব visible
-  - editor inner outline/border/shadow none; outer frame present; runtime page errors `0`
-- Live controlled-PWA mobile Chromium offline reload `342 ms`; IndexedDB marker retained; runtime errors `0`।
-- Cloudflare ও GitHub Pages live `sw.js`, `chatv13`, `dash2f7` local files-এর exact SHA-256 match; required HTTP endpoints 200।
-- GitHub Actions (`143c9b8`): auth guard, Cloudflare deploy, GitHub Pages deploy—সব success।
-- Legacy historical test debt: relative run 7 pass / 14 stale-fail (old v214/dash2f6/full-APP_SHELL expectations or missing `/home/user/hub` fixtures)।
+- Final complete regression: **15 suites, 329 passed / 0 failed**
+- Retirement guard: **28/28**
+- Worker bundle exact reproducibility + source/route scan: pass
+- Local mobile QA: `364 ms`, 5 tabs, 62 resources, guest AI, 2057-character response fully expanded, 0 browser errors
+- Live mobile QA (`390×844 @2x`):
+  - usable `621 ms`
+  - 5 correct tabs; Profile absent
+  - 64 resources; retired assets loaded `0`
+  - v221 SW active; only current v221 cache
+  - one AI composer frame
+  - stable guest identity/header + live AI response
+  - page/console/request errors `0/0/0`
+- Live Worker:
+  - account health 200: `accountSystem:"retired"`, `identity:"anonymous-device"`
+  - AI status/chat without login: 200
+  - public content meta: 5 subjects, 14 topics, 3000 questions, 81 vocabulary
+  - retired account/profile/onboarding/state/session endpoints: 404
+- Cloudflare + GitHub live core files byte-for-byte exact with local final files।
+- Final product Actions:
+  - Worker `34261569649` — success
+  - Retirement Guard `34262377093` — success
+  - Cloudflare Pages `34262377154` — success
+  - GitHub Pages `34262375700` — success
 
 ## ✅ Current STOP point
 
-- **v220/chatv13 task সম্পূর্ণ closed।** Product commit `d5db968`; initial handoff `143c9b8`; verified deploy-status commit `94254d5`।
-- `94254d5`-এর auth guard, Cloudflare deploy ও GitHub Pages deploy—তিন workflow-ই success।
-- Configured private Telegram chat-এ completion report সফলভাবে পাঠানো হয়েছে (HTTP 200; message id `7`)।
-- কোনো remaining close-out action নেই; পরের কাজ user-এর নতুন নির্দেশ থেকে শুরু হবে।
+**v221 legacy account retirement সম্পূর্ণ closed।** পুরোনো Login/Auth, Profile navigation/tools ও Personalization Onboarding আর production source, loaded assets, PWA cache, Worker route বা deploy bundle থেকে load/reachable নয়। Core app ও guest AI live।
 
-## ⏭️ Known product backlog (unchanged)
+## ⏭️ Next
 
-1. Legacy test markers/fixture paths modernize করা।
-2. Explain/Summarize helper typed text পাঠায় না।
-3. Client `examMode:null`; real mock state safety gate-এ যুক্ত নয়।
-4. Document/video/audio attachment placeholder; image vision বাস্তব।
-5. Main Worker health-এ `GK_KV` missing; Daily-GK cron যাচাই দরকার।
-6. D1 long-memory, RAG, AI task/action engine এবং inbound Telegram development command এখনো তৈরি হয়নি।
+নতুন account/login/profile/onboarding system কেবল মালিকের পরবর্তী স্পষ্ট নির্দেশে শূন্য থেকে এক ধাপ করে build করতে হবে। পুরোনো system restore/patch নয়। Dormant records explicit schema-review/migration plan ছাড়া touch করা যাবে না।
 
-## 🚨 বাধ্যতামূলক handoff নিয়ম
-
-- পুরোনো `admission-hub/main` নয়; `admission-hub-demo/main` ব্যবহার করতে হবে।
-- প্রতিটি meaningful কাজের শেষে dated resume + `LATEST.md` update + commit/push বাধ্যতামূলক।
-- কোনো credential/token repository/resume-তে লেখা যাবে না।
-- কাজ শেষে Telegram completion notification পাঠাতে হবে; ব্যর্থ হলে user-কে স্পষ্ট জানাতে হবে।
-
-**বিস্তারিত handoff:** `AGENT_RESUME/2026-09-08-juju-ios-faststart-ai-full.md`
+**বিস্তারিত handoff:** `AGENT_RESUME/2026-09-09-juju-account-system-retirement.md`
