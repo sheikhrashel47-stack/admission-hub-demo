@@ -45,6 +45,6 @@ Only the account-owner UI bootstrap remains before autonomous sync can run:
 1. Create Infisical project `Admission Hub`.
 2. Create environment slug `production` and path `/email-gateway/worker`.
 3. Configure the documented OIDC Machine Identity and add provider/sender/runtime values in Infisical.
-4. Configure the two non-secret GitHub environment identifiers; the agent can configure all known path/domain variables itself.
+4. Configure the two remaining non-secret GitHub environment identifiers: project slug and OIDC identity ID. The agent has already configured `INFISICAL_DOMAIN`, `INFISICAL_ENV_SLUG` and `INFISICAL_SECRET_PATH` in the protected GitHub environment.
 
 After that, dispatch the protected staging workflow, require 33/33 binding names, validate provider accounts/senders/quotas one at a time, then activate and perform one controlled Gmail OTP send. Do not start concrete Supabase/Auth authority work without explicit owner instruction.

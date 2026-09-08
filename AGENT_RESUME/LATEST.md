@@ -10,7 +10,7 @@
 - **NOT STAGED:** The new Infisical workflow has not been dispatched and no Worker secret value changed.
 - **BLOCKED:** Required integration credential is not available in the authorized environment.
 
-Owner confirmed an Infisical account exists but no Admission Hub project has been created. Inspection found no connected Infisical CLI/session/configuration. Provider activation, remote provider validation and real Gmail OTP therefore remain unperformed.
+Owner confirmed an Infisical account exists but no Admission Hub project has been created. Inspection found no connected Infisical CLI/session/configuration. The protected GitHub environment now has the known non-secret Infisical domain, environment and path variables; only the future project slug and OIDC identity ID remain unset. Provider activation, remote provider validation and real Gmail OTP therefore remain unperformed.
 
 ## Infisical integration
 
