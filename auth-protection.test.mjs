@@ -53,7 +53,7 @@ test('Auth runtime has no browser credential persistence or cookie manipulation'
 test('Auth runtime is provider-agnostic and contains no concrete network endpoint', () => {
   const source = runtimeFiles.map(file => read(file)).join('\n');
   assert.doesNotMatch(source, /https?:\/\/|fetch\s*\(|XMLHttpRequest|WebSocket/);
-  assert.doesNotMatch(source, /supabase|brevo|resend|zeptomail|sendgrid|mailgun|postmark|mailjet|smtp2go|elasticemail/i);
+  assert.doesNotMatch(source, /supabase|resend|brevo|mailjet|mailtrap|mailersend|sendpulse|emailoctopus|courier|zeptomail|sendgrid|mailgun|postmark|smtp2go|elasticemail/i);
 });
 
 test('Auth runtime contains no embedded key, JWT, private key or authorization value', () => {

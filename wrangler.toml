@@ -3,6 +3,14 @@ main = "worker-bundle.mjs"
 compatibility_date = "2024-11-01"
 workers_dev = true
 
+[[durable_objects.bindings]]
+name = "EMAIL_COORDINATOR"
+class_name = "EmailGatewayCoordinator"
+
+[[migrations]]
+tag = "v1-email-gateway-coordinator"
+new_sqlite_classes = ["EmailGatewayCoordinator"]
+
 [[kv_namespaces]]
 binding = "PUB_KV"
 id = "b9353515b098427687afcfb8654ed359"

@@ -1,0 +1,35 @@
+name: Email Gateway Guard
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'email-gateway/**'
+      - 'email-gateway*.test.mjs'
+      - 'auth/**'
+      - 'gk-agent-worker.js'
+      - 'worker-bundle.mjs'
+      - '_worker.js'
+      - 'wrangler.toml'
+      - 'package.json'
+      - '.github/workflows/email-gateway-guard.yml'
+      - '.github/CODEOWNERS'
+      - 'docs/email-gateway/**'
+      - 'docs/EMAIL-GATEWAY-*'
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify provider contracts, security, failover, chaos and no-send load
+        run: npm run test:email
+      - name: Verify Auth Foundation remains isolated
+        run: npm run test:auth
+      - name: Verify retired account system remains absent
+        run: node account-retirement.test.mjs
+      - name: Verify checked Worker bundle exactly matches protected sources
+        run: npm run check:worker-bundle
