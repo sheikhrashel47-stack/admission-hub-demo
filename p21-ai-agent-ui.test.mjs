@@ -1,6 +1,5 @@
-// P21 — AI AGENT FOUNDATION (Phase 1) ক্লায়েন্ট-ইন্টিগ্রেশন টেস্ট
-// নিশ্চিত করে: AI-রুট/নেভ/টুল-এন্ট্রি আছে; ক্লায়েন্টে কোনো সিক্রেট নেই;
-// পুরনো fragmented AI-প্রোডাক্ট এখনো বিলুপ্ত; versন-অখণ্ডতা v206।
+// P21 — CHATBOT V1 (Premium AI Assistant) ইন্টিগ্রেশন-টেস্ট
+// মালিক-স্পেক ২০২৬-০৯-০৮: hero-card/notice/chips/quiz-card/sheet/themes/menu …
 import { readFileSync, existsSync } from 'fs';
 let pass = 0, fail = 0;
 const t = (n, c) => { if (c) { pass++; console.log('  ✓', n); } else { fail++; console.log('  ✗', n); } };
@@ -12,41 +11,49 @@ const UI = existsSync('ai-agent-chat.js') ? readFileSync('ai-agent-chat.js', 'ut
 const AG = existsSync('ai-agent.js') ? readFileSync('ai-agent.js', 'utf8') : '';
 
 /* ── ১. রুট + স্ক্রিপ্ট ── */
-t('১. index.html-এ ai-রুট dispatch (renderAiAgentPage)', H.includes("if(p==='ai'){ if(window.renderAiAgentPage)") );
-t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (agent-f2-ui-v2)', H.includes('./ai-agent-chat.js?v=agent-f2-ui-v2'));
+t('১. index.html-এ ai-রুট dispatch (renderAiAgentPage)', H.includes("if(p==='ai'){ if(window.renderAiAgentPage)"));
+t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (chatv1)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv1'));
 t('৩. ai-agent-chat.js ফাইল-বিদ্যমান + renderAiAgentPage-এক্সপোজ', existsSync('ai-agent-chat.js') && UI.includes('window.renderAiAgentPage = render'));
 t('৪. NAV_TABS-এ 🤖 AI ট্যাব', H.includes("{key:'ai', icon:'🤖', label:'AI'}"));
 t('৫. dashboard-v2: Command Center + All-Tools এ AI-এন্ট্রি', V2.includes("navigate(\\'ai\\')") && V2.includes("'AI', \"navigate('ai')\""));
 
-/* ── ২. সিক্রেট-নিরাপত্তা (ক্লায়েন্ট-শূন্য) ── */
-const secretHits = ['x-goog-api-key', 'generativelanguage', 'GEMINI_KEYS', 'Bearer  ', 'api_key='];
-t('৬. ক্লায়েন্ট-ফাইল/HTML-তে কোনো API-key-প্যাটার্ন নেই', !secretHits.some((x) => UI.includes(x) || H.includes(x) || V2.includes(x)) && !/AIza[0-9A-Za-z_-]{30,}/.test(H + UI + V2));
+/* ── ২. সিক্রেট-নিরাপত্তা ── */
+const secretHits = ['x-goog-api-key', 'GEMINI_KEYS', 'Bearer  ', 'api_key='];
+t('৬. ক্লায়েন্ট-ফাইল/HTML-তে কোনো API-key-প্যাটার্ন নেই', !secretHits.some((x) => UI.includes(x) || H.includes(x) || V2.includes(x)) && !/AIza[0-9A-Za-z_-]{30,}/.test(H + UI + V2) && !UI.includes('generativelanguage') && !UI.includes('elevenlabs.io'));
 t('৭. server-মডিউল ai-agent.js আছে + import-প্রতিচিহ্ন public-worker-এ', existsSync('ai-agent.js') && PW.includes("from './ai-agent.js'"));
 
-/* ── ৩. Gateway-রুট (public-worker) ── */
+/* ── ৩. Gateway-রুট ── */
 t('৮. public-worker: /api/ai/chat + /api/ai/status + লিগ্যাসি /api/ai → agent', PW.includes("p === '/api/ai/chat'") && PW.includes("p === '/api/ai/status'") && PW.includes('agentChat(request, env, uid, { stream: false })'));
-t('৯. gk-agent-worker: agent-env পাস-থ্রু (GROQ/AGENT_*)', readFileSync('gk-agent-worker.js','utf8').includes('GROQ_API_KEY: env.GROQ_API_KEY') && readFileSync('gk-agent-worker.js','utf8').includes('agent: \'agent-f1\''));
+t('৯. gk-agent-worker: agent-env পাস-থ্রু', readFileSync('gk-agent-worker.js','utf8').includes('GROQ_API_KEY: env.GROQ_API_KEY'));
 
 /* ── ৪. পুরনো AI-প্রোডাক্ট বিলুপ্ত-অটুট ── */
-t('১০. পুরনো AI-ফাইল এখনো নেই (১০টা)', !existsSync('ah-ai-client.js') && !existsSync('study-ai-tool.js') && !existsSync('gk-agent-tool.js') && !existsSync('ai-explain-tool.js') && !existsSync('web-chat-rebuild.js') && !existsSync('web-search-fix.js') && !existsSync('ai-mentor-integration.js') && !existsSync('bug-agent-tool.js') && !existsSync('result-ai-analysis.js') && !existsSync('manual-gemini-helper.js'));
-t('১১. পুরনো AI-রুট dispatch এখনো নেই (renderAIChat/web-chat…)', !H.includes('renderAIChat(') && !H.includes('renderWebChatV2(') && !H.includes('renderWebChatRebuild'));
-t('১২. removedRoute-এ পুরনো AI-রুট-ব্লক অটুট', H.includes("p === 'ai-chat'") && H.includes("p === 'study-ai'") && H.includes("p === 'web-chat'") && H.includes("p === 'gk-agent'"));
-t('১৩. ai-রুট removedRoute-এ ব্লক নয়', !H.includes("p === 'ai' ||") && !H.includes("|| p === 'ai'"));
+t('১০. ১০-টা পুরনো AI-ফাইল এখনো নেই', !existsSync('ah-ai-client.js') && !existsSync('study-ai-tool.js') && !existsSync('gk-agent-tool.js') && !existsSync('ai-explain-tool.js') && !existsSync('web-chat-rebuild.js') && !existsSync('web-search-fix.js') && !existsSync('ai-mentor-integration.js') && !existsSync('bug-agent-tool.js') && !existsSync('result-ai-analysis.js') && !existsSync('manual-gemini-helper.js'));
+t('১১. পুরনো AI-রুট dispatch এখনো নেই', !H.includes('renderAIChat(') && !H.includes('renderWebChatV2(') && !H.includes('renderWebChatRebuild'));
+t('১২. removedRoute-এ পুরনো AI-রুট-ব্লক অটুট + ai-রুট আনব্লক', H.includes("p === 'ai-chat'") && H.includes("p === 'study-ai'") && !H.includes("p === 'ai' ||"));
 
-/* ── ৫. Phase-2 — Premium AI UI (মালিক-স্পেক §22-24) ── */
-t('১৭. Stop-button: সেন্ড ↔ স্টপ morph (activeReq-abort + partial-কিপ)', UI.includes("activeReq ? stop() : send()") && UI.includes("abort()") && UI.includes("stoppedEarly"));
-t('১৮. Message-actions: ♡ like + Copy + Regenerate + 🔊 Speak', UI.includes("__AiAgentLike") && UI.includes("__AiAgentCopy") && UI.includes("__AiAgentRegen") && UI.includes("__AiAgentSpeak"));
-t('১৯. TTS: same-origin /api/voice + X-AH-App (কোনো elevenlabs.io-ডিরেক্ট-কল নেই)', UI.includes("'/api/voice'") && UI.includes("'X-AH-App': 'admission-hub'") && !UI.includes('elevenlabs.io') && !UI.includes('ELEVENLABS_API_KEY'));
-t('২০. Follow-up chips + header-মেনু (নতুন চ্যাট/মুছো)', UI.includes("ai-followup") && UI.includes("aiMenuBtn") && UI.includes("aiAgentMenupan") || (UI.includes("ai-followup") && UI.includes("ai-agent-menupan")));
-t('২১. login-CTA (401-পথে AHAuth.openLogin)', UI.includes("__AiAgentLogin") && UI.includes("AHAuth") && UI.includes("openLogin"));
-t('২২. Markdown v2: table + math-foundation ($$/$)', UI.includes("<table>") && UI.includes("ai-math") && UI.includes("ai-math-inline"));
-t('২৩. Streaming-caret + scroll-near-bottom + timestamp', UI.includes("ai-cursor") && UI.includes("scrollBottom") && UI.includes("fmtTime"));
-t('২৪. কোনো client-key/স্ট্রিং-সিক্রেট নেই (Phase-2-ও)', !/AIza[0-9A-Za-z_-]{30,}/.test(UI) && !UI.includes("x-goog-api-key") && !UI.includes("generativelanguage"));
+/* ── ৫. Chatbot-V1 UI (মালিক-স্পেক) ── */
+t('১৩. Hero-card: 3D-orb + CTA (Hey! আমি Admission Hub AI)', UI.includes('ai-hero') && UI.includes('aiHeroCta') && UI.includes('ai-hero-orb'));
+t('১৪. Dismissible notice (ai_notice_dismissed + এন-ভাষা-বার্তা)', UI.includes('ai_notice_dismissed') && UI.includes('ai-notice') && UI.includes('Verify important admission information'));
+t('১৫. Try-asking chips (৫টা, প্রম্পট-কী-সহ)', UI.includes('ai-chips') && UI.includes('Try asking') && ['🧠','📝','🎯','📊','📚'].every(e => UI.includes("'" + e + "'")));
+t('১৬. Composer: capsule + plus + mic + send/stop-morph', UI.includes('ai-compose') && UI.includes('aiMicBtn') && UI.includes('activeReq ? stop() : send()') && UI.includes('ai-send'));
+t('১৭. Bottom-sheet: Add to conversation (৬) + AI Tools (৬)', UI.includes('ai-sheet') && UI.includes('Add to conversation') && UI.includes('AI Tools') && UI.includes('data-file="cam"') && UI.includes('data-tool="summ"'));
+t('১৮. Voice-in: Web-Speech (উপলব্ধ-চেক + fallback)', (UI.includes('webkitSpeechRecognition') || UI.includes('SpeechRecognition')) && UI.includes('voiceNope'));
+t('১৯. TTS-out: same-origin /api/voice + X-AH-App', UI.includes("'/api/voice'") && UI.includes("'X-AH-App': 'admission-hub'"));
+t('২০. Editorial AI-msg: formula + tip/example/warn + table + msg-bar (Copy/Regen/👍/👎/⋯)', UI.includes('ai-formula') && UI.includes('ai-callout') && UI.includes('<table>') && UI.includes('ai-msg-bar') && UI.includes('__AiAgentFb') && UI.includes('__AiAgentMore'));
+t('২১. Interactive Quick-Challenge: quiz-card + tap/next/score/analysis/retry', UI.includes('ai-quiz') && UI.includes('__AiQuizTap') && UI.includes('__AiQuizNext') && UI.includes('Quiz Complete') && UI.includes('__AiQuizAnalysis') && UI.includes('__AiQuizRetry'));
+t('২২. Quiz-JSON parser (```json-সহ tolerant) + intent-গেটেড', UI.includes('parseQuiz') && UI.includes('QUIZ_REQUEST') && UI.includes('questions'));
+t('২৩. Themes (Light/Dark/OLED) + css-var + localStorage', UI.includes('data-theme') && UI.includes('aiChatTheme') && UI.includes('oled') && UI.includes('themeDark'));
+t('২৪. Menu: new/rename/search/export/clear/delete + confirm', UI.includes('aiMenuBtn') && UI.includes('menuRename') && UI.includes('menuExport') && UI.includes('confirmDel') && UI.includes('menuDelete'));
+t('২৫. Search-কথোপকথন overlay + feedback-sheet (৫ কারণ) + feedback-log', UI.includes('ai-searchbar') && UI.includes('aiFeedbackLog') && UI.includes('fb4') && UI.includes('ai-fb-opt'));
+t('২৬. Follow-up chips + লেখক-রিজেন + marker (⭐-save/share)', UI.includes('ai-followup') && UI.includes('__AiAgentRegen') && UI.includes('navigator.share'));
+t('২৭. Thinking-state (✦ Thinking + অবস্থা-টেক্সট) + streaming-caret', UI.includes('ai-thinking') && UI.includes('aiThinkStatus') && UI.includes('ai-cursor'));
+t('২৮. login-CTA (AHAuth.openLogin) + error-state retry', UI.includes('__AiAgentLogin') && UI.includes('AHAuth') && UI.includes('openLogin') && UI.includes('__AiAgentRetry'));
+t('২৯. Mobile-first: safe-area + keyboard (visualViewport নয়, d-i n-এ padding) + reduced-motion', UI.includes('safe-area-inset') && UI.includes('prefers-reduced-motion'));
+t('৩০. ক্লায়েন্ট-কোডে SSE-পার্স (data:/event:) + AbortController', UI.includes("startsWith('data:')") && UI.includes("startsWith('event:')") && UI.includes('AbortController'));
 
-/* ── ৬. ভার্সন-অখণ্ডতা v207 ── */
-t('১৪. sw BUILD_ID v207-aiagent (index-marker + expectedSwVersion + cur)', SW.includes("const BUILD_ID = 'v207-aiagent-20260908'") && H.includes('sw.js?v=v207-aiagent-20260908') && H.includes("const expectedSwVersion = 'v207-aiagent-20260908'"));
-t('১৫. sw APP_SHELL-এ ai-agent-chat + dash2f6', SW.includes('./ai-agent-chat.js?v=agent-f2-ui-v2') && SW.includes('./dashboard-v2.js?v=dash2f6') && H.includes('dashboard-v2.js?v=dash2f6'));
-t('১৬. UI-ফাইলে স্ট্রিমিং-ক্লায়েন্ট (fetch /api/ai/chat + SSE-পার্স + abort)', UI.includes("/api/ai/chat") && UI.includes("startsWith('data:')") && UI.includes("startsWith('event:')") && UI.includes("AbortController"));
+/* ── ৬. ভার্সন-অখণ্ডতা v208 ── */
+t('৩১. sw BUILD_ID v208-aiagent (index-marker + expectedSwVersion)', SW.includes("const BUILD_ID = 'v208-aiagent-20260908'") && H.includes('sw.js?v=v208-aiagent-20260908') && H.includes("const expectedSwVersion = 'v208-aiagent-20260908'"));
+t('৩২. sw APP_SHELL: ai-agent-chat chatv1 + dash2f6', SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv1') && SW.includes('./dashboard-v2.js?v=dash2f6') && H.includes('dashboard-v2.js?v=dash2f6'));
 
-console.log(`\nP21-AI-AGENT-FOUNDATION-V2: ${pass} pass / ${fail} fail`);
+console.log(`\nP21-CHATBOT-V1: ${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);

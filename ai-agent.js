@@ -68,8 +68,13 @@ export function validateChatReq(body) {
     const content = typeof (m && m.content) === 'string' ? m.content : typeof (m && m.text) === 'string' ? m.text : '';
     if (!role || !content.trim()) return { ok: false, code: 'invalid_message', message: 'বার্তার গঠন সঠিক নয়।' };
     if (content.length > 4000) return { ok: false, code: 'message_too_long', message: 'একটি বার্তা ৪০০০ অক্ষরের বেশি হতে পারবে না।' };
+    const image = typeof (m && m.image) === 'string' ? m.image : '';
+    if (image) {
+      if (!/^data:image\/(jpeg|png|webp|gif);base64,/.test(image)) return { ok: false, code: 'invalid_image', message: 'ছবির ফরম্যাট সাপোর্টেড নয় (jpeg/png/webp/gif)।' };
+      if (image.length > 4700000) return { ok: false, code: 'image_too_large', message: 'ছবি ৩.৫MB-এর বেশি হতে পারবে না।' };
+    }
     total += content.length;
-    msgs.push({ role, content: content.trim() });
+    msgs.push({ role, content: content.trim(), image });
   }
   if (total > 20000) return { ok: false, code: 'context_too_long', message: 'বার্তার মোট আকার খুব বড়।' };
   return { ok: true, messages: msgs };
@@ -110,6 +115,7 @@ HARD RULES:
 7. When asked for a quiz, you may create practice questions with answers and explanations inline.
 8. During a mock exam (mock-running), you must NOT give answers, hints, explanations or solve questions. Politely explain that mock tests must be completed independently, and offer analysis after the exam.`;
   if (examMode === 'mock-running') p += `\n\nEXAM INTEGRITY — ACTIVE (mock-running): answers, hints and explanations are REFUSED.`;
+  if (opts.quiz) p += `\n\nQUIZ MODE — reply with ONLY a valid JSON object (no markdown fences, no text outside JSON):\n{"title":"<short topic title>","questions":[{"q":"<question>","options":["<A>","<B>","<C>","<D>"],"answer":0,"explanation":"<1-2 sentence Bangla explanation of the answer>"}]}\nRules: exactly 5 questions (or the count the user asked, 1-10); admission-level quality; answer is the 0-based index of the correct option; question/options/explanation in the user's language (Bangla unless the user wrote English); 4 options each.`;
   if (stats) {
     const bits = [];
     if (stats.exams != null) bits.push(`মোট পরীক্ষা: ${stats.exams}`);
@@ -307,6 +313,7 @@ export async function agentChat(request, env, uid, opts = {}) {
   const intentCls = classifyIntent(v.messages[v.messages.length - 1].content);
   const intent = intentCls.intent;
   const tier = intentCls.tier;
+  const quizMode = intent === INTENTS.QUIZ_REQUEST;
   const examMode = body.context && body.context.examMode === 'mock-running' ? 'mock-running' : '';
   const stats = capStats(body.context && body.context.stats);
   const safety = safetyGate(intent, examMode);
@@ -326,22 +333,33 @@ export async function agentChat(request, env, uid, opts = {}) {
   }
   msgs = msgs.slice(-24);
 
-  const systemPrompt = buildSystemPrompt({ stats, examMode });
+  const systemPrompt = buildSystemPrompt({ stats, examMode, quiz: quizMode });
   let summaryText = await getKv(env.PUB_KV, 'chatmemsum:' + sendCtx.uid);
   const sys = summaryText ? systemPrompt + '\n\n' + String(summaryText) : systemPrompt;
 
-  const payloadG = (m) => ({
+  const hasImage = msgs.some(m => m.image);
+  const partsOf = (m) => {
+    const p = [{ text: m.content }];
+    if (m.image) {
+      const i = m.image.indexOf(',');
+      const mt = String(m.image.slice(5, i) || 'image/jpeg').split(';')[0];
+      p.push({ inline_data: { mime_type: mt, data: m.image.slice(i + 1) } });
+    }
+    return p;
+  };
+  const payloadG = () => ({
     system_instruction: { parts: [{ text: sys }] },
-    contents: msgs.map(m => ({ role: m.role, parts: [{ text: m.content }] }))
+    contents: msgs.map(m => ({ role: m.role, parts: partsOf(m) }))
   });
-  const payloadO = (m) => ({ messages: [{ role: 'system', content: sys }].concat(msgs) });
+  const payloadO = () => ({ messages: [{ role: 'system', content: sys }].concat(msgs.map(m => ({ role: m.role, content: m.content }))) });
 
   /* bad-set (আজ-মার্ক-করা key/model) */
   const badSet = new Set();
   for (const c of routerChain(env, tier, new Set())) {
     try { if (await getKv(env.PUB_KV, badKeyName(c.key, c.model))) badSet.add(String(c.key).slice(0, 12) + ':' + c.model); } catch (_) {}
   }
-  const chain = routerChain(env, tier, badSet);
+  let chain = routerChain(env, tier, badSet);
+  if (hasImage) chain = chain.filter(c => c.provider === 'gemini');
   if (!chain.length) {
     const msg = { error: 'no_providers', message: 'AI-সেবা এখন কনফিগার করা নেই — দয়া করে মালিককে জানাও (GEMINI_KEYS)।' };
     return stream ? sseError(msg, 503) : jsonResp(msg, 503);
@@ -355,7 +373,7 @@ export async function agentChat(request, env, uid, opts = {}) {
   const finalize = async (model, provider, text) => {
     /* memory আপডেট (KV ২য় রাইট) + bad-key 401/402/429-এ ▪ */
     try {
-      const next = msgs.concat([{ role: 'user', content: v.messages[v.messages.length - 1].content }, { role: 'assistant', content: text }]).slice(-24);
+      const next = msgs.concat([{ role: 'user', content: v.messages[v.messages.length - 1].content }, { role: 'assistant', content: text }]).slice(-24).map(x => ({ role: x.role, content: x.content }));
       await putKv(env.PUB_KV, 'chatmem:' + sendCtx.uid, JSON.stringify(next), 2592000);
     } catch (_) {}
   };
@@ -365,7 +383,7 @@ export async function agentChat(request, env, uid, opts = {}) {
     for (const c of chain) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${c.model}:generateContent?key=${encodeURIComponent(c.key)}`;
-        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadG(c)) });
+        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadG()) });
         if (r.ok) {
           const d = await r.json().catch(() => ({}));
           const t = String(d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts.map(x => x.text || '').join('') || '').trim();
@@ -395,14 +413,14 @@ export async function agentChat(request, env, uid, opts = {}) {
           try {
             let full = '';
             if (c.provider === 'groq') {
-              for await (const t of groqStream(c.key, c.model, payloadO(c))) { full += t; push(`data: ${JSON.stringify({ text: t })}\n\n`); }
+              for await (const t of groqStream(c.key, c.model, payloadO())) { full += t; push(`data: ${JSON.stringify({ text: t })}\n\n`); }
             } else {
-              for await (const t of geminiStream(c.key, c.model, payloadG(c))) { full += t; push(`data: ${JSON.stringify({ text: t })}\n\n`); }
+              for await (const t of geminiStream(c.key, c.model, payloadG())) { full += t; push(`data: ${JSON.stringify({ text: t })}\n\n`); }
             }
             if (full.trim()) {
               ok = true;
               await finalize(c.model, c.provider, full);
-              push(`event: done\ndata: ${JSON.stringify({ model: c.model, provider: c.provider, intent, pv: SYSTEM_PROMPT_V, agent: AGENT_VERSION, latencyMs: Date.now() - startedAt })}\n\n`);
+              push(`event: done\ndata: ${JSON.stringify({ model: c.model, provider: c.provider, intent, quiz: quizMode, pv: SYSTEM_PROMPT_V, agent: AGENT_VERSION, latencyMs: Date.now() - startedAt })}\n\n`);
               break;
             }
             lastErr = 'empty-' + c.model;

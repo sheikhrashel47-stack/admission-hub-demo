@@ -165,5 +165,35 @@ t('২৫. agentStatus: providers/limits/streaming', (async () => {
 
 t('২৬. Agent-f1 কোনো client-secret-শব্দ ধারণ করে না', !readFileSync('/home/user/demo/ai-agent.js', 'utf8').match(/Bearer [A-Za-z0-9_-]{20,}/) );
 
+/* ── ১১. ChatbotV1: Quiz-mode + Vision (মালিক-স্পেক) ── */
+t('২৭. Quiz-mode: prompt-এ কঠোর JSON-স্কিমা (QUIZ_REQUEST-ইনটেন্ট)', buildSystemPrompt({ quiz: true }).includes('QUIZ MODE') && buildSystemPrompt({ quiz: true }).includes('"questions"') && buildSystemPrompt({ quiz: true }).includes('0-based index') && !buildSystemPrompt({}).includes('QUIZ MODE'));
+t('২৮. Vision: validateChatReq mime/সাইজ-গেট', validateChatReq({ messages: [{ role: 'user', content: 'x', image: 'data:image/jpeg;base64,AAAA' }] }).ok && validateChatReq({ messages: [{ role: 'user', content: 'x', image: 'data:image/png;base64,AAAA' }] }).ok && !validateChatReq({ messages: [{ role: 'user', content: 'x', image: 'data:image/svg+xml;base64,AAAA' }] }).ok && !validateChatReq({ messages: [{ role: 'user', content: 'x', image: 'data:image/png;base64,' + 'A'.repeat(4700001) }] }).ok && !validateChatReq({ messages: [{ role: 'user', content: 'x', image: 'data:text/html;base64,AAAA' }] }).ok);
+t('২৯. E2E-vision: gemini-payload-এ inline_data + memory-তে base64-নেই', (async () => {
+  const { env, store } = stubEnv({});
+  let captured = '';
+  const restore = fakeFetch({
+    'streamGenerateContent': (url, init) => { captured = String(init.body || ''); return sseRes(gChunk('ছবিতে প্রশ্ন দেখা যাচ্ছে')); }
+  });
+  const img = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==';
+  const req = new Request('https://x/api/ai/chat', { method: 'POST', body: JSON.stringify({ messages: [{ role: 'user', content: 'এই ছবিটা বুঝাও', image: img }] }) });
+  const r = await A.agentChat(req, env, 'uid_v');
+  const text = await r.text();
+  restore();
+  return captured.includes('inline_data') && captured.includes('iVBORw0KGgo') && captured.includes('mime_type') && r.status === 200 && text.includes('ছবিতে প্রশ্ন') && !String(store.get('chatmem:uid_v') || '').includes('iVBORw0KGgo');
+})(), { timeout: 10000 });
+t('৩০. Vision-এ chain-শুধু-gemini (groq-ফলব্যাক নিষিদ্ধ — ভুল উত্তর-দেওয়া থেকে বাঁচা)', (async () => {
+  const { env } = stubEnv({ GROQ_API_KEY: 'grok' });
+  const restore = fakeFetch({
+    'streamGenerateContent': new Response('boom', { status: 500 }),
+    'api.groq.com': sseRes('data: ' + JSON.stringify({ choices: [{ delta: { content: 'গ্রক-উত্তর' } }] }) + '\n\ndata: [DONE]\n\n')
+  });
+  const img = 'data:image/jpeg;base64,AAAA';
+  const req = new Request('https://x/api/ai/chat', { method: 'POST', body: JSON.stringify({ messages: [{ role: 'user', content: 'বুঝাও', image: img }] }) });
+  const r = await A.agentChat(req, env, 'uid_vg');
+  const text = await r.text();
+  restore();
+  return r.status === 200 && text.includes('event: error') && !text.includes('গ্রক-উত্তর');
+})(), { timeout: 10000 });
+
 console.log(`\n🤖 AGENT-CORE-F1: ${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);
