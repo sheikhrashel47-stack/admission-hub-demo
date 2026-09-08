@@ -117,7 +117,7 @@
   style.id = 'ai-agent-style';
   style.textContent = `
     .ai-agent-root{--r-s:10px;--r-m:14px;--r-card:18px;--r-l:22px;--r-float:28px;--r-pill:999px;
-      height:100dvh;min-height:100dvh;display:flex;flex-direction:column;max-width:760px;margin:0 auto;overflow:hidden;
+      height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;max-width:760px;margin:0 auto;overflow:hidden;
       padding-bottom:var(--ai-kb,0px);
       background:linear-gradient(180deg,#E9F6EF 0%,var(--ai-bg,#F7F9F8) 240px);color:var(--ai-ink,#16302A);
       font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Bengali","Hind Siliguri",sans-serif;
@@ -126,8 +126,13 @@
     .ai-agent-root[data-theme=dark]{background:#0F1714;color:#E8F4EF}
     .ai-agent-root[data-theme=oled]{background:#000;color:#EAF5F0}
     .ai-agent-root *{box-sizing:border-box}
+    /* ── app viewport lock: AI page-এ html/body কখনো scroll হয় না (single-scroll architecture) ── */
+    html.ai-chat-open,html.ai-chat-open body{height:100% !important;overflow:hidden !important;overscroll-behavior:none !important;touch-action:manipulation !important}
+    html.ai-chat-open body{position:fixed !important;top:0;left:0;right:0;bottom:0;width:100%}
+    html.ai-chat-open #app, #app.ai-chat-open{height:100vh !important;height:100dvh !important;min-height:100vh !important;min-height:100dvh !important;padding-bottom:0 !important;overflow:hidden !important}
+    html.ai-chat-open #app.page, html.ai-chat-open .page{transform:none !important;will-change:auto !important}
     /* ── header ── */
-    .ai-agent-head{position:sticky;top:0;z-index:9;display:flex;align-items:center;gap:12px;padding:12px 16px 10px;background:var(--ai-bg,#F7F9F8);border-bottom:1px solid var(--ai-line,rgba(15,107,79,.1));box-shadow:0 6px 18px rgba(23,58,43,.05);transition:background .35s ease}
+    .ai-agent-head{position:relative;z-index:20;flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px 10px;background:var(--ai-bg,#F7F9F8);border-bottom:1px solid var(--ai-line,rgba(15,107,79,.1));box-shadow:0 6px 18px rgba(23,58,43,.05);transition:background .35s ease}
     .ai-orb{width:44px;height:44px;border-radius:50%;position:relative;flex:0 0 auto;
       background:radial-gradient(circle at 31% 27%,#c9ffe9 0%,#5fd9ae 20%,#1fa87c 47%,#0d5c44 78%,#073827 100%);
       box-shadow:0 8px 20px rgba(13,92,68,.35),inset 0 -7px 13px rgba(0,40,28,.4),inset 0 4px 9px rgba(255,255,255,.5);
@@ -147,7 +152,7 @@
     .ai-plushead:active{transform:scale(.92)}
     .ai-icobtn:active{transform:scale(.93)}
     /* ── body ── */
-    .ai-agent-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 12px;-webkit-overflow-scrolling:touch}
+    .ai-agent-body{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;overscroll-behavior-x:contain;padding:12px 14px 12px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
     .ai-hero{position:relative;display:flex;gap:10px;align-items:center;border-radius:var(--r-l);padding:18px 16px;overflow:hidden;
       background:linear-gradient(140deg,#E9F7F0 0%,#DFF3EA 55%,#EAF9F3 100%);border:1px solid rgba(15,107,79,.12);animation:aiIn .4s ease both}
     .ai-agent-root[data-theme=dark] .ai-hero{background:linear-gradient(140deg,#12332A,#0F2A22 55%,#144033);border-color:rgba(47,191,143,.15)}
@@ -321,7 +326,10 @@
     .ai-agent-root[data-theme=dark] .ai-followup button{color:#5FE6BD;background:rgba(47,191,143,.1);border-color:rgba(47,191,143,.22)}
     .ai-agent-root[data-theme=dark] .ai-followup button:hover{background:rgba(47,191,143,.16)}
     /* ── composer ── */
-    .ai-agent-foot{position:static;flex:0 0 auto;width:100%;z-index:12;padding:7px 12px calc(8px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--ai-bg,#F7F9F8) 36%);transition:background .35s ease}
+    .ai-agent-foot{position:relative;flex:0 0 auto;flex-shrink:0;width:100%;z-index:50;padding:7px 12px calc(8px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--ai-bg,#F7F9F8) 36%);transition:background .35s ease}
+    /* keyboard open: composer keyboard-এর ঠিক উপরে — মিথ্যা safe-area gap বাদ */
+    .ai-agent-root.ai-kb .ai-agent-foot{padding-bottom:8px}
+    .ai-agent-root.ai-kb .ai-attach-zone{padding-bottom:4px}
     .ai-compose{display:flex;align-items:center;gap:7px;min-height:52px;background:var(--ai-card,#fff);border:1.5px solid var(--ai-line,rgba(15,107,79,.22));border-radius:26px;padding:6px 7px;box-shadow:0 18px 42px rgba(23,58,43,.16),0 3px 10px rgba(23,58,43,.06),inset 0 1px 0 rgba(255,255,255,.65);transition:border-color .22s ease,box-shadow .22s ease}
     .ai-compose:focus-within{border-color:rgba(18,128,90,.55);box-shadow:0 0 0 4px rgba(18,128,90,.12),0 22px 48px rgba(23,58,43,.2),inset 0 1px 0 rgba(255,255,255,.65)}
     .ai-agent-root[data-theme=dark] .ai-compose{box-shadow:0 12px 30px rgba(0,0,0,.5)}
@@ -735,7 +743,7 @@
     else if (act === '3') { if (!confirm(T.confirmDel)) return; const wasCur = i === cur; sessions.splice(i, 1); if (!sessions.length) sessions = [mkSession('', [])]; if (wasCur || cur >= sessions.length) { cur = Math.min(i, sessions.length - 1); msgs = sessions[cur].msgs; render(); return; } save(); }
     if (menuOpen) { closeMenu(); menuOpen = true; document.body.appendChild(drawerPanel()); }
   }
-  function backHome() { const nb = document.querySelector('.bottomnav'); if (nb) nb.style.display = ''; if (window.navigate) window.navigate('dashboard'); else history.back(); }
+  function backHome() { try { document.documentElement.classList.remove('ai-chat-open'); const _ap = document.getElementById('app'); if (_ap) _ap.classList.remove('ai-chat-open'); } catch (_) {} const nb = document.querySelector('.bottomnav'); if (nb) nb.style.display = ''; if (window.navigate) window.navigate('dashboard'); else history.back(); }
   function applyThemeVars() {
     const r = document.querySelector('.ai-agent-root'); if (!r) return;
     const t = THEMES[theme] || THEMES.light;
@@ -1832,6 +1840,8 @@
   function render() {
     const root = document.querySelector('#app') || document.body;
     root.innerHTML = shell();
+    /* viewport-lock: AI-পেজে host-shell page scroll সম্পূর্ণ বন্ধ */
+    try { root.classList.add('ai-chat-open'); document.documentElement.classList.add('ai-chat-open'); } catch (_) {}
     applyThemeVars();
     const inp = document.getElementById('aiInput');
     const sendBtn = document.getElementById('aiSendBtn');
@@ -1867,7 +1877,7 @@
         const r = document.querySelector('.ai-agent-root');
         let kb = 0;
         if (vv && window.innerHeight - vv.height > 60) kb = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
-        if (r) r.style.setProperty('--ai-kb', kb + 'px');
+        if (r) { r.style.setProperty('--ai-kb', kb + 'px'); r.classList.toggle('ai-kb', kb > 0); }
       };
       if (window.__aiKbUpd) { try { vv && vv.removeEventListener('resize', window.__aiKbUpd); vv && vv.removeEventListener('scroll', window.__aiKbUpd); } catch (_) {} window.removeEventListener('resize', window.__aiKbUpd); }
       window.__aiKbUpd = upd;
@@ -1919,6 +1929,17 @@
 
   window.renderAiAgentPage = render;
   window.__AiAgentTest = { get msgs() { return msgs.slice(); }, send, retry, regen, stop, newChat, T, parseQuiz };
+  /* AI-page ছাড়লে (hash-change/browser-back) viewport-lock + nav সম্পূর্ণ মুক্তি */
+  window.addEventListener('hashchange', () => {
+    try {
+      const p = (location.hash.slice(1).split('?')[0] || '').toLowerCase();
+      if (p !== 'ai' && p !== 'ai-chat') {
+        document.documentElement.classList.remove('ai-chat-open');
+        const _ap = document.getElementById('app'); if (_ap) _ap.classList.remove('ai-chat-open');
+        const _nb = document.querySelector('.bottomnav'); if (_nb) _nb.style.display = '';
+      }
+    } catch (_) {}
+  });
   document.addEventListener('click', (e) => {
     if (menuOpen && !e.target.closest('.ai-drawer') && !e.target.closest('#aiMenuBtn')) closeMenu();
     if (attachOpen && document.getElementById('aiSheetView') && !e.target.closest('.ai-sheet') && !e.target.closest('#aiPlusBtn')) closeAttach();
