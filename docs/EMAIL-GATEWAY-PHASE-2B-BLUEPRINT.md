@@ -1,8 +1,12 @@
 # Admission Hub Multi-Provider Email Gateway — Phase 2B Blueprint
 
-**Status:** specification preserved; implementation **not started**  
-**Start gate:** explicit owner approval after Phase 2A report  
-**Auth authority:** unbound until Phase 3
+**Status:** implementation verified and owner-approved on 2026-09-09; provider activation remains disabled
+
+**Start gate:** Phase 2A and Phase 2B implementation approvals satisfied; concrete Supabase/Auth work still requires an explicit start instruction
+
+**Auth authority:** concrete Supabase/Auth binding remains gated until the approved next phase
+
+**Scope override (2026-09-09):** active provider pool replaced by the owner-selected eight-provider catalog below; dormant legacy adapters are preserved but not routed
 
 ## Mission and non-negotiable rules
 
@@ -48,6 +52,7 @@ A future Supabase Auth adapter may invoke this infrastructure, but Supabase iden
   template,
   variables,
   requestId,
+  idempotencyKey,
   priority
 }
 ```
@@ -56,10 +61,11 @@ A future Supabase Auth adapter may invoke this infrastructure, but Supabase iden
 
 ```text
 sendEmail()
-verifyConfiguration()
-healthCheck()
-getQuotaStatus()
+checkHealth()
+getStatus()
 getCapabilities()
+
+Compatibility-only orchestration aliases may remain internal during migration, but the four methods above are the required common surface.
 ```
 
 ### Provider registry metadata
@@ -67,29 +73,29 @@ getCapabilities()
 ```text
 id, name, enabled, priority, weight, capabilities,
 dailyLimit, monthlyLimit, remainingQuota,
-healthStatus, failureCount, successCount, latency,
-lastSuccess, lastFailure, cooldownUntil
+healthStatus, successRate, failureRate, timeoutRate, latency,
+quotaState, circuit, currentLoad, maxConcurrent,
+lastSuccess, lastFailure, cooldownUntil, failoverRole
 ```
 
 Priority, weight, limits, thresholds and timeouts are configuration—not scattered source constants.
 
 ## Provider adapter pool
 
-Planned isolated adapters:
+Owner-selected active catalog:
 
-- Brevo
-- Resend
-- ZeptoMail
-- Amazon SES
-- Mailgun
-- SendGrid
-- SMTP2GO
-- Mailjet
-- Elastic Email
-- Postmark
-- optional Google Apps Script only for emergency/development/testing/low volume
+1. Resend
+2. Brevo
+3. Mailjet
+4. Mailtrap
+5. MailerSend
+6. SendPulse
+7. EmailOctopus
+8. Courier
 
-Conceptual default priority follows the order above, but it is not a claim of availability/free quota and must remain configurable. A provider is enabled only after its configuration is securely supplied and verified.
+Seven adapters map documented direct transactional APIs. EmailOctopus is retained for truthful catalog/status reporting but is always OTP-ineligible because its official API exposes list/contact/campaign/automation operations rather than direct one-to-one transactional send. No campaign workaround may be represented as OTP acceptance.
+
+Conceptual default priority follows the order above, but it is not a claim of availability or free quota and remains configurable. A transactional provider is enabled only after isolated secrets, provider-specific sender evidence, conservative quota/load policy and bounded remote health verification.
 
 ## Router modes and selection
 

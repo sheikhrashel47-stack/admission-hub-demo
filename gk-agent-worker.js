@@ -1,5 +1,7 @@
 // v133b: public-product module
 import pubHandler, { publishGlobal } from './public-worker.js';
+import { handleInternalEmailRequest } from './email-gateway/worker/handler.mjs';
+export { EmailGatewayCoordinator } from './email-gateway/worker/email-coordinator.mjs';
 /**
  * 🤖 ADMISSION HUB — Daily GK Agent Worker
  * v111 · Browser Use cloud (৩ key failover) → দিনে মাত্র ১ রান → GK MCQ + verified admission news
@@ -424,6 +426,8 @@ const maybeStart = async (request, env, ctx) => {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const emailResponse = await handleInternalEmailRequest(request, env, ctx);
+    if (emailResponse) return emailResponse;
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(request) });
 
     // Public product API: content, anonymous-device AI and content admin only.

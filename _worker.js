@@ -24,6 +24,14 @@ export default {
       });
     }
 
+    // Internal service endpoints must never be proxied or exposed through Pages.
+    if (url.pathname.startsWith('/internal/')) {
+      return new Response('Not found', {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
+      });
+    }
+
     if (url.pathname.startsWith('/api/')) {
       try {
         const base = url.pathname.startsWith('/api/voice') ? VOICE_ORIGIN : ORIGIN;
