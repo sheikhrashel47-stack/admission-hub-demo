@@ -38,7 +38,7 @@ t('১১. worker: rpHost(request) — rp.id/rpId বর্তমান-হো�
 
 /* ── ৪. ভার্সন-অখণ্ডতা v201 ── */
 t('১২. premium-auth ?v=p3-auth-guest-v201 + onboarding ?v=p6-onboard-v13 (index+sw)', H.includes('premium-auth.js?v=p3-auth-guest-v201') && SW.includes("'./premium-auth.js?v=p3-auth-guest-v201'") && H.includes('onboarding.js?v=p6-onboard-v13') && SW.includes("'./onboarding.js?v=p6-onboard-v13'"));
-t('১৩. sw BUILD_ID v211-aiagent-20260908 (index-marker + expectedSwVersion + cur)', SW.includes("const BUILD_ID = 'v211-aiagent-20260908'") && H.includes('sw.js?v=v211-aiagent-20260908') && H.includes("const expectedSwVersion = 'v211-aiagent-20260908'") && H.includes("const cur = 'admission-hub-shell-v211-aiagent-20260908'"));
+t('১৩. sw BUILD_ID v212-aiagent-20260908 (index-marker + expectedSwVersion + cur)', SW.includes("const BUILD_ID = 'v212-aiagent-20260908'") && H.includes('sw.js?v=v212-aiagent-20260908') && H.includes("const expectedSwVersion = 'v212-aiagent-20260908'") && H.includes("const cur = 'admission-hub-shell-v212-aiagent-20260908'"));
 
 /* ── ৫. রানটাইম: ডিফল্ট-অনবোর্ডিং-ডেটা → সৎ-শূন্য-রেন্ডার ── */
 t("১৪. রানটাইম: ডিফল্ট-অনবোর্ডিং-ডেটা-সহ-সৎ-শূন্য-রেন্ডার", (async () => {

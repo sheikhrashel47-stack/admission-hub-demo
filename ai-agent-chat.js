@@ -36,7 +36,7 @@
       ['📊', 'Analyze my performance', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'Teach me this topic', 'এই topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: '↓ Latest', enterHint: 'Enter = new line · Ctrl+Enter = send', thinking: 'Thinking', understanding: 'Understanding your question...', creating: 'Creating questions...',
+    ph: 'Ask anything…', latest: '↓ Latest', thinking: 'Thinking', understanding: 'Understanding your question...', creating: 'Creating questions...',
     copy: 'Copy', copied: 'Copied', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'Correct answer', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -47,7 +47,7 @@
     addToConv: 'Add to conversation', aiTools: 'AI Tools',
     cam: 'Camera', img: 'Image', doc: 'Document', vid: 'Video', voice: 'Voice', file: 'File',
     tSearch: 'Search', tMcq: 'Create MCQ', tQuiz: 'Quiz Me', tExplain: 'Explain', tAnalyze: 'Analyze', tSummarize: 'Summarize',
-    listening: 'Listening', transcribing: 'Transcribing', voiceNope: 'Voice input not supported on this device',
+    listening: 'Listening', transcribing: 'Transcribing', voiceNope: 'Voice input not supported on this device', msgTooLong: 'Message is too long — please keep it under 4,000 characters',
     login: 'Please sign in to use AI chat', loginBtn: 'Sign in', retry: 'Try again',
     err: 'Something went wrong.', offline: 'You are offline', imgTooBig: 'Image must be 3.5MB or smaller',
     docSoon: 'Document understanding is coming soon — I answered based on your text.', liked: 'Thanks for feedback!',
@@ -69,7 +69,7 @@
       ['📊', 'আমার performance analyze করো', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'এই topicটা শেখাও', 'সালোকসংশ্লেষণ topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: '↓ নতুন', enterHint: 'Enter = নতুন লাইন · Ctrl+Enter = পাঠান', thinking: 'Thinking', understanding: 'তোমার প্রশ্নটা বুঝছি…', creating: 'প্রশ্ন বানাচ্ছি…',
+    ph: 'Ask anything…', latest: '↓ নতুন', thinking: 'Thinking', understanding: 'তোমার প্রশ্নটা বুঝছি…', creating: 'প্রশ্ন বানাচ্ছি…',
     copy: 'Copy', copied: 'কপি হয়েছে', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'সঠিক উত্তর', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -80,7 +80,7 @@
     addToConv: 'Add to conversation', aiTools: 'AI Tools',
     cam: 'Camera', img: 'Image', doc: 'Document', vid: 'Video', voice: 'Voice', file: 'File',
     tSearch: 'Search', tMcq: 'Create MCQ', tQuiz: 'Quiz Me', tExplain: 'Explain', tAnalyze: 'Analyze', tSummarize: 'Summarize',
-    listening: 'Listening', transcribing: 'Transcribing…', voiceNope: 'এই ডিভাইসে ভয়েস-ইনপুট নেই',
+    listening: 'Listening', transcribing: 'Transcribing…', voiceNope: 'এই ডিভাইসে ভয়েস-ইনপুট নেই', msgTooLong: 'মেসেজ খুব বড় — সর্বোচ্চ ৪,০০০ অক্ষর। ছোট করে আবার পাঠান।',
     login: 'AI চ্যাট ব্যবহার করতে লগইন করুন', loginBtn: 'লগইন করুন', retry: 'আবার চেষ্টা করো',
     err: 'একটু সমস্যা হয়েছে।', offline: 'ইন্টারনেট সংযোগ নেই', imgTooBig: 'ছবি ৩.৫MB-এর বেশি হবে না',
     docSoon: 'ডকুমেন্ট-বিশ্লেষণ শীঘ্রই আসছে — আপাতত তোমার লেখা থেকে উত্তর দিয়েছি।', liked: 'ফিডব্যাকের জন্য ধন্যবাদ!',
@@ -92,9 +92,9 @@
 
   /* ── themes ── */
   const THEMES = {
-    light: { bg: '#F7F9F8', card: '#ffffff', ink: '#16302A', sub: '#5F7A72', primary: '#0E6B4F', mint: '#E4F3EC', line: 'rgba(15,107,79,.14)' },
-    dark: { bg: '#0F1714', card: '#182420', ink: '#E8F4EF', sub: '#8FA8A0', primary: '#2FBF8F', mint: '#14332A', line: 'rgba(47,191,143,.18)' },
-    oled: { bg: '#000000', card: '#0B0F0D', ink: '#EAF5F0', sub: '#7E968D', primary: '#35D6A2', mint: '#0E1F19', line: 'rgba(53,214,162,.16)' }
+    light: { bg: '#F7F9F8', card: '#ffffff', ink: '#16302A', sub: '#5F7A72', primary: '#0E6B4F', mint: '#E4F3EC', line: 'rgba(15,107,79,.14)', user: '#0E5F45' },
+    dark: { bg: '#0F1714', card: '#182420', ink: '#E8F4EF', sub: '#8FA8A0', primary: '#2FBF8F', mint: '#14332A', line: 'rgba(47,191,143,.18)', user: '#134F3E' },
+    oled: { bg: '#000000', card: '#0B0F0D', ink: '#EAF5F0', sub: '#7E968D', primary: '#35D6A2', mint: '#0E1F19', line: 'rgba(53,214,162,.16)', user: '#0E7A54' }
   };
 
   const style = document.createElement('style');
@@ -251,9 +251,11 @@
     .ai-compose:focus-within{border-color:rgba(18,128,90,.55);box-shadow:0 0 0 4px rgba(18,128,90,.12),0 22px 48px rgba(23,58,43,.2),inset 0 1px 0 rgba(255,255,255,.65)}
     .ai-agent-root[data-theme=dark] .ai-compose{box-shadow:0 12px 30px rgba(0,0,0,.5)}
     .ai-compose-mid{flex:1;min-width:0;display:flex;flex-direction:column}
-    .ai-compose-hint{display:none;align-items:center;gap:8px;font-size:10.5px;font-weight:600;color:var(--ai-sub,#8AA39A);padding:0 4px 1px;white-space:nowrap;overflow:hidden}
-    .ai-compose:focus-within .ai-compose-hint{display:flex;color:#5F8A78}
-    .ai-cc{margin-left:auto;font-weight:800;color:#0E6B4F;flex:0 0 auto}
+    .ai-editor{min-height:0!important;height:auto;border:0;background:none;resize:none;outline:0;font:inherit;font-size:16px;line-height:1.5;max-height:128px;overflow-y:auto;padding:9px 4px 5px;color:var(--ai-ink,#16302A);white-space:pre-wrap;word-break:break-word;scrollbar-width:thin;cursor:text}
+    .ai-editor::-webkit-scrollbar{width:4px}
+    .ai-editor::-webkit-scrollbar-thumb{background:var(--ai-line,rgba(15,107,79,.25));border-radius:99px}
+    .ai-editor:empty::before{content:attr(data-ph);color:#93A8A0;pointer-events:none}
+    .ai-editor:focus{outline:0}
     .ai-plus{width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:0;background:linear-gradient(140deg,#DDF3E8,#E7F6EF);color:#0E6B4F;font-size:20px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 10px rgba(14,107,79,.12),inset 0 1px 0 rgba(255,255,255,.8);transition:transform .22s ease,background .22s ease,color .22s ease}
     .ai-plus.plus-on{transform:rotate(45deg);background:linear-gradient(140deg,#12805A,#0E5F45);color:#fff}
     .ai-plus:active{transform:scale(.9)}
@@ -263,7 +265,16 @@
     .ai-compose textarea::placeholder{color:#93A8A0}
     .ai-mic{width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:1px solid var(--ai-line,rgba(15,107,79,.22));background:linear-gradient(140deg,#F2FAF6,#E9F6EF);color:#0E6B4F;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);transition:border-color .2s,box-shadow .2s}
     .ai-mic:active{border-color:rgba(14,107,79,.5);box-shadow:0 0 0 4px rgba(18,128,90,.1)}
-    .ai-agent-root[data-theme=dark] .ai-mic{color:#5FE6BD}
+    .ai-agent-root[data-theme=dark] .ai-mic{color:#5FE6BD;background:rgba(47,191,143,.12);border-color:rgba(47,191,143,.3)}
+    .ai-agent-root[data-theme=dark] .ai-plus{background:rgba(47,191,143,.16);color:#5FE6BD;box-shadow:none}
+    .ai-agent-root[data-theme=dark] .ai-msg-body a{color:#5FE6BD}
+    .ai-agent-root[data-theme=dark] .ai-callout.tip{background:rgba(212,160,26,.13);border-color:rgba(212,160,26,.3);color:#F0E3BC}
+    .ai-agent-root[data-theme=dark] .ai-callout.tip b{color:#FFD97A}
+    .ai-agent-root[data-theme=dark] .ai-callout.example{background:rgba(47,191,143,.1);border-color:rgba(47,191,143,.25)}
+    .ai-agent-root[data-theme=dark] .ai-callout.warn{background:rgba(220,38,38,.13);border-color:rgba(220,38,38,.3)}
+    .ai-agent-root[data-theme=dark] .ai-msg-body th{background:rgba(47,191,143,.16)}
+    .ai-agent-root[data-theme=dark] .ai-sheet-it .ic{background:rgba(47,191,143,.15)}
+    .ai-agent-root[data-theme=dark] .ai-compose textarea::placeholder,.ai-agent-root[data-theme=dark] .ai-editor:empty::before{color:#5E7A70}
     .ai-mic.rec{border-color:#dc2626;background:rgba(220,38,38,.1);animation:aiRec 1.1s ease-in-out infinite}
     @keyframes aiRec{50%{box-shadow:0 0 0 5px rgba(220,38,38,.14)}}
     .ai-send{width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:0;background:linear-gradient(140deg,#149468,#0E5F45);color:#fff;font-size:15px;cursor:pointer;display:none;place-items:center;box-shadow:0 8px 18px rgba(14,95,69,.38),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .18s ease,box-shadow .18s ease,opacity .18s;animation:aiIn .18s ease both}
@@ -378,7 +389,7 @@
         <div id="aiAttachWrap"></div>
         <div class="ai-compose">
           <button class="ai-plus" id="aiPlusBtn" type="button" aria-label="${esc(T.attach)}">＋</button>
-          <div class="ai-compose-mid"><textarea id="aiInput" rows="1" placeholder="${esc(T.ph)}" aria-label="Message AI"></textarea><div class="ai-compose-hint"><span>${esc(T.enterHint)}</span><span id="aiCharCount" class="ai-cc" style="display:none"></span></div></div>
+          <div class="ai-compose-mid"><div class="ai-editor" id="aiInput" contenteditable="true" role="textbox" aria-multiline="true" data-ph="${esc(T.ph)}" aria-label="Message AI"></div></div>
           <button class="ai-mic" id="aiMicBtn" type="button" aria-label="Voice">🎙</button>
           <button class="ai-send" id="aiSendBtn" type="button" aria-label="${esc(T.send)}">➤</button>
         </div></div><button class="ai-latest" id="aiLatest">${esc(T.latest)}</button></div>`;
@@ -407,7 +418,12 @@
     p.querySelectorAll('[data-theme]').forEach((b) => b.addEventListener('click', () => { setTheme(b.getAttribute('data-theme')); closeMenu(); }));
     return p;
   }
-  function setTheme(t) { theme = THEMES[t] ? t : 'light'; try { localStorage.setItem(THEME_KEY, theme); } catch (_) {} const r = document.querySelector('.ai-agent-root'); if (r) r.setAttribute('data-theme', theme); const head = document.querySelector('.ai-agent-head'); if (head) head.style.background = ''; renderChrome(); }
+  function applyThemeVars() {
+    const r = document.querySelector('.ai-agent-root'); if (!r) return;
+    const t = THEMES[theme] || THEMES.light;
+    for (const k of ['bg', 'card', 'ink', 'sub', 'primary', 'mint', 'line', 'user']) r.style.setProperty('--ai-' + k, t[k]);
+  }
+  function setTheme(t) { theme = THEMES[t] ? t : 'light'; try { localStorage.setItem(THEME_KEY, theme); } catch (_) {} const r = document.querySelector('.ai-agent-root'); if (r) r.setAttribute('data-theme', theme); applyThemeVars(); renderChrome(); }
   function closeMenu() { menuOpen = false; const m = document.querySelector('.ai-menu'); if (m) m.remove(); }
   function setSheetUI(open) { attachOpen = open;
     const plus = document.getElementById('aiPlusBtn'); if (plus) plus.classList.toggle('plus-on', open);
@@ -494,7 +510,7 @@
       analyze: lang === 'en' ? 'Analyze my performance' : 'আমার পারফরম্যান্স analyze করো',
       summ: lang === 'en' ? 'Summarize: ' : 'সংক্ষেপে বলো: '
     }[kind];
-    const base = (kind === 'explain' || kind === 'summ') && input.value.trim() ? input.value.trim() : '';
+    const base = (kind === 'explain' || kind === 'summ') && inputVal() ? inputVal() : '';
     const text = q + (base ? ' ' + '' : '') ;
     send(text.trim());
   }
@@ -570,7 +586,7 @@
     renderVoicebar(true);
     rec.onresult = (e) => {
       const t = e.results && e.results[0] && e.results[0][0] && e.results[0][0].transcript;
-      if (t) { input.value = (input.value ? input.value + ' ' : '') + t; autoGrow(); }
+      if (t) { const el = inputEl(); if (el) { const cur = inputVal(el); setInput(el, cur ? cur + ' ' + t : t); } }
     };
     rec.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') toast(T.voiceNope); stopVoice(true); };
     rec.onend = () => stopVoice(true);
@@ -812,16 +828,17 @@
     if (c) c.classList.toggle('streaming', !!streaming);
   }
   async function send(prefill) {
-    const q = String(prefill ?? input.value).trim();
+    const q = String(prefill ?? inputVal()).trim();
     if (!q && !attachments.length) return;
     if (activeReq) return;
+    if (q.length > 4000) { toast(T.msgTooLong); inputEl() && inputEl().focus(); return; }
     const imgItem = attachments.find((a) => a.kind === 'image' && a.dataUrl);
     const docItem = attachments.find((a) => a.kind !== 'image');
     const text = q || (imgItem ? (lang === 'en' ? 'Explain this image' : 'এই ছবিটা বুঝিয়ে দাও') : '');
     const note = docItem ? `\n\n[📄 ${docItem.name} — ${T.docSoon}]` : '';
     const fullText = text + note;
     if (docItem) toast(T.docSoon);
-    input.value = ''; autoGrow();
+    setInput(null, '');
     attachments = []; renderAttach();
     const m = { role: 'user', text: fullText, ts: Date.now(), image: imgItem ? imgItem.dataUrl : '' };
     msgs.push(m); save(); renderMsgs();
@@ -958,22 +975,34 @@
   window.__AiAgentStopVoice = () => stopVoice(true);
 
   /* ── composer helpers ── */
+  function inputEl() { return document.getElementById('aiInput'); }
+  function inputVal(el) { const e = el || inputEl(); return e ? (e.textContent || '').replace(/\u00a0/g, ' ').trim() : ''; }
+  function setInput(el, txt) { const e = el || inputEl(); if (!e) return; e.textContent = txt; autoGrow(); }
   const input = {
-    get value() { const i = document.getElementById('aiInput'); return i ? i.value : ''; },
-    set value(v) { const i = document.getElementById('aiInput'); if (i) i.value = v; },
-    focus() { const i = document.getElementById('aiInput'); if (i) i.focus(); }
+    get value() { const i = inputEl(); return i ? (i.textContent || '').replace(/\u00a0/g, ' ') : ''; },
+    set value(v) { const i = inputEl(); if (i) { i.textContent = v; autoGrow(); } },
+    focus() { const i = inputEl(); if (i) i.focus(); }
   };
+  function insertAtCursor(txt) {
+    const el = inputEl(); if (!el) return;
+    let node = el, off = (el.textContent || '').length;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && el.contains(sel.anchorNode)) { const r = sel.getRangeAt(0); node = r.endContainer; off = r.endOffset; }
+    try {
+      const r = document.createRange();
+      if (node === el) { r.setStart(el.firstChild || el, Math.min(off, (el.textContent || '').length)); r.collapse(true); r.insertNode(document.createTextNode(txt)); }
+      else { r.setStart(node, off); r.collapse(true); r.insertNode(document.createTextNode(txt)); }
+      const tn = el.lastChild;
+      if (tn) { r.setStartAfter(tn); r.setEndAfter(tn); } 
+      if (sel) { try { sel.removeAllRanges(); sel.addRange(r); } catch (_) {} }
+    } catch (_) { el.appendChild(document.createTextNode(txt)); }
+    autoGrow();
+  }
   function autoGrow() { const i = document.getElementById('aiInput'); if (i) { i.style.height = 'auto'; i.style.height = Math.min(i.scrollHeight, 128) + 'px'; } updateComposeState(); }
   function updateComposeState() {
-    const i = document.getElementById('aiInput'); if (!i) return;
+    const i = inputEl(); if (!i) return;
     const c = document.querySelector('.ai-compose');
-    if (c) c.classList.toggle('dirty', i.value.length > 0);
-    const cc = document.getElementById('aiCharCount');
-    if (cc) {
-      const n = i.value.length;
-      cc.style.display = n > 400 ? '' : 'none';
-      if (n > 400) cc.textContent = n.toLocaleString('en-US') + ' characters';
-    }
+    if (c) c.classList.toggle('dirty', (i.textContent || '').length > 0);
   }
   function renderChrome() {}
 
@@ -981,6 +1010,7 @@
   function render() {
     const root = document.querySelector('#app') || document.body;
     root.innerHTML = shell();
+    applyThemeVars();
     const inp = document.getElementById('aiInput');
     const sendBtn = document.getElementById('aiSendBtn');
     const plusBtn = document.getElementById('aiPlusBtn');
@@ -990,14 +1020,15 @@
     const head = document.querySelector('.ai-agent-head');
     if (inp) {
       inp.addEventListener('keydown', (e) => {
-        if (e.key !== 'Enter') return;
+        if (e.key !== 'Enter' || e.isComposing) return;
         if (e.ctrlKey || e.metaKey) { e.preventDefault(); send(); return; }
         e.preventDefault();
-        const st = inp.selectionStart ?? inp.value.length, en = inp.selectionEnd ?? st;
-        try { inp.setRangeText('\n', st, en, 'end'); } catch (_) { inp.value += '\n'; }
+        try { document.execCommand('insertText', false, '\n'); } catch (_) {}
+        if (!inputVal(inp).includes('\n') || !(inp.textContent || '').includes('\n')) insertAtCursor('\n');
         autoGrow();
       });
       inp.addEventListener('input', autoGrow);
+      inp.addEventListener('paste', (e) => { e.preventDefault(); const t = (e.clipboardData || window.clipboardData).getData('text/plain'); if (t) { try { document.execCommand('insertText', false, t); } catch (_) {} if (t.length > 4 && !(inp.textContent || '').includes(t.slice(0, 4))) insertAtCursor(t); autoGrow(); } });
     }
     /* ফুল-স্ক্রিন: AI-পেজে navigation-bar hide */
     const navBar = document.querySelector('.bottomnav');
@@ -1018,6 +1049,7 @@
       window.__aiKbUpd = upd;
       if (vv) { try { vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd, { passive: true }); } catch (_) {} }
       window.addEventListener('resize', upd, { passive: true });
+      if (inp) inp.addEventListener('focus', () => setTimeout(upd, 180));
       upd();
     })();
     /* ↓ Latest: উপরে scroll করলে ফ্লোটিং */

@@ -25,8 +25,8 @@ t('৪৭+ অভ্যন্তরীণ-স্ক্রিপ্ট defer (ক
 t('বুট-ক্রিটিকাল ৩-স্ক্রিপ্ট অ-ডিফার', /src="\.\/session-persist\.js/.test(H) && /premium-auth\.js/.test(H) && /data-protection\.js/.test(H));
 t('হেভি app-seed/result-analysis defer', /src="[^"]*app-seed\.js[^>]*defer|<script defer src="[^"]*app-seed\.js/.test(H) && /src="[^"]*result-analysis-500\.js[^>]*defer|defer src="[^"]*result-analysis-500\.js/.test(H));
 /* ৪ — ভার্সন */
-t('sw BUILD_ID v211-aiagent-20260908', SW.includes("const BUILD_ID = 'v211-aiagent-20260908'"));
-t('index sw-marker v211-aiagent-20260908', H.includes('sw.js?v=v211-aiagent-20260908'));
+t('sw BUILD_ID v212-aiagent-20260908', SW.includes("const BUILD_ID = 'v212-aiagent-20260908'"));
+t('index sw-marker v212-aiagent-20260908', H.includes('sw.js?v=v212-aiagent-20260908'));
 /* ৫ — data-protection count-ভিত্তিক (ধীর-নয়) */
 t('summarizeDatabase: count()-ভিত্তিক (পূর্ণ-কোরে নয়)', DP.includes('tx.objectStore(name).count()'));
 
