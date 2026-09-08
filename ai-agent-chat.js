@@ -36,7 +36,7 @@
       ['📊', 'Analyze my performance', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'Teach me this topic', 'এই topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask Admission Hub AI...', enterHint: 'Enter = new line · Ctrl+Enter = send', thinking: 'Thinking', understanding: 'Understanding your question...', creating: 'Creating questions...',
+    ph: 'Ask anything…', latest: '↓ Latest', enterHint: 'Enter = new line · Ctrl+Enter = send', thinking: 'Thinking', understanding: 'Understanding your question...', creating: 'Creating questions...',
     copy: 'Copy', copied: 'Copied', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'Correct answer', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -69,7 +69,7 @@
       ['📊', 'আমার performance analyze করো', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'এই topicটা শেখাও', 'সালোকসংশ্লেষণ topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask Admission Hub AI...', enterHint: 'Enter = নতুন লাইন · Ctrl+Enter = পাঠান', thinking: 'Thinking', understanding: 'তোমার প্রশ্নটা বুঝছি…', creating: 'প্রশ্ন বানাচ্ছি…',
+    ph: 'Ask anything…', latest: '↓ নতুন', enterHint: 'Enter = নতুন লাইন · Ctrl+Enter = পাঠান', thinking: 'Thinking', understanding: 'তোমার প্রশ্নটা বুঝছি…', creating: 'প্রশ্ন বানাচ্ছি…',
     copy: 'Copy', copied: 'কপি হয়েছে', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'সঠিক উত্তর', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -101,7 +101,7 @@
   style.id = 'ai-agent-style';
   style.textContent = `
     .ai-agent-root{--r-s:10px;--r-m:14px;--r-card:18px;--r-l:22px;--r-float:28px;--r-pill:999px;
-      min-height:100dvh;display:flex;flex-direction:column;max-width:760px;margin:0 auto;
+      height:100dvh;min-height:100dvh;display:flex;flex-direction:column;max-width:760px;margin:0 auto;overflow:hidden;
       background:linear-gradient(180deg,#E9F6EF 0%,var(--ai-bg,#F7F9F8) 240px);color:var(--ai-ink,#16302A);
       font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Bengali","Hind Siliguri",sans-serif;
       -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-feature-settings:'kern' 1,'liga' 1;
@@ -122,9 +122,10 @@
     .ai-agent-t span{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ai-sub,#5F7A72);margin-top:1px}
     .ai-online-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.16)}
     .ai-icobtn{width:38px;height:38px;border-radius:12px;border:1px solid var(--ai-line,rgba(15,107,79,.14));background:var(--ai-card,#fff);color:var(--ai-ink,#16302A);font-size:16px;cursor:pointer;display:grid;place-items:center;flex:0 0 auto}
+    .ai-back{width:34px;height:34px;font-size:22px;line-height:1;padding-bottom:2px}
     .ai-icobtn:active{transform:scale(.93)}
     /* ── body ── */
-    .ai-agent-body{flex:1;overflow-y:auto;padding:14px 14px 6px;scroll-behavior:smooth}
+    .ai-agent-body{flex:1;overflow-y:auto;padding:14px 14px calc(112px + env(safe-area-inset-bottom) + var(--ai-kb,0px));scroll-behavior:smooth}
     .ai-hero{position:relative;display:flex;gap:10px;align-items:center;border-radius:var(--r-l);padding:18px 16px;overflow:hidden;
       background:linear-gradient(140deg,#E9F7F0 0%,#DFF3EA 55%,#EAF9F3 100%);border:1px solid rgba(15,107,79,.12);animation:aiIn .4s ease both}
     .ai-agent-root[data-theme=dark] .ai-hero{background:linear-gradient(140deg,#12332A,#0F2A22 55%,#144033);border-color:rgba(47,191,143,.15)}
@@ -245,25 +246,33 @@
     .ai-followup button{border:1px dashed rgba(15,107,79,.3);background:none;color:#0E6B4F;border-radius:var(--r-pill);padding:7px 12px;font:700 11.5px inherit;cursor:pointer}
     .ai-agent-root[data-theme=dark] .ai-followup button{color:#5FE6BD;border-color:rgba(47,191,143,.35)}
     /* ── composer ── */
-    .ai-agent-foot{position:sticky;bottom:0;z-index:9;padding:9px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--ai-bg,#F7F9F8) 32%);transition:background .35s ease}
-    .ai-compose{display:flex;align-items:flex-end;gap:8px;background:var(--ai-card,#fff);border:1.5px solid var(--ai-line,rgba(15,107,79,.22));border-radius:28px;padding:9px 10px;box-shadow:0 18px 42px rgba(23,58,43,.16),0 3px 10px rgba(23,58,43,.06),inset 0 1px 0 rgba(255,255,255,.65);transition:border-color .22s ease,box-shadow .22s ease}
+    .ai-agent-foot{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--ai-kb,0px));z-index:12;width:100%;max-width:760px;padding:8px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--ai-bg,#F7F9F8) 36%);transition:background .35s ease}
+    .ai-compose{display:flex;align-items:center;gap:7px;min-height:52px;background:var(--ai-card,#fff);border:1.5px solid var(--ai-line,rgba(15,107,79,.22));border-radius:26px;padding:6px 7px;box-shadow:0 18px 42px rgba(23,58,43,.16),0 3px 10px rgba(23,58,43,.06),inset 0 1px 0 rgba(255,255,255,.65);transition:border-color .22s ease,box-shadow .22s ease}
     .ai-compose:focus-within{border-color:rgba(18,128,90,.55);box-shadow:0 0 0 4px rgba(18,128,90,.12),0 22px 48px rgba(23,58,43,.2),inset 0 1px 0 rgba(255,255,255,.65)}
     .ai-agent-root[data-theme=dark] .ai-compose{box-shadow:0 12px 30px rgba(0,0,0,.5)}
     .ai-compose-mid{flex:1;min-width:0;display:flex;flex-direction:column}
-    .ai-compose-hint{font-size:10.5px;font-weight:600;color:var(--ai-sub,#8AA39A);padding:0 4px 1px;opacity:.9;transition:opacity .18s ease;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .ai-compose:focus-within .ai-compose-hint{opacity:1;color:#5F8A78}
-    .ai-plus{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:0;background:linear-gradient(140deg,#DDF3E8,#E7F6EF);color:#0E6B4F;font-size:21px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 10px rgba(14,107,79,.12),inset 0 1px 0 rgba(255,255,255,.8);transition:transform .22s ease,background .22s ease,color .22s ease}
+    .ai-compose-hint{display:none;align-items:center;gap:8px;font-size:10.5px;font-weight:600;color:var(--ai-sub,#8AA39A);padding:0 4px 1px;white-space:nowrap;overflow:hidden}
+    .ai-compose:focus-within .ai-compose-hint{display:flex;color:#5F8A78}
+    .ai-cc{margin-left:auto;font-weight:800;color:#0E6B4F;flex:0 0 auto}
+    .ai-plus{width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:0;background:linear-gradient(140deg,#DDF3E8,#E7F6EF);color:#0E6B4F;font-size:20px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 10px rgba(14,107,79,.12),inset 0 1px 0 rgba(255,255,255,.8);transition:transform .22s ease,background .22s ease,color .22s ease}
     .ai-plus.plus-on{transform:rotate(45deg);background:linear-gradient(140deg,#12805A,#0E5F45);color:#fff}
     .ai-plus:active{transform:scale(.9)}
-    .ai-compose textarea{width:100%;min-width:0;border:0;background:none;resize:none;font:inherit;font-size:16px;line-height:1.55;max-height:150px;padding:10px 4px 3px;outline:0;color:var(--ai-ink,#16302A)}
+    .ai-compose textarea{width:100%;min-width:0;min-height:0!important;height:auto;border:0;background:none;resize:none;font:inherit;font-size:16px;line-height:1.5;max-height:128px;overflow-y:auto;padding:9px 4px 5px;outline:0;color:var(--ai-ink,#16302A);scrollbar-width:thin}
+    .ai-compose textarea::-webkit-scrollbar{width:4px}
+    .ai-compose textarea::-webkit-scrollbar-thumb{background:var(--ai-line,rgba(15,107,79,.25));border-radius:99px}
     .ai-compose textarea::placeholder{color:#93A8A0}
-    .ai-mic{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:1px solid var(--ai-line,rgba(15,107,79,.22));background:linear-gradient(140deg,#F2FAF6,#E9F6EF);color:#0E6B4F;font-size:17px;cursor:pointer;display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);transition:border-color .2s,box-shadow .2s}
+    .ai-mic{width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:1px solid var(--ai-line,rgba(15,107,79,.22));background:linear-gradient(140deg,#F2FAF6,#E9F6EF);color:#0E6B4F;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);transition:border-color .2s,box-shadow .2s}
     .ai-mic:active{border-color:rgba(14,107,79,.5);box-shadow:0 0 0 4px rgba(18,128,90,.1)}
     .ai-agent-root[data-theme=dark] .ai-mic{color:#5FE6BD}
     .ai-mic.rec{border-color:#dc2626;background:rgba(220,38,38,.1);animation:aiRec 1.1s ease-in-out infinite}
     @keyframes aiRec{50%{box-shadow:0 0 0 5px rgba(220,38,38,.14)}}
-    .ai-send{width:46px;height:46px;flex:0 0 auto;border-radius:50%;border:0;background:linear-gradient(140deg,#149468,#0E5F45);color:#fff;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:0 10px 22px rgba(14,95,69,.4),inset 0 1px 0 rgba(255,255,255,.28);transition:transform .18s ease,box-shadow .18s ease,opacity .18s}
-    .ai-send:hover{transform:translateY(-1.5px);box-shadow:0 13px 26px rgba(14,95,69,.45),inset 0 1px 0 rgba(255,255,255,.28)}
+    .ai-send{width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:0;background:linear-gradient(140deg,#149468,#0E5F45);color:#fff;font-size:15px;cursor:pointer;display:none;place-items:center;box-shadow:0 8px 18px rgba(14,95,69,.38),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .18s ease,box-shadow .18s ease,opacity .18s;animation:aiIn .18s ease both}
+    .ai-send:hover{transform:translateY(-1px);box-shadow:0 11px 22px rgba(14,95,69,.42),inset 0 1px 0 rgba(255,255,255,.25)}
+    .ai-compose.dirty .ai-send{display:grid}
+    .ai-compose.dirty .ai-mic{display:none}
+    .ai-compose.streaming .ai-send{display:grid}
+    .ai-compose.streaming .ai-mic{display:none}
+    .ai-compose .ai-mic.show{display:grid}
     .ai-send:active{transform:scale(.9)}
     .ai-send.stop{background:linear-gradient(140deg,#C0392B,#A93226)}
     .ai-send:disabled{opacity:.5}
@@ -287,6 +296,9 @@
     .ai-sheet-it{border:1px solid var(--ai-line,rgba(15,107,79,.14));border-radius:var(--r-m);padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;font-weight:700;cursor:pointer;background:var(--ai-card,#fff);color:var(--ai-ink,#16302A)}
     .ai-sheet-it:active{transform:scale(.95)}
     .ai-sheet-it .ic{font-size:19px;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--ai-mint,#E4F3EC)}
+    /* ── ↓ Latest ফ্লোটিং ── */
+    .ai-latest{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom) + var(--ai-kb,0px));z-index:11;display:none;align-items:center;gap:5px;background:#0E2A20;color:#D8F3E6;border:0;border-radius:99px;padding:9px 15px;font:700 12px inherit;box-shadow:0 10px 26px rgba(0,0,0,.28);cursor:pointer;animation:aiIn .2s ease both}
+    .ai-latest.show{display:flex}
     /* ── menu / search / feedback ── */
     .ai-menu{position:absolute;top:52px;right:12px;z-index:70;min-width:210px;padding:7px;background:var(--ai-card,#fff);border:1px solid var(--ai-line,rgba(15,107,79,.16));border-radius:var(--r-card);box-shadow:0 18px 44px rgba(23,58,43,.2);animation:aiIn .16s ease both;color:var(--ai-ink,#16302A)}
     .ai-menu .lbl{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ai-sub,#5F7A72);padding:8px 10px 4px}
@@ -356,6 +368,7 @@
   /* ── shell ── */
   function shell() {
     return `<div class="ai-agent-root" data-theme="${theme}"><div class="ai-agent-head">
+      <button class="ai-icobtn ai-back" id="aiBackBtn" aria-label="Back">‹</button>
       <div class="ai-orb" aria-hidden="true"></div>
       <div class="ai-agent-t"><b>${esc(T.title)}</b><span><span class="ai-online-dot"></span>${esc(T.sub)} · ${esc(T.online)}</span></div>
       <button class="ai-icobtn" id="aiSearchBtn" aria-label="${esc(T.menuSearch)}">🔍</button>
@@ -365,10 +378,10 @@
         <div id="aiAttachWrap"></div>
         <div class="ai-compose">
           <button class="ai-plus" id="aiPlusBtn" type="button" aria-label="${esc(T.attach)}">＋</button>
-          <div class="ai-compose-mid"><textarea id="aiInput" rows="1" placeholder="${esc(T.ph)}" aria-label="Message AI"></textarea><div class="ai-compose-hint">${esc(T.enterHint)}</div></div>
+          <div class="ai-compose-mid"><textarea id="aiInput" rows="1" placeholder="${esc(T.ph)}" aria-label="Message AI"></textarea><div class="ai-compose-hint"><span>${esc(T.enterHint)}</span><span id="aiCharCount" class="ai-cc" style="display:none"></span></div></div>
           <button class="ai-mic" id="aiMicBtn" type="button" aria-label="Voice">🎙</button>
           <button class="ai-send" id="aiSendBtn" type="button" aria-label="${esc(T.send)}">➤</button>
-        </div></div></div>`;
+        </div></div><button class="ai-latest" id="aiLatest">${esc(T.latest)}</button></div>`;
   }
   function menuPanel() {
     const p = document.createElement('div');
@@ -398,7 +411,9 @@
   function closeMenu() { menuOpen = false; const m = document.querySelector('.ai-menu'); if (m) m.remove(); }
   function setSheetUI(open) { attachOpen = open;
     const plus = document.getElementById('aiPlusBtn'); if (plus) plus.classList.toggle('plus-on', open);
-    const nav = document.querySelector('.bottomnav'); if (nav) nav.style.display = open ? 'none' : '';
+    const nav = document.querySelector('.bottomnav');
+    const onAi = !!document.querySelector('.ai-agent-root');
+    if (nav) nav.style.display = (open || onAi) ? 'none' : '';
     document.body.style.overflow = open ? 'hidden' : '';
     if (!open) { const sb = document.getElementById('aiSheetView'); if (sb) sb.remove(); }
   }
@@ -793,6 +808,8 @@
     b.classList.toggle('stop', !!streaming);
     b.innerHTML = streaming ? '■' : '➤';
     b.setAttribute('aria-label', streaming ? T.stop : T.send);
+    const c = document.querySelector('.ai-compose');
+    if (c) c.classList.toggle('streaming', !!streaming);
   }
   async function send(prefill) {
     const q = String(prefill ?? input.value).trim();
@@ -946,7 +963,18 @@
     set value(v) { const i = document.getElementById('aiInput'); if (i) i.value = v; },
     focus() { const i = document.getElementById('aiInput'); if (i) i.focus(); }
   };
-  function autoGrow() { const i = document.getElementById('aiInput'); if (i) { i.style.height = 'auto'; i.style.height = Math.min(i.scrollHeight, 150) + 'px'; } }
+  function autoGrow() { const i = document.getElementById('aiInput'); if (i) { i.style.height = 'auto'; i.style.height = Math.min(i.scrollHeight, 128) + 'px'; } updateComposeState(); }
+  function updateComposeState() {
+    const i = document.getElementById('aiInput'); if (!i) return;
+    const c = document.querySelector('.ai-compose');
+    if (c) c.classList.toggle('dirty', i.value.length > 0);
+    const cc = document.getElementById('aiCharCount');
+    if (cc) {
+      const n = i.value.length;
+      cc.style.display = n > 400 ? '' : 'none';
+      if (n > 400) cc.textContent = n.toLocaleString('en-US') + ' characters';
+    }
+  }
   function renderChrome() {}
 
   /* ── page render ── */
@@ -971,6 +999,40 @@
       });
       inp.addEventListener('input', autoGrow);
     }
+    /* ফুল-স্ক্রিন: AI-পেজে navigation-bar hide */
+    const navBar = document.querySelector('.bottomnav');
+    if (navBar) navBar.style.display = 'none';
+    /* back → nav ফেরত + dashboard */
+    const backBtn = document.getElementById('aiBackBtn');
+    if (backBtn) backBtn.addEventListener('click', () => { const nb = document.querySelector('.bottomnav'); if (nb) nb.style.display = ''; if (window.navigate) window.navigate('dashboard'); else history.back(); });
+    /* keyboard-aware: composer keyboard-এর ঠিক উপরে */
+    const kbd = (() => {
+      const vv = window.visualViewport;
+      const upd = () => {
+        const r = document.querySelector('.ai-agent-root');
+        let kb = 0;
+        if (vv && window.innerHeight - vv.height > 60) kb = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
+        if (r) r.style.setProperty('--ai-kb', kb + 'px');
+      };
+      if (window.__aiKbUpd) { try { vv && vv.removeEventListener('resize', window.__aiKbUpd); vv && vv.removeEventListener('scroll', window.__aiKbUpd); } catch (_) {} window.removeEventListener('resize', window.__aiKbUpd); }
+      window.__aiKbUpd = upd;
+      if (vv) { try { vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd, { passive: true }); } catch (_) {} }
+      window.addEventListener('resize', upd, { passive: true });
+      upd();
+    })();
+    /* ↓ Latest: উপরে scroll করলে ফ্লোটিং */
+    const body = document.getElementById('aiAgentBody');
+    const latest = document.getElementById('aiLatest');
+    let raf = null;
+    const scrollUpd = () => {
+      if (!body || !latest) return;
+      const off = body.scrollHeight - body.scrollTop - body.clientHeight;
+      latest.classList.toggle('show', off > 320);
+    };
+    if (body) body.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = null; scrollUpd(); }); }, { passive: true });
+    if (latest) latest.addEventListener('click', () => { if (body) body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' }); });
+    scrollUpd();
+    updateComposeState();
     if (sendBtn) sendBtn.addEventListener('click', () => { activeReq ? stop() : send(); });
     if (plusBtn) plusBtn.addEventListener('click', (e) => {
       e.stopPropagation();

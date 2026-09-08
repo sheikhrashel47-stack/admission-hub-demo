@@ -12,7 +12,7 @@ const AG = existsSync('ai-agent.js') ? readFileSync('ai-agent.js', 'utf8') : '';
 
 /* ── ১. রুট + স্ক্রিপ্ট ── */
 t('১. index.html-এ ai-রুট dispatch (renderAiAgentPage)', H.includes("if(p==='ai'){ if(window.renderAiAgentPage)"));
-t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (chatv1)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv3'));
+t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (chatv1)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv4'));
 t('৩. ai-agent-chat.js ফাইল-বিদ্যমান + renderAiAgentPage-এক্সপোজ', existsSync('ai-agent-chat.js') && UI.includes('window.renderAiAgentPage = render'));
 t('৪. NAV_TABS-এ 🤖 AI ট্যাব', H.includes("{key:'ai', icon:'🤖', label:'AI'}"));
 t('৫. dashboard-v2: Command Center + All-Tools এ AI-এন্ট্রি', V2.includes("navigate(\\'ai\\')") && V2.includes("'AI', \"navigate('ai')\""));
@@ -52,16 +52,23 @@ t('২৯. Mobile-first: safe-area + keyboard (visualViewport নয়, d-i n-�
 t('৩০. ক্লায়েন্ট-কোডে SSE-পার্স (data:/event:) + AbortController', UI.includes("startsWith('data:')") && UI.includes("startsWith('event:')") && UI.includes('AbortController'));
 
 /* ── ৬. ভার্সন-অখণ্ডতা v208 ── */
-t('৩১. sw BUILD_ID v208-aiagent (index-marker + expectedSwVersion)', SW.includes("const BUILD_ID = 'v210-aiagent-20260908'") && H.includes('sw.js?v=v210-aiagent-20260908') && H.includes("const expectedSwVersion = 'v210-aiagent-20260908'"));
-t('৩২. sw APP_SHELL: ai-agent-chat chatv1 + dash2f6', SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv3') && SW.includes('./dashboard-v2.js?v=dash2f6') && H.includes('dashboard-v2.js?v=dash2f6'));
+t('৩১. sw BUILD_ID v208-aiagent (index-marker + expectedSwVersion)', SW.includes("const BUILD_ID = 'v211-aiagent-20260908'") && H.includes('sw.js?v=v211-aiagent-20260908') && H.includes("const expectedSwVersion = 'v211-aiagent-20260908'"));
+t('৩২. sw APP_SHELL: ai-agent-chat chatv1 + dash2f6', SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv4') && SW.includes('./dashboard-v2.js?v=dash2f6') && H.includes('dashboard-v2.js?v=dash2f6'));
 
 
 /* ── ৭. মালিক-ফিডব্যাক v209 (chatv2): Enter-newline · sheet-nav-hide · premium-composer · typography ── */
 t('৩৩. Enter = নতুন লাইন; Ctrl/⌘+Enter = পাঠান; বাটন-সেন্ড অটুট', UI.includes("e.key !== 'Enter'") && UI.includes("setRangeText('\\n'") && UI.includes('e.ctrlKey || e.metaKey') && UI.includes('function send('));
-t('৩৪. Sheet-খোলায় nav-bar hide + body-scroll-lock + plus-rotate', UI.includes("document.querySelector('.bottomnav')") && UI.includes("nav.style.display = open ? 'none' : ''") && UI.includes("document.body.style.overflow = open ? 'hidden' : ''") && UI.includes('plus-on'));
-t('৩৫. Premium composer: focus-ring + hint-row + বড় textarea (150px)', UI.includes('.ai-compose:focus-within') && UI.includes('ai-compose-hint') && UI.includes('enterHint') && UI.includes('Math.min(i.scrollHeight, 150)'));
-t('৩৬. টাইপোগ্রাফি-লিফট: 16.5px/1.85 body + 20px emerald heading + blockquote + antialiased', UI.includes('.ai-msg-body{font-size:16.5px;line-height:1.85') && UI.includes('font-size:20px') && UI.includes('.ai-msg-body blockquote') && UI.includes('-webkit-font-smoothing:antialiased') && UI.includes('.ai-compose-hint{font-size:10.5px;font-weight:600;color:var(--ai-sub,#8AA39A);padding:0 4px 1px;opacity:.9'));
-t('৩৭. chatv3 + v210 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv3') && H.includes('sw.js?v=v210-aiagent-20260908') && H.includes("const expectedSwVersion = 'v210-aiagent-20260908'") && SW.includes("const BUILD_ID = 'v210-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv3'));
+t('৩৪. Sheet-খোলায় nav-bar hide + body-scroll-lock + plus-rotate', UI.includes("document.querySelector('.bottomnav')") && UI.includes("(open || onAi) ? 'none' : ''") && UI.includes("document.body.style.overflow = open ? 'hidden' : ''") && UI.includes('plus-on'));
+t('৩৫. Premium composer: focus-ring + hint-row + বড় textarea (150px)', UI.includes('.ai-compose:focus-within') && UI.includes('ai-compose-hint') && UI.includes('enterHint') && UI.includes('Math.min(i.scrollHeight, 128)'));
+t('৩৬. টাইপোগ্রাফি-লিফট: 16.5px/1.85 body + 20px emerald heading + blockquote + antialiased', UI.includes('.ai-msg-body{font-size:16.5px;line-height:1.85') && UI.includes('font-size:20px') && UI.includes('.ai-msg-body blockquote') && UI.includes('-webkit-font-smoothing:antialiased') && UI.includes('.ai-compose-hint{display:none;align-items:center;gap:8px;font-size:10.5px;font-weight:600') && UI.includes('.ai-compose:focus-within .ai-compose-hint{display:flex'));
+t('৩৭. chatv3 + v210 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv4') && H.includes('sw.js?v=v211-aiagent-20260908') && H.includes("const expectedSwVersion = 'v211-aiagent-20260908'") && SW.includes("const BUILD_ID = 'v211-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv4'));
+
+
+/* ── ৮. v211 (chatv4): ফুল-স্ক্রিন AI + Final Composer Workflow ── */
+t('৩৮. AI-পেজ ফুল-স্ক্রিন: nav-hide + back-button + নিজস্ব-scroll root', UI.includes("document.querySelector('.bottomnav')") && UI.includes("navBar.style.display = 'none'") && UI.includes('aiBackBtn') && UI.includes("window.navigate('dashboard')") && UI.includes('height:100dvh;min-height:100dvh'));
+t('৩৯. Composer workflow: 52px compact + 128px max + mic↔send swap + dirty/streaming', UI.includes('min-height:52px') && UI.includes('max-height:128px') && UI.includes(".ai-compose.dirty .ai-send{display:grid}") && UI.includes('.ai-compose.streaming .ai-send{display:grid}') && UI.includes("'Ask anything…'"));
+t('৪০. Keyboard-aware + ↓ Latest + char-count', UI.includes('--ai-kb') && UI.includes('visualViewport') && UI.includes('__aiKbUpd') && UI.includes('aiLatest') && UI.includes("latest.classList.toggle('show'") && UI.includes('aiCharCount'));
+t('৪১. chatv4 + v211 অখণ্ডতা (index+sw)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv4') && H.includes('sw.js?v=v211-aiagent-20260908') && SW.includes("const BUILD_ID = 'v211-aiagent-20260908'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv4'));
 
 console.log(`\nP21-CHATBOT-V1: ${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);
