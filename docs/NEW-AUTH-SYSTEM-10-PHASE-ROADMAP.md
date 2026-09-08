@@ -2,7 +2,7 @@
 
 ## 10-Phase Development Roadmap
 
-**Saved:** 2026-09-09 (Asia/Dhaka)  
+**Saved:** 2026-09-09 (Asia/Dhaka)
 **Owner rule:** এই নথি এখন শুধু roadmap হিসেবে save করা হলো। কোনো নতুন Auth feature/code এখনো তৈরি বা শুরু করা হয়নি।
 
 ---
@@ -272,9 +272,14 @@ Phase 10 → Production Freeze 🔒
 
 ---
 
-## 📌 Current Status
+## 📌 Current Status — 2026-09-09
 
-- Roadmap: **saved**
-- New Auth implementation: **not started**
-- Current implementation approval: **not requested in this save-only task**
-- Next action: মালিক যখন স্পষ্টভাবে Phase 1 শুরু করতে বলবেন, তখন শুধু Phase 1 inspect/audit/execute করা হবে।
+- Phase 1 legacy Auth retirement: **closed before this roadmap execution**
+- Phase 2: **officially started by owner**
+- Owner-selected execution: **Phase 2A + Phase 2B split**
+- Phase 2A Authentication Foundation: **implemented, tested and live-verified; awaiting owner approval**
+- Phase 2B Multi-provider Email Infrastructure: **not started; explicit approval required**
+- Concrete Supabase/Auth authority binding: **deferred to Phase 3 by owner decision**
+- New Login/Signup UI, permanent account identity and production session: **not started**
+- Overall Phase 2: **open—not complete until Phase 2B is separately approved, built and verified**
+- Next action: Phase 2A report review; only the owner can authorize Phase 2B.

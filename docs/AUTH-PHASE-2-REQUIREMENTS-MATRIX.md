@@ -1,6 +1,7 @@
 # Phase 2 Requirements Traceability Matrix
 
 **Decision:** Phase 2A foundation now; Phase 2B Email Gateway only after a separate approval; concrete Auth authority binding in Phase 3.
+**Phase 2A closeout evidence (2026-09-09):** commit `e8b2d56510c25bd339f6af03abee11bc70c8ed94`; 62/62 Auth tests; 329/329 existing checks; four successful Actions; Chromium/WebKit mobile and desktop compatibility verified. Phase 2B remains not started.
 
 ## Authentication Foundation sections
 

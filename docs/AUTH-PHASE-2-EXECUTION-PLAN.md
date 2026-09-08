@@ -1,8 +1,10 @@
 # Admission Hub — Phase 2 Execution Plan
 
-**Decision date:** 2026-09-09 (Asia/Dhaka)  
-**Owner-approved execution:** Phase 2A + Phase 2B split  
+**Decision date:** 2026-09-09 (Asia/Dhaka)
+**Owner-approved execution:** Phase 2A + Phase 2B split
 **Auth authority decision:** concrete Supabase binding deferred until Phase 3
+**Phase 2A status (2026-09-09):** implemented and verified in `e8b2d56510c25bd339f6af03abee11bc70c8ed94`; awaiting owner approval
+**Phase 2B status:** not started
 
 ## 1. Audit result
 
