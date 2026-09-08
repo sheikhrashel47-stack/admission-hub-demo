@@ -63,7 +63,7 @@
     return catalogFor(type).find((item) => String(item.id) === String(id)) || null;
   }
 
-  function profileLevel() {
+  function studyLevel() {
     const settings = window.CACHE?.settings || {};
     return Math.max(1, Number(settings.xpLevel ?? settings.level ?? 1) || 1);
   }
@@ -78,7 +78,7 @@
   }
 
   function levelUnlocked(item) {
-    return Boolean(item && profileLevel() >= requiredLevel(item));
+    return Boolean(item && studyLevel() >= requiredLevel(item));
   }
 
   function listFor(type) {
@@ -96,7 +96,7 @@
     const key = typeKey(type);
     const item = findItem(key, id);
     if (!key || !item) return { ok: false, reason: 'missing-item' };
-    const level = profileLevel();
+    const level = studyLevel();
     const required = requiredLevel(item);
     if (level < required) return { ok: false, reason: 'level-locked', item, level, requiredLevel: required };
     if (!state.unlocked[key].includes(String(item.id))) {
@@ -110,7 +110,7 @@
     const key = typeKey(type);
     const item = findItem(key, id);
     if (!key || !item) return { ok: false, reason: 'missing-item' };
-    const level = profileLevel();
+    const level = studyLevel();
     const required = requiredLevel(item);
     if (level < required) return { ok: false, reason: 'level-locked', item, level, requiredLevel: required };
     if (!state.unlocked[key].includes(String(item.id))) state.unlocked[key].push(String(item.id));
@@ -146,7 +146,7 @@
     snapshot: () => clone(state),
     catalog: catalogFor,
     findItem,
-    profileLevel,
+    studyLevel,
     requiredLevel,
     levelUnlocked,
     unlocked: listFor,
@@ -162,5 +162,5 @@
   };
 
   window.addEventListener('experience-studio-state-request', () => window.dispatchEvent(new CustomEvent('experience-studio-state-response', { detail: clone(state) })));
-  window.addEventListener('profile-level-change', () => window.dispatchEvent(new CustomEvent('experience-studio-level-change', { detail: { level: profileLevel() } })));
+  window.addEventListener('study-level-change', () => window.dispatchEvent(new CustomEvent('experience-studio-level-change', { detail: { level: studyLevel() } })));
 })();

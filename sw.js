@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v220-aiagent-20260908';
+const BUILD_ID = 'v221-account-retired-20260908';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -13,14 +13,12 @@ const APP_SHELL = [
   './index.html',
   './manifest.json',
   './manifest.webmanifest',
-  './premium-auth.css?v=p3-auth-guest-v196',
   './dashboard-v2.css?v=dash2',
-  './onboarding.css?v=p6-onboard-v11',
   './3d-loader.css?v=3d-v1',
   './session-persist.js?v=session-v1',
   './data-protection.js?v=dp-v3-fastboot',
   './dashboard-v2.js?v=dash2f7',
-  './ai-agent-chat.js?v=agent-f1-ui-chatv13',
+  './ai-agent-chat.js?v=agent-f1-ui-chatv14-guest',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];

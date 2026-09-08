@@ -13,7 +13,6 @@ const t = (n, c) => { if (c) { pass++; console.log('  ✓', n); } else { fail++;
 const WK = readFileSync('_worker.js', 'utf8');
 const VE = readFileSync('vocabulary-elevenlabs.js', 'utf8');
 const VW = readFileSync('voice-worker.js', 'utf8');
-const HUB = readFileSync('/home/user/hub/vocabulary-elevenlabs.js', 'utf8');
 const H = readFileSync('index.html', 'utf8');
 const SW = readFileSync('sw.js', 'utf8');
 
@@ -22,10 +21,10 @@ t('১. _worker.js: /api/voice → voice-worker (এবং /api/* → মূল-
 t('২. ক্লায়েন্ট-ডিফল্ট same-origin ("" → /api/voice) + voiceOff-পৃথক', VE.includes("const DEFAULT_ENDPOINT = '';") && VE.includes('fetch(proxyUrl + \'/api/voice\',') && VE.includes('const configured = () => !voiceOff;'));
 t('৩. মাইগ্রেশন: পুরনো workers.dev সেভ-ভ্যালু → same-origin', VE.includes("if (saved && saved.includes('.workers.dev')) saved = '';"));
 t('৪. voice-worker-allowlist-এ pages.dev (CORS-ফাঁক-বন্ধ)', VW.includes("pages\\.dev$/.test(origin)") && VW.includes('P20 (v204)'));
-t('৫. hub-অ্যাপ: ডিফল্ট-এন্ডপয়েন্ট = pages.dev-প্রক্সি (github.io-স্ট্যাটিক-হওয়ায়-এটাই-সঠিক-পথ) + .workers.dev-সেভ-মাইগ্রেশন', HUB.includes("const DEFAULT_LIVE = 'https://admissionhub.pages.dev'") && HUB.includes("proxyUrl.includes('.workers.dev')") && !HUB.includes('rashelzayan213'));
+t('৫. Pages proxy preserves method, headers and request body', WK.includes('new Headers(request.headers)') && WK.includes('method: request.method') && WK.includes('init.body = request.body'));
 
 /* ── ২. ভার্সন-অখণ্ডতা v204 ── */
-t('৬. el-voice-v106 (index+sw) + BUILD_ID v214-aiagent-20260908 (সব-মার্কার)', H.includes('vocabulary-elevenlabs.js?v=el-voice-v106') && SW.includes("'./vocabulary-elevenlabs.js?v=el-voice-v106'") && SW.includes("const BUILD_ID = 'v214-aiagent-20260908'") && H.includes('sw.js?v=v214-aiagent-20260908') && H.includes("const expectedSwVersion = 'v214-aiagent-20260908'") && H.includes("const cur = 'admission-hub-shell-v214-aiagent-20260908'"));
+t('৬. el-voice-v106 stays deferred outside the lean v221 app shell', H.includes('vocabulary-elevenlabs.js?v=el-voice-v106') && !SW.includes("'./vocabulary-elevenlabs.js?v=el-voice-v106'") && SW.includes("const BUILD_ID = 'v221-account-retired-20260908'") && H.includes('sw.js?v=v221-account-retired-20260908') && H.includes("const expectedSwVersion = 'v221-account-retired-20260908'") && H.includes("const cur = 'admission-hub-shell-v221-account-retired-20260908'"));
 
 /* ── ৩. রানটাইম: এক-ক্লিক → generate+সেভ → ২য়-ক্লিক-নেট-নয় → অফলাইনে-বাজে ── */
 t('৭. রানটাইম: ১ম-ক্লিক generate+ক্যাশ ("generated") → ২য়-ক্লিক ক্যাশ থেকে ("cache", নেট-০) → অফলাইনেও বাজে', (async () => {

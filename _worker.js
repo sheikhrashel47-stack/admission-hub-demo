@@ -1,20 +1,14 @@
-/* ============================================================
-   P15 — Pages Advanced-Mode Worker (same-origin API proxy)
-   কেন: মালিক-ফোন-রিপোর্ট "Failed to fetch" + Google-লগইন-অসফল —
-   ফোনের নেটওয়ার্ক pages.dev-লোড করলেও *.workers.dev-এ পৌঁছায় না
-   (আলাদা-হোস্ট; CORS-ও তখন প্রযোজ্য)। সমাধান: /api/* → এই Pages Worker
-   → অভ্যন্তরীণভাবে মূল worker-এ। অ্যাপ এখন same-origin-কল করে:
-   • কোনো CORS নেই  • workers.dev-রিচেবিলিটি দরকার নেই  • ফেলব্যাক canonical-রাখা।
-   নিরাপত্তা: কোনো টোকেন/সিক্রেট নেই; শুধু প্রক্সি + static-পরিসেবা।
-   ============================================================ */
+/* Cloudflare Pages advanced-mode worker.
+   Same-origin /api/* requests are proxied to the production Workers; all other
+   requests are served from Pages assets. No client or service credential is
+   stored here. */
 const ORIGIN = 'https://admission-gk.admissionhub.workers.dev';
-const VOICE_ORIGIN = 'https://admission-voice.admissionhub.workers.dev'; /* P20: vocabulary-voice অডিও — same-origin পথ (মালিক-নেট workers.dev-ব্লক + CORS-মুক্ত) */
+const VOICE_ORIGIN = 'https://admission-voice.admissionhub.workers.dev';
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
-    /* ── API প্রক্সি: same-origin /api/* → মূল worker (P20: /api/voice* → voice-worker) ── */
     if (url.pathname.startsWith('/api/')) {
       try {
         const base = url.pathname.startsWith('/api/voice') ? VOICE_ORIGIN : ORIGIN;
@@ -22,18 +16,11 @@ export default {
         const headers = new Headers(request.headers);
         headers.delete('host');
         headers.set('x-ah-pages-proxy', '1');
-        const init = {
-          method: request.method,
-          headers,
-          redirect: 'manual'
-        };
-        if (request.method !== 'GET' && request.method !== 'HEAD' && request.body) {
-          init.body = request.body;
-        }
-        const res = await fetch(target, init);
-        /* মূল worker-এর CORS-হেডার (ACAO:*) অক্ষত রাখা — ভিন্ন-অরিজিন-ফলব্যাকেও কাজ করবে */
-        return new Response(res.body, res);
-      } catch (e) {
+        const init = { method: request.method, headers, redirect: 'manual' };
+        if (request.method !== 'GET' && request.method !== 'HEAD' && request.body) init.body = request.body;
+        const response = await fetch(target, init);
+        return new Response(response.body, response);
+      } catch (_) {
         return new Response(JSON.stringify({ error: 'api-unavailable', at: Date.now() }), {
           status: 502,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
@@ -41,11 +28,9 @@ export default {
       }
     }
 
-    /* ── বাকি সব: static asset (Pages-এর ASSETS) ── */
     try {
-      const asset = await env.ASSETS.fetch(request);
-      return asset;
-    } catch (e) {
+      return await env.ASSETS.fetch(request);
+    } catch (_) {
       return new Response('Not found', { status: 404 });
     }
   }

@@ -2,11 +2,11 @@
  * 🤖 ADMISSION HUB AI — AGENT CORE v1 (Phase 1: AI Agent Foundation)
  * ====================================================================
  * মালিক-স্পেক (২০২৬-০৯-০৮): model-independent central AI brain.
- *   Chat UI → AI Gateway (public-worker: auth+rate+validate) → Agent Core → Model Router
+ *   Chat UI → AI Gateway (public-worker: anonymous-device rate+validate) → Agent Core → Model Router
  *   → Provider Adapter (Gemini/Groq) → Response Stream
  *
  * নীতি:
- *  - uid কখনো prompt/body-থেকে নয় — Gateway-র verified token থেকে পাস হয়।
+ *  - uid কখনো prompt/body-থেকে নয় — Gateway validated/hashed device identity হিসেবে পাস করে।
  *  - কোনো client-সিক্রেট নেই (key শুধু server-env)।
  *  - Response সবসময় real context-ভিত্তিক; fabricate-সংখ্যা কঠোর-নিষিদ্ধ।
  *  - Mock-exam মোডে উত্তর/হিন্ট/ব্যাখ্যা hard-refuse (safety ↑)।
@@ -322,7 +322,8 @@ export async function agentChat(request, env, uid, opts = {}) {
   let mem = [];
   try {
     const rawMem = await getKv(env.PUB_KV, 'chatmem:' + sendCtx.uid);
-    mem = Array.isArray(JSON.parse(rawMem || '[]')) ? JSON.parse(rawMem) : [];
+    const parsedMem = JSON.parse(rawMem || '[]');
+    mem = Array.isArray(parsedMem) ? parsedMem : [];
   } catch (_) { mem = []; }
   let msgs = v.messages.slice();
   if (msgs.length < 3 && mem.length) msgs = mem.concat(msgs);
@@ -467,7 +468,7 @@ export async function agentStatus(request, env, uid) {
 function jsonResp(d, s = 200) {
   return new Response(JSON.stringify(d), {
     status: s,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,content-type', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' }
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type,x-ah-guest', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' }
   });
 }
 function sseError(msg, status) {

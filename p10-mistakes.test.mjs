@@ -40,15 +40,15 @@ t('flash/result-পথ → enrichMistakeRecord (revisionStatus+mastered-অক�
 t('Settings: Delete Mistakes (dbClear)', H.includes("dbClear('mistakes')") && H.includes('Delete Mistakes'));
 
 /* ৫ — Smart Mistake Book (mistake-analysis.js) লোডেড + API */
-t('mistake-analysis.js লোড (index+sw gemini-v4-0816)', H.includes('mistake-analysis.js?v=gemini-v4-0816') && SW.includes("'./mistake-analysis.js?v=gemini-v4-0816'"));
+t('mistake-analysis.js deferred in production HTML (optional, outside lean shell)', H.includes('<script defer src="mistake-analysis.js?v=gemini-v4-0816"></script>') && !SW.includes("'./mistake-analysis.js?v=gemini-v4-0816'"));
 t('MA publicApi এক্সপোজড (window.MA)', MA.includes('window.MA = publicApi') && MA.includes('publicApi'));
 t('ভুল-খাতা localStorage-key + toAgentPayload', MA.includes("'mistake-analysis-notebook-v1'") && MA.includes('toAgentPayload'));
-t('mistake-note-icon.js লোড (16-aiex)', H.includes('mistake-note-icon.js?v=16-aiex') && SW.includes("'./mistake-note-icon.js?v=16-aiex'"));
+t('mistake-note-icon.js deferred in production HTML (optional, outside lean shell)', H.includes('mistake-note-icon.js?v=16-aiex') && !SW.includes("'./mistake-note-icon.js?v=16-aiex'"));
 t('note-icon: openQuestionNoteEditor ইন্টিগ্রেশন', MN.includes('openQuestionNoteEditor') && MN.includes('__mistakeNoteIconInstalled'));
 
 /* ৬ — ভার্সন v194 */
-t('sw BUILD_ID v214-aiagent-20260908', SW.includes("const BUILD_ID = 'v214-aiagent-20260908'"));
-t('index sw-marker v214-aiagent-20260908', H.includes('sw.js?v=v214-aiagent-20260908'));
+t('sw BUILD_ID account-retired v221', SW.includes("const BUILD_ID = 'v221-account-retired-20260908'"));
+t('index sw-marker account-retired v221', H.includes('sw.js?v=v221-account-retired-20260908'));
 
 console.log(`\nP10-MISTAKES: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

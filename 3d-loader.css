@@ -49,7 +49,7 @@
 
 @keyframes ah3dSpin{0%{transform:rotateZ(0);}100%{transform:rotateZ(360deg);}}
 
-/* ---------- full-screen 3D logo splash (onboarding → dashboard) ---------- */
+/* ---------- full-screen 3D logo splash (startup → dashboard) ---------- */
 .ah3d-lg{transform:scale(1.25);}
 .ah-splash{
   position:fixed; inset:0; z-index:4000; display:grid; place-items:center;

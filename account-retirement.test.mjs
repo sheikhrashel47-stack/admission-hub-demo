@@ -1,0 +1,206 @@
+// Admission Hub v221 — retired account/profile/personalization-onboarding guard.
+import { existsSync, readFileSync } from 'node:fs';
+import publicWorker, { publishGlobal } from './public-worker.js';
+import bundledWorker from './worker-bundle.mjs';
+
+let passed = 0;
+let failed = 0;
+async function test(name, check) {
+  try {
+    const ok = await (typeof check === 'function' ? check() : check);
+    if (!ok) throw new Error('assertion returned false');
+    passed++;
+    console.log('  ✓', name);
+  } catch (error) {
+    failed++;
+    console.error('  ✗', name, '—', error?.message || error);
+  }
+}
+
+class MemoryKV {
+  constructor(seed = {}) {
+    this.data = new Map(Object.entries(seed));
+    this.writes = [];
+    this.deletes = [];
+  }
+  async get(key, type) {
+    const value = this.data.has(key) ? this.data.get(key) : null;
+    if (type === 'json' && value != null) return JSON.parse(value);
+    return value;
+  }
+  async put(key, value, options) {
+    this.data.set(key, String(value));
+    this.writes.push({ key, value: String(value), options });
+  }
+  async delete(key) {
+    this.data.delete(key);
+    this.deletes.push(key);
+  }
+}
+
+const H = readFileSync('index.html', 'utf8');
+const SW = readFileSync('sw.js', 'utf8');
+const UI = readFileSync('ai-agent-chat.js', 'utf8');
+const CLOUD = readFileSync('cloud-content-sync.js', 'utf8');
+const SOURCE = readFileSync('public-worker.js', 'utf8');
+const BUNDLE = readFileSync('worker-bundle.mjs', 'utf8');
+const DISPATCH = readFileSync('gk-agent-worker.js', 'utf8');
+const PAGES = readFileSync('_worker.js', 'utf8');
+const STUDIO_SHELL = readFileSync('experience-studio-shell.js', 'utf8');
+const STUDIO_CARDS = readFileSync('experience-studio-cards.js', 'utf8');
+
+const retiredFiles = [
+  'premium-auth.js', 'premium-auth.css', 'auth-svg.js', 'user-account.js',
+  'onboarding.js', 'onboarding.css', 'curriculum-config.js', 'preview-onboarding.html'
+];
+const retiredMarkers = [
+  'premium-auth', 'auth-svg', 'user-account', 'ahAuthGate', 'ahOnboardGate',
+  'AHAuth', 'ahPubToken', 'accounts.google.com/gsi', 'curriculum-config.js',
+  'onboarding.js', 'onboarding.css'
+];
+const retiredRoutes = [
+  '/api/auth/config', '/api/auth/login', '/api/auth/register', '/api/auth/register-email',
+  '/api/auth/google', '/api/auth/me', '/api/auth/logout', '/api/auth/otp/send',
+  '/api/auth/passkey/login/begin', '/api/auth/password', '/api/auth/delete',
+  '/api/profile', '/api/profile/photo', '/api/onboarding', '/api/onboarding/catalog',
+  '/api/state', '/api/export', '/api/re-auth', '/api/security/activity',
+  '/api/sessions', '/api/sessions/revoke', '/api/admin/users', '/api/admin/user',
+  '/api/admin/block', '/api/admin/status'
+];
+
+await test('retired frontend source/assets are deleted', retiredFiles.every(file => !existsSync(file)));
+await test('production HTML does not load or mount retired account/onboarding UI', retiredMarkers.every(marker => !H.includes(marker)));
+await test('Google identity client is no longer loaded', !H.includes('accounts.google.com') && !H.includes('openid email profile'));
+
+const navBlock = (H.match(/const NAV_TABS=\[[\s\S]*?\];/) || [''])[0];
+await test('only Profile navigation was removed',
+  ['dashboard', 'question-bank', 'exam', 'ai', 'history'].every(key => navBlock.includes(`key:'${key}'`)) &&
+  !navBlock.includes("key:'profile'") && (navBlock.match(/\{key:/g) || []).length === 5);
+await test('core route dispatch remains available',
+  ["p==='dashboard'", "p==='question-bank'", "p==='exam'", "p==='ai'", "p==='history'"].every(marker => H.includes(marker)));
+await test('retired Profile/account hashes only redirect to Dashboard',
+  !H.includes("path.startsWith('profile')") && H.includes("const retiredAccountRoute = p === 'profile'") &&
+  H.includes('if (retiredAccountRoute) return true') && H.includes("Router.path = 'dashboard'") && !H.includes('Authentication'));
+await test('Profile-only cosmetic tools are absent while the rest of Experience Studio remains',
+  !/Profile Avatars|profile-avatars/.test(STUDIO_SHELL) && !/Profile Identity Card|card-026/.test(STUDIO_CARDS) &&
+  STUDIO_SHELL.includes('Card Styles') && STUDIO_CARDS.includes('MCQ Orbit Card'));
+
+await test('AI client uses stable anonymous-device identity without bearer/account dependency', 
+  UI.includes("'X-AH-Guest': guestId()") && UI.includes("const key = 'ahAiGuestV1'") &&
+  !/Authorization\s*:\s*['"`]Bearer/.test(UI) && !/\btoken\s*=|ahPubToken|AHAuth|login|profile/i.test(UI));
+await test('AI keeps local study-stat context', UI.includes('computeLifetimeStats()') && UI.includes('computeStreak()') && UI.includes('CACHE.mistakes'));
+await test('content hydration is public and account-independent',
+  CLOUD.includes("apiFetch('/api/content/meta')") && CLOUD.includes("apiFetch('/api/content')") &&
+  !/AHAuth|ahPubToken|authHeaders|Authorization/.test(CLOUD));
+
+await test('service-worker build and HTML registration are synchronized',
+  SW.includes("const BUILD_ID = 'v221-account-retired-20260908'") &&
+  H.includes("const expectedSwVersion = 'v221-account-retired-20260908'") &&
+  H.includes('sw.js?v=v221-account-retired-20260908') &&
+  H.includes('admission-hub-shell-v221-account-retired-20260908'));
+await test('service-worker shell cannot cache retired assets', retiredMarkers.every(marker => !SW.includes(marker)));
+await test('service-worker caches guest AI UI v14 and purges prior shells',
+  SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') &&
+  H.includes("name.startsWith('admission-hub-shell-')") && SW.includes('.filter(key => key !== CACHE_NAME)'));
+
+const forbiddenWorkerRoutes = retiredRoutes.filter(route => !route.startsWith('/api/admin/'));
+await test('source Worker contains no retired account/profile/onboarding route literals', forbiddenWorkerRoutes.every(route => !SOURCE.includes(route)));
+await test('deploy bundle contains no retired route literals or implementation primitives',
+  retiredRoutes.every(route => !BUNDLE.includes(route)) &&
+  !/issueToken|hashPassword|verifyAuth|otpSend|passkey|GOOGLE_CLIENT_ID|TWILIO_SID|RESEND_KEY|BREVO_KEY/.test(BUNDLE));
+await test('dispatcher forwards only content/admin/anonymous-AI environment',
+  DISPATCH.includes('AGENT_PUBLIC_DAILY_CAP') &&
+  !/GOOGLE_CLIENT_ID|GOOGLE_CLIENT_SECRET|TWILIO|RESEND|BREVO|BULKSMS|GREENWEB/.test(DISPATCH));
+await test('non-account Worker capabilities remain bundled',
+  ['GK_SCHEMA', 'NEWS_SCHEMA', 'GK_PROMPT', 'ASK_PROMPT', 'createWithFailover', 'bankUpload', 'scheduled(event, env, ctx)'].every(marker => BUNDLE.includes(marker)));
+await test('Pages same-origin API proxy preserves request headers', PAGES.includes("url.pathname.startsWith('/api/')") && PAGES.includes('new Headers(request.headers)') && PAGES.includes("headers.set('x-ah-pages-proxy', '1')"));
+
+await test('runtime: health declares retired account identity model', async () => {
+  const kv = new MemoryKV();
+  const response = await publicWorker.fetch(new Request('https://worker/api/health'), { PUB_KV: kv });
+  const data = await response.json();
+  return response.status === 200 && data.ok === true && data.accountSystem === 'retired' && data.identity === 'anonymous-device';
+});
+
+await test('runtime: every retired endpoint resolves to 404 with no KV mutation', async () => {
+  const kv = new MemoryKV({ 'user:legacy': '{"name":"Dormant"}', 'prof:legacy': '{"goal":"kept"}' });
+  for (const route of retiredRoutes) {
+    const headers = route.startsWith('/api/admin/') ? { Authorization: 'Bearer admin-test' } : {};
+    const response = await publicWorker.fetch(new Request('https://worker' + route, { method: 'GET', headers }), { PUB_KV: kv, ADMIN_TOKEN: 'admin-test' });
+    if (response.status !== 404) return false;
+  }
+  return kv.writes.length === 0 && kv.deletes.length === 0 && kv.data.has('user:legacy') && kv.data.has('prof:legacy');
+});
+
+await test('runtime: retired POST routes also resolve to 404', async () => {
+  const kv = new MemoryKV();
+  for (const route of ['/api/auth/login', '/api/profile', '/api/onboarding', '/api/state', '/api/sessions/revoke']) {
+    const response = await publicWorker.fetch(new Request('https://worker' + route, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+    }), { PUB_KV: kv });
+    if (response.status !== 404) return false;
+  }
+  return kv.writes.length === 0 && kv.deletes.length === 0;
+});
+
+await test('runtime: dormant account/profile/onboarding/state records survive content publishing', async () => {
+  const dormant = {
+    'user:legacy': '{"id":"legacy"}', 'prof:legacy': '{"name":"Legacy"}',
+    'onboard:legacy': '{"completed":true}', 'state:legacy': '{"examResults":[1]}',
+    'tok:legacy': '{"id":"legacy"}'
+  };
+  const oldContent = { v: 2, exams: [{ id: 'exam-kept', title: 'Kept' }] };
+  const kv = new MemoryKV({ ...dormant, pubContent: JSON.stringify(oldContent), pubContentMeta: '{"v":2}' });
+  const result = await publishGlobal({ PUB_KV: kv }, {
+    subjects: [{ id: 's1', name: 'Bangla' }], topics: [{ id: 't1', subjectId: 's1' }],
+    questions: [{ id: 'q1', question: 'প্রশ্ন?', options: ['ক', 'খ'] }], vocabulary: [], vocabularyMaster: []
+  });
+  const published = JSON.parse(kv.data.get('pubContent'));
+  return result.published === true && published.exams[0].id === 'exam-kept' &&
+    Object.entries(dormant).every(([key, value]) => kv.data.get(key) === value) && kv.deletes.length === 0;
+});
+
+await test('runtime: public content/meta remain readable', async () => {
+  const doc = { v: 7, at: 11, sig: 'sig7', subjects: [{ id: 's' }], topics: [{ id: 't' }], questions: [{ id: 'q' }], vocabulary: [], vocabularyMaster: [], exams: [] };
+  const kv = new MemoryKV({ pubContent: JSON.stringify(doc), pubContentMeta: JSON.stringify({ v: 7, at: 11, sig: 'sig7', counts: { questions: 1 } }) });
+  const content = await publicWorker.fetch(new Request('https://worker/api/content'), { PUB_KV: kv });
+  const meta = await publicWorker.fetch(new Request('https://worker/api/content/meta'), { PUB_KV: kv });
+  return content.status === 200 && (await content.json()).questions.length === 1 && meta.status === 200 && (await meta.json()).v === 7;
+});
+
+await test('runtime: AI status is guest-accessible and does not consume usage', async () => {
+  const kv = new MemoryKV();
+  const response = await publicWorker.fetch(new Request('https://worker/api/ai/status', { headers: { 'X-AH-Guest': 'device-guest-00000001', 'CF-Connecting-IP': '203.0.113.7' } }), { PUB_KV: kv });
+  const data = await response.json();
+  return response.status === 200 && data.ok === true && data.streaming === true && kv.writes.length === 0;
+});
+
+await test('runtime: anonymous AI calls are device-isolated and never store raw guest IDs', async () => {
+  const kv = new MemoryKV();
+  const env = { PUB_KV: kv };
+  for (const id of ['device-guest-00000001', 'device-guest-00000002']) {
+    const response = await publicWorker.fetch(new Request('https://worker/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-AH-Guest': id, 'CF-Connecting-IP': '203.0.113.7' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'বাংলা ব্যাকরণ বুঝাও' }] })
+    }), env);
+    if (response.status !== 503) return false; // no model keys in this isolated test
+  }
+  const keys = [...kv.data.keys()];
+  return keys.filter(key => key.startsWith('airl:anon-')).length === 2 &&
+    keys.filter(key => key.startsWith('aipub:')).length === 1 &&
+    !keys.some(key => key.includes('device-guest-'));
+});
+
+await test('runtime: CORS preflight permits anonymous-device header', async () => {
+  const response = await publicWorker.fetch(new Request('https://worker/api/ai/chat', { method: 'OPTIONS' }), { PUB_KV: new MemoryKV() });
+  return response.status === 204 && String(response.headers.get('Access-Control-Allow-Headers')).toLowerCase().includes('x-ah-guest');
+});
+
+await test('runtime: deployed bundle returns 404 for retired route', async () => {
+  const response = await bundledWorker.fetch(new Request('https://worker/api/auth/login', { method: 'POST' }), { PUB_KV: new MemoryKV(), OLD_KV: new MemoryKV() }, {});
+  return response.status === 404;
+});
+
+console.log(`\nACCOUNT RETIREMENT GUARD: ${passed} pass / ${failed} fail`);
+if (failed) process.exit(1);

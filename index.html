@@ -5,10 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>My Admission Hub</title>
-<!-- Guest-first: never hide the usable local app while auth config/network initializes. -->
-<link rel="stylesheet" href="./premium-auth.css?v=p3-auth-guest-v196">
 <link rel="stylesheet" href="./dashboard-v2.css?v=dash2">
-<link rel="stylesheet" href="./onboarding.css?v=p6-onboard-v11">
 
 <link rel="manifest" href="manifest.json">
 <link rel="alternate" type="application/manifest+json" href="manifest.webmanifest">
@@ -579,16 +576,6 @@ textarea{min-height:96px}
 <style id="ah-boot-min">.ah-boot{width:100%;min-height:100dvh;display:grid;place-content:center;justify-items:center;gap:9px;color:#17221d;background:#f1faf6}.ah-boot-mark{display:grid;place-items:center;width:56px;height:56px;border-radius:17px;background:#0f6b4f;color:#fff;font-size:26px;box-shadow:0 12px 28px rgba(15,107,79,.30)}.ah-boot b{font-size:19px;font-weight:800;letter-spacing:.01em}.ah-boot i{font-style:normal;font-size:12px;color:#5e7168;animation:ahBootPulse 1.15s ease-in-out infinite}@keyframes ahBootPulse{0%,100%{opacity:.55}50%{opacity:1}}@media(prefers-reduced-motion:reduce){.ah-boot i{animation:none}}</style>
 </head>
 <body class="app-booting">
-<div id="ahAuthGate" aria-label="Authentication" style="display:none" aria-hidden="true">
-<section class="ah-screen ah-welcome ah-glass">
-<div class="ah-dock">
-<h1>ADMISSION HUB</h1>
-<p class="ah-tag">Learn Smart, Achieve More</p>
-<button class="ah-getstarted" type="button" onclick="document.dispatchEvent(new Event('ah-get-started'))">Get Started</button>
-</div>
-</section>
-</div>
-<div id="ahOnboardGate" aria-label="Onboarding" style="display:none"></div>
 <div id="app"><main class="app-loading" id="ahSplash" role="status"><div class="ah-boot"><span class="ah-boot-mark">✦</span><b>Admission Hub</b><i>লোড হচ্ছে…</i></div></main></div>
 <div id="navRoot" aria-label="Primary navigation"></div>
 <div id="toast" class="toast"></div>
@@ -989,7 +976,6 @@ const NAV_TABS=[
   {key:'exam', icon:'📝', label:'Exam'},
   {key:'ai', icon:'🤖', label:'AI'},
   {key:'history', icon:'📋', label:'History'},
-  {key:'profile', icon:'👤', label:'Profile'},
 ];
 
 function baseTab(path){
@@ -998,7 +984,6 @@ function baseTab(path){
   if(path.startsWith('exam')) return 'exam';
   if(path.startsWith('question-bank')||path.startsWith('subject')||path.startsWith('topic')||path.startsWith('question')||path.startsWith('add-question')||path.startsWith('edit-question')) return 'question-bank';
   if(path.startsWith('history')) return 'history';
-  if(path.startsWith('profile')) return 'profile';
   if(path.startsWith('notes')) return '';
   if(path.startsWith('study-hub/quick-notes')) return 'study-hub/quick-notes';
   if(path.startsWith('progress/plan')) return 'dashboard';
@@ -4647,15 +4632,15 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
     // Do not reload on controllerchange: iOS standalone clients can enter a blank-screen reload loop.
     // The updated worker takes control now; the current document remains usable and the next launch uses the new shell.
     try{
-      const expectedSwVersion = 'v220-aiagent-20260908';
+      const expectedSwVersion = 'v221-account-retired-20260908';
       // register() on the same scope performs an in-place update. Never unregister
       // the active iOS worker first: that discards the instant offline shell.
-      const registration=await navigator.serviceWorker.register('./sw.js?v=v220-aiagent-20260908',{scope:'./',updateViaCache:'none'});
+      const registration=await navigator.serviceWorker.register('./sw.js?v=v221-account-retired-20260908',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
-      // a stale premium-auth.js / old login UI can NEVER be served from cache again.
+      // stale pre-retirement application shells can never be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v220-aiagent-20260908';
+        const cur = 'admission-hub-shell-v221-account-retired-20260908';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -4790,7 +4775,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
 </script>
 <!-- First-interaction modules execute before optional/heavy tools. -->
 <script defer src="./dashboard-v2.js?v=dash2f7"></script>
-<script defer src="./ai-agent-chat.js?v=agent-f1-ui-chatv13"></script>
+<script defer src="./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest"></script>
 <script defer src="qbank-redesign.js?v=practice15"></script>
 <script defer src="urgent-fix.js?v=practice13"></script>
 <script defer src="phase12-ui.js?v=nav-resume-router-v8"></script>
@@ -4960,6 +4945,8 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 (() => {
   const removedRoute = (path) => {
     const p = String(path || '').replace(/^#\/?/, '').split('?')[0];
+    const retiredAccountRoute = p === 'profile' || p.startsWith('profile/') || p === 'onboarding' || p.startsWith('onboarding/') || p === 'login' || p === 'signup' || p === 'register' || p === 'account' || p.startsWith('account/');
+    if (retiredAccountRoute) return true;
     return p === 'daily-gk' || p === 'web-chat' || p === 'ai-chat' || p === 'study-ai' || p === 'gk-agent' || p === 'ai-mentor' || (p.startsWith('memorizing') && !p.startsWith('memorizing-match')) || p === 'study-hub' || p.startsWith('study-hub/') || p.startsWith('ai/') || p === 'vocabulary' || p.startsWith('vocabulary/') || p === 'rewards' || p === 'reward-shop' || p === 'quests' || p === 'daily-quests' || p === 'quest-board' || p === 'xp-history' || p === 'courses' || p.startsWith('courses/') || p === 'pdf-courses' || p.startsWith('pdf-courses/') || p === 'interactive-courses' || p.startsWith('interactive-courses/');
   };
   // Removed feature data is deliberately retained; route removal is UI-only.
@@ -5095,12 +5082,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script defer src="./source-course-tool.js?v=bangla-only-courses-v23-freshfetch"></script>
 <script defer src="./android-runtime-fix.js?v=and-scroll-v1"></script>
 <script>window.AH_CLOUD_ROLE='public';</script>
-<script defer src="./cloud-content-sync.js?v=v189-sync"></script>
-<script src="https://accounts.google.com/gsi/client" async></script>
-<script defer src="./auth-svg.js?v=p3-auth-prof-v196"></script>
-<script defer src="./premium-auth.js?v=p3-auth-guest-v201"></script>
-<script defer src="./curriculum-config.js?v=p6-onboard-v12"></script>
-<script defer src="./onboarding.js?v=p6-onboard-v13"></script>
+<script defer src="./cloud-content-sync.js?v=account-retired-v221"></script>
 <script src="./app-seed.js?v=v189-empty" defer></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */

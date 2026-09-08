@@ -1,4 +1,4 @@
-// v220/chatv13 — iPhone fast-start + single-frame composer + full AI response guard
+// v221/chatv14-guest — iPhone fast-start + single-frame composer + full AI response guard
 import { readFileSync } from 'node:fs';
 
 const H = readFileSync('index.html', 'utf8');
@@ -32,8 +32,8 @@ test('৪. boot-ready and dashboard-ready can each trigger final render without 
 test('৫. dashboard first-interaction module is ordered before optional tools', dashboardTag > -1 && dashboardTag < firstOptionalTag);
 test('৫a. later phase12 code cannot replace dashboard-v2 with another loader',
   readFileSync('phase12-ui.js', 'utf8').includes('if (!window.__dashboardV2Installed)'));
-test('৫b. guest-first paint never hides the local app while auth network initializes',
-  !H.includes("document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')"));
+test('৫b. startup has no retired identity gate or token-dependent paint',
+  !/ahAuthGate|ahPubToken|premium-auth|accounts\.google\.com/.test(H));
 test('৬. stalled Safari IndexedDB open is bounded at 3 seconds and never clears data',
   H.includes("openTimer=window.setTimeout(()=>fail(new Error('IndexedDB open timed out; existing data was left untouched')),3000)") && !bootBlock.includes('dbClear('));
 test('৭. startup readonly reads bypass the write queue and can run together', H.includes("return mode==='readonly' ? execute() : queueDb(execute)"));
@@ -50,7 +50,7 @@ test('১১. protection snapshot runs as idle post-boot work',
 
 /* PWA lifecycle */
 test('১২. build/cache/AI asset versions are synchronized',
-  SW.includes("const BUILD_ID = 'v220-aiagent-20260908'") && H.includes("const expectedSwVersion = 'v220-aiagent-20260908'") && H.includes('sw.js?v=v220-aiagent-20260908') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv13') && SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv13'));
+  SW.includes("const BUILD_ID = 'v221-account-retired-20260908'") && H.includes("const expectedSwVersion = 'v221-account-retired-20260908'") && H.includes('sw.js?v=v221-account-retired-20260908') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
 test('১৩. service-worker activation never navigates or reloads open clients',
   !SW.includes('c.navigate(c.url)') && !SW.includes("self.clients.matchAll({ type: 'window', includeUncontrolled: true });\n      for"));
 test('১৪. installed PWA document is shell-first, not network-blocked',

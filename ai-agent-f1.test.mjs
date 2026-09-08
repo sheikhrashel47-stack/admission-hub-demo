@@ -163,7 +163,7 @@ t('২৫. agentStatus: providers/limits/streaming', (async () => {
   return d.agent === 'agent-f1' && d.providers.gemini === true && d.streaming === true && d.limits.perDay === 80;
 })(), { timeout: 10000 });
 
-t('২৬. Agent-f1 কোনো client-secret-শব্দ ধারণ করে না', !readFileSync('/home/user/demo/ai-agent.js', 'utf8').match(/Bearer [A-Za-z0-9_-]{20,}/) );
+t('২৬. Agent-f1 কোনো client-secret-শব্দ ধারণ করে না', !readFileSync('ai-agent.js', 'utf8').match(/Bearer [A-Za-z0-9_-]{20,}/) );
 
 /* ── ১১. ChatbotV1: Quiz-mode + Vision (মালিক-স্পেক) ── */
 t('২৭. Quiz-mode: prompt-এ কঠোর JSON-স্কিমা (QUIZ_REQUEST-ইনটেন্ট)', buildSystemPrompt({ quiz: true }).includes('QUIZ MODE') && buildSystemPrompt({ quiz: true }).includes('"questions"') && buildSystemPrompt({ quiz: true }).includes('0-based index') && !buildSystemPrompt({}).includes('QUIZ MODE'));

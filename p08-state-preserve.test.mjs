@@ -42,9 +42,9 @@ t('submitExam: সফল-পথে status=\'completed\' + dbPut + result-নে�
 t('examTimerTick: remaining<=0 → submitExam(true) [AC3-regression]', /if\(remaining<=0\)\{[\s\S]{0,120}?await submitExam\(true\)/.test(H));
 
 /* ৬ — ভার্সন-ট্র্যাকিং v193 + ক্যাশ-কী (performance-hardening ?v=2) */
-t('sw BUILD_ID v214-aiagent-20260908', SW.includes("const BUILD_ID = 'v214-aiagent-20260908'"));
-t('index sw-marker v214-aiagent-20260908', H.includes('sw.js?v=v214-aiagent-20260908'));
-t('performance-hardening.js?v=2 (index + sw APP_SHELL) — ক্যাশ-কী-বাম্প', H.includes('performance-hardening.js?v=2') && SW.includes("'./performance-hardening.js?v=2'"));
+t('sw BUILD_ID account-retired v221', SW.includes("const BUILD_ID = 'v221-account-retired-20260908'"));
+t('index sw-marker account-retired v221', H.includes('sw.js?v=v221-account-retired-20260908'));
+t('performance-hardening.js?v=2 deferred; lean startup shell excludes it', H.includes('<script defer src="performance-hardening.js?v=2"></script>') && !SW.includes("'./performance-hardening.js?v=2'"));
 
 console.log(`\nP08-STATE-PRESERVE: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

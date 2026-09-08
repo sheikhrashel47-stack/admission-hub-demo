@@ -1,4 +1,4 @@
-name: Auth Endpoints Guard
+name: Account Retirement Guard
 on:
   push:
     branches: [main]
@@ -11,5 +11,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Run AUTH endpoints guard
-        run: node AUTH_ENDPOINTS_GUARD.test.mjs
+      - name: Verify retired account system stays absent and core app stays intact
+        run: node account-retirement.test.mjs

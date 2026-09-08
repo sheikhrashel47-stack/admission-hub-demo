@@ -36,7 +36,7 @@
       ['📊', 'Analyze my performance', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'Teach me this topic', 'এই topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: '↓ Latest', menu: 'Menu', recentChats: 'Recent conversations', untitled: 'New chat', noChats: 'No conversations yet', newIsEmpty: 'Start a new chat? Unsent draft will be cleared.', cancelBtn: 'Cancel', pinChat: 'Pin / Unpin', itemAct: 'Choose an action:', aiProfile: 'My AI profile', backHome: 'Back to Home', close: 'Close', loginNote: 'Login to unlock your saved profile & sync.', defLbl: 'Definition', confirmClear: 'Clear all messages in this chat?', chzSimple: 'Simplify', qzSetup: '🎯 Quiz Setup', qzLet: 'Matched from your request — just set the rest.', qzMulti: '(multi-select)', qzSubjects: '📚 Subjects', qzTopics: '📖 Topics', qzCount: '🔢 Questions', qzTime: '⏱ Time', qzNeg: '➖ Negative marking', qzDiff: '🎚 Difficulty', qzAll: 'All', qzOthers: 'Other', qzOtherPh: 'Type subject…', qzCustTopPh: 'Custom topic…', qzMin: 'min', qzNoLimit: 'No limit', qzNone: 'None', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Matching Question Bank questions are used first, AI fills the rest', qzNeedSubj: 'Pick at least one subject first', qzS1: 'Checking Question Bank…', qzS2: 'Selecting matching questions…', qzS3: 'Generating missing questions…', qzS4: 'Mixing difficulty & patterns…', qzS5: 'Preparing quiz…', qzQuestion: 'Question', qzQuestionShort: 'Q', qzFromReq: 'Matched from your request (✎ = editable)', qzCorrect: 'Correct!', qzWrong: 'Not quite', qzYourAns: 'Your answer', qzRightAns: 'Correct answer', qzWhy: '💡 Why:', qzRemember: '🧠 Remember:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · negative', qzTimeUp: 'Time up — auto submitted!', qzCorrectN: 'Correct', qzWrongN: 'Incorrect', qzNone2: 'Skipped', qzFAll: 'All', qzFGood: 'Correct', qzFBad: 'Incorrect', qzFSkip: 'Skipped', qzTimeUsed: 'Time used', qzAvgTime: 'Avg / answered', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'Easy', qzDiffMed: 'Medium', qzDiffHard: 'Hard', qzDiffAdm: 'Admission', qzDiffMix: 'Mixed', chzExample: 'Examples', chzQuiz: 'Quiz me', chzMcq: 'Make MCQ', chzSimilarMcq: 'Similar MCQ', chzShorten: 'Summarize', chzPoints: 'Key points', chzRevise: 'Revision note', chzExplain: 'Explain topic', stThink: 'Thinking...', stAnalyze: 'Analyzing your question...', stImage: 'Understanding image...', stDoc: 'Reading file...', stSearch: 'Searching trusted sources...', stQuiz: 'Creating quiz...', stMcq: 'Creating MCQs...', stWrite: 'Writing answer...', stReason: 'Reasoning through it...', stCalc: 'Calculating...', stCode: 'Writing code...', stPlan: 'Structuring a plan...', stVerdict: 'Comparing options...', stSum: 'Summarizing...', stFix: 'Finding the fix...',
+    ph: 'Ask anything…', latest: '↓ Latest', menu: 'Menu', recentChats: 'Recent conversations', untitled: 'New chat', noChats: 'No conversations yet', newIsEmpty: 'Start a new chat? Unsent draft will be cleared.', cancelBtn: 'Cancel', pinChat: 'Pin / Unpin', itemAct: 'Choose an action:', backHome: 'Back to Home', close: 'Close', defLbl: 'Definition', confirmClear: 'Clear all messages in this chat?', chzSimple: 'Simplify', qzSetup: '🎯 Quiz Setup', qzLet: 'Matched from your request — just set the rest.', qzMulti: '(multi-select)', qzSubjects: '📚 Subjects', qzTopics: '📖 Topics', qzCount: '🔢 Questions', qzTime: '⏱ Time', qzNeg: '➖ Negative marking', qzDiff: '🎚 Difficulty', qzAll: 'All', qzOthers: 'Other', qzOtherPh: 'Type subject…', qzCustTopPh: 'Custom topic…', qzMin: 'min', qzNoLimit: 'No limit', qzNone: 'None', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Matching Question Bank questions are used first, AI fills the rest', qzNeedSubj: 'Pick at least one subject first', qzS1: 'Checking Question Bank…', qzS2: 'Selecting matching questions…', qzS3: 'Generating missing questions…', qzS4: 'Mixing difficulty & patterns…', qzS5: 'Preparing quiz…', qzQuestion: 'Question', qzQuestionShort: 'Q', qzFromReq: 'Matched from your request (✎ = editable)', qzCorrect: 'Correct!', qzWrong: 'Not quite', qzYourAns: 'Your answer', qzRightAns: 'Correct answer', qzWhy: '💡 Why:', qzRemember: '🧠 Remember:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · negative', qzTimeUp: 'Time up — auto submitted!', qzCorrectN: 'Correct', qzWrongN: 'Incorrect', qzNone2: 'Skipped', qzFAll: 'All', qzFGood: 'Correct', qzFBad: 'Incorrect', qzFSkip: 'Skipped', qzTimeUsed: 'Time used', qzAvgTime: 'Avg / answered', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'Easy', qzDiffMed: 'Medium', qzDiffHard: 'Hard', qzDiffAdm: 'Admission', qzDiffMix: 'Mixed', chzExample: 'Examples', chzQuiz: 'Quiz me', chzMcq: 'Make MCQ', chzSimilarMcq: 'Similar MCQ', chzShorten: 'Summarize', chzPoints: 'Key points', chzRevise: 'Revision note', chzExplain: 'Explain topic', stThink: 'Thinking...', stAnalyze: 'Analyzing your question...', stImage: 'Understanding image...', stDoc: 'Reading file...', stSearch: 'Searching trusted sources...', stQuiz: 'Creating quiz...', stMcq: 'Creating MCQs...', stWrite: 'Writing answer...', stReason: 'Reasoning through it...', stCalc: 'Calculating...', stCode: 'Writing code...', stPlan: 'Structuring a plan...', stVerdict: 'Comparing options...', stSum: 'Summarizing...', stFix: 'Finding the fix...',
     copy: 'Copy', copied: 'Copied', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'Correct answer', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -48,7 +48,7 @@
     cam: 'Camera', img: 'Image', doc: 'Document', vid: 'Video', voice: 'Voice', file: 'File',
     tSearch: 'Search', tMcq: 'Create MCQ', tQuiz: 'Quiz Me', tExplain: 'Explain', tAnalyze: 'Analyze', tSummarize: 'Summarize',
     listening: 'Listening', transcribing: 'Transcribing', voiceNope: 'Voice input not supported on this device', msgTooLong: 'Message is too long — please keep it under 4,000 characters', shareBtn: 'Share', copyFail: 'Copy unavailable', more: 'More',
-    login: 'Please sign in to use AI chat', loginBtn: 'Sign in', retry: 'Try again',
+    retry: 'Try again',
     err: 'Something went wrong.', errHttp: 'We had trouble processing your request. Please try again shortly.', offline: 'You are offline', imgTooBig: 'Image must be 3.5MB or smaller', editBtn: 'Edit', seeMore: 'See more', themeSys: 'System',
     docSoon: 'Document understanding is coming soon — I answered based on your text.', liked: 'Thanks for feedback!',
     feedbackQ: 'What went wrong?', fb1: 'Incorrect', fb2: 'Not helpful', fb3: 'Too complicated', fb4: 'Missing information', fb5: 'Other',
@@ -69,7 +69,7 @@
       ['📊', 'আমার performance analyze করো', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'এই topicটা শেখাও', 'সালোকসংশ্লেষণ topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: 'নতুন', menu: 'মেনু', recentChats: 'সম্প্রতি কথোপকথন', untitled: 'নতুন চ্যাট', noChats: 'এখনো কোনো কথোপকথন নেই', newIsEmpty: 'নতুন চ্যাট শুরু করবেন? অসমাপ্ত লেখা মুছে যাবে।', cancelBtn: 'বাতিল', pinChat: 'পিন / আনপিন', itemAct: 'একটি কাজ বাছুন:', aiProfile: 'আমার AI প্রোফাইল', backHome: 'হোমে ফিরুন', close: 'বন্ধ করুন', loginNote: 'লগইন করলে প্রোফাইল ও সেভ-সিঙ্ক পাবেন।', defLbl: 'সংজ্ঞা', confirmClear: 'এই চ্যাটের সব মেসেজ মুছবেন?', chzSimple: 'সহজ করে বলো', qzSetup: '🎯 কুইজ সেটআপ', qzLet: 'তোমার কথায় যা পাওয়া গেছে তা বসিয়ে দিয়েছি — শুধু বাকিগুলো ঠিক করো।', qzMulti: '(একাধিক বাছা যায়)', qzSubjects: '📚 বিষয়', qzTopics: '📖 টপিক', qzCount: '🔢 প্রশ্ন সংখ্যা', qzTime: '⏱ সময়', qzNeg: '➖ নেগেটিভ মার্কিং', qzDiff: '🎚 কঠিনতা', qzAll: 'সব', qzOthers: 'Other', qzOtherPh: 'বিষয়টা লিখো…', qzCustTopPh: 'কাস্টম টপিক লিখো…', qzMin: 'মিনিট', qzNoLimit: 'No limit', qzNone: 'নেই', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Question Bank-এ ম্যাচিং প্রশ্ন আগে বসবে, বাকিটা AI বানাবে', qzNeedSubj: 'আগে অন্তত একটা বিষয় বাছো', qzS1: 'Question Bank যাচাই…', qzS2: 'ম্যাচিং প্রশ্ন বাছাই…', qzS3: 'বাকি প্রশ্ন তৈরি…', qzS4: 'Difficulty ও প্যাটার্ন মিক্স…', qzS5: 'Quiz প্রস্তুত…', qzQuestion: 'প্রশ্ন', qzQuestionShort: 'প্রশ্ন', qzFromReq: 'তোমার কথায় মিলেছে (✎ = বদলানো যায়)', qzCorrect: 'সঠিক উত্তর!', qzWrong: 'ভুল উত্তর', qzYourAns: 'তোমার উত্তর', qzRightAns: 'সঠিক উত্তর', qzWhy: '💡 কারণ:', qzRemember: '🧠 মনে রাখো:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · নেগেটিভ', qzTimeUp: 'সময় শেষ — অটো-সাবমিট হয়েছে!', qzCorrectN: 'সঠিক', qzWrongN: 'ভুল', qzNone2: 'বাদ', qzFAll: 'সব', qzFGood: 'সঠিক', qzFBad: 'ভুল', qzFSkip: 'বাদ', qzTimeUsed: 'সময় লেগেছে', qzAvgTime: 'গড়/প্রশ্ন', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'সহজ', qzDiffMed: 'মাঝারি', qzDiffHard: 'কঠিন', qzDiffAdm: 'ভর্তি স্তর', qzDiffMix: 'মিক্স', chzExample: 'আরও উদাহরণ', chzQuiz: 'Quiz নাও', chzMcq: 'MCQ বানাও', chzSimilarMcq: 'একই রকম MCQ', chzShorten: 'সংক্ষেপে বলো', chzPoints: 'মূল পয়েন্ট', chzRevise: 'রিভিশন নোট', chzExplain: 'টপিক বুঝাও', stThink: 'ভাবছি...', stAnalyze: 'প্রশ্ন বিশ্লেষণ করছি...', stImage: 'ছবি বিশ্লেষণ করছি...', stDoc: 'ফাইল বিশ্লেষণ করছি...', stSearch: 'তথ্য খুঁজছি...', stQuiz: 'Quiz তৈরি করছি...', stMcq: 'MCQ তৈরি করছি...', stWrite: 'উত্তর তৈরি করছি...', stReason: 'যুক্তি ভাবছি...', stCalc: 'হিসাব করছি...', stCode: 'কোড লিখছি...', stPlan: 'পরিকল্পনা সাজাচ্ছি...', stVerdict: 'বিকল্প মিলিয়ে দেখছি...', stSum: 'সংক্ষেপ করছি...', stFix: 'সমাধান খুঁজছি...',
+    ph: 'Ask anything…', latest: 'নতুন', menu: 'মেনু', recentChats: 'সম্প্রতি কথোপকথন', untitled: 'নতুন চ্যাট', noChats: 'এখনো কোনো কথোপকথন নেই', newIsEmpty: 'নতুন চ্যাট শুরু করবেন? অসমাপ্ত লেখা মুছে যাবে।', cancelBtn: 'বাতিল', pinChat: 'পিন / আনপিন', itemAct: 'একটি কাজ বাছুন:', backHome: 'হোমে ফিরুন', close: 'বন্ধ করুন', defLbl: 'সংজ্ঞা', confirmClear: 'এই চ্যাটের সব মেসেজ মুছবেন?', chzSimple: 'সহজ করে বলো', qzSetup: '🎯 কুইজ সেটআপ', qzLet: 'তোমার কথায় যা পাওয়া গেছে তা বসিয়ে দিয়েছি — শুধু বাকিগুলো ঠিক করো।', qzMulti: '(একাধিক বাছা যায়)', qzSubjects: '📚 বিষয়', qzTopics: '📖 টপিক', qzCount: '🔢 প্রশ্ন সংখ্যা', qzTime: '⏱ সময়', qzNeg: '➖ নেগেটিভ মার্কিং', qzDiff: '🎚 কঠিনতা', qzAll: 'সব', qzOthers: 'Other', qzOtherPh: 'বিষয়টা লিখো…', qzCustTopPh: 'কাস্টম টপিক লিখো…', qzMin: 'মিনিট', qzNoLimit: 'No limit', qzNone: 'নেই', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Question Bank-এ ম্যাচিং প্রশ্ন আগে বসবে, বাকিটা AI বানাবে', qzNeedSubj: 'আগে অন্তত একটা বিষয় বাছো', qzS1: 'Question Bank যাচাই…', qzS2: 'ম্যাচিং প্রশ্ন বাছাই…', qzS3: 'বাকি প্রশ্ন তৈরি…', qzS4: 'Difficulty ও প্যাটার্ন মিক্স…', qzS5: 'Quiz প্রস্তুত…', qzQuestion: 'প্রশ্ন', qzQuestionShort: 'প্রশ্ন', qzFromReq: 'তোমার কথায় মিলেছে (✎ = বদলানো যায়)', qzCorrect: 'সঠিক উত্তর!', qzWrong: 'ভুল উত্তর', qzYourAns: 'তোমার উত্তর', qzRightAns: 'সঠিক উত্তর', qzWhy: '💡 কারণ:', qzRemember: '🧠 মনে রাখো:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · নেগেটিভ', qzTimeUp: 'সময় শেষ — অটো-সাবমিট হয়েছে!', qzCorrectN: 'সঠিক', qzWrongN: 'ভুল', qzNone2: 'বাদ', qzFAll: 'সব', qzFGood: 'সঠিক', qzFBad: 'ভুল', qzFSkip: 'বাদ', qzTimeUsed: 'সময় লেগেছে', qzAvgTime: 'গড়/প্রশ্ন', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'সহজ', qzDiffMed: 'মাঝারি', qzDiffHard: 'কঠিন', qzDiffAdm: 'ভর্তি স্তর', qzDiffMix: 'মিক্স', chzExample: 'আরও উদাহরণ', chzQuiz: 'Quiz নাও', chzMcq: 'MCQ বানাও', chzSimilarMcq: 'একই রকম MCQ', chzShorten: 'সংক্ষেপে বলো', chzPoints: 'মূল পয়েন্ট', chzRevise: 'রিভিশন নোট', chzExplain: 'টপিক বুঝাও', stThink: 'ভাবছি...', stAnalyze: 'প্রশ্ন বিশ্লেষণ করছি...', stImage: 'ছবি বিশ্লেষণ করছি...', stDoc: 'ফাইল বিশ্লেষণ করছি...', stSearch: 'তথ্য খুঁজছি...', stQuiz: 'Quiz তৈরি করছি...', stMcq: 'MCQ তৈরি করছি...', stWrite: 'উত্তর তৈরি করছি...', stReason: 'যুক্তি ভাবছি...', stCalc: 'হিসাব করছি...', stCode: 'কোড লিখছি...', stPlan: 'পরিকল্পনা সাজাচ্ছি...', stVerdict: 'বিকল্প মিলিয়ে দেখছি...', stSum: 'সংক্ষেপ করছি...', stFix: 'সমাধান খুঁজছি...',
     copy: 'Copy', copied: 'কপি হয়েছে', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'সঠিক উত্তর', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -81,7 +81,7 @@
     cam: 'Camera', img: 'Image', doc: 'Document', vid: 'Video', voice: 'Voice', file: 'File',
     tSearch: 'Search', tMcq: 'Create MCQ', tQuiz: 'Quiz Me', tExplain: 'Explain', tAnalyze: 'Analyze', tSummarize: 'Summarize',
     listening: 'Listening', transcribing: 'Transcribing…', voiceNope: 'এই ডিভাইসে ভয়েস-ইনপুট নেই', msgTooLong: 'মেসেজ খুব বড় — সর্বোচ্চ ৪,০০০ অক্ষর। ছোট করে আবার পাঠান।', shareBtn: 'শেয়ার', copyFail: 'কপি করা যায়নি', more: 'আরও',
-    login: 'AI চ্যাট ব্যবহার করতে লগইন করুন', loginBtn: 'লগইন করুন', retry: 'আবার চেষ্টা করো',
+    retry: 'আবার চেষ্টা করো',
     err: 'একটু সমস্যা হয়েছে।', errHttp: 'requestটি প্রক্রিয়া করতে সমস্যা হয়েছে — একটু পরে আবার চেষ্টা করো।', offline: 'ইন্টারনেট সংযোগ নেই', imgTooBig: 'ছবি ৩.৫MB-এর বেশি হবে না', editBtn: 'সম্পাদনা', seeMore: 'আরও দেখুন', themeSys: 'সিস্টেম',
     docSoon: 'ডকুমেন্ট-বিশ্লেষণ শীঘ্রই আসছে — আপাতত তোমার লেখা থেকে উত্তর দিয়েছি।', liked: 'ফিডব্যাকের জন্য ধন্যবাদ!',
     feedbackQ: 'কী ভুল ছিল?', fb1: 'ভুল', fb2: 'কাজের না', fb3: 'খুব জটিল', fb4: 'তথ্য অনুপস্থিত', fb5: 'অন্যান্য',
@@ -699,13 +699,39 @@
   let theme = (() => { try { const t = localStorage.getItem(THEME_KEY); return THEMES[t] ? t : 'light'; } catch (_) { return 'light'; } })();
 
   const esc = (s) => { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; };
-  const token = () => { try { return localStorage.getItem('ahPubToken') || sessionStorage.getItem('ahPubToken') || ''; } catch (_) { return ''; } };
+  let guestMemo = '';
+  const guestId = () => {
+    if (guestMemo) return guestMemo;
+    const key = 'ahAiGuestV1';
+    try {
+      const saved = String(localStorage.getItem(key) || '').trim();
+      if (/^[A-Za-z0-9._:-]{16,128}$/.test(saved)) return (guestMemo = saved);
+    } catch (_) {}
+    try { guestMemo = crypto.randomUUID(); }
+    catch (_) {
+      const bytes = new Uint8Array(18);
+      try { crypto.getRandomValues(bytes); } catch (_) { for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256); }
+      guestMemo = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    }
+    try { localStorage.setItem(key, guestMemo); } catch (_) {}
+    return guestMemo;
+  };
+  const localStats = () => {
+    try {
+      if (typeof computeLifetimeStats !== 'function') return null;
+      const s = computeLifetimeStats();
+      return {
+        exams: Number(s.exams || 0), questions: Number(s.totalQuestions || s.attempted || 0),
+        accuracy: Number(s.accuracy || 0), streak: typeof computeStreak === 'function' ? Number(computeStreak() || 0) : 0,
+        mistakes: typeof CACHE !== 'undefined' && Array.isArray(CACHE.mistakes) ? CACHE.mistakes.length : Number(s.wrong || 0)
+      };
+    } catch (_) { return null; }
+  };
   const save = () => { try { sessions[cur].msgs = msgs.slice(-MAX_MSGS); sessions[cur].ts = Date.now(); localStorage.setItem(STORE, JSON.stringify({ v: 2, list: sessions, cur: cur })); } catch (_) {} };
   const curTitle = () => (sessions[cur] && sessions[cur].name ? sessions[cur].name : T.title);
   const fmtDay = (ts) => { try { const d = new Date(ts), n = new Date(); return d.toDateString() === n.toDateString() ? fmtTime(ts) : d.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { day: 'numeric', month: 'short' }); } catch (_) { return ''; } };
   const fmtTime = (ts) => { try { return new Date(ts).toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', { hour: '2-digit', minute: '2-digit' }); } catch (_) { return ''; } };
   const toast = (m) => { const old = document.querySelector('.ai-toast'); if (old) old.remove(); const el = document.createElement('div'); el.className = 'ai-toast'; el.textContent = m; document.body.appendChild(el); setTimeout(() => el.remove(), 2300); };
-  const isAuthed = () => !!token();
 
   /* ── markdown-lite v3 (escape-first; heading/para/bullets/num/code/formula/tip/example/warn/table/links) ── */
   function md(html) {
@@ -1019,8 +1045,7 @@
         <button data-theme="oled" class="${theme === 'oled' ? 'on' : ''}">⬛ <span>${esc(T.themeOled)}</span></button>
       </div>
       <div class="ai-dr-acts">
-        ${isAuthed() ? `<button data-act="profile">👤 <b>${esc(T.aiProfile)}</b></button>` : `<button data-act="login">👤 <b>${esc(T.loginBtn)}</b></button>`}
-        <button data-act="home">‹ <b>${esc(T.backHome)}</b></button>${isAuthed() ? '' : `<span class="ai-dr-note">${esc(T.loginNote)}</span>`}
+        <button data-act="home">‹ <b>${esc(T.backHome)}</b></button>
       </div>
       <div class="ai-dr-foot">
         <button data-act="rename">✏️ ${esc(T.menuRename)}</button>
@@ -1038,8 +1063,6 @@
         else if (act === 'export') { closeMenu(); exportChat(); }
         else if (act === 'clear') { closeMenu(); clearMsgs(); }
         else if (act === 'del') { closeMenu(); delChat(); }
-        else if (act === 'login') { closeMenu(); if (window.__AiAgentLogin) window.__AiAgentLogin(); }
-        else if (act === 'profile') { closeMenu(); toast(T.aiProfile); }
         else if (act === 'home') { closeMenu(); backHome(); }
       });
     });
@@ -1298,7 +1321,7 @@
     }
     if (m.error) {
       return `<div class="ai-msg ai"><div class="ai-msg-head"><span class="mini"></span>${esc(T.title)}</div><div class="ai-msg-body"><p style="color:#B23B48;font-weight:700">⚠️ ${esc(T.err)}</p><p style="font-size:12.5px;color:var(--ai-sub,#5F7A72)">${esc(m.text || '')}</p></div>
-        <div class="ai-msg-bar"><button class="ab" onclick="window.__AiAgentRetry&&__AiAgentRetry()" title="${esc(T.retry)}" aria-label="${esc(T.retry)}">${ICONS.regen}</button><button class="ab" onclick="window.__AiAgentEdit&&__AiAgentEdit()" title="${esc(T.editBtn)}" aria-label="${esc(T.editBtn)}">${ICONS.pencil}</button>${m.login ? `<button class="abtxt" onclick="window.__AiAgentLogin&&__AiAgentLogin()">→ ${esc(T.loginBtn)}</button>` : ''}</div></div>`;
+        <div class="ai-msg-bar"><button class="ab" onclick="window.__AiAgentRetry&&__AiAgentRetry()" title="${esc(T.retry)}" aria-label="${esc(T.retry)}">${ICONS.regen}</button><button class="ab" onclick="window.__AiAgentEdit&&__AiAgentEdit()" title="${esc(T.editBtn)}" aria-label="${esc(T.editBtn)}">${ICONS.pencil}</button></div></div>`;
     }
     if (m.qz) return `<div class="ai-msg ai"><div class="ai-msg-head"><span class="mini"></span>${esc(T.title)}</div>${quizV2Html(m, idx)}</div>`;
     const quizHtml = m.quiz ? quizCardHtml(m, idx) : '';
@@ -1480,20 +1503,20 @@
     return hist.slice(-MAX_HISTORY);
   }
   async function callStream(userText, image) {
-    const t = token();
-    if (!t) return { code: 'auth' };
     const hist = history().concat([{ role: 'user', content: userText, ...(image ? { image } : {}) }]);
-    const payload = { messages: hist, context: { stats: (typeof window.__ahAgentStats === 'function') ? window.__ahAgentStats() : null, examMode: null } };
+    const payload = { messages: hist, context: { stats: localStats(), examMode: null } };
     const ctrl = new AbortController();
     activeReq = ctrl;
     const r = await fetch('/api/ai/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t },
+      headers: { 'Content-Type': 'application/json', 'X-AH-Guest': guestId() },
       body: JSON.stringify(payload),
       signal: ctrl.signal
     });
-    if (r.status === 401 || r.status === 403) { await r.text().catch(() => ''); return { code: 'auth' }; }
-    if (!r.ok || !r.body) { await r.text().catch(() => ''); return { code: 'http', status: r.status }; }
+    if (!r.ok || !r.body) {
+      const detail = await r.json().catch(() => null);
+      return { code: 'http', status: r.status, meta: detail };
+    }
     const reader = r.body.getReader();
     const dec = new TextDecoder();
     let buf = ''; let full = ''; let meta = null;
@@ -1739,11 +1762,10 @@
 
   /* ── generation pipeline: bank first → AI fills missing → finalize ── */
   async function qzStreamText(prompt) {
-    const tk = token(); if (!tk) throw new Error('auth');
     const r = await fetch('/api/ai/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tk },
-      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], context: { mode: 'quiz_gen', stats: (typeof window.__ahAgentStats === 'function') ? window.__ahAgentStats() : null } })
+      headers: { 'Content-Type': 'application/json', 'X-AH-Guest': guestId() },
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], context: { mode: 'quiz_gen', stats: localStats() } })
     });
     if (!r.ok || !r.body) throw new Error('http');
     const rd = r.body.getReader(); const dec = new TextDecoder(); let full = ''; let buf = '';
@@ -2122,12 +2144,9 @@
       const msg = { role: 'ai', text: res.text.trim(), ts: Date.now(), regen: true, model: res.meta && res.meta.model };
       if (qz) { const userAnswers = qz.questions.map(() => -1); msg.quiz = { data: qz, idx: 0, sel: -1, feedback: false, correct: 0, userAnswers, done: false }; msg.text = qz.title ? qz.title + ' — ' + res.text.trim() : res.text.trim(); }
       msgs.push(msg); save(); renderMsgs();
-    } else if (res.code === 'auth') {
-      msgs.push({ role: 'ai', error: true, login: true, text: T.login, ts: Date.now() });
-      save(); renderMsgs();
     } else if (res.code === 'stopped') { save(); renderMsgs(); }
     else {
-      const detail = res.code === 'net' ? T.offline : (res.code === 'http' ? T.errHttp : String((res.meta && res.meta.message) || T.err));
+      const detail = res.code === 'net' ? T.offline : (res.code === 'http' ? String((res.meta && (res.meta.message || res.meta.error)) || T.errHttp) : String((res.meta && res.meta.message) || T.err));
       msgs.push({ role: 'ai', error: true, text: detail, ts: Date.now() });
       save(); renderMsgs();
     }
@@ -2234,14 +2253,11 @@
     document.body.appendChild(p);
     setTimeout(() => document.addEventListener('click', function h() { p.remove(); document.removeEventListener('click', h); }, { once: true }), 10);
   }
-  function loginCta() { if (window.AHAuth && typeof window.AHAuth.openLogin === 'function') window.AHAuth.openLogin(); else toast(T.login); }
-
   window.__AiAgentEdit = function () { const last = [...msgs].reverse().find((m) => m.role === 'user'); if (last) { setInput(null, last.text); inputEl() && inputEl().focus(); } };
   window.__AiAgentCopy = copyBtn;
   window.__AiAgentShare = shareBtn;
   window.__AiAgentRetry = retry;
   window.__AiAgentRegen = regen;
-  window.__AiAgentLogin = loginCta;
   window.__AiAgentFb = fbBtn;
   window.__AiAgentMore = moreMenu;
   window.__AiAgentStopVoice = () => stopVoice(true);
