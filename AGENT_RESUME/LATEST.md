@@ -1,47 +1,64 @@
-# LATEST — v219 / chatv12 — AI MASTER SPEC Phase A live ✅
+# LATEST — v220 / chatv13 — iPhone fast-start + full AI responses
 
 **আপডেট:** 2026-09-08 (Asia/Dhaka) · Agent: **জুজু**
 
-## ✅ সর্বশেষ live product
+## ✅ বর্তমান product state
 
-- Product commit: `3fca653d5c8ea61c9113a5ff8697a78001f0084c`
-- Build: `v219-aiagent-20260908`
-- AI UI: `ai-agent-chat.js?v=agent-f1-ui-chatv12`
-- Server AI: `agent-f1`
-- Live: `https://admissionhub.pages.dev`
+- Product commit: `d5db968` (`fix(ios): guarantee fast startup and expand AI responses`)
+- Build: `v220-aiagent-20260908`
+- AI UI: `ai-agent-chat.js?v=agent-f1-ui-chatv13`
+- Dashboard: `dashboard-v2.js?v=dash2f7`
+- Primary repository: `admission-hub-demo/main`
+- Live target: `https://admissionhub.pages.dev`
 - Mirror: `https://sheikhrashel47-stack.github.io/admission-hub-demo/`
-- Cloudflare Pages, GitHub Pages এবং local product assets audit-এ byte-for-byte মিলেছে।
 
-## 📌 AI STOP point
+## ✅ সর্বশেষ পরিবর্তন
 
-আগের Agent **MASTER SPEC Phase A — Interactive Quiz v3 core** সম্পন্ন করে commit, push ও deploy করেছে। Topic/subtopic lock, Question-Bank-first selection, AI fill, timer, negative marking, result, review filters, friendly error/Edit, long-message fold এবং theme/focus improvement live আছে।
+1. Boot/deferred-dashboard race ঠিক: boot আর module-ready আগেভাগে set করে না; dashboard-ready + boot-ready handshake first real render চালায়।
+2. ৩.৮ সেকেন্ড hard usable-shell deadline; “একটু বেশি সময় লাগছে”/retry recovery screen production থেকে বাদ।
+3. IndexedDB open bounded, readonly startup reads parallel, protection/settings work idle; failure non-destructive memory fallback।
+4. Automatic removed-feature data purge বাদ—saved questions/progress/settings/vocabulary/dormant records startup-এ clear বা rewrite হয় না।
+5. Guest-first app auth-config network-এর জন্য hidden থাকে না; installed PWA shell-first এবং offline launch দ্রুত।
+6. SW lean essential precache; activation client reload/navigation ও pre-update unregister বাদ।
+7. AI composer contenteditable inner focus frame বাদ; outer capsule একমাত্র frame।
+8. AI plain/rich/code response সবসময় full; `সম্পূর্ণ দেখুন`/accordion/details response fold সম্পূর্ণ বাদ।
 
-Drive workspace-এ কোনো modified tracked source ছিল না। ১৬টি temporary `patch_*.py` এবং `qz-unit.mjs` untracked ছিল; সেগুলোর পরিবর্তন committed source-এ আগেই প্রয়োগ হয়েছে। Hidden unfinished patch নেই।
+## 🔎 Verification
 
-## 🔎 বর্তমান verification
+- Focused fast-start/data/AI regression: `22/22` pass
+- AI suite: `80/80` pass
+- Auth endpoint guard: pass (109 files)
+- Modified JS + 11 inline scripts syntax: pass
+- Mobile Chromium/Playwright 390×844 touch:
+  - cold dashboard `356 ms`
+  - intentionally delayed dashboard module: usable shell `3965 ms`
+  - 3000-question DB reload `307 ms`, 3000 retained
+  - offline controlled-PWA reload `284 ms`, IndexedDB marker retained
+  - AI response `<details>` count `0`; long plain/rich tails visible
+  - composer focus: outline none / border 0 / shadow none
+  - runtime page errors `0`
+- Legacy historical test debt: relative run 7 pass / 14 stale-fail (old v214/dash2f6/full-APP_SHELL expectations or missing `/home/user/hub` fixtures)।
 
-- JavaScript syntax: `105/105` pass
-- Agent core: `30/30` pass
-- AI UI: `80/80` pass
-- Quiz v3 unit: `17/17` pass
-- Full root test suite: `10/26` suite pass; পুরোনো build-ID expectation-এর কারণে `16/26` suite stale/fail
-- GitHub Actions-এর latest product deploy ও auth guard সফল
+## 🚧 Current STOP point
 
-## ⏭️ জানা বাকি/সমস্যা
+- Product implementation + local verification complete; local product commit `d5db968`।
+- GitHub push is currently blocked because the prior ephemeral credential was intentionally not retained; anonymous push failed।
+- Still required: push commits → verify GitHub Actions/Cloudflare/GitHub Pages live `v220/chatv13` → update deploy status → mandatory Telegram completion notification।
 
-1. পুরোনো test marker ও legacy Python QA scripts update করা দরকার।
+## ⏭️ Known product backlog (unchanged)
+
+1. Legacy test markers/fixture paths modernize করা।
 2. Explain/Summarize helper typed text পাঠায় না।
-3. Client `examMode:null` পাঠায়; real mock state safety gate-এ যুক্ত নয়।
-4. Document/video/audio attachment বর্তমানে placeholder; image vision বাস্তব।
+3. Client `examMode:null`; real mock state safety gate-এ যুক্ত নয়।
+4. Document/video/audio attachment placeholder; image vision বাস্তব।
 5. Main Worker health-এ `GK_KV` missing; Daily-GK cron যাচাই দরকার।
 6. D1 long-memory, RAG, AI task/action engine এবং inbound Telegram development command এখনো তৈরি হয়নি।
 
 ## 🚨 বাধ্যতামূলক handoff নিয়ম
 
-- Primary live repository: `admission-hub-demo/main`; পুরোনো `admission-hub/main` নয়।
-- প্রতিটি meaningful কাজের শেষে dated resume + এই `LATEST.md` update + commit/push করতে হবে।
-- কী বদলেছে, test ফল, deploy/live ফল, pending item এবং exact STOP point লিখতে হবে।
-- কোনো credential/token কখনো repository বা resume-তে রাখা যাবে না।
-- প্রতিটি কাজ শেষে Telegram completion notification পাঠাতে হবে; ব্যর্থ হলে user-কে স্পষ্ট জানাতে হবে।
+- পুরোনো `admission-hub/main` নয়; `admission-hub-demo/main` ব্যবহার করতে হবে।
+- প্রতিটি meaningful কাজের শেষে dated resume + `LATEST.md` update + commit/push বাধ্যতামূলক।
+- কোনো credential/token repository/resume-তে লেখা যাবে না।
+- কাজ শেষে Telegram completion notification পাঠাতে হবে; ব্যর্থ হলে user-কে স্পষ্ট জানাতে হবে।
 
-**বিস্তারিত handoff:** `AGENT_RESUME/2026-09-08-juju-audit-telegram-notify.md`
+**বিস্তারিত handoff:** `AGENT_RESUME/2026-09-08-juju-ios-faststart-ai-full.md`
