@@ -1,5 +1,6 @@
 // Admission Hub — Public Product Worker (Workers + KV, ফ্রি টিয়ার)
-// রুট: /api/content · /api/auth/* · /api/state · /api/ai · /api/admin/*
+// রুট: /api/content · /api/auth/* · /api/state · /api/ai · /api/ai/chat · /api/ai/status · /api/admin/*
+import { agentChat, agentStatus } from './ai-agent.js';
 const JSONH = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,content-type', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };
 const json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: JSONH });
 const GEM_CHAIN = ['gemini-3-flash-preview', 'gemini-3.1-flash-lite'];
@@ -302,6 +303,8 @@ export default {
       if (p === '/api/auth/logout' && request.method === 'POST') return await authLogout(request, env);
       if (p.startsWith('/api/admin/')) return await admin(request, env, p);
       const uid = await authUser(request, env);
+      if (p === '/api/ai/chat' && request.method === 'POST') return await agentChat(request, env, uid);
+      if (p === '/api/ai/status' && request.method === 'GET') return await agentStatus(request, env, uid);
       if (p === '/api/auth/passkey/add/begin' && request.method === 'POST') return await pkAddBegin(request, env, uid);
       if (p === '/api/auth/passkey/add/finish' && request.method === 'POST') return await pkAddFinish(request, env, uid);
       if (p === '/api/auth/google/link' && request.method === 'POST') return await authGoogleLink(request, env, uid);
@@ -405,7 +408,8 @@ export default {
         await touchUser(env, uid);
         return json({ saved: true, at: Date.now() });
       }
-      if (p === '/api/ai' && request.method === 'POST') return await aiCall(request, env, uid);
+      /* agent-f1: লিগ্যাসি /api/ai (JSON) এতদূর → নতুন Agent Core (non-stream) */
+      if (p === '/api/ai' && request.method === 'POST') return await agentChat(request, env, uid, { stream: false });
       return json({ error: 'not-found' }, 404);
     } catch (e) { return json({ error: String(e?.message || e).slice(0, 140) }, e.status || 500); }
   }

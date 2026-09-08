@@ -6,7 +6,7 @@
   ['ai_provider', 'gemini_api_key', 'groq_api_key', 'gemini_api_key_model', 'groq_api_key_model'].forEach(key => {
     try { localStorage.removeItem(key); } catch (_) {}
   });
-  if (window.AIChatState && Array.isArray(window.AIChatState.messages)) window.AIChatState.messages.length = 0;
+  /* agent-f1: লিগ্যাসি AIChatState আর নেই (Phase-1 Agent Core) */
 
   const feedbackSettings = () => {
     const base = typeof window.phaseSettingsWithFeedback === 'function'

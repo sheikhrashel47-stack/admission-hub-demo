@@ -27,7 +27,7 @@ t('PW: same (providers-কোড নেই)', !regPW.includes('provider_google')
 t('HUB: same', !regHUB.includes('provider_google') && !regHUB.includes('provider_passkey'));
 
 /* ২ — OTP-মার্জ: নতুন pending-এ পুরনো providers-সংযোজন */
-t('WB: pending.providers-মার্জ (Array.from(new Set([...existing.providers]))', /Array\.from\(new Set\(\["email", "password", \.\.\.\(\(existing && existing\.providers\) \|\| \[\]\)\]\)\)/.test(WB));
+t('WB: pending.providers-মার্জ (Array.from(new Set([...existing.providers]))', /Array\.from\([^)]*new Set\(\[['"]email['"], ['"]password['"], \.\.\.(?:\(\(existing && existing\.providers\) \|\| \[\]|existing && existing\.providers \|\| \[\])\]\)\)/.test(WB));
 t('PW: pending.providers-মার্জ', /Array\.from\(new Set\(\['email', ?'password', ?\.\.\.\(\(existing && existing\.providers\) \|\| \[\]\)\]\)\)/.test(PW));
 t('HUB: pending.providers-মার্জ', /Array\.from\(new Set\(\['email', ?'password', ?\.\.\.\(\(existing && existing\.providers\) \|\| \[\]\)\]\)\)/.test(HUB));
 

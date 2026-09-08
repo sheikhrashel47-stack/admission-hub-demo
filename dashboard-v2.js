@@ -214,6 +214,7 @@
     const tools = '<section class="dv2-card"><div class="dv2-between"><div><div class="dv2-title">Command Center</div><div class="dv2-muted">এক জায়গায় সব টুল</div></div><button class="dv2-btn ghost" style="padding:7px 11px;font-size:11px;color:#0f6b4f" onclick="window.dv2AllTools&&dv2AllTools()">See more →</button></div>' +
       '<div class="dv2-tools">' +
       '<div class="dv2-tool" onclick="window.openSmartPracticeModal?openSmartPracticeModal():navigate(\'smart-practice\')"><span class="ic">⚡</span><span>Quick Practice</span></div>' +
+      '<div class="dv2-tool" onclick="navigate(\'ai\')"><span class="ic">🤖</span><span>AI</span></div>' +
       '<div class="dv2-tool" onclick="navigate(\'mistakes\')"><span class="ic">❌</span><span>Mistakes</span></div>' +
       '<div class="dv2-tool" onclick="navigate(\'courses\')"><span class="ic">🎓</span><span>Courses</span></div>' +
       '</div></section>';
@@ -260,7 +261,7 @@
   /* ── See-more: পুরনো ১১-টুল (গোপন করা হয় না) ── */
   window.dv2AllTools = function () {
     const tools = [
-      ['📚', 'Bank', "navigate('question-bank')"], ['📝', 'Mock', "navigate('exam/setup')"], ['⚡', 'Quick', "window.openSmartPracticeModal?openSmartPracticeModal():navigate('smart-practice')"],
+      ['🤖', 'AI', "navigate('ai')"], ['📚', 'Bank', "navigate('question-bank')"], ['📝', 'Mock', "navigate('exam/setup')"], ['⚡', 'Quick', "window.openSmartPracticeModal?openSmartPracticeModal():navigate('smart-practice')"],
       ['❌', 'Mistakes', "navigate('mistakes')"], ['📊', 'Progress', "navigate('progress')"], ['🎯', 'Goals', "navigate('progress/plan')"],
       ['🔁', 'Revision', "navigate('vocabulary-master')"], ['📖', 'Vocab', "navigate('vocabulary-master')"], ['🕘', 'History', "navigate('history')"], ['🔍', 'Search', "navigate('question-bank')"],
       ['⚙️', 'Settings', "navigate('settings')"]

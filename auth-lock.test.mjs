@@ -26,7 +26,7 @@ for (const [name, file] of [['WB', WB], ['PW', PW], ['HUB', HUB]]) {
   t(`B.${name}. register-email: hasPassOnly-৩-শাখা (password-আছে→409)`, r.includes('hasPassOnly') && r.includes('পাসওয়ার্ড দিয়ে লগইন করো'));
   t(`B.${name}. register-email: provider_google/provider_passkey-409 নেই (OTP-মার্জ)`, !r.includes('provider_google') && !r.includes('provider_passkey'));
 }
-t('B.WB. pending.providers-মার্জ (email+password+পুরনো)', /Array\.from\(new Set\(\["email", "password", \.\.\.\(\(existing && existing\.providers\) \|\| \[\]\)\]\)\)/.test(WB));
+t('B.WB. pending.providers-মার্জ (email+password+পুরনো)', /Array\.from\([^)]*new Set\(\[['"]email['"], ['"]password['"], \.\.\.(?:\(\(existing && existing\.providers\) \|\| \[\]|existing && existing\.providers \|\| \[\])\]\)\)/.test(WB));
 t('B.PW/HUB. same-মার্জ', /Array\.from\(new Set\(\['email', ?'password', ?\.\.\.\(\(existing && existing\.providers\) \|\| \[\]\)\]\)\)/.test(PW) && /Array\.from\(new Set\(\['email', ?'password', ?\.\.\.\(\(existing && existing\.providers\) \|\| \[\]\)\]\)\)/.test(HUB));
 t('B. issueOtp-পাঠানো অক্ষত (pending:true/sent:true)', /const sent = await issueOtp/.test(WB) && /pending: true, sent: true, channel: "otp"/.test(WB));
 t('B. verify-পথ: rec.providers=pending.providers + status active', /providers: pending\.providers/.test(WB) && /status: "active"/.test(WB));

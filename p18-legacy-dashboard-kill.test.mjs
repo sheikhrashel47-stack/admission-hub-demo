@@ -26,7 +26,7 @@ t('৩. রিপো-জুড়ে পুরোনো-ড্যাশবোর
 t('৪. _headers-ক্যাশ-লক: sw.js/index.html no-cache (পরবর্তী-স্টিক-নিষেধ)', HEADERS.includes('/sw.js') && HEADERS.includes('Cache-Control: no-cache') && HEADERS.includes('/index.html'));
 
 /* ── ২. ভার্সন-অখণ্ডতা v203 ── */
-t('৫. sw BUILD_ID/expectedSwVersion/cur = v205-gfix-20260908 + dv2 dash2f5 অটুট', SW.includes("const BUILD_ID = 'v205-gfix-20260908'") && H.includes('sw.js?v=v205-gfix-20260908') && H.includes("const expectedSwVersion = 'v205-gfix-20260908'") && H.includes("const cur = 'admission-hub-shell-v205-gfix-20260908'") && H.includes('dashboard-v2.js?v=dash2f5'));
+t('৫. sw BUILD_ID/expectedSwVersion/cur = v206-aiagent-20260908 + dv2 dash2f6 অটুট', SW.includes("const BUILD_ID = 'v206-aiagent-20260908'") && H.includes('sw.js?v=v206-aiagent-20260908') && H.includes("const expectedSwVersion = 'v206-aiagent-20260908'") && H.includes("const cur = 'admission-hub-shell-v206-aiagent-20260908'") && H.includes('dashboard-v2.js?v=dash2f6'));
 
 /* ── ৩. রানটাইম: এখন-থেকে-শুধু dv2 — পুরনো-মার্কার-অসম্ভব ── */
 t('৬. রানটাইম: PA+DV2+আজ-লোড-থাকা-ইনজেক্টর-সহ dashboard-রুটে পুরনো-মার্কার-শূন্য, শুধু dv2-root', (async () => {

@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v205-gfix-20260908';
+const BUILD_ID = 'v206-aiagent-20260908';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -41,7 +41,8 @@ const APP_SHELL = [
   './experience-studio-shell.js?v=6',
   './performance-hardening.js?v=2',
   './dashboard-v2.css?v=dash2',
-  './dashboard-v2.js?v=dash2f5',
+  './dashboard-v2.js?v=dash2f6',
+  './ai-agent-chat.js?v=agent-f1-ui-v1',
   './one-time-mock-seed.js?v=20260824-native',
   './one-time-mock-tool.js?v=20260824-native',
   './vocabulary-master-tool.js?v=vm-autoimg-v106',

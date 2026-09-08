@@ -969,6 +969,7 @@ const NAV_TABS=[
   {key:'dashboard', icon:'🏠', label:'Home'},
   {key:'question-bank', icon:'📚', label:'Bank'},
   {key:'exam', icon:'📝', label:'Exam'},
+  {key:'ai', icon:'🤖', label:'AI'},
   {key:'history', icon:'📋', label:'History'},
   {key:'profile', icon:'👤', label:'Profile'},
 ];
@@ -1059,6 +1060,7 @@ function render(){
   }
   if(p.startsWith('notes') && window.renderNotesTool) return window.renderNotesTool();
   if(p==='dictionary' && window.renderDictionaryV2) return window.renderDictionaryV2();
+  if(p==='ai'){ if(window.renderAiAgentPage) return window.renderAiAgentPage(); return renderLazyToolFallback(p); }
   if((p==='question-bank'||p.startsWith('question-bank/')) && window.renderQuestionBankV2) return window.renderQuestionBankV2();
   if(p==='dashboard') return renderDashboard();
   if(p==='question-bank') return renderQuestionBank();
@@ -3868,16 +3870,6 @@ function renderProgress(){
 function renderSettings(){
   const s=CACHE.settings;
   const html=`
-  <div class="h2" style="margin-top:0;">AI Assistant</div>
-  <div class="card">
-    <div class="muted" style="margin-bottom:8px;">Provider</div>
-    <div class="row wrap" style="margin-bottom:6px;">
-      ${AI_PROVIDERS.map(p=>`<button class="chip ${getAiProvider()===p.key?'active':''}" onclick="switchAiProvider('${p.key}')">${p.name}</button>`).join('')}
-    </div>
-    <div class="muted">Active key: <b>${maskKey()}</b> · Model: <b>${esc(getProviderModel(getAiProvider()))||AI_MODEL_DEFAULTS[getAiProvider()]}</b></div>
-    <button class="btn secondary" style="margin-top:12px;" onclick="openAiKeyDialog()">⚙️ Manage API Key & Model</button>
-  </div>
-
   <div class="h2">Appearance</div>
   <div class="card">
     <div class="muted" style="margin-bottom:8px;">Theme</div>
@@ -4079,480 +4071,7 @@ function resumeActiveExam(){
   navigate('exam/running');
 }
 
-/* ================= AI ASSISTANT (MULTI-PROVIDER) ================= */
-/* Providers: Gemini (default) & Groq. Keys are kept in localStorage, never in HTML/source/GitHub. */
-const AI_PROVIDERS=[{key:'gemini',name:'Gemini',desc:'Google Gemini (aistudio.google.com)'},{key:'groq',name:'Groq',desc:'Groq Fast Inference (console.groq.com)'}];
-const AI_KEYS={gemini:'gemini_api_key',groq:'groq_api_key'};
-const AI_MODEL_DEFAULTS={gemini:'gemini-3.5-flash-lite',groq:'llama-3.3-70b-versatile'};
-function getAiProvider(){ const p=localStorage.getItem('ai_provider'); return AI_PROVIDERS.some(x=>x.key===p)?p:'gemini'; }
-function setAiProvider(p){ localStorage.setItem('ai_provider', AI_PROVIDERS.some(x=>x.key===p)?p:'gemini'); }
-function getProviderKey(provider){ return localStorage.getItem(AI_KEYS[provider||getAiProvider()])||''; }
-function setProviderKey(provider,k){ localStorage.setItem(AI_KEYS[provider], k); }
-function clearProviderKey(provider){ localStorage.removeItem(AI_KEYS[provider]); localStorage.removeItem(AI_KEYS[provider]+'_model'); }
-function getProviderModel(provider){ return localStorage.getItem(AI_KEYS[provider+'_model'])||AI_MODEL_DEFAULTS[provider]||''; }
-function setProviderModel(provider,m){ localStorage.setItem(AI_KEYS[provider+'_model'], m); }
-/* Mask key for UI display: never show plain text. Shows ****ab12 pattern (last 4 visible). */
-function maskKey(k){ k=k||getProviderKey(); if(!k) return 'Not set'; const kl=String(k); if(kl.length<=8) return '****'; return '****'+kl.slice(-4); }
-// Keys will be prompted (via secure masked dialog) on first use if not set
-
-let AIChatState = {
-  messages: [],
-  isLoading: false,
-  pendingImage: null
-};
-
-/* মালিক-নির্দেশ ২০২৬-০৯-০৮: AI চ্যাট-পেজ ফাংশন সম্পূর্ণ বাদ */
-function switchAiProvider(p){
-  setAiProvider(p);
-  toast('AI Provider switched to '+AI_PROVIDERS.find(x=>x.key===p).name);
-  render();
-}
-
-/* Provider key dialog — uses a custom masked modal, never prompt() and never plain text */
-function openAiKeyDialog(){
-  const provider=getAiProvider();
-  const p=AI_PROVIDERS.find(x=>x.key===provider);
-  const hasKey=!!getProviderKey(provider);
-  openModal(`
-    <h3>${p.name} API Key</h3>
-    <p class="muted" style="margin-top:4px;">${hasKey?'Stored key: <b>'+esc(maskKey())+'</b> — save again to update.':'No key stored yet. Enter your key below.'}</p>
-    <p class="muted">Key is saved only in your browser (localStorage). It is never hard-coded, never shown in plain text, and never sent anywhere except the provider's official API endpoint.</p>
-    <label class="flabel">API Key</label>
-    <div class="row" style="gap:6px; margin-top:4px;">
-      <input type="password" id="aiKeyInput" placeholder="Paste your ${p.name} API key..." autocomplete="off" style="flex:1; min-width:0;">
-      <button class="iconbtn" onclick="toggleAiKeyVisibility()" title="Show/Hide">👁️</button>
-    </div>
-    <label class="flabel" style="margin-top:10px;">Model</label>
-    <input type="text" id="aiModelInput" value="${esc(getProviderModel(provider))}" placeholder="${AI_MODEL_DEFAULTS[provider]}" style="width:100%; margin-top:4px;">
-    <button class="btn" style="margin-top:14px;" onclick="saveAiKeyFromDialog()">${hasKey?'Update Key':'Save Key'}</button>
-    <button class="btn ghost" style="margin-top:8px;" onclick="closeModal()">Cancel</button>
-  `);
-}
-function toggleAiKeyVisibility(){
-  const i=document.getElementById('aiKeyInput'); if(!i) return;
-  i.type=i.type==='password'?'text':'password';
-}
-async function saveAiKeyFromDialog(){
-  const i=document.getElementById('aiKeyInput'), m=document.getElementById('aiModelInput');
-  const v=i?i.value.trim():'', mv=m?m.value.trim():'';
-  if(!v){ toast('API Key required'); return; }
-  const provider=getAiProvider();
-  setProviderKey(provider,v);
-  if(mv) setProviderModel(provider,mv);
-  closeModal(); toast(AI_PROVIDERS.find(x=>x.key===provider).name+' key saved'); render();
-}
-
-function quickAiPrompt(text){
-  const input=document.getElementById('aiUserInput');
-  if(input) input.value=text;
-  sendAiMsg();
-}
-
-function handleAiImageUpload(e){
-  const file=e.target.files[0];
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=()=>{
-    const base64=reader.result.split(',')[1];
-    AIChatState.pendingImage={
-      data:base64,
-      mimeType:file.type||'image/jpeg',
-      name:file.name
-    };
-    render();
-    scrollChatBottom();
-  };
-  reader.readAsDataURL(file);
-}
-
-function sendAiMsg(){
-  const input=document.getElementById('aiUserInput');
-  const text=input?input.value.trim():'';
-  if(!text && !AIChatState.pendingImage) return;
-
-  const img=AIChatState.pendingImage;
-  if(input) input.value='';
-  AIChatState.pendingImage=null;
-
-  sendAIChatMessage(text||'Please analyze this image and extract questions or answer.', img);
-}
-
-function scrollChatBottom(){
-  setTimeout(()=>{
-    const c=document.getElementById('aiChatMessages');
-    if(c) c.scrollTop = c.scrollHeight;
-  }, 60);
-}
-
-async function sendAIChatMessage(userText, imageObj){
-  if(!navigator.onLine){
-    toast('You are offline. AI Chat requires internet connection.');
-    return;
-  }
-  if(!getProviderKey()){
-    openAiKeyDialog(); toast('Please save your API Key first'); return;
-  }
-
-  AIChatState.messages.push({
-    role:'user',
-    text:userText,
-    image:imageObj?imageObj.data:null,
-    mimeType:imageObj?imageObj.mimeType:null
-  });
-  AIChatState.isLoading=true;
-  render();
-  scrollChatBottom();
-
-  try{
-    const subs=CACHE.subjects.map(s=>({id:s.id, name:s.name}));
-    const tops=CACHE.topics.map(t=>({id:t.id, subjectId:t.subjectId, name:topicName(t.id), subjectName:subjectName(t.subjectId)}));
-    const appContext={subjects:subs, topics:tops};
-
-    const systemInstruction = `You are an AI Assistant inside "Admission Hub", an offline education & admission test preparation app for students in Bangladesh (supporting Bengali and English).
-Current App Context (Subjects & Topics):
-${JSON.stringify(appContext)}
-
-You can help the user by answering general study questions OR by performing actions on the app.
-When an action is needed, you MUST return a valid JSON object wrapped in \`\`\`json ... \`\`\` markdown code block.
-
-Available actions & JSON schemas:
-1. Generate MCQs and save to Question Bank:
-{
-  "action": "add_questions",
-  "subjectName": "বাংলা",
-  "topicName": "অপরিচিতা",
-  "questions": [
-    {
-      "question": "কল্যাণীর মামার নাম কী?",
-      "options": ["শম্ভুনাথ সেন", "হরিশ", "যোগেন", "মকিম"],
-      "answer": 0,
-      "explanation": "কল্যাণীর বাবা শম্ভুনাথ সেন।",
-      "difficulty": "medium",
-      "tags": ["HSC", "Bangla 1st"]
-    }
-  ],
-  "reply": "বাংলা ১ম পত্রের অপরিচিতা গল্প থেকে MCQ তৈরি করে Question Bank-এ যোগ করা হয়েছে।"
-}
-
-2. Start an exam:
-{
-  "action": "start_exam",
-  "subjectNames": ["English"],
-  "topicNames": [],
-  "mode": "mock", // or "flash"
-  "count": 20,
-  "duration": 20,
-  "negative": 0.25,
-  "reply": "English থেকে ২০টি প্রশ্ন নিয়ে Mock Test শুরু করা হচ্ছে।"
-}
-
-3. Add a new subject:
-{
-  "action": "add_subject",
-  "name": "Physics",
-  "icon": "⚛️",
-  "color": "#3b82f6",
-  "reply": "Physics নামে নতুন বিষয় যোগ করা হয়েছে।"
-}
-
-4. Add a new topic:
-{
-  "action": "add_topic",
-  "subjectName": "বাংলা",
-  "name": "সোনার তরী",
-  "reply": "বাংলা বিষয়ে 'সোনার তরী' টপিক যোগ করা হয়েছে।"
-}
-
-5. Add vocabulary word:
-{
-  "action": "add_vocabulary",
-  "word": "Diligent",
-  "meaning": "পরিশ্রমী",
-  "synonyms": "Hardworking",
-  "example": "He is a diligent student.",
-  "reply": "Vocabulary তালিকায় 'Diligent' যোগ করা হয়েছে।"
-}
-
-6. General chat / Q&A / Study help:
-{
-  "action": "chat",
-  "reply": "অপরিচিতা গল্পটি রবীন্দ্রনাথ ঠাকুরের লেখা একটি বিখ্যাত ছোটগল্প..."
-}
-
-Always ensure your response is helpful, accurate, and includes valid JSON for actions. If user provides an image (e.g. photo of questions), extract the questions from the image and format them into "add_questions" action.
-`;
-
-    const contents=[];
-    const recentMsgs=AIChatState.messages.slice(-10);
-    for(const m of recentMsgs){
-      const parts=[{text: m.text || (m.image ? "Please analyze this image and extract questions or answer." : "")}];
-      if(m.image && m.role==='user'){
-        parts.push({
-          inline_data:{
-            mime_type: m.mimeType || 'image/jpeg',
-            data: m.image
-          }
-        });
-      }
-      contents.push({
-        role: m.role==='model'?'model':'user',
-        parts: parts
-      });
-    }
-
-    const provider=getAiProvider();
-    let aiRawText='';
-
-    if(provider==='gemini'){
-      const requestBody={
-        system_instruction:{
-          parts:[{text:systemInstruction}]
-        },
-        contents:contents,
-        generationConfig:{
-          temperature:0.4,
-          maxOutputTokens:2048
-        }
-      };
-
-      const url=`https://generativelanguage.googleapis.com/v1beta/models/${getProviderModel(provider)||'gemini-3.5-flash-lite'}:generateContent?key=${getProviderKey()}`;
-      const response=await fetch(url, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(requestBody)
-      });
-
-      if(!response.ok){
-        const errText=await response.text();
-        throw new Error(`Gemini API error: ${response.status} ${errText}`);
-      }
-
-      const data=await response.json();
-      const candidate=data.candidates && data.candidates[0];
-      aiRawText=candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] && candidate.content.parts[0].text;
-      if(!aiRawText){
-        if(data.promptFeedback && data.promptFeedback.blockReason){
-          throw new Error('Response blocked by Gemini (reason: '+data.promptFeedback.blockReason+'). Try rephrasing.');
-        }
-        throw new Error('Empty response from Gemini AI');
-      }
-    } else if(provider==='groq'){
-      /* Groq: OpenAI-compatible chat completions. Text only (no image support via Groq API keys). */
-      const openaiMessages=[];
-      openaiMessages.push({role:'system', content:systemInstruction});
-      for(const m of recentMsgs){
-        openaiMessages.push({
-          role: m.role==='model'?'assistant':'user',
-          content: m.text || (m.image ? "Please describe this image's content in text." : "")
-        });
-      }
-      const groqUrl='https://api.groq.com/openai/v1/chat/completions';
-      const groqResponse=await fetch(groqUrl, {
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'Authorization':'Bearer '+getProviderKey()
-        },
-        body:JSON.stringify({
-          model:getProviderModel(provider)||'llama-3.3-70b-versatile',
-          messages:openaiMessages,
-          temperature:0.4,
-          max_tokens:2048
-        })
-      });
-      if(!groqResponse.ok){
-        const errText=await groqResponse.text();
-        throw new Error(`Groq API error: ${groqResponse.status} ${errText}`);
-      }
-      const groqData=await groqResponse.json();
-      const choice=groqData.choices && groqData.choices[0];
-      aiRawText=choice && choice.message && choice.message.content;
-      if(!aiRawText){
-        throw new Error('Empty response from Groq AI');
-      }
-    } else {
-      throw new Error('Unknown AI provider: '+provider);
-    }
-
-    let actionObj=null;
-    let replyText=aiRawText;
-
-    const jsonMatch=aiRawText.match(/```json\s*([\s\S]*?)\s*```/) || aiRawText.match(/\{[\s\S]*\}/);
-    if(jsonMatch){
-      try{
-        const jsonStr=jsonMatch[1] || jsonMatch[0];
-        actionObj=JSON.parse(jsonStr);
-        if(actionObj.reply){
-          replyText=actionObj.reply;
-        }
-      }catch(e){
-        console.error('JSON parse error from AI response:', e);
-      }
-    }
-
-    if(actionObj && actionObj.action){
-      await executeAIAction(actionObj);
-    }
-
-    AIChatState.messages.push({
-      role:'model',
-      text:replyText
-    });
-
-  }catch(err){
-    console.error(err);
-    toast('AI Error: '+err.message);
-    AIChatState.messages.push({
-      role:'model',
-      text:'দুঃখিত, একটি সমস্যা হয়েছে: '+err.message
-    });
-  }finally{
-    AIChatState.isLoading=false;
-    AIChatState.pendingImage=null;
-    render();
-    scrollChatBottom();
-  }
-}
-
-async function executeAIAction(act){
-  if(!act || !act.action) return;
-
-  if(act.action==='add_questions'){
-    let subId='';
-    if(act.subjectName){
-      let sub=CACHE.subjects.find(s=>s.name.toLowerCase()===act.subjectName.toLowerCase() || s.name.includes(act.subjectName));
-      if(!sub){
-        subId=uid();
-        await dbPut('subjects',{id:subId, name:act.subjectName, icon:'📘', color:'#0f6b4f', order:CACHE.subjects.length, createdAt:Date.now()});
-        CACHE.subjects=await dbGetAll('subjects');
-      } else {
-        subId=sub.id;
-      }
-    } else {
-      subId=CACHE.subjects[0]?CACHE.subjects[0].id:'';
-    }
-
-    let topId='';
-    if(act.topicName && subId){
-      let tops=topicsOf(subId);
-      let top=tops.find(t=>t.name.toLowerCase()===act.topicName.toLowerCase() || t.name.includes(act.topicName));
-      if(!top){
-        topId=uid();
-        await dbPut('topics',{id:topId, subjectId:subId, name:act.topicName, order:tops.length, createdAt:Date.now()});
-        CACHE.topics=await dbGetAll('topics');
-      } else {
-        topId=top.id;
-      }
-    } else if(subId){
-      let tops=topicsOf(subId);
-      if(tops.length>0){
-        topId=tops[0].id;
-      } else {
-        topId=uid();
-        await dbPut('topics',{id:topId, subjectId:subId, name:'AI Generated', order:0, createdAt:Date.now()});
-        CACHE.topics=await dbGetAll('topics');
-      }
-    }
-
-    if(act.questions && Array.isArray(act.questions)){
-      for(const q of act.questions){
-        if(!q.question || !q.options || q.options.length<4) continue;
-        await dbPut('questions',{
-          id:uid(),
-          subjectId:subId,
-          topicId:topId,
-          questionNumber:nextQuestionNumberForTopic(topId),
-          question:q.question,
-          options:q.options.slice(0,4),
-          answer:typeof q.answer==='number'?q.answer:0,
-          explanation:q.explanation||'',
-          tags:q.tags||['AI'],
-          difficulty:q.difficulty||'medium',
-          source:'ai',
-          createdAt:Date.now(),
-          updatedAt:Date.now(),
-          stats:{attempts:0,correct:0,wrong:0}
-        });
-      }
-      CACHE.questions=await dbGetAll('questions');
-      toast(`${act.questions.length} questions added to Question Bank!`);
-    }
-  } else if(act.action==='start_exam'){
-    let subIds=[];
-    if(act.subjectNames && Array.isArray(act.subjectNames)){
-      for(const sName of act.subjectNames){
-        const sub=CACHE.subjects.find(s=>s.name.toLowerCase().includes(sName.toLowerCase()));
-        if(sub) subIds.push(sub.id);
-      }
-    }
-    let topIds=[];
-    if(act.topicNames && Array.isArray(act.topicNames)){
-      for(const tName of act.topicNames){
-        const top=CACHE.topics.find(t=>t.name.toLowerCase().includes(tName.toLowerCase()));
-        if(top) topIds.push(top.id);
-      }
-    }
-
-    ExamSetup=freshSetup();
-    if(subIds.length>0) ExamSetup.subjectIds=subIds;
-    if(topIds.length>0) ExamSetup.topicIds=topIds;
-    if(act.mode) ExamSetup.mode=act.mode;
-    if(act.count) ExamSetup.totalCount=parseInt(act.count)||20;
-    if(act.duration) ExamSetup.duration=parseInt(act.duration)||20;
-    if(act.negative!==undefined) ExamSetup.negative=parseFloat(act.negative)||0;
-
-    await beginExam();
-  } else if(act.action==='add_subject'){
-    const name=act.name;
-    if(name){
-      await dbPut('subjects',{
-        id:uid(),
-        name:name,
-        icon:act.icon||'📘',
-        color:act.color||'#0f6b4f',
-        order:CACHE.subjects.length,
-        createdAt:Date.now()
-      });
-      CACHE.subjects=await dbGetAll('subjects');
-      toast(`Subject "${name}" created!`);
-    }
-  } else if(act.action==='add_topic'){
-    const subName=act.subjectName;
-    const topName=act.name;
-    if(subName && topName){
-      const sub=CACHE.subjects.find(s=>s.name.toLowerCase().includes(subName.toLowerCase()));
-      if(sub){
-        const tops=topicsOf(sub.id);
-        await dbPut('topics',{
-          id:uid(),
-          subjectId:sub.id,
-          name:topName,
-          order:tops.length,
-          createdAt:Date.now()
-        });
-        CACHE.topics=await dbGetAll('topics');
-        toast(`Topic "${topName}" added!`);
-      }
-    }
-  } else if(act.action==='add_vocabulary'){
-    const word=act.word;
-    if(word){
-      await dbPut('vocabulary',{
-        id:uid(),
-        category:'english',
-        word:word,
-        meaning:act.meaning||'',
-        example:act.example||'',
-        status:'new',
-        createdAt:Date.now()
-      });
-      CACHE.vocabulary=await dbGetAll('vocabulary');
-      toast(`Word "${word}" added to Vocabulary!`);
-    }
-  }
-}
-
-
+/* মালিক-নির্দেশ ২০২৬-০৯-০৮: লিগ্যাসি AI-অ্যাসিস্ট্যান্ট (client-key Gemini/Groq) সম্পূর্ণ বাদ — Phase-1 Agent Core (/api/ai/chat) প্রতিস্থাপন করেছে */
 /* ================= NEXT MAJOR UPGRADE: additive compatibility layer ================= */
 (function(){
   const originalLoadCache=loadCache;
@@ -4622,7 +4141,7 @@ async function executeAIAction(act){
   window.openCustomDuration=function(){const v=prompt('Minutes',String(ExamSetup.duration||20)); if(v!==null){ExamSetup.duration=Math.max(0,Number(v)||0);render();}};
   window.openCustomNegative=function(){const v=prompt('Negative mark',String(ExamSetup.negative||0)); if(v!==null){ExamSetup.negative=Math.max(0,Number(v)||0);render();}};
 
-  renderSettings=function(){const s=normalizeSettings(CACHE.settings), cards=s.dashboardCards, toggle=(label,key,group='root')=>`<div class="togglerow"><span>${label}</span><div class="toggle ${((group==='cards'?cards[key]:s[key])?'on':'')}" onclick="toggleUpgrade('${group}','${key}')"><div class="dot"></div></div></div>`; const html=`<div class="explorer-head"><div class="explorer-kicker">Personalization</div><div class="explorer-title">Settings</div><div class="explorer-subtitle">Tune the study environment without touching your existing records.</div><div class="h2">AI Assistant</div><div class="card"><div class="muted">Provider</div><div class="filter-row" style="margin-top:8px">${AI_PROVIDERS.map(p=>`<button class="chip ${getAiProvider()===p.key?'active':''}" onclick="switchAiProvider('${p.key}')">${p.name}</button>`).join('')}</div>${AI_PROVIDERS.map(p=>`<div style="margin-top:12px;padding:11px;background:var(--bg);border-radius:12px"><div class="row between"><b style="font-size:13px">${p.name}</b><span class="muted" style="font-size:11px">${maskKey(getProviderKey('${p.key}'))}${getProviderModel('${p.key}')?' &middot; '+esc(getProviderModel('${p.key}')):''}</span></div><div class="row" style="gap:8px;margin-top:8px"><button class="btn sm" onclick="switchAiProvider('${p.key}');setTimeout(openAiKeyDialog,60)">Set Key</button><button class="btn ghost sm" onclick="if(confirm('Remove stored ${p.name} key?')){clearProviderKey('${p.key}');toast('${p.name} key removed');render()}">Clear</button></div></div>`).join('')}<div class="muted" style="margin-top:10px;font-size:11.5px">Keys are saved only in your browser (localStorage). They are never hard-coded, never shown in plain text, and sent only to the provider's official API endpoint.</div></div></div><div class="h2" style="margin-top:0">Appearance</div><div class="card"><div class="muted">Theme</div><div class="filter-row" style="margin-top:8px">${[['light','Emerald Light'],['dark','Soft Dark'],['midnight','Midnight'],['focus','Focus Mode']].map(([v,l])=>`<button class="chip ${s.theme===v?'active':''}" onclick="setTheme('${v}')">${l}</button>`).join('')}</div><div class="muted" style="margin-top:12px">Accent</div><div class="filter-row" style="margin-top:8px">${[['emerald','Emerald'],['blue','Blue'],['violet','Violet'],['amber','Amber']].map(([v,l])=>`<button class="chip ${s.accent===v?'active':''}" onclick="setAccent('${v}')">${l}</button>`).join('')}</div><label class="flabel">UI Density</label><select onchange="CACHE.settings.density=this.value;persistUpgradeSetting()"><option value="comfortable" ${s.density==='comfortable'?'selected':''}>Comfortable</option><option value="compact" ${s.density==='compact'?'selected':''}>Compact</option></select><label class="flabel">Card Style</label><select onchange="CACHE.settings.cardStyle=this.value;persistUpgradeSetting()"><option value="soft" ${s.cardStyle==='soft'?'selected':''}>Soft</option><option value="minimal" ${s.cardStyle==='minimal'?'selected':''}>Minimal</option><option value="elevated" ${s.cardStyle==='elevated'?'selected':''}>Elevated</option></select></div><div class="h2">Animation & Feedback</div><div class="card">${toggle('Animations','animation')} ${toggle('Reduced motion','reducedMotion')} ${toggle('Result animation','resultAnimation')} ${toggle('Number animation','numberAnimation')} ${toggle('Page transition','pageTransition')} ${toggle('Sound','sound')} ${toggle('Visual feedback','visual','feedback')} ${toggle('Success effects','success','feedback')} ${toggle('Error effects','error','feedback')}</div><div class="h2">Dashboard cards</div><div class="card">${Object.entries({goal:'Daily goal',streak:'Streak',performance:'Performance',revision:'Smart revision',lifetime:'Lifetime'}).map(([k,l])=>toggle(l,k,'cards')).join('')}</div><div class="h2">Exam defaults</div><div class="card"><label class="flabel">Question count</label><input type="number" value="${s.examDefaults.count}" onchange="CACHE.settings.examDefaults.count=Math.max(1,Number(this.value)||20);persistUpgradeSetting()"><label class="flabel">Duration (minutes)</label><input type="number" value="${s.examDefaults.duration}" onchange="CACHE.settings.examDefaults.duration=Math.max(0,Number(this.value)||20);persistUpgradeSetting()"><label class="flabel">Negative marking</label><input type="number" step=".05" value="${s.examDefaults.negative}" onchange="CACHE.settings.examDefaults.negative=Math.max(0,Number(this.value)||0);persistUpgradeSetting()"><label class="flabel">Marks per question</label><input type="number" step="0.5" min="0.5" value="${s.examDefaults.marksPerQ||1}" onchange="CACHE.settings.examDefaults.marksPerQ=Math.max(0.5,Number(this.value)||1);persistUpgradeSetting()"><label class="flabel">Difficulty</label><select onchange="CACHE.settings.examDefaults.difficulty=this.value;persistUpgradeSetting()"><option value="mixed" ${s.examDefaults.difficulty==='mixed'?'selected':''}>Mixed</option><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select>${toggle('Auto-save','autoSave','examDefaults')}${toggle('Resume exam','resume','examDefaults')}${toggle('Submit confirmation','confirmSubmit','examDefaults')}</div>${window.BugAgent?.settingsCard?.()||''}<div class="h2">Notifications</div><div class="card"><div class="muted" style="font-size:12px;line-height:1.55">ঠিক সময়ে ছোট রিমাইন্ডার — Telegram + iPhone push। কারণ না থাকলে কিছুই পাঠায় না।</div><button class="btn secondary" style="margin-top:10px" onclick="NotificationHub.openSettings()">⚙️ Notification Settings</button><button class="btn ghost sm" style="margin-top:8px" onclick="NotificationHub.openCenter()">🔔 Notification Center</button></div><div class="h2">Data management</div><div class="card"><div class="muted">Questions: ${CACHE.questions.length.toLocaleString()} · Exams: ${CACHE.examResults.length} · History: ${CACHE.examResults.length} · Vocabulary: ${CACHE.vocabulary.length}</div><button class="btn secondary" style="margin-top:12px" onclick="exportBackup()">📦 Export Full Backup</button><button class="btn ghost" style="margin-top:8px" onclick="document.getElementById('restoreFile').click()">📥 Import Backup</button><input id="restoreFile" type="file" accept="application/json" class="hide" onchange="handleRestoreFile(event)"></div><div class="h2">Danger zone</div><div class="card"><button class="btn ghost" onclick="resetStats()">Reset Statistics</button><button class="btn ghost" style="margin-top:8px" onclick="confirmModal('Clear Exam History','This deletes only completed exam records and keeps questions and subjects.',()=>{for(const store of ['exams','examResults']) dbClear(store).then(loadCache).then(()=>{toast('Exam history cleared');render()})},'Clear',true)">Clear Exam History</button><button class="btn danger" style="margin-top:8px" onclick="confirmModal('Delete Mistakes','Remove all mistake records while keeping questions and history?',async()=>{await dbClear('mistakes');await loadCache();toast('Mistakes deleted');render()},'Delete',true)">Delete Mistakes</button><button class="btn danger" style="margin-top:8px" onclick="resetAll()">Delete All Data</button></div></div>`; renderShell(html,{title:'Settings'});};
+  renderSettings=function(){const s=normalizeSettings(CACHE.settings), cards=s.dashboardCards, toggle=(label,key,group='root')=>`<div class="togglerow"><span>${label}</span><div class="toggle ${((group==='cards'?cards[key]:s[key])?'on':'')}" onclick="toggleUpgrade('${group}','${key}')"><div class="dot"></div></div></div>`; const html=`<div class="explorer-head"><div class="explorer-kicker">Personalization</div><div class="explorer-title">Settings</div><div class="explorer-subtitle">Tune the study environment without touching your existing records.</div><div class="h2" style="margin-top:0">Appearance</div><div class="card"><div class="muted">Theme</div><div class="filter-row" style="margin-top:8px">${[['light','Emerald Light'],['dark','Soft Dark'],['midnight','Midnight'],['focus','Focus Mode']].map(([v,l])=>`<button class="chip ${s.theme===v?'active':''}" onclick="setTheme('${v}')">${l}</button>`).join('')}</div><div class="muted" style="margin-top:12px">Accent</div><div class="filter-row" style="margin-top:8px">${[['emerald','Emerald'],['blue','Blue'],['violet','Violet'],['amber','Amber']].map(([v,l])=>`<button class="chip ${s.accent===v?'active':''}" onclick="setAccent('${v}')">${l}</button>`).join('')}</div><label class="flabel">UI Density</label><select onchange="CACHE.settings.density=this.value;persistUpgradeSetting()"><option value="comfortable" ${s.density==='comfortable'?'selected':''}>Comfortable</option><option value="compact" ${s.density==='compact'?'selected':''}>Compact</option></select><label class="flabel">Card Style</label><select onchange="CACHE.settings.cardStyle=this.value;persistUpgradeSetting()"><option value="soft" ${s.cardStyle==='soft'?'selected':''}>Soft</option><option value="minimal" ${s.cardStyle==='minimal'?'selected':''}>Minimal</option><option value="elevated" ${s.cardStyle==='elevated'?'selected':''}>Elevated</option></select></div><div class="h2">Animation & Feedback</div><div class="card">${toggle('Animations','animation')} ${toggle('Reduced motion','reducedMotion')} ${toggle('Result animation','resultAnimation')} ${toggle('Number animation','numberAnimation')} ${toggle('Page transition','pageTransition')} ${toggle('Sound','sound')} ${toggle('Visual feedback','visual','feedback')} ${toggle('Success effects','success','feedback')} ${toggle('Error effects','error','feedback')}</div><div class="h2">Dashboard cards</div><div class="card">${Object.entries({goal:'Daily goal',streak:'Streak',performance:'Performance',revision:'Smart revision',lifetime:'Lifetime'}).map(([k,l])=>toggle(l,k,'cards')).join('')}</div><div class="h2">Exam defaults</div><div class="card"><label class="flabel">Question count</label><input type="number" value="${s.examDefaults.count}" onchange="CACHE.settings.examDefaults.count=Math.max(1,Number(this.value)||20);persistUpgradeSetting()"><label class="flabel">Duration (minutes)</label><input type="number" value="${s.examDefaults.duration}" onchange="CACHE.settings.examDefaults.duration=Math.max(0,Number(this.value)||20);persistUpgradeSetting()"><label class="flabel">Negative marking</label><input type="number" step=".05" value="${s.examDefaults.negative}" onchange="CACHE.settings.examDefaults.negative=Math.max(0,Number(this.value)||0);persistUpgradeSetting()"><label class="flabel">Marks per question</label><input type="number" step="0.5" min="0.5" value="${s.examDefaults.marksPerQ||1}" onchange="CACHE.settings.examDefaults.marksPerQ=Math.max(0.5,Number(this.value)||1);persistUpgradeSetting()"><label class="flabel">Difficulty</label><select onchange="CACHE.settings.examDefaults.difficulty=this.value;persistUpgradeSetting()"><option value="mixed" ${s.examDefaults.difficulty==='mixed'?'selected':''}>Mixed</option><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select>${toggle('Auto-save','autoSave','examDefaults')}${toggle('Resume exam','resume','examDefaults')}${toggle('Submit confirmation','confirmSubmit','examDefaults')}</div>${window.BugAgent?.settingsCard?.()||''}<div class="h2">Notifications</div><div class="card"><div class="muted" style="font-size:12px;line-height:1.55">ঠিক সময়ে ছোট রিমাইন্ডার — Telegram + iPhone push। কারণ না থাকলে কিছুই পাঠায় না।</div><button class="btn secondary" style="margin-top:10px" onclick="NotificationHub.openSettings()">⚙️ Notification Settings</button><button class="btn ghost sm" style="margin-top:8px" onclick="NotificationHub.openCenter()">🔔 Notification Center</button></div><div class="h2">Data management</div><div class="card"><div class="muted">Questions: ${CACHE.questions.length.toLocaleString()} · Exams: ${CACHE.examResults.length} · History: ${CACHE.examResults.length} · Vocabulary: ${CACHE.vocabulary.length}</div><button class="btn secondary" style="margin-top:12px" onclick="exportBackup()">📦 Export Full Backup</button><button class="btn ghost" style="margin-top:8px" onclick="document.getElementById('restoreFile').click()">📥 Import Backup</button><input id="restoreFile" type="file" accept="application/json" class="hide" onchange="handleRestoreFile(event)"></div><div class="h2">Danger zone</div><div class="card"><button class="btn ghost" onclick="resetStats()">Reset Statistics</button><button class="btn ghost" style="margin-top:8px" onclick="confirmModal('Clear Exam History','This deletes only completed exam records and keeps questions and subjects.',()=>{for(const store of ['exams','examResults']) dbClear(store).then(loadCache).then(()=>{toast('Exam history cleared');render()})},'Clear',true)">Clear Exam History</button><button class="btn danger" style="margin-top:8px" onclick="confirmModal('Delete Mistakes','Remove all mistake records while keeping questions and history?',async()=>{await dbClear('mistakes');await loadCache();toast('Mistakes deleted');render()},'Delete',true)">Delete Mistakes</button><button class="btn danger" style="margin-top:8px" onclick="resetAll()">Delete All Data</button></div></div>`; renderShell(html,{title:'Settings'});};
   window.toggleUpgrade=async function(group,key){const s=normalizeSettings(CACHE.settings); if(group==='cards') s.dashboardCards[key]=s.dashboardCards[key]===false; else if(group==='feedback') s.feedback[key]=s.feedback[key]===false; else if(group==='examDefaults') s.examDefaults[key]=s.examDefaults[key]===false; else if(key==='animation') s.animation=s.animation==='on'?'off':'on'; else s[key]=!s[key]; CACHE.settings=s; await dbPut('settings',s); applyUpgradePrefs(); render();};
 
   function mistakeRows(){return CACHE.mistakes.map(m=>{const q=CACHE.questions.find(x=>x.id===m.questionId); if(!q)return null; const attempts=Math.max(Number(m.attempts||0),Number(q.stats&&q.stats.attempts||0),Number(m.wrongCount||0)); const wrong=Math.max(Number(m.wrongCount||0),Number(q.stats&&q.stats.wrong||0)); const correct=Math.max(0,Number(m.correctCount||0),Number(q.stats&&q.stats.correct||0)); const acc=attempts?round2(correct/attempts*100):0; const age=Math.max(0,Date.now()-Number(m.lastWrongAt||m.updatedAt||0)); const priority=wrong>=5||acc<50?'high':wrong>=2||acc<75?'medium':'low'; return {m,q,attempts,wrong,correct,acc,age,priority};}).filter(Boolean);}
@@ -5114,17 +4633,17 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
       // An older worker can keep serving the pre-fix navigation bundle in an
       // installed PWA. Remove that controller once, then install the current
       // worker with a fresh build URL.
-      const expectedSwVersion = 'v205-gfix-20260908';
+      const expectedSwVersion = 'v206-aiagent-20260908';
       if (registration && activeUrl && !activeUrl.includes(expectedSwVersion)) {
         await registration.unregister().catch(()=>{});
         registration=null;
       }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v205-gfix-20260908',{scope:'./',updateViaCache:'none'});
+      registration=await navigator.serviceWorker.register('./sw.js?v=v206-aiagent-20260908',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v205-gfix-20260908';
+        const cur = 'admission-hub-shell-v206-aiagent-20260908';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -5412,10 +4931,10 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 (() => {
   const removedRoute = (path) => {
     const p = String(path || '').replace(/^#\/?/, '').split('?')[0];
-    return p === 'daily-gk' || p === 'web-chat' || p === 'ai-chat' || p === 'study-ai' || p === 'gk-agent' || p === 'ai-mentor' || (p.startsWith('memorizing') && !p.startsWith('memorizing-match')) || p === 'study-hub' || p.startsWith('study-hub/') || p === 'ai' || p.startsWith('ai/') || p === 'vocabulary' || p.startsWith('vocabulary/') || p === 'rewards' || p === 'reward-shop' || p === 'quests' || p === 'daily-quests' || p === 'quest-board' || p === 'xp-history' || p === 'courses' || p.startsWith('courses/') || p === 'pdf-courses' || p.startsWith('pdf-courses/') || p === 'interactive-courses' || p.startsWith('interactive-courses/');
+    return p === 'daily-gk' || p === 'web-chat' || p === 'ai-chat' || p === 'study-ai' || p === 'gk-agent' || p === 'ai-mentor' || (p.startsWith('memorizing') && !p.startsWith('memorizing-match')) || p === 'study-hub' || p.startsWith('study-hub/') || p.startsWith('ai/') || p === 'vocabulary' || p.startsWith('vocabulary/') || p === 'rewards' || p === 'reward-shop' || p === 'quests' || p === 'daily-quests' || p === 'quest-board' || p === 'xp-history' || p === 'courses' || p.startsWith('courses/') || p === 'pdf-courses' || p.startsWith('pdf-courses/') || p === 'interactive-courses' || p.startsWith('interactive-courses/');
   };
   const purgeRemovedData = async () => {
-    ['admission_hub_vocab_categories_v2','admission_hub_vocab_exam_history_v1','daily-gk-live-v1','admission_phase345_v1','memory-system-v2','xp','rewardEngineV2','rewardEngineV1','admission-phase2-dictionary-v1','admission-phase2-dictionary-v2','admission_memorizing_v1','admission_dict_v1','admission-hub-web-chat-v5','studyAiChats','studyAiCur','studyAiName','studyAiBankAt','studyAiCfg','studyAiShared','bugAgentLog','admissionHubCourseProgressV1','admissionHubCourseResultsV1','admissionHubCoursesV1','admission_hub_courses_v1'].forEach((key) => { try { localStorage.removeItem(key); sessionStorage.removeItem(key); } catch (_) {} });
+    ['admission_hub_vocab_categories_v2','admission_hub_vocab_exam_history_v1','daily-gk-live-v1','admission_phase345_v1','memory-system-v2','xp','rewardEngineV2','rewardEngineV1','admission-phase2-dictionary-v1','admission-phase2-dictionary-v2','admission_memorizing_v1','admission_dict_v1','admission-hub-web-chat-v5','studyAiChats','studyAiCur','studyAiName','studyAiBankAt','studyAiCfg','studyAiShared','bugAgentLog','ai_provider','gemini_api_key','groq_api_key','gemini_api_key_model','groq_api_key_model','admissionHubCourseProgressV1','admissionHubCourseResultsV1','admissionHubCoursesV1','admission_hub_courses_v1'].forEach((key) => { try { localStorage.removeItem(key); sessionStorage.removeItem(key); } catch (_) {} });
     try { [localStorage, sessionStorage].forEach((store) => { for (let i = store.length - 1; i >= 0; i -= 1) { const key = store.key(i); if (key && (key.startsWith('admissionInteractiveQuizV1:') || key.startsWith('admissionInteractiveCourseV1:'))) store.removeItem(key); } }); } catch (_) {}
     try {
       for (let i = localStorage.length - 1; i >= 0; i -= 1) {
@@ -5599,7 +5118,8 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script defer src="./premium-auth.js?v=p3-auth-guest-v201"></script>
 <script defer src="./curriculum-config.js?v=p6-onboard-v12"></script>
 <script defer src="./onboarding.js?v=p6-onboard-v13"></script>
-<script defer src="./dashboard-v2.js?v=dash2f5"></script>
+<script defer src="./dashboard-v2.js?v=dash2f6"></script>
+<script defer src="./ai-agent-chat.js?v=agent-f1-ui-v1"></script>
 <script src="./app-seed.js?v=v189-empty" defer></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */

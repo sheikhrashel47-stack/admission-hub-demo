@@ -432,13 +432,13 @@ export default {
       const gatedApi = url.pathname === '/api/ask' || url.pathname.startsWith('/api/ask/') || url.pathname === '/api/bank' || url.pathname.startsWith('/api/gk/') || url.pathname === '/api/cloud/publish';
       const u2p = new URL(request.url); u2p.pathname = url.pathname.replace(/^\/pub\//, '/api/');
       if (url.pathname.startsWith('/pub/') || !gatedApi) {
-        const envPub = { PUB_KV: env.PUB_KV, OLD_KV: env.OLD_KV || env.GK_KV, ADMIN_TOKEN: env.ADMIN_TOKEN, GEMINI_KEYS: env.GEMINI_KEYS, RESEND_KEY: env.RESEND_KEY, RESEND_KEY_2: env.RESEND_KEY_2, MAIL_FROM: env.MAIL_FROM, MAIL_HOOK: env.MAIL_HOOK, MAIL_HOOK_SECRET: env.MAIL_HOOK_SECRET, BREVO_KEY: env.BREVO_KEY, BREVO_FROM: env.BREVO_FROM, GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET, TWILIO_SID: env.TWILIO_SID, TWILIO_TOKEN: env.TWILIO_TOKEN, TWILIO_FROM: env.TWILIO_FROM, SMS_API_URL: env.SMS_API_URL, SMS_API_KEY: env.SMS_API_KEY, SMS_FROM: env.SMS_FROM, GREENWEB_TOKEN: env.GREENWEB_TOKEN, BULKSMS_API_KEY: env.BULKSMS_API_KEY };
+        const envPub = { PUB_KV: env.PUB_KV, OLD_KV: env.OLD_KV || env.GK_KV, ADMIN_TOKEN: env.ADMIN_TOKEN, GEMINI_KEYS: env.GEMINI_KEYS, GROQ_API_KEY: env.GROQ_API_KEY, AGENT_DAILY_CAP: env.AGENT_DAILY_CAP, AGENT_GEMINI_MODELS: env.AGENT_GEMINI_MODELS, RESEND_KEY: env.RESEND_KEY, RESEND_KEY_2: env.RESEND_KEY_2, MAIL_FROM: env.MAIL_FROM, MAIL_HOOK: env.MAIL_HOOK, MAIL_HOOK_SECRET: env.MAIL_HOOK_SECRET, BREVO_KEY: env.BREVO_KEY, BREVO_FROM: env.BREVO_FROM, GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET, TWILIO_SID: env.TWILIO_SID, TWILIO_TOKEN: env.TWILIO_TOKEN, TWILIO_FROM: env.TWILIO_FROM, SMS_API_URL: env.SMS_API_URL, SMS_API_KEY: env.SMS_API_KEY, SMS_FROM: env.SMS_FROM, GREENWEB_TOKEN: env.GREENWEB_TOKEN, BULKSMS_API_KEY: env.BULKSMS_API_KEY };
         return pubHandler.fetch(new Request(u2p.href, request), envPub, ctx);
       }
     }
 
     if (url.pathname === '/health') {
-      return json(request, { ok: true, keys: keys(env).length, askKey: !!env.ASK_API_KEY, kv: !!env.GK_KV, tg: !!env.TG_BOT_TOKEN, lastDay: env.GK_KV ? await env.GK_KV.get('gkDay') : null });
+      return json(request, { ok: true, keys: keys(env).length, askKey: !!env.ASK_API_KEY, kv: !!env.GK_KV, tg: !!env.TG_BOT_TOKEN, agent: 'agent-f1', gemini: !!env.GEMINI_KEYS, groq: !!env.GROQ_API_KEY, lastDay: env.GK_KV ? await env.GK_KV.get('gkDay') : null });
     }
 
     const isApp = request.headers.get('X-AH-App') === APP_HEADER;
