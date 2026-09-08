@@ -70,9 +70,21 @@ Bundle SHA-256: `fe68de7f188b823a0e20514e022c2333785baa9b8524ad9255f468f735f4b60
 
 `Configured: No` মানে current authorized runtime-এ replacement encrypted secret presence safely দেখা যায়নি। কোনো provider request বা real email পাঠানো হয়নি।
 
-## Telegram অবস্থা
+## Execution-first access re-inspection
 
-এই session-এ কোনো Telegram notification tool বা Telegram/TG secret-safe binding নেই। Owner chat-এ একটি bot credential paste করেছেন; chat-exposed credential compromised হিসেবে গণ্য, তাই সেটি ব্যবহার, command-এ pass বা repository/handoff-এ সংরক্ষণ করা হয়নি। Destination chat binding-ও নেই। Credential BotFather থেকে revoke/rotate করে কেবল secret-safe notification integration-এ বসাতে হবে। Notification পাঠানো হয়নি এবং পাঠানো হয়েছে বলে দাবি করা যাবে না।
+- Git remote/GitHub auth: not configured
+- Wrangler/Cloudflare auth and API token/account bindings: not configured
+- Email Gateway signing/pepper/sender/provider secret bindings: not configured
+- Telegram bot/destination secret-safe bindings: not configured
+- Local secret configuration files: none discovered
+
+Exact blockers:
+
+- `BLOCKED — DEPLOYMENT_ACCESS_NOT_CONFIGURED` — Git push + Cloudflare Worker deployment
+- `BLOCKED — REQUIRED_SECRET_NOT_CONFIGURED` — Email provider activation + real Gmail OTP verification
+- `BLOCKED — REQUIRED_SECRET_NOT_CONFIGURED` — Telegram completion notification
+
+Owner-এর Execution-First Access Policy `AGENT_RESUME/README.md`-এ preserved। Secret chat-এ চাওয়া যাবে না; configured access পাওয়া গেলে workflow সেখান থেকেই continue করবে।
 
 ## STOP / পরবর্তী gate
 

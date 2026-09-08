@@ -55,13 +55,25 @@ Seven providers have direct transactional adapters. EmailOctopus has no official
 
 No replacement provider credential was observed or used, no provider was called, and no real email was sent.
 
-## Telegram
+## Execution-first policy and access inspection
 
-Current session has no Telegram notification tool or Telegram/TG secret-safe binding. A credential pasted in chat is treated as compromised and was not used, passed to a command or persisted. Destination chat binding is also absent. Notification was not sent; rotate the exposed credential through BotFather and configure only through a secret-safe integration.
+Owner-এর Execution-First Access Policy `AGENT_RESUME/README.md`-এ preserved। Existing access/config re-inspection result:
+
+- Git remote: not configured; GitHub CLI/token: unavailable
+- Wrangler/Cloudflare session: unauthenticated; Cloudflare API token/account bindings: not configured
+- Email Gateway signing secret, hash pepper, sender config and all provider secret bindings: not configured
+- Telegram secret-safe bot/destination bindings: not configured
+- Local secret config file: none discovered
+
+## Current blockers
+
+- `BLOCKED — DEPLOYMENT_ACCESS_NOT_CONFIGURED`: Git push and Cloudflare Worker deployment
+- `BLOCKED — REQUIRED_SECRET_NOT_CONFIGURED`: Email Gateway/provider activation and real Gmail OTP verification
+- `BLOCKED — REQUIRED_SECRET_NOT_CONFIGURED`: Telegram completion notification
 
 ## STOP / next
 
-Owner review is required. Do not commit/push/deploy, activate providers, or begin concrete Supabase/Auth work without the corresponding approval and secret-safe operational access.
+Phase 2B implementation approval is complete. Continue deployment/activation automatically when the approved access/configuration becomes available; do not claim live OTP, Telegram, push or deploy before verification. Concrete Supabase/Auth work still requires an explicit start instruction.
 
 - Full report: `docs/email-gateway/PHASE_2B_VERIFICATION_2026-09-09.md`
 - Detailed handoff: `AGENT_RESUME/2026-09-09-juju-email-gateway-phase2b-provider-pool.md`
