@@ -13,7 +13,7 @@ const AG = existsSync('ai-agent.js') ? readFileSync('ai-agent.js', 'utf8') : '';
 
 /* ── ১. রুট + স্ক্রিপ্ট ── */
 t('১. index.html-এ ai-রুট dispatch (renderAiAgentPage)', H.includes("if(p==='ai'){ if(window.renderAiAgentPage)") );
-t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (agent-f1-ui-v1)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-v1'));
+t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (agent-f2-ui-v2)', H.includes('./ai-agent-chat.js?v=agent-f2-ui-v2'));
 t('৩. ai-agent-chat.js ফাইল-বিদ্যমান + renderAiAgentPage-এক্সপোজ', existsSync('ai-agent-chat.js') && UI.includes('window.renderAiAgentPage = render'));
 t('৪. NAV_TABS-এ 🤖 AI ট্যাব', H.includes("{key:'ai', icon:'🤖', label:'AI'}"));
 t('৫. dashboard-v2: Command Center + All-Tools এ AI-এন্ট্রি', V2.includes("navigate(\\'ai\\')") && V2.includes("'AI', \"navigate('ai')\""));
@@ -33,10 +33,20 @@ t('১১. পুরনো AI-রুট dispatch এখনো নেই (renderA
 t('১২. removedRoute-এ পুরনো AI-রুট-ব্লক অটুট', H.includes("p === 'ai-chat'") && H.includes("p === 'study-ai'") && H.includes("p === 'web-chat'") && H.includes("p === 'gk-agent'"));
 t('১৩. ai-রুট removedRoute-এ ব্লক নয়', !H.includes("p === 'ai' ||") && !H.includes("|| p === 'ai'"));
 
-/* ── ৫. ভার্সন-অখণ্ডতা v206 ── */
-t('১৪. sw BUILD_ID v206-aiagent (index-marker + expectedSwVersion + cur)', SW.includes("const BUILD_ID = 'v206-aiagent-20260908'") && H.includes('sw.js?v=v206-aiagent-20260908') && H.includes("const expectedSwVersion = 'v206-aiagent-20260908'"));
-t('১৫. sw APP_SHELL-এ ai-agent-chat + dash2f6', SW.includes('./ai-agent-chat.js?v=agent-f1-ui-v1') && SW.includes('./dashboard-v2.js?v=dash2f6') && H.includes('dashboard-v2.js?v=dash2f6'));
+/* ── ৫. Phase-2 — Premium AI UI (মালিক-স্পেক §22-24) ── */
+t('১৭. Stop-button: সেন্ড ↔ স্টপ morph (activeReq-abort + partial-কিপ)', UI.includes("activeReq ? stop() : send()") && UI.includes("abort()") && UI.includes("stoppedEarly"));
+t('১৮. Message-actions: ♡ like + Copy + Regenerate + 🔊 Speak', UI.includes("__AiAgentLike") && UI.includes("__AiAgentCopy") && UI.includes("__AiAgentRegen") && UI.includes("__AiAgentSpeak"));
+t('১৯. TTS: same-origin /api/voice + X-AH-App (কোনো elevenlabs.io-ডিরেক্ট-কল নেই)', UI.includes("'/api/voice'") && UI.includes("'X-AH-App': 'admission-hub'") && !UI.includes('elevenlabs.io') && !UI.includes('ELEVENLABS_API_KEY'));
+t('২০. Follow-up chips + header-মেনু (নতুন চ্যাট/মুছো)', UI.includes("ai-followup") && UI.includes("aiMenuBtn") && UI.includes("aiAgentMenupan") || (UI.includes("ai-followup") && UI.includes("ai-agent-menupan")));
+t('২১. login-CTA (401-পথে AHAuth.openLogin)', UI.includes("__AiAgentLogin") && UI.includes("AHAuth") && UI.includes("openLogin"));
+t('২২. Markdown v2: table + math-foundation ($$/$)', UI.includes("<table>") && UI.includes("ai-math") && UI.includes("ai-math-inline"));
+t('২৩. Streaming-caret + scroll-near-bottom + timestamp', UI.includes("ai-cursor") && UI.includes("scrollBottom") && UI.includes("fmtTime"));
+t('২৪. কোনো client-key/স্ট্রিং-সিক্রেট নেই (Phase-2-ও)', !/AIza[0-9A-Za-z_-]{30,}/.test(UI) && !UI.includes("x-goog-api-key") && !UI.includes("generativelanguage"));
+
+/* ── ৬. ভার্সন-অখণ্ডতা v207 ── */
+t('১৪. sw BUILD_ID v207-aiagent (index-marker + expectedSwVersion + cur)', SW.includes("const BUILD_ID = 'v207-aiagent-20260908'") && H.includes('sw.js?v=v207-aiagent-20260908') && H.includes("const expectedSwVersion = 'v207-aiagent-20260908'"));
+t('১৫. sw APP_SHELL-এ ai-agent-chat + dash2f6', SW.includes('./ai-agent-chat.js?v=agent-f2-ui-v2') && SW.includes('./dashboard-v2.js?v=dash2f6') && H.includes('dashboard-v2.js?v=dash2f6'));
 t('১৬. UI-ফাইলে স্ট্রিমিং-ক্লায়েন্ট (fetch /api/ai/chat + SSE-পার্স + abort)', UI.includes("/api/ai/chat") && UI.includes("startsWith('data:')") && UI.includes("startsWith('event:')") && UI.includes("AbortController"));
 
-console.log(`\nP21-AI-AGENT-FOUNDATION: ${pass} pass / ${fail} fail`);
+console.log(`\nP21-AI-AGENT-FOUNDATION-V2: ${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);
