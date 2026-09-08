@@ -3,7 +3,8 @@
 ## বর্তমান অবস্থা
 
 - Phase 2A owner-approved/closed product: `e8b2d56510c25bd339f6af03abee11bc70c8ed94`
-- Phase 2B base/current HEAD: `7bada5cf90616ac87e456ecc6a6dae9ac5283b54`
+- Phase 2B base: `7bada5cf90616ac87e456ecc6a6dae9ac5283b54`
+- Phase 2B approved product commit: `391bdf2ce8f6ca4db68fab481174270296e3fc92`
 - Phase 2B code/no-send verification: complete and green
 - Owner approval: received on 2026-09-09; implementation closeout approved
 - Worker/provider activation: not deployed; every provider remains disabled

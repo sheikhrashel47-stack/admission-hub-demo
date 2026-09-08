@@ -6,6 +6,8 @@
 
 **Base commit:** `7bada5cf90616ac87e456ecc6a6dae9ac5283b54`
 
+**Approved product commit:** `391bdf2ce8f6ca4db68fab481174270296e3fc92`
+
 **Review state:** owner approval received on 2026-09-09; implementation closeout approved
 
 **Worker deployment/activation state:** not performed; every provider remains disabled

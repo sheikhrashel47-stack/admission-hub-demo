@@ -5,7 +5,8 @@
 ## Current roadmap state
 
 - Phase 2A approved/closed product: `e8b2d56510c25bd339f6af03abee11bc70c8ed94`
-- Phase 2B base/current HEAD: `7bada5cf90616ac87e456ecc6a6dae9ac5283b54`
+- Phase 2B base: `7bada5cf90616ac87e456ecc6a6dae9ac5283b54`
+- Phase 2B approved product commit: `391bdf2ce8f6ca4db68fab481174270296e3fc92`
 - Phase 2B implementation + no-send verification: green
 - Phase 2B owner approval: received on 2026-09-09; closeout approved
 - Worker/provider deployment and real encrypted-secret/sender/remote-health/send activation: not performed
