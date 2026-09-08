@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>My Admission Hub</title>
-<script>(function(){try{document.documentElement.dataset.ah=(localStorage.getItem('ahPubToken')||sessionStorage.getItem('ahPubToken'))?'in':'out';}catch(e){document.documentElement.dataset.ah='out';}})();</script>
+<!-- Guest-first: never hide the usable local app while auth config/network initializes. -->
 <link rel="stylesheet" href="./premium-auth.css?v=p3-auth-guest-v196">
 <link rel="stylesheet" href="./dashboard-v2.css?v=dash2">
 <link rel="stylesheet" href="./onboarding.css?v=p6-onboard-v11">
@@ -15,7 +15,8 @@
 <link rel="stylesheet" href="./3d-loader.css?v=3d-v1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Noto+Serif+Bengali:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Noto+Serif+Bengali:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Noto+Serif+Bengali:wght@500;600;700&display=swap" rel="stylesheet"></noscript>
 <meta name="theme-color" content="#faf9f6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -42,8 +43,8 @@
   --shadow: 0 4px 12px rgba(0,0,0,0.05);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-/* Launch-shell rule: the first PWA paint is always the same mint Preparing screen.
-   A data-backed route replaces it only after IndexedDB has fully loaded. */
+/* Launch-shell rule: first paint is a stable mint shell. The data-backed route
+   replaces it immediately when ready; a normal usable shell has a hard deadline. */
 html{background:#faf9f6;}
 html,body,#app{background-color:#faf9f6;}
 body.app-booting,body.app-booting #app{background:#faf9f6!important;color:#1a1d1b!important;}
@@ -575,7 +576,7 @@ textarea{min-height:96px}
 </script>
 <script src="./session-persist.js?v=session-v1"></script>
 <!-- মালিক-নির্দেশ ২০২৬-০৯-০৮: সব AI সিস্টেম বাদ — AI gateway সরানো হয়েছে -->
-<style id="ah-boot-min">.ah-boot{min-height:100dvh;display:grid;place-content:center;justify-items:center;gap:9px;color:#17221d;background:#f1faf6}.ah-boot-mark{display:grid;place-items:center;width:56px;height:56px;border-radius:17px;background:#0f6b4f;color:#fff;font-size:26px;box-shadow:0 12px 28px rgba(15,107,79,.30)}.ah-boot b{font-size:19px;font-weight:800;letter-spacing:.01em}.ah-boot i{font-style:normal;font-size:12px;color:#5e7168;animation:ahBootPulse 1.15s ease-in-out infinite}@keyframes ahBootPulse{0%,100%{opacity:.55}50%{opacity:1}}@media(prefers-reduced-motion:reduce){.ah-boot i{animation:none}}</style>
+<style id="ah-boot-min">.ah-boot{width:100%;min-height:100dvh;display:grid;place-content:center;justify-items:center;gap:9px;color:#17221d;background:#f1faf6}.ah-boot-mark{display:grid;place-items:center;width:56px;height:56px;border-radius:17px;background:#0f6b4f;color:#fff;font-size:26px;box-shadow:0 12px 28px rgba(15,107,79,.30)}.ah-boot b{font-size:19px;font-weight:800;letter-spacing:.01em}.ah-boot i{font-style:normal;font-size:12px;color:#5e7168;animation:ahBootPulse 1.15s ease-in-out infinite}@keyframes ahBootPulse{0%,100%{opacity:.55}50%{opacity:1}}@media(prefers-reduced-motion:reduce){.ah-boot i{animation:none}}</style>
 </head>
 <body class="app-booting">
 <div id="ahAuthGate" aria-label="Authentication" style="display:none" aria-hidden="true">
@@ -670,7 +671,7 @@ textarea{min-height:96px}
 })();
 </script>
 
-<script src="data-protection.js?v=dp-v1"></script>
+<script src="data-protection.js?v=dp-v3-fastboot"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -701,8 +702,10 @@ function queueDb(work){const next=DB_OPERATION_CHAIN.then(work,work);DB_OPERATIO
 
 const MEMORY_DB=new Map(STORES.map(name=>[name,new Map()]));
 function useMemoryStorage(error){
-  DB=null; STORAGE_MODE='memory'; window.__admissionStorageFallback={active:true,error:String(error?.message||error||'IndexedDB unavailable'),persistent:false};
-  console.warn('[Admission Hub] IndexedDB is unavailable; memory mode is session-only.',error);
+  const openConnection=DB; DB=null;
+  try{openConnection&&openConnection.close();}catch(_){}
+  STORAGE_MODE='memory'; window.__admissionStorageFallback={active:true,error:String(error?.message||error||'IndexedDB unavailable'),persistent:false};
+  console.warn('[Admission Hub] IndexedDB is unavailable; memory mode is session-only. Existing saved data was not changed.',error);
 }
 let __dbReopenPromise = null;
 function reopenDb(){
@@ -715,12 +718,6 @@ function reopenDb(){
   return __dbReopenPromise;
 }
 window.__ahReopenDb = reopenDb;
-function showStorageRecovery(error){
-  const detail=String(error?.message||error||'The local database could not be opened.').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  window.__admissionStorageFallback={active:true,error:detail,persistent:false,recoveryRequired:true};
-  const app=document.getElementById('app');
-  if(app) app.innerHTML=`<main class="app-fallback storage-recovery" role="alert"><div class="app-fallback-icon">⚠</div><h1>Saved data is protected</h1><p>The local database could not be opened safely, so the app did not switch to an empty session or overwrite anything.</p><p class="app-fallback-detail">${detail}</p><div class="app-fallback-actions"><button class="btn" type="button" onclick="location.reload()">Try again</button><button class="btn ghost" type="button" onclick="alert('Close other Admission Hub tabs, then press Try again. Your saved data is not deleted.')">Recovery help</button></div></main>`;
-}
 const INDEXES={
   questions:[['subjectId','subjectId'],['topicId','topicId']],
   topics:[['subjectId','subjectId']],
@@ -744,30 +741,43 @@ function runSchemaMigrations(db,tx,oldVersion,newVersion){
 async function openDB(){
   if(!window.indexedDB) throw new Error('IndexedDB is unavailable in this browser context');
   const protection=window.AdmissionDataProtection;
+  // prepareOpen is metadata-only; no object-store scan is allowed on the startup path.
   const preparation=protection&&protection.prepareOpen ? await protection.prepareOpen(DB_NAME,DB_VERSION) : null;
   return new Promise((resolve,reject)=>{
-    let req, blockedTimer=0, settled=false;
-    try{req=indexedDB.open(DB_NAME,DB_VERSION);}catch(error){reject(error);return;}
+    let req, blockedTimer=0, openTimer=0, settled=false, upgradedExistingDb=false;
+    const clearTimers=()=>{if(blockedTimer)clearTimeout(blockedTimer);if(openTimer)clearTimeout(openTimer);};
+    const fail=(error)=>{if(settled)return;settled=true;clearTimers();reject(error);};
+    try{req=indexedDB.open(DB_NAME,DB_VERSION);}catch(error){fail(error);return;}
+    // Safari can leave an IDB open request pending indefinitely after a suspended tab.
+    // Bound only this connection attempt; the existing database is never cleared or modified.
+    openTimer=window.setTimeout(()=>fail(new Error('IndexedDB open timed out; existing data was left untouched')),3000);
     req.onupgradeneeded=(e)=>{
       const db=e.target.result;
+      upgradedExistingDb=Number(e.oldVersion||0)>0;
       runSchemaMigrations(db,e.target.transaction,Number(e.oldVersion||0),Number(e.newVersion||DB_VERSION));
     };
-    req.onsuccess=async(e)=>{
-      if(blockedTimer) clearTimeout(blockedTimer);
-      DB=e.target.result; STORAGE_MODE='indexeddb'; window.__admissionStorageFallback={active:false};
+    req.onsuccess=(e)=>{
+      const openedDb=e.target.result;
+      if(settled){try{openedDb.close();}catch(_){}return;}
+      settled=true;clearTimers();
+      DB=openedDb; STORAGE_MODE='indexeddb'; window.__admissionStorageFallback={active:false};
       DB.onversionchange=()=>{ /* D-V186: অন্য-ট্যাব/আপগ্রেড → ব্লক-স্ক্রিন নয়; সংযোগ পুনরায় খুলে চলা */
         window.__ahDbStale=true; try{DB.close();}catch(_){} reopenDb(); };
-      try{
-        if(protection&&protection.verifyMigration) await protection.verifyMigration(DB,preparation?.before);
-      }catch(error){console.warn('[Admission Hub] Migration verification reported a warning; database remains open.',error);}
-      settled=true; resolve(DB);
+      resolve(DB);
+      // Migration verification remains read-only but is intentionally off the first-paint path.
+      if(upgradedExistingDb&&protection&&protection.verifyMigration){
+        const verify=()=>protection.verifyMigration(openedDb,preparation?.before)
+          .catch(error=>console.warn('[Admission Hub] Migration verification reported a warning; database remains open.',error));
+        if(typeof requestIdleCallback==='function') requestIdleCallback(verify,{timeout:12000});
+        else window.setTimeout(verify,8000);
+      }
     };
-    req.onerror=(e)=>{if(!settled) reject(e.target.error||new Error('IndexedDB open failed; existing database was left untouched'));};
-    req.onblocked=()=>{blockedTimer=window.setTimeout(()=>{if(!settled) reject(new Error('IndexedDB is blocked by another browser tab. Close other app tabs and retry.'));},5000);};
+    req.onerror=(e)=>fail(e.target.error||new Error('IndexedDB open failed; existing database was left untouched'));
+    req.onblocked=()=>{blockedTimer=window.setTimeout(()=>fail(new Error('IndexedDB is blocked by another browser tab; existing data was left untouched')),1200);};
   });
 }
 function runDbRequest(store,mode,requestFactory,attempts=2){
-  return queueDb(()=>new Promise((resolve,reject)=>{
+  const execute=()=>new Promise((resolve,reject)=>{
     let remaining=Math.max(0,Number(attempts)||0);
     const attempt=()=>{
       if(!DB||window.__ahDbStale){
@@ -793,12 +803,20 @@ function runDbRequest(store,mode,requestFactory,attempts=2){
       }catch(error){retryOrReject(error);}
     };
     attempt();
-  }));
+  });
+  // Read-only transactions are safe to run together. Serializing all 15 startup
+  // reads made Promise.all effectively sequential on iPhone; writes stay ordered.
+  return mode==='readonly' ? execute() : queueDb(execute);
 }
 function dbGetAll(store){if(!DB)return Promise.resolve([...(MEMORY_DB.get(store)?.values()||[])]);return runDbRequest(store,'readonly',objectStore=>objectStore.getAll());}
 function dbGet(store,id){if(!DB)return Promise.resolve(MEMORY_DB.get(store)?.get(id));return runDbRequest(store,'readonly',objectStore=>objectStore.get(id));}
-function dbPut(store,obj){if(!obj||typeof obj!=='object')return Promise.resolve(obj);if(obj.id===undefined||obj.id===null||obj.id==='')obj.id='auto-'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);if(!DB){MEMORY_DB.get(store)?.set(obj.id,obj);return Promise.resolve(obj);}return runDbRequest(store,'readwrite',objectStore=>objectStore.put(obj)).then(()=>obj);}
-function dbDelRaw(store,id){if(!DB){MEMORY_DB.get(store)?.delete(id);return Promise.resolve(true);}return runDbRequest(store,'readwrite',objectStore=>objectStore.delete(id)).then(()=>true);}
+function waitForBootStorage(work){
+  const pending=window.__admissionBootPromise;
+  if(!DB&&STORAGE_MODE==='indexeddb'&&!window.__admissionDataReady&&pending&&typeof pending.then==='function') return pending.then(work,work);
+  return null;
+}
+function dbPut(store,obj){if(!obj||typeof obj!=='object')return Promise.resolve(obj);if(obj.id===undefined||obj.id===null||obj.id==='')obj.id='auto-'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);const deferred=waitForBootStorage(()=>dbPut(store,obj));if(deferred)return deferred;if(!DB){MEMORY_DB.get(store)?.set(obj.id,obj);return Promise.resolve(obj);}return runDbRequest(store,'readwrite',objectStore=>objectStore.put(obj)).then(()=>obj);}
+function dbDelRaw(store,id){const deferred=waitForBootStorage(()=>dbDelRaw(store,id));if(deferred)return deferred;if(!DB){MEMORY_DB.get(store)?.delete(id);return Promise.resolve(true);}return runDbRequest(store,'readwrite',objectStore=>objectStore.delete(id)).then(()=>true);}
 async function dbDel(store,id){
   if(store==='questions'){
     const question=await dbGet(store,id);
@@ -810,7 +828,7 @@ async function dbDel(store,id){
   return dbDelRaw(store,id);
 }
 function dbDelPermanent(store,id){return dbDelRaw(store,id);}
-function dbClear(store){if(!DB){MEMORY_DB.get(store)?.clear();return Promise.resolve(true);}return runDbRequest(store,'readwrite',objectStore=>objectStore.clear()).then(()=>true);}
+function dbClear(store){const deferred=waitForBootStorage(()=>dbClear(store));if(deferred)return deferred;if(!DB){MEMORY_DB.get(store)?.clear();return Promise.resolve(true);}return runDbRequest(store,'readwrite',objectStore=>objectStore.clear()).then(()=>true);}
 async function dbPutMany(store,arr){for(const o of arr) await dbPut(store,o); return true;}
 
 /* ---------------- in-memory cache (mirrors DB, refreshed on write) ---------------- */
@@ -3998,44 +4016,31 @@ async function purgeImportedSubjects(){
   return {changed:false,imported};
 }
 async function boot(){
-  // Never paint a zero-data dashboard during launch. The static Preparing shell
-  // stays visible until the complete IndexedDB snapshot is ready.
   window.__admissionBootStatus='loading';
   window.__admissionFinalModulesReady=false;
+  window.__admissionDataReady=false;
   try{
     await openDB();
-  }catch(err){
-    window.__admissionBootStatus='failed';
-    document.body.classList.remove('app-booting');
-    showStorageRecovery(err);
-    console.error('[Admission Hub] Safe database open failed; existing data was left untouched.',err);
-    return;
-  }
-  try{
     await seedIfEmpty();
     // Startup remains read/validate-only; no automatic content migration runs here.
     await loadCache();
   }catch(err){
-    console.error('Data load failed — memory fallback',err);
+    // A suspended/locked Safari database must not trap the app behind a recovery
+    // page. Memory mode is session-only and never clears or rewrites saved IDB data.
+    console.error('[Admission Hub] Data load failed — memory fallback.',err);
     useMemoryStorage(err);
-    toast('ডেটা লোডে সমস্যা — সাময়িক মেমোরি-মোডে চলছে। রিলোড করো ⚠️');
+    try{await loadCache();}catch(_){}
   }
-  window.__admissionBootStatus='ready';
-  window.__admissionFinalModulesReady=true;
-  document.body.classList.remove('app-booting');
-  try{ if(window.__admissionSplashWatchdog){ clearTimeout(window.__admissionSplashWatchdog); window.__admissionSplashWatchdog=0; } }catch(_){}
-  setTimeout(function(){ try{
-    const app=document.getElementById('app');
-    if(app && !app.querySelector('.page') && !app.querySelector('.app-fallback')){
-      if(typeof window.__admissionRenderRoute==='function') window.__admissionRenderRoute();
-      else if(typeof window.render==='function') window.render();
-    }
-  }catch(_){}}, 3000);
-  applyTheme();
+  try{applyTheme();}catch(_){}
   Router.path=location.hash.slice(1)||'dashboard';
-  // Replace the launch shell once with real counts before any resume modal is considered.
-  try { if(typeof window.__admissionRenderRoute==='function') window.__admissionRenderRoute(); else render(); } catch (renderError) { console.warn('[Admission Hub] Data-backed render deferred.',renderError); }
+  window.__admissionDataReady=true;
+  window.__admissionBootStatus='ready';
+  document.body.classList.remove('app-booting');
   window.__admissionCoreBootComplete=true;
+  window.dispatchEvent(new CustomEvent('admission:boot-ready',{detail:{storageMode:STORAGE_MODE}}));
+  // Deferred dashboard code owns the first real render. Marking modules ready in
+  // boot caused a race where renderDashboard was still absent and the loader lived forever.
+  if(typeof window.__admissionRequestFinalRender==='function') window.__admissionRequestFinalRender();
 
   // Resume handling is non-critical for first paint and must never block the dashboard.
   const resumable=await checkResumableExam();
@@ -4099,7 +4104,21 @@ function resumeActiveExam(){
     if(typeof source.feedback==='string'){s.feedback.visual=source.feedback!=='off';}
     return s;
   }
-  loadCache=async function(){await originalLoadCache(); CACHE.settings=normalizeSettings(CACHE.settings); await dbPut('settings',CACHE.settings); applyUpgradePrefs();};
+  loadCache=async function(){
+    await originalLoadCache();
+    const before=CACHE.settings&&typeof CACHE.settings==='object'?CACHE.settings:{};
+    const normalized=normalizeSettings(before);
+    const changed=JSON.stringify(before)!==JSON.stringify(normalized);
+    CACHE.settings=normalized;
+    applyUpgradePrefs();
+    // Normalized defaults are a non-critical write; never hold the first paint for it.
+    if(changed&&STORAGE_MODE==='indexeddb'){
+      const persist=()=>dbPut('settings',CACHE.settings).catch(error=>console.warn('[Admission Hub] Deferred settings normalization skipped.',error));
+      if(typeof requestIdleCallback==='function') requestIdleCallback(persist,{timeout:6000});
+      else setTimeout(persist,1200);
+    }
+    return true;
+  };
   function applyUpgradePrefs(){
     const s=normalizeSettings(CACHE.settings); CACHE.settings=s;
     document.body.classList.toggle('compact',s.density==='compact'); document.body.classList.toggle('no-motion',s.animation==='off'||s.reducedMotion);
@@ -4628,22 +4647,15 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
     // Do not reload on controllerchange: iOS standalone clients can enter a blank-screen reload loop.
     // The updated worker takes control now; the current document remains usable and the next launch uses the new shell.
     try{
-      let registration=await navigator.serviceWorker.getRegistration('./');
-      const activeUrl=registration?.active?.scriptURL || '';
-      // An older worker can keep serving the pre-fix navigation bundle in an
-      // installed PWA. Remove that controller once, then install the current
-      // worker with a fresh build URL.
-      const expectedSwVersion = 'v219-aiagent-20260908';
-      if (registration && activeUrl && !activeUrl.includes(expectedSwVersion)) {
-        await registration.unregister().catch(()=>{});
-        registration=null;
-      }
-      registration=await navigator.serviceWorker.register('./sw.js?v=v219-aiagent-20260908',{scope:'./',updateViaCache:'none'});
+      const expectedSwVersion = 'v220-aiagent-20260908';
+      // register() on the same scope performs an in-place update. Never unregister
+      // the active iOS worker first: that discards the instant offline shell.
+      const registration=await navigator.serviceWorker.register('./sw.js?v=v220-aiagent-20260908',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // a stale premium-auth.js / old login UI can NEVER be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v219-aiagent-20260908';
+        const cur = 'admission-hub-shell-v220-aiagent-20260908';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -4668,26 +4680,27 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',registerPwaUpdates,{once:true}); else registerPwaUpdates();
 })();
 
-/* ================= BLANK-PROOF WATCHDOG (৫ সেকেন্ড — ভাইয়ের নির্দেশ) =================
-   ইন্ট্রো/স্প্ল্যাশ আজীবন বাদ; boot/init সর্বোচ্চ ৫ সেকেন্ড। এর মধ্যে সম্পন্ন না হলে: splash সরিয়ে ব্র্যান্ড-ফলব্যাক দেখাও
-   (আবার চেষ্টা/হোম বাটনসহ)। boot পরে ready হলে স্বাভাবিক dashboard আসবে। */
+/* ================= USABLE-SHELL DEADLINE (সর্বোচ্চ ৫ সেকেন্ড) =================
+   কোনো recovery/warning screen নয়। ধীর Safari storage/module startup হলেও ৩.৮
+   সেকেন্ডে normal navigation shell খুলবে; data boot শেষ হলে full dashboard replaces it. */
 (function(){
-  function showGentleRecovery(){
+  function hasUsableScreen(app){return !!app.querySelector('.page,.ai-agent-root,[data-admission-usable="true"]');}
+  function openUsableShell(){
     try{
       const app=document.getElementById('app');
-      if(!app) return;
-      const first=app.firstElementChild;
-      if(first && first.classList && (first.classList.contains('page')||first.classList.contains('app-fallback'))) return;
-      app.classList.add('no-nav');
-      app.innerHTML='<main class="app-fallback" role="alert" data-admission-component="app-fallback"><div class="app-fallback-icon">✦</div><h1>একটু বেশি সময় লাগছে</h1><p>তোমার সেভ করা প্রশ্ন, অগ্রগতি ও সেটিংস অক্ষত আছে — শুধু লোডিং-এ ধীরগতি।</p><div class="app-fallback-actions"><button class="btn" onclick="location.reload()">আবার চেষ্টা করো</button><button class="btn ghost" onclick="window.__admissionGoDashboard&&window.__admissionGoDashboard()">ড্যাশবোর্ডে যাও</button></div></main>';
-    }catch(_){}
+      if(!app||hasUsableScreen(app)) return;
+      if(window.__admissionBootStatus==='loading') window.__admissionBootStatus='usable';
+      window.__admissionFinalModulesReady=true;
+      document.body.classList.remove('app-booting');
+      if(typeof window.__admissionRequestFinalRender==='function') window.__admissionRequestFinalRender({force:true});
+      if(hasUsableScreen(app)) return;
+      const quick='<section class="card" data-admission-usable="true" style="margin-top:18px;padding:20px"><span class="pill">ADMISSION HUB</span><h1 style="font-size:24px;margin:14px 0 6px">আজকের প্রস্তুতি শুরু করো</h1><p class="muted" style="margin:0 0 18px">Question Bank, Exam, AI ও Progress—সব টুল এক জায়গায়।</p><div class="grid2"><button class="btn" onclick="navigate(\'question-bank\')">📚 Question Bank</button><button class="btn secondary" onclick="navigate(\'exam\')">📝 Exam</button><button class="btn secondary" onclick="navigate(\'ai\')">🤖 AI</button><button class="btn ghost" onclick="navigate(\'progress\')">📊 Progress</button></div></section>';
+      if(typeof renderShell==='function') renderShell(quick,{title:'Dashboard'});
+      else app.innerHTML='<main class="page">'+quick+'</main>';
+    }catch(error){console.warn('[Admission Hub] Fast usable shell skipped.',error);}
   }
-  window.__admissionSplashWatchdog=setTimeout(function(){
-    try{
-      if(window.__admissionBootStatus==='ready' && window.__admissionFinalModulesReady) return;
-      showGentleRecovery();
-    }catch(_){}
-  },5000);
+  window.__admissionOpenUsableShell=openUsableShell;
+  window.__admissionSplashWatchdog=setTimeout(openUsableShell,3800);
 })();
 </script>
 
@@ -4775,9 +4788,12 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
   render=function(){return oldRenderFinal();};
 })();
 </script>
+<!-- First-interaction modules execute before optional/heavy tools. -->
+<script defer src="./dashboard-v2.js?v=dash2f7"></script>
+<script defer src="./ai-agent-chat.js?v=agent-f1-ui-chatv13"></script>
 <script defer src="qbank-redesign.js?v=practice15"></script>
 <script defer src="urgent-fix.js?v=practice13"></script>
-<script defer src="phase12-ui.js?v=nav-resume-router-v7"></script>
+<script defer src="phase12-ui.js?v=nav-resume-router-v8"></script>
 <script defer src="phase23-ui.js?v=swipe-fix-0f10a28-safe-capture"></script>
 <script defer src="upgrade-features.js?v=4"></script>
 <script defer src="phase1-upgrade.js?v=4-nosplash"></script>
@@ -4904,23 +4920,36 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
     return typeof window.render === 'function' ? window.render() : undefined;
   };
   window.__admissionRenderRoute = renderFinalRoute;
-  const startFinalRender = () => {
-    if (window.__admissionFinalModulesReady) return;
-    if (window.__admissionBootStatus === 'failed') { window.__admissionFinalModulesReady = true; return; }
-    if (window.__admissionBootStatus !== 'ready') return;
-    window.__admissionFinalModulesReady = true;
-    window.__admissionFinalRenderLock = false;
+  const startFinalRender = (options) => {
+    const force=!!(options&&options.force);
+    const status=window.__admissionBootStatus;
+    if(status==='loading'&&!force) return false;
+    const raw=location.hash.replace(/^#\/?/,'')||'dashboard';
+    Router.path=raw.split('?')[0]||'dashboard';
+    // Dashboard is the launch route. Do not repeat the old race by calling its
+    // removed legacy renderer before dashboard-v2 has installed its override.
+    if(Router.path==='dashboard'&&!window.__admissionDashboardModuleReady&&!force) return false;
+    window.__admissionFinalModulesReady=true;
+    window.__admissionFinalRenderLock=false;
     clearTimeout(window.__admissionFinalRenderUnlock);
-    const raw = location.hash.replace(/^#\/?/, '') || 'dashboard';
-    Router.path = raw.split('?')[0] || 'dashboard';
-    if (typeof window.__admissionRenderRoute === 'function') window.__admissionRenderRoute();
-    else if (typeof window.render === 'function') window.render();
+    try{
+      if(typeof window.__admissionRenderRoute==='function') window.__admissionRenderRoute();
+      else if(typeof window.render==='function') window.render();
+      const usable=!!document.querySelector('#app .page,#app .ai-agent-root');
+      if(usable&&window.__admissionSplashWatchdog){clearTimeout(window.__admissionSplashWatchdog);window.__admissionSplashWatchdog=0;}
+      return usable;
+    }catch(error){console.warn('[Admission Hub] Final route render deferred.',error);return false;}
   };
-  window.addEventListener('load', () => {
-    const promise = window.__admissionBootPromise;
-    if (promise && typeof promise.then === 'function') promise.then(startFinalRender).catch(() => {});
-    else startFinalRender();
-  }, { once: true });
+  window.__admissionRequestFinalRender=startFinalRender;
+  window.addEventListener('admission:boot-ready',startFinalRender);
+  const modulesParsed=()=>{
+    window.__admissionModuleBarrierReady=true;
+    startFinalRender();
+    const promise=window.__admissionBootPromise;
+    if(promise&&typeof promise.then==='function') promise.then(()=>startFinalRender()).catch(()=>{});
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',modulesParsed,{once:true});
+  else modulesParsed();
 })();
 </script>
 <style>
@@ -4933,54 +4962,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
     const p = String(path || '').replace(/^#\/?/, '').split('?')[0];
     return p === 'daily-gk' || p === 'web-chat' || p === 'ai-chat' || p === 'study-ai' || p === 'gk-agent' || p === 'ai-mentor' || (p.startsWith('memorizing') && !p.startsWith('memorizing-match')) || p === 'study-hub' || p.startsWith('study-hub/') || p.startsWith('ai/') || p === 'vocabulary' || p.startsWith('vocabulary/') || p === 'rewards' || p === 'reward-shop' || p === 'quests' || p === 'daily-quests' || p === 'quest-board' || p === 'xp-history' || p === 'courses' || p.startsWith('courses/') || p === 'pdf-courses' || p.startsWith('pdf-courses/') || p === 'interactive-courses' || p.startsWith('interactive-courses/');
   };
-  const purgeRemovedData = async () => {
-    ['admission_hub_vocab_categories_v2','admission_hub_vocab_exam_history_v1','daily-gk-live-v1','admission_phase345_v1','memory-system-v2','xp','rewardEngineV2','rewardEngineV1','admission-phase2-dictionary-v1','admission-phase2-dictionary-v2','admission_memorizing_v1','admission_dict_v1','admission-hub-web-chat-v5','studyAiChats','studyAiCur','studyAiName','studyAiBankAt','studyAiCfg','studyAiShared','bugAgentLog','ai_provider','gemini_api_key','groq_api_key','gemini_api_key_model','groq_api_key_model','admissionHubCourseProgressV1','admissionHubCourseResultsV1','admissionHubCoursesV1','admission_hub_courses_v1'].forEach((key) => { try { localStorage.removeItem(key); sessionStorage.removeItem(key); } catch (_) {} });
-    try { [localStorage, sessionStorage].forEach((store) => { for (let i = store.length - 1; i >= 0; i -= 1) { const key = store.key(i); if (key && (key.startsWith('admissionInteractiveQuizV1:') || key.startsWith('admissionInteractiveCourseV1:'))) store.removeItem(key); } }); } catch (_) {}
-    try {
-      for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('dictionary-api-v2:') || key.startsWith('admission-hub-google-web-v5:'))) localStorage.removeItem(key);
-      }
-    } catch (_) {}
-    try {
-      const cacheNames = await caches.keys();
-      for (const cacheName of cacheNames) {
-        const cache = await caches.open(cacheName);
-        const requests = await cache.keys();
-        for (const request of requests) {
-          if (/(?:course-tool|course-loader|bangla-courses|pdf-grammar|four-grammar|mass-grammar|noun-course|parts-of-speech|voice-course|interactive-course|course-sandhi|course-assets\/sandhi)/i.test(request.url)) await cache.delete(request);
-        }
-      }
-    } catch (_) {}
-    try {
-      if (typeof dbClear === 'function') { await dbClear('vocabulary'); if (typeof CACHE !== 'undefined') CACHE.vocabulary = []; }
-      if (typeof dbGetAll === 'function' && typeof dbPut === 'function') {
-        const records = await dbGetAll('settings');
-        for (const settings of records) {
-          ['profileV1','userName','name','avatar','gamificationV3','rewardInventory','rewardBlueprint200','rewardQuestVersion','dailyQuestV2','phase3Quests','rewardEngineV2','rewardEngineV1','activeRewards','rewardRemaining','selectedRewardTheme','xpBalance','totalXpEarned','xpLevel','xpLedger','xpDaily','unlockedRewards','totalXpSpent','totalGoldSpent','totalDiamondSpent','gold','diamonds'].forEach((key) => delete settings[key]);
-          await dbPut('settings', settings);
-        }
-        if (typeof CACHE !== 'undefined' && records[0]) CACHE.settings = records[0];
-        const rewardFields = {
-          questions: ['rewardFirstAttemptLogged','rewardFirstAttemptedAt'],
-          mistakes: ['rewardCorrectRevisionCount','rewardDoubleCorrectedAt','rewardFixedAt'],
-          examResults: ['rewardProcessedV1']
-        };
-        for (const [storeName, fields] of Object.entries(rewardFields)) {
-          const rows = await dbGetAll(storeName);
-          for (const row of rows) {
-            let changed = false;
-            fields.forEach((key) => { if (Object.prototype.hasOwnProperty.call(row || {}, key)) { delete row[key]; changed = true; } });
-            if (changed) await dbPut(storeName, row);
-          }
-        }
-        if (typeof dbDelPermanent === 'function') {
-          await dbDelPermanent('appMeta', 'backup-vocabulary-1-100-question-range-cleanup-v1');
-          await dbDelPermanent('appMeta', 'vocabulary-1-100-question-range-cleanup-v1');
-        }
-      }
-    } catch (_) {}
-  };
+  // Removed feature data is deliberately retained; route removal is UI-only.
   const currentPath = () => String(location.hash.replace(/^#\/?/, '').split('?')[0] || (typeof Router !== 'undefined' ? Router.path : '') || 'dashboard');
   const cleanDashboard = () => {
     if (currentPath() !== 'dashboard') return;
@@ -5028,9 +5010,10 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
     if (removedRoute(currentPath())) redirectRemoved();
     else if (currentPath() === 'dashboard') { setTimeout(cleanDashboard, 0); setTimeout(cleanDashboard, 80); }
   });
-  purgeRemovedData().catch(() => {});
+  // Removed routes stay hidden, but startup never purges a student's saved data.
+  // Keeping dormant records is non-destructive and also avoids a second full DB scan.
   if (removedRoute(currentPath())) redirectRemoved();
-  window.addEventListener('load', () => { purgeRemovedData().catch(() => {}); if (removedRoute(currentPath())) redirectRemoved(); }, { once: false });
+  window.addEventListener('load', () => { if (removedRoute(currentPath())) redirectRemoved(); }, { once: true });
 })();
 </script>
 <style>
@@ -5118,8 +5101,6 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script defer src="./premium-auth.js?v=p3-auth-guest-v201"></script>
 <script defer src="./curriculum-config.js?v=p6-onboard-v12"></script>
 <script defer src="./onboarding.js?v=p6-onboard-v13"></script>
-<script defer src="./dashboard-v2.js?v=dash2f6"></script>
-<script defer src="./ai-agent-chat.js?v=agent-f1-ui-chatv12"></script>
 <script src="./app-seed.js?v=v189-empty" defer></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */

@@ -198,9 +198,12 @@
     });
   }
 
+  /* Startup must never wait for a full IndexedDB scan. The latest metadata-only
+     snapshot is enough to decide whether a post-migration audit is useful; a fresh
+     snapshot is scheduled after the first usable paint instead. */
   async function prepareOpen(dbName, targetVersion) {
-    const before = await snapshot(dbName, 'before-open-or-migration', { targetVersion });
-    return { before, localStorageHealth: localStorageHealth() };
+    const before = readSnapshots().slice().reverse().find(item => item.dbName === dbName) || null;
+    return { before, targetVersion, deferred: true };
   }
 
   async function verifyMigration(db, beforeSnapshot) {
@@ -242,7 +245,17 @@
     getSnapshots: readSnapshots
   };
 
-  global.addEventListener('DOMContentLoaded', () => {
-    snapshot('admissionHubPublicDB', 'boot').catch(error => console.warn('[Admission Hub] Boot snapshot skipped.', error));
-  }, { once: true });
+  /* Protection telemetry is deliberately idle work: on iPhone, counting every
+     object store during boot delayed the dashboard and could hold the splash for
+     several seconds. This remains read-only and never clears or rewrites app data. */
+  let bootSnapshotScheduled = false;
+  function scheduleBootSnapshot() {
+    if (bootSnapshotScheduled) return;
+    bootSnapshotScheduled = true;
+    const run = () => snapshot('admissionHubPublicDB', 'boot-idle')
+      .catch(error => console.warn('[Admission Hub] Boot snapshot skipped.', error));
+    if (typeof global.requestIdleCallback === 'function') global.requestIdleCallback(run, { timeout: 12000 });
+    else global.setTimeout(run, 8000);
+  }
+  global.addEventListener('admission:boot-ready', scheduleBootSnapshot, { once: true });
 })(window);

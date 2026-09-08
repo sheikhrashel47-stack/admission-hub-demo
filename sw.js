@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v219-aiagent-20260908';
+const BUILD_ID = 'v220-aiagent-20260908';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -10,76 +10,17 @@ function markBuild(response) {
   return response.clone().blob().then(blob => new Response(blob, {status: response.status, statusText: response.statusText, headers}));
 }
 const APP_SHELL = [
-  './data-protection.js?v=dp-v1',
-  './qbank-redesign.js?v=practice15',
-  './urgent-fix.js?v=practice13',
-  './phase12-ui.js?v=nav-resume-router-v7',
-  './phase23-ui.js?v=swipe-fix-0f10a28-safe-capture',
-  './upgrade-features.js?v=4',
-  './phase1-upgrade.js?v=4-nosplash',
-  './study-tools-restore.js?v=3',
-  './urgent-topic-fix.js?v=practice10',
-  './phase2-dictionary-parser.js?v=5',
-  './phase3-question-bank-route.js?v=practice10',
-  './routine90.js?v=design-mint-card-v2',
-  './routine90-parser.js?v=1',
-  './admission-hub-feature-suite.js?v=clear-topic-questions-v12',
-  './question-bank-performance.js?v=11-aiex',
-  './mistake-analysis.js?v=gemini-v4-0816',
-  './hierarchy-and-exam-fix.js?v=19-clear-topic-questions',
-  './global-app-fix.js?v=3',
-  './exam-dropdowns.js?v=1',
-  './mobile-ux-fix.js?v=1',
-  './notes-tool.js?v=dashboard-notes-v9-compact-pages',
-  './nav-resume-fix.js?v=1',
-  './mistake-note-icon.js?v=16-aiex',
-  './experience-studio-store.js?v=2',
-  './experience-studio-themes.js?v=2',
-  './experience-studio-animations.js?v=2',
-  './experience-studio-cards.js?v=2',
-  './experience-studio-hooks.js?v=1',
-  './experience-studio-shell.js?v=6',
-  './performance-hardening.js?v=2',
-  './dashboard-v2.css?v=dash2',
-  './dashboard-v2.js?v=dash2f6',
-  './ai-agent-chat.js?v=agent-f1-ui-chatv12',
-  './one-time-mock-seed.js?v=20260824-native',
-  './one-time-mock-tool.js?v=20260824-native',
-  './vocabulary-master-tool.js?v=vm-autoimg-v106',
-  './notification-hub.js?v=notify-v110',
-  './vocabulary-pronunciation.js?v=voice-el-v104',
-  './vocabulary-elevenlabs.js?v=el-voice-v106',
-  './memorizing-match-tool.js?v=memorizing-match-v8-stable-cards',
-  './question-card-game-visual.js?v=question-card-game-v2-persistent',
-  './result-analysis-500.js?v=result-analysis-500-deep-matched-v2',
-  './mock-result-experience.js?v=result-insights-200-single-card-v5',
-  './mistake-notebook-tool.js?v=nb-v1',
-  './weekly-report-tool.js?v=wr-v2-real-payload',
-  './result-interaction-polish.js?v=result-interaction-polish-v1',
-  './today-command-center-live.js?v=today-command-center-live-v5-card',
-  './settings-command-cleanup.js?v=settings-command-cleanup-v2',
-  './navigation-tools-pronunciation.js?v=navigation-tools-pronunciation-v5-home-escape',
-  './progress-tool.js?v=progress-v6-live-score-ledger-reconcile',
-  './mistakes-bank-tool.js?v=mistakes-bank-v1',
-  './smart-revision-tool.js?v=smart-revision-v2-safe-session',
-  './source-course-tool.js?v=bangla-only-courses-v23-freshfetch',
-  './cloud-content-sync.js?v=p2-cloud-v2',
-  './auth-svg.js?v=p3-auth-prof-v196',
-  './session-persist.js?v=session-v1',
-  './premium-auth.js?v=p3-auth-guest-v201',
-  './android-runtime-fix.js?v=and-scroll-v1',
-  '',
-  './premium-auth.css?v=p3-auth-guest-v196',
-  './auth-svg.js?v=p3-auth-prof-v196',
-  './premium-auth.js?v=p3-auth-guest-v201',
-  './curriculum-config.js?v=p6-onboard-v12',
-  './onboarding.js?v=p6-onboard-v13',
-  './onboarding.css?v=p6-onboard-v1',
-  './app-seed.js?v=p1',
-  './',
   './index.html',
   './manifest.json',
   './manifest.webmanifest',
+  './premium-auth.css?v=p3-auth-guest-v196',
+  './dashboard-v2.css?v=dash2',
+  './onboarding.css?v=p6-onboard-v11',
+  './3d-loader.css?v=3d-v1',
+  './session-persist.js?v=session-v1',
+  './data-protection.js?v=dp-v3-fastboot',
+  './dashboard-v2.js?v=dash2f7',
+  './ai-agent-chat.js?v=agent-f1-ui-chatv13',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
@@ -107,7 +48,7 @@ async function offlineFallback(request) {
     if (shell && isCurrentBuild(shell)) return shell;
     const shellUrl = new URL('./index.html', self.location.href).href;
     const fallback = await caches.match(shellUrl);
-    return fallback || Response.error();
+    return fallback && isCurrentBuild(fallback) ? fallback : Response.error();
   }
 
   return Response.error();
@@ -141,13 +82,9 @@ self.addEventListener('activate', event => {
         .map(key => caches.delete(key))
     );
 
-    // Take control of existing PWA clients without requiring another launch.
+    // Take control without navigating/reloading open iOS clients. Forced client
+    // navigation during activation could restart boot and appear as a loader loop.
     await self.clients.claim();
-    // নতুন ভার্সন এলে খোলা ট্যাবগুলো একবার রিলোড — যাতে পুরনো UI কখনো আটকে না থাকে।
-    try {
-      const tabs = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      for (const c of tabs) { if ('navigate' in c) { try { c.navigate(c.url); } catch (_) {} } }
-    } catch (_) {}
   })());
 });
 
@@ -169,6 +106,21 @@ self.addEventListener('fetch', event => {
   if (requestUrl.origin !== self.location.origin) return;
 
   event.respondWith((async () => {
+    // Installed PWA launches are shell-first: a flaky network must never hold the
+    // document request (and therefore the whole UI) beyond the five-second target.
+    if (isDocumentRequest(request)) {
+      const shell = await offlineFallback(request);
+      if (shell && shell.ok) return shell;
+      try {
+        const response = await fetch(request, {cache: 'no-store'});
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('text/html')) return Response.error();
+        return cacheNetworkResponse(request, response);
+      } catch (_) {
+        return Response.error();
+      }
+    }
+
     const staticAsset = request.destination === 'script' || request.destination === 'style' || request.destination === 'image' || request.destination === 'font' || /\.(?:js|css|json|png|jpg|jpeg|webp|svg|ico|woff2?)(?:$|\?)/i.test(requestUrl.pathname + requestUrl.search);
     if (staticAsset) {
       const cached = await caches.match(request);
@@ -180,7 +132,7 @@ self.addEventListener('fetch', event => {
       }
     }
     try {
-      // Documents remain network-first so an online launch can pick up a new shell.
+      // Dynamic same-origin GET requests remain network-first.
       const response = await fetch(request, {cache: 'no-store'});
       const contentType = response.headers.get('content-type') || '';
       if (isDocumentRequest(request) && !contentType.includes('text/html')) return offlineFallback(request);

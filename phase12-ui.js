@@ -62,12 +62,16 @@
     </nav>`;
   };
 
-  window.renderDashboard = function phase12Dashboard() {
-    const existingMarkup = typeof window.__phase3DashboardMarkup === 'function'
-      ? window.__phase3DashboardMarkup()
-      : '<div class="app-loading"><div class="app-loading-mark">✦</div><span>Dashboard loading…</span></div>';
-    renderShell(`<main class="dashboard-existing">${existingMarkup}</main>`, { topbar: false });
-  };
+  // dashboard-v2 is the first-interaction renderer. Never replace it with this
+  // legacy placeholder when deferred scripts execute in their document order.
+  if (!window.__dashboardV2Installed) {
+    window.renderDashboard = function phase12Dashboard() {
+      const existingMarkup = typeof window.__phase3DashboardMarkup === 'function'
+        ? window.__phase3DashboardMarkup()
+        : '<div class="app-loading"><div class="app-loading-mark">✦</div><span>Dashboard loading…</span></div>';
+      renderShell(`<main class="dashboard-existing">${existingMarkup}</main>`, { topbar: false });
+    };
+  }
 })();
 
 /* Keep the primary navigation pinned to the visual viewport on iOS Safari/PWA. */

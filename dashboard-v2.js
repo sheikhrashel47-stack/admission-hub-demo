@@ -324,4 +324,10 @@
       }
       app.querySelectorAll('[data-phase5-dashboard],[data-phase34-dashboard],[data-dashboard-comparison],[data-phase5-quicklinks],.daily-gk-teaser,.p3-dashboard-v3,.dashboard-v2,.p3-dashboard').forEach((n) => n.remove());
     } catch (_) {}
-  }})();
+  }
+
+  // This is the first-interaction module. Signal the coordinator immediately;
+  // do not wait for every optional deferred tool or an external Google script.
+  window.__admissionDashboardModuleReady = true;
+  if (typeof window.__admissionRequestFinalRender === 'function') window.__admissionRequestFinalRender();
+})();

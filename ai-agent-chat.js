@@ -36,7 +36,7 @@
       ['📊', 'Analyze my performance', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'Teach me this topic', 'এই topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: '↓ Latest', menu: 'Menu', recentChats: 'Recent conversations', untitled: 'New chat', noChats: 'No conversations yet', newIsEmpty: 'Start a new chat? Unsent draft will be cleared.', cancelBtn: 'Cancel', pinChat: 'Pin / Unpin', itemAct: 'Choose an action:', aiProfile: 'My AI profile', backHome: 'Back to Home', close: 'Close', loginNote: 'Login to unlock your saved profile & sync.', defLbl: 'Definition', confirmClear: 'Clear all messages in this chat?', chzSimple: 'Simplify', qzSetup: '🎯 Quiz Setup', qzLet: 'Matched from your request — just set the rest.', qzMulti: '(multi-select)', qzSubjects: '📚 Subjects', qzTopics: '📖 Topics', qzCount: '🔢 Questions', qzTime: '⏱ Time', qzNeg: '➖ Negative marking', qzDiff: '🎚 Difficulty', qzAll: 'All', qzOthers: 'Other', qzOtherPh: 'Type subject…', qzCustTopPh: 'Custom topic…', qzMin: 'min', qzNoLimit: 'No limit', qzNone: 'None', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Matching Question Bank questions are used first, AI fills the rest', qzNeedSubj: 'Pick at least one subject first', qzS1: 'Checking Question Bank…', qzS2: 'Selecting matching questions…', qzS3: 'Generating missing questions…', qzS4: 'Mixing difficulty & patterns…', qzS5: 'Preparing quiz…', qzQuestion: 'Question', qzQuestionShort: 'Q', qzFromReq: 'Matched from your request (✎ = editable)', qzCorrect: 'Correct!', qzWrong: 'Not quite', qzYourAns: 'Your answer', qzRightAns: 'Correct answer', qzWhy: '💡 Why:', qzRemember: '🧠 Remember:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · negative', qzTimeUp: 'Time up — auto submitted!', qzCorrectN: 'Correct', qzWrongN: 'Incorrect', qzNone2: 'Skipped', qzFAll: 'All', qzFGood: 'Correct', qzFBad: 'Incorrect', qzFSkip: 'Skipped', qzTimeUsed: 'Time used', qzAvgTime: 'Avg / answered', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'Easy', qzDiffMed: 'Medium', qzDiffHard: 'Hard', qzDiffAdm: 'Admission', qzDiffMix: 'Mixed', chzExample: 'Examples', chzQuiz: 'Quiz me', chzMcq: 'Make MCQ', chzSimilarMcq: 'Similar MCQ', chzShorten: 'Summarize', chzPoints: 'Key points', chzRevise: 'Revision note', chzExplain: 'Explain topic', stThink: 'Thinking...', stAnalyze: 'Analyzing your question...', stImage: 'Understanding image...', stDoc: 'Reading file...', stSearch: 'Searching trusted sources...', stQuiz: 'Creating quiz...', stMcq: 'Creating MCQs...', stWrite: 'Writing answer...', stReason: 'Reasoning through it...', stCalc: 'Calculating...', stCode: 'Writing code...', stPlan: 'Structuring a plan...', stVerdict: 'Comparing options...', stSum: 'Summarizing...', stFix: 'Finding the fix...', expandAll: 'Expand full response',
+    ph: 'Ask anything…', latest: '↓ Latest', menu: 'Menu', recentChats: 'Recent conversations', untitled: 'New chat', noChats: 'No conversations yet', newIsEmpty: 'Start a new chat? Unsent draft will be cleared.', cancelBtn: 'Cancel', pinChat: 'Pin / Unpin', itemAct: 'Choose an action:', aiProfile: 'My AI profile', backHome: 'Back to Home', close: 'Close', loginNote: 'Login to unlock your saved profile & sync.', defLbl: 'Definition', confirmClear: 'Clear all messages in this chat?', chzSimple: 'Simplify', qzSetup: '🎯 Quiz Setup', qzLet: 'Matched from your request — just set the rest.', qzMulti: '(multi-select)', qzSubjects: '📚 Subjects', qzTopics: '📖 Topics', qzCount: '🔢 Questions', qzTime: '⏱ Time', qzNeg: '➖ Negative marking', qzDiff: '🎚 Difficulty', qzAll: 'All', qzOthers: 'Other', qzOtherPh: 'Type subject…', qzCustTopPh: 'Custom topic…', qzMin: 'min', qzNoLimit: 'No limit', qzNone: 'None', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Matching Question Bank questions are used first, AI fills the rest', qzNeedSubj: 'Pick at least one subject first', qzS1: 'Checking Question Bank…', qzS2: 'Selecting matching questions…', qzS3: 'Generating missing questions…', qzS4: 'Mixing difficulty & patterns…', qzS5: 'Preparing quiz…', qzQuestion: 'Question', qzQuestionShort: 'Q', qzFromReq: 'Matched from your request (✎ = editable)', qzCorrect: 'Correct!', qzWrong: 'Not quite', qzYourAns: 'Your answer', qzRightAns: 'Correct answer', qzWhy: '💡 Why:', qzRemember: '🧠 Remember:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · negative', qzTimeUp: 'Time up — auto submitted!', qzCorrectN: 'Correct', qzWrongN: 'Incorrect', qzNone2: 'Skipped', qzFAll: 'All', qzFGood: 'Correct', qzFBad: 'Incorrect', qzFSkip: 'Skipped', qzTimeUsed: 'Time used', qzAvgTime: 'Avg / answered', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'Easy', qzDiffMed: 'Medium', qzDiffHard: 'Hard', qzDiffAdm: 'Admission', qzDiffMix: 'Mixed', chzExample: 'Examples', chzQuiz: 'Quiz me', chzMcq: 'Make MCQ', chzSimilarMcq: 'Similar MCQ', chzShorten: 'Summarize', chzPoints: 'Key points', chzRevise: 'Revision note', chzExplain: 'Explain topic', stThink: 'Thinking...', stAnalyze: 'Analyzing your question...', stImage: 'Understanding image...', stDoc: 'Reading file...', stSearch: 'Searching trusted sources...', stQuiz: 'Creating quiz...', stMcq: 'Creating MCQs...', stWrite: 'Writing answer...', stReason: 'Reasoning through it...', stCalc: 'Calculating...', stCode: 'Writing code...', stPlan: 'Structuring a plan...', stVerdict: 'Comparing options...', stSum: 'Summarizing...', stFix: 'Finding the fix...',
     copy: 'Copy', copied: 'Copied', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'Correct answer', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -69,7 +69,7 @@
       ['📊', 'আমার performance analyze করো', 'আমার পারফরম্যান্স analyze করো'],
       ['📚', 'এই topicটা শেখাও', 'সালোকসংশ্লেষণ topicটা সহজ করে শেখাও']
     ],
-    ph: 'Ask anything…', latest: 'নতুন', menu: 'মেনু', recentChats: 'সম্প্রতি কথোপকথন', untitled: 'নতুন চ্যাট', noChats: 'এখনো কোনো কথোপকথন নেই', newIsEmpty: 'নতুন চ্যাট শুরু করবেন? অসমাপ্ত লেখা মুছে যাবে।', cancelBtn: 'বাতিল', pinChat: 'পিন / আনপিন', itemAct: 'একটি কাজ বাছুন:', aiProfile: 'আমার AI প্রোফাইল', backHome: 'হোমে ফিরুন', close: 'বন্ধ করুন', loginNote: 'লগইন করলে প্রোফাইল ও সেভ-সিঙ্ক পাবেন।', defLbl: 'সংজ্ঞা', confirmClear: 'এই চ্যাটের সব মেসেজ মুছবেন?', chzSimple: 'সহজ করে বলো', qzSetup: '🎯 কুইজ সেটআপ', qzLet: 'তোমার কথায় যা পাওয়া গেছে তা বসিয়ে দিয়েছি — শুধু বাকিগুলো ঠিক করো।', qzMulti: '(একাধিক বাছা যায়)', qzSubjects: '📚 বিষয়', qzTopics: '📖 টপিক', qzCount: '🔢 প্রশ্ন সংখ্যা', qzTime: '⏱ সময়', qzNeg: '➖ নেগেটিভ মার্কিং', qzDiff: '🎚 কঠিনতা', qzAll: 'সব', qzOthers: 'Other', qzOtherPh: 'বিষয়টা লিখো…', qzCustTopPh: 'কাস্টম টপিক লিখো…', qzMin: 'মিনিট', qzNoLimit: 'No limit', qzNone: 'নেই', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Question Bank-এ ম্যাচিং প্রশ্ন আগে বসবে, বাকিটা AI বানাবে', qzNeedSubj: 'আগে অন্তত একটা বিষয় বাছো', qzS1: 'Question Bank যাচাই…', qzS2: 'ম্যাচিং প্রশ্ন বাছাই…', qzS3: 'বাকি প্রশ্ন তৈরি…', qzS4: 'Difficulty ও প্যাটার্ন মিক্স…', qzS5: 'Quiz প্রস্তুত…', qzQuestion: 'প্রশ্ন', qzQuestionShort: 'প্রশ্ন', qzFromReq: 'তোমার কথায় মিলেছে (✎ = বদলানো যায়)', qzCorrect: 'সঠিক উত্তর!', qzWrong: 'ভুল উত্তর', qzYourAns: 'তোমার উত্তর', qzRightAns: 'সঠিক উত্তর', qzWhy: '💡 কারণ:', qzRemember: '🧠 মনে রাখো:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · নেগেটিভ', qzTimeUp: 'সময় শেষ — অটো-সাবমিট হয়েছে!', qzCorrectN: 'সঠিক', qzWrongN: 'ভুল', qzNone2: 'বাদ', qzFAll: 'সব', qzFGood: 'সঠিক', qzFBad: 'ভুল', qzFSkip: 'বাদ', qzTimeUsed: 'সময় লেগেছে', qzAvgTime: 'গড়/প্রশ্ন', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'সহজ', qzDiffMed: 'মাঝারি', qzDiffHard: 'কঠিন', qzDiffAdm: 'ভর্তি স্তর', qzDiffMix: 'মিক্স', chzExample: 'আরও উদাহরণ', chzQuiz: 'Quiz নাও', chzMcq: 'MCQ বানাও', chzSimilarMcq: 'একই রকম MCQ', chzShorten: 'সংক্ষেপে বলো', chzPoints: 'মূল পয়েন্ট', chzRevise: 'রিভিশন নোট', chzExplain: 'টপিক বুঝাও', stThink: 'ভাবছি...', stAnalyze: 'প্রশ্ন বিশ্লেষণ করছি...', stImage: 'ছবি বিশ্লেষণ করছি...', stDoc: 'ফাইল বিশ্লেষণ করছি...', stSearch: 'তথ্য খুঁজছি...', stQuiz: 'Quiz তৈরি করছি...', stMcq: 'MCQ তৈরি করছি...', stWrite: 'উত্তর তৈরি করছি...', stReason: 'যুক্তি ভাবছি...', stCalc: 'হিসাব করছি...', stCode: 'কোড লিখছি...', stPlan: 'পরিকল্পনা সাজাচ্ছি...', stVerdict: 'বিকল্প মিলিয়ে দেখছি...', stSum: 'সংক্ষেপ করছি...', stFix: 'সমাধান খুঁজছি...', expandAll: 'সম্পূর্ণ দেখুন',
+    ph: 'Ask anything…', latest: 'নতুন', menu: 'মেনু', recentChats: 'সম্প্রতি কথোপকথন', untitled: 'নতুন চ্যাট', noChats: 'এখনো কোনো কথোপকথন নেই', newIsEmpty: 'নতুন চ্যাট শুরু করবেন? অসমাপ্ত লেখা মুছে যাবে।', cancelBtn: 'বাতিল', pinChat: 'পিন / আনপিন', itemAct: 'একটি কাজ বাছুন:', aiProfile: 'আমার AI প্রোফাইল', backHome: 'হোমে ফিরুন', close: 'বন্ধ করুন', loginNote: 'লগইন করলে প্রোফাইল ও সেভ-সিঙ্ক পাবেন।', defLbl: 'সংজ্ঞা', confirmClear: 'এই চ্যাটের সব মেসেজ মুছবেন?', chzSimple: 'সহজ করে বলো', qzSetup: '🎯 কুইজ সেটআপ', qzLet: 'তোমার কথায় যা পাওয়া গেছে তা বসিয়ে দিয়েছি — শুধু বাকিগুলো ঠিক করো।', qzMulti: '(একাধিক বাছা যায়)', qzSubjects: '📚 বিষয়', qzTopics: '📖 টপিক', qzCount: '🔢 প্রশ্ন সংখ্যা', qzTime: '⏱ সময়', qzNeg: '➖ নেগেটিভ মার্কিং', qzDiff: '🎚 কঠিনতা', qzAll: 'সব', qzOthers: 'Other', qzOtherPh: 'বিষয়টা লিখো…', qzCustTopPh: 'কাস্টম টপিক লিখো…', qzMin: 'মিনিট', qzNoLimit: 'No limit', qzNone: 'নেই', qzCustom: 'Custom', qzEdit: '✎ Edit', qzGen: 'Generate Quiz →', qzBankNote: 'Question Bank-এ ম্যাচিং প্রশ্ন আগে বসবে, বাকিটা AI বানাবে', qzNeedSubj: 'আগে অন্তত একটা বিষয় বাছো', qzS1: 'Question Bank যাচাই…', qzS2: 'ম্যাচিং প্রশ্ন বাছাই…', qzS3: 'বাকি প্রশ্ন তৈরি…', qzS4: 'Difficulty ও প্যাটার্ন মিক্স…', qzS5: 'Quiz প্রস্তুত…', qzQuestion: 'প্রশ্ন', qzQuestionShort: 'প্রশ্ন', qzFromReq: 'তোমার কথায় মিলেছে (✎ = বদলানো যায়)', qzCorrect: 'সঠিক উত্তর!', qzWrong: 'ভুল উত্তর', qzYourAns: 'তোমার উত্তর', qzRightAns: 'সঠিক উত্তর', qzWhy: '💡 কারণ:', qzRemember: '🧠 মনে রাখো:', qzBack2: 'Back', qzNext2: 'Next', qzSubmit: 'Submit Quiz', qzReadySub: 'Ready to submit?', qzAnswered: 'Answered', qzUnanswered: 'Unanswered', qzComplete: 'Quiz Complete', qzScore: 'Score', qzOf: '/', qzMarksNote: ' · নেগেটিভ', qzTimeUp: 'সময় শেষ — অটো-সাবমিট হয়েছে!', qzCorrectN: 'সঠিক', qzWrongN: 'ভুল', qzNone2: 'বাদ', qzFAll: 'সব', qzFGood: 'সঠিক', qzFBad: 'ভুল', qzFSkip: 'বাদ', qzTimeUsed: 'সময় লেগেছে', qzAvgTime: 'গড়/প্রশ্ন', qzInsight: 'AI Insight', qzReviewBtn: 'Review Answers', qzRetry: 'Try Again', qzSimilar: 'Similar Quiz', qzWeakQuiz: 'Weak Topic Quiz', qzPrev: 'Previous', qzBackRes: 'Result', qzBank: 'Q-Bank', qzDiffEasy: 'সহজ', qzDiffMed: 'মাঝারি', qzDiffHard: 'কঠিন', qzDiffAdm: 'ভর্তি স্তর', qzDiffMix: 'মিক্স', chzExample: 'আরও উদাহরণ', chzQuiz: 'Quiz নাও', chzMcq: 'MCQ বানাও', chzSimilarMcq: 'একই রকম MCQ', chzShorten: 'সংক্ষেপে বলো', chzPoints: 'মূল পয়েন্ট', chzRevise: 'রিভিশন নোট', chzExplain: 'টপিক বুঝাও', stThink: 'ভাবছি...', stAnalyze: 'প্রশ্ন বিশ্লেষণ করছি...', stImage: 'ছবি বিশ্লেষণ করছি...', stDoc: 'ফাইল বিশ্লেষণ করছি...', stSearch: 'তথ্য খুঁজছি...', stQuiz: 'Quiz তৈরি করছি...', stMcq: 'MCQ তৈরি করছি...', stWrite: 'উত্তর তৈরি করছি...', stReason: 'যুক্তি ভাবছি...', stCalc: 'হিসাব করছি...', stCode: 'কোড লিখছি...', stPlan: 'পরিকল্পনা সাজাচ্ছি...', stVerdict: 'বিকল্প মিলিয়ে দেখছি...', stSum: 'সংক্ষেপ করছি...', stFix: 'সমাধান খুঁজছি...',
     copy: 'Copy', copied: 'কপি হয়েছে', regen: 'Regenerate', speak: 'Speak', save: 'Save', share: 'Share', more: 'More',
     correct: 'Correct', notQuite: 'Not quite', correctAnswer: 'সঠিক উত্তর', why: 'Why?',
     quizComplete: 'Quiz Complete', accuracy: 'Accuracy', viewAnalysis: 'View Analysis', tryAgain: 'Try Again',
@@ -334,7 +334,7 @@
     .ai-compose:focus-within{border-color:rgba(18,128,90,.55);box-shadow:0 0 0 4px rgba(18,128,90,.12),0 22px 48px rgba(23,58,43,.2),inset 0 1px 0 rgba(255,255,255,.65)}
     .ai-agent-root[data-theme=dark] .ai-compose{box-shadow:0 12px 30px rgba(0,0,0,.5)}
     .ai-compose-mid{flex:1;min-width:0;display:flex;flex-direction:column}
-    .ai-editor{min-height:0!important;height:auto;border:0;background:none;resize:none;outline:0;font:inherit;font-size:16px;line-height:1.5;max-height:128px;overflow-y:auto;padding:9px 4px 5px;color:var(--ai-ink,#16302A);white-space:pre-wrap;word-break:break-word;scrollbar-width:thin;cursor:text}
+    .ai-editor{min-height:0!important;height:auto;border:0!important;background:transparent!important;resize:none;outline:0!important;box-shadow:none!important;-webkit-appearance:none;appearance:none;font:inherit;font-size:16px;line-height:1.5;max-height:128px;overflow-y:auto;padding:9px 4px 5px;color:var(--ai-ink,#16302A);white-space:pre-wrap;word-break:break-word;scrollbar-width:thin;cursor:text}
     .ai-editor::-webkit-scrollbar{width:4px}
     .ai-editor::-webkit-scrollbar-thumb{background:var(--ai-line,rgba(15,107,79,.25));border-radius:99px}
     .ai-editor:empty::before{content:attr(data-ph);color:#93A8A0;pointer-events:none}
@@ -452,26 +452,12 @@
     .ai-code-h .cp:active{transform:scale(.92)}
     .ai-code pre{margin:0;padding:13px 14px;overflow-x:auto;-webkit-overflow-scrolling:touch;font-size:12.5px;line-height:1.62}
     .ai-code pre code{font-family:ui-monospace,Menlo,Consolas,monospace;color:#D8F3E6;white-space:pre}
-    .ai-code-fold summary{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;list-style:none;background:#13251E;color:#9CC9B8;font-size:12px;font-weight:700}
-    .ai-code-fold summary::-webkit-details-marker{display:none}
-    .ai-code-fold summary em{font-style:normal;margin-left:auto;color:#5FE6BD;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
-    .ai-code-fold[open] summary em:after{content:' ▲'}
-    .ai-code-fold:not([open]) summary em:after{content:' ▼'}
-    .ai-code-fold[open] .ai-code-h{display:flex}
-    .ai-code-fold:not([open]) .ai-code-h{display:none}
     /* Actions row (context-aware, never generic) */
     .ai-rax{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 2px}
     .ai-rax button{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(15,107,79,.18);background:var(--ai-card,#fff);color:#0E6B4F;border-radius:99px;padding:8px 13px;font-size:12.5px;font-weight:750;cursor:pointer;box-shadow:0 2px 8px rgba(23,58,43,.05);transition:transform .12s ease,background .15s ease}
     .ai-rax button span{font-size:13.5px}
     .ai-rax button:active{transform:scale(.95);background:var(--ai-mint,#EFF7F2)}
-    /* Collapsible long responses */
-    .ai-rb-fold{margin:12px 0;border:1px dashed rgba(15,107,79,.25);border-radius:14px;background:var(--ai-card,#fff)}
-    .ai-rb-fold summary{display:flex;align-items:center;gap:8px;padding:11px 13px;cursor:pointer;list-style:none;font-size:12.5px;color:#0E6B4F}
-    .ai-rb-fold summary::-webkit-details-marker{display:none}
-    .ai-rb-fold summary em{margin-left:auto;font-style:normal;font-size:10.5px;font-weight:800;letter-spacing:.05em;color:var(--ai-sub,#5F7A72)}
-    .ai-rb-fold[open] summary em:after{content:'▲'}
-    .ai-rb-fold:not([open]) summary em:after{content:'▼'}
-    .ai-rb-fold-b{padding:0 13px 13px}
+    /* AI responses always render fully expanded. */
     /* callout additions */
     .ai-callout.critical{background:rgba(220,38,38,.07);border-color:rgba(220,38,38,.25)}
     .ai-callout.critical b{color:#b3261e}
@@ -650,7 +636,10 @@
     .ai-dr-themes button{display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 2px;font-size:10.5px}
     .ai-dr-themes button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px}
     .ai-dr-themes button.on{background:var(--ai-primary,#0E6B4F);color:#fff;border-color:var(--ai-primary,#0E6B4F)}
-    .ai-agent-root :focus-visible{outline:2px solid var(--ai-primary,#0E6B4F);outline-offset:2px;border-radius:8px}
+    .ai-agent-root :focus-visible:not(.ai-editor){outline:2px solid var(--ai-primary,#0E6B4F);outline-offset:2px;border-radius:8px}
+    /* The capsule already exposes focus with :focus-within; suppress iOS's
+       rectangular contenteditable ring so the composer has one clean frame. */
+    .ai-agent-root .ai-editor:focus-visible{outline:0!important;outline-offset:0!important;border:0!important;box-shadow:none!important}
     .ai-u-fold{list-style:none}
     .ai-u-fold summary{display:block;cursor:pointer;font-weight:600}
     .ai-u-fold summary::-webkit-details-marker{display:none}
@@ -961,7 +950,6 @@
     const dd = JSON.stringify(code);
     const body = '<pre><code>' + rbEsc(code) + '</code></pre>';
     const head = '<div class="ai-code-h"><span class="lg">' + rbEsc(lang) + '</span><span class="ln">' + n + ' ' + (lang === 'bn' ? 'লাইন' : 'lines') + '</span><button class="cp" data-copy="' + esc(dd) + '" aria-label="Copy">📋</button></div>';
-    if (n > 18) return '<div class="ai-code"><details class="ai-code-fold"><summary><span>≡ ' + lang + ' · ' + n + ' lines</span><em>Expand</em></summary>' + head + body + '</details></div>';
     return '<div class="ai-code">' + head + body + '</div>';
   };
 
@@ -988,12 +976,7 @@
     return acts.slice(0, 3);
   }
 
-  /* long rich response → collapsible middle (performance/scanability) */
-  function respFold(blocks) {
-    const n = (blocks || []).length;
-    if (n < 10) return null;
-    return { head: blocks.slice(0, 2), mid: blocks.slice(2, n - 2), tail: blocks.slice(n - 2) };
-  }
+  /* Long responses intentionally stay fully expanded inside the message card. */
 
   /* ── shell ── */
   function shell() {
@@ -1337,18 +1320,12 @@
     if (!bodyHtml) {
       if (isRich) {
         const blocks = m._rb || [];
-        const fold = respFold(blocks);
-        let inner;
-        if (fold) {
-          inner = respRender(fold.head, { idx }) + '<details class="ai-rb-fold"><summary><span>✦</span><b>' + esc(T.expandAll) + '</b><em></em></summary><div class="ai-rb-fold-b">' + respRender(fold.mid, { idx }) + '</div></details>' + respRender(fold.tail, { idx });
-        } else {
-          inner = respRender(blocks, { idx });
-        }
+        const inner = respRender(blocks, { idx });
         bodyHtml = '<div class="ai-cr">' + inner + '</div>';
         const acts = ctxActions(blocks, m.text);
         if (acts.length) rax = '<div class="ai-rax">' + acts.map((a) => `<button data-act="ra" data-val="${esc(a[2])}"><span>${a[0]}</span>${esc(a[1])}</button>`).join('') + '</div>';
       } else {
-        bodyHtml = m.text.length > 1000 ? `<details class="ai-rb-fold"><summary><span>✦</span><b>${esc(T.expandAll)}</b><em></em></summary><div class="ai-rb-fold-b">${md(esc(m.text))}</div></details>` : md(esc(m.text));
+        bodyHtml = md(esc(m.text));
       }
     }
     const follow = m.quiz || rax ? '' : `<div class="ai-followup">${followups(m).map((f) => `<button data-q="${esc(f[2])}">${ICONS[f[0]] || ''}${esc(f[1])}</button>`).join('')}</div>`;
@@ -2432,4 +2409,6 @@
     if (menuOpen && !e.target.closest('.ai-drawer') && !e.target.closest('#aiMenuBtn')) closeMenu();
     if (attachOpen && document.getElementById('aiSheetView') && !e.target.closest('.ai-sheet') && !e.target.closest('#aiPlusBtn')) closeAttach();
   });
+  window.__admissionAiModuleReady = true;
+  if (location.hash.replace(/^#\/?/, '').split('?')[0] === 'ai' && typeof window.__admissionRequestFinalRender === 'function') window.__admissionRequestFinalRender();
 })();
