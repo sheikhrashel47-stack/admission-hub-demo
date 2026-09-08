@@ -1,0 +1,7 @@
+# Authentication Foundation is protected infrastructure.
+/auth/ @sheikhrashel47-stack
+/auth-foundation.test.mjs @sheikhrashel47-stack
+/auth-foundation-chaos.test.mjs @sheikhrashel47-stack
+/auth-protection.test.mjs @sheikhrashel47-stack
+/docs/AUTH-* @sheikhrashel47-stack
+/docs/EMAIL-GATEWAY-* @sheikhrashel47-stack

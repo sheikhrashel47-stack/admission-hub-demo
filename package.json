@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "test:auth": "node --test --experimental-test-coverage auth-foundation.test.mjs auth-foundation-chaos.test.mjs auth-protection.test.mjs"
+  },
   "dependencies": {
     "jsdom": "^29.1.1"
   }
