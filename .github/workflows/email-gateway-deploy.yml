@@ -31,12 +31,22 @@ jobs:
         run: npm run test:email
       - name: Verify exact Worker bundle
         run: npm run check:worker-bundle
+      - name: Inspect existing Worker secret binding names
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: secret list --name admission-gk
       - name: Deploy protected Email Gateway Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --config wrangler.toml
+      - name: Verify public health and hidden internal route
+        run: |
+          curl --fail --silent --show-error https://admission-gk.admissionhub.workers.dev/pub/health >/dev/null
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' https://admission-gk.admissionhub.workers.dev/internal/email/health)" = "404"
       - name: Telegram completion notification
         if: ${{ success() && vars.TELEGRAM_NOTIFICATIONS_ENABLED == 'true' }}
         env:

@@ -239,9 +239,11 @@ test('frontend, Auth Core and Pages worker never import provider implementations
   assert.match(read('gk-agent-worker.js'), /email-gateway\/worker\/handler\.mjs/);
 });
 
-test('Cloudflare static bundle excludes all server-only email infrastructure', () => {
+test('Cloudflare static bundle excludes all server-only infrastructure', () => {
   const workflow = read('.github/workflows/cf-pages.yml');
-  assert.match(workflow, /--exclude='email-gateway'/);
+  for (const excluded of ['auth', 'email-gateway', 'gk-agent-worker.js', 'public-worker.js', 'ai-agent.js', 'worker-bundle.mjs', 'wrangler.toml']) {
+    assert.match(workflow, new RegExp(`--exclude='${excluded.replace('.', '\\.')}'`));
+  }
 });
 
 test('protection contract, required operations docs, CODEOWNERS and CI guard exist', () => {
@@ -267,6 +269,7 @@ test('protection contract, required operations docs, CODEOWNERS and CI guard exi
   assert.match(deploy, /command: deploy --config wrangler\.toml/);
   assert.match(deploy, /npm run notify:telegram/);
   assert.doesNotMatch(deploy, /RESEND_API_KEY|BREVO_API_KEY|MAILJET_API_KEY|MAILTRAP_API_KEY|MAILERSEND_API_KEY|SENDPULSE_API_KEY|EMAILOCTOPUS_API_KEY|COURIER_API_KEY/);
+  assert.equal(existsSync(resolve(root, '.github/workflows/main.yml')), false, 'legacy unguarded Worker deploy must stay retired');
 });
 
 test('Durable Object binding is explicit and no email credential is stored in wrangler config', () => {
@@ -274,6 +277,8 @@ test('Durable Object binding is explicit and no email credential is stored in wr
   assert.match(wrangler, /name = "EMAIL_COORDINATOR"/);
   assert.match(wrangler, /class_name = "EmailGatewayCoordinator"/);
   assert.match(wrangler, /new_sqlite_classes = \["EmailGatewayCoordinator"\]/);
+  assert.match(wrangler, /binding = "GK_KV"/);
+  assert.match(wrangler, /crons = \["30 18 \* \* \*"\]/);
   assert.doesNotMatch(wrangler, /EMAIL_GATEWAY_SIGNING_SECRET|RECIPIENT_HASH_PEPPER|API_KEY|PASSWORD|TOKEN/);
 });
 

@@ -116,7 +116,7 @@ test('Phase 2 execution plan records the owner decisions and no-code boundaries'
 });
 
 test('production Pages bundle excludes Auth testing helpers', () => {
-  assert.match(pagesWorkflow, /--exclude='auth\/testing'/);
+  assert.match(pagesWorkflow, /--exclude='auth'/);
   assert.match(pagesWorkflow, /--exclude='\*\.test\.mjs'/);
 });
 

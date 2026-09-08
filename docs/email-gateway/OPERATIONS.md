@@ -117,7 +117,8 @@ Required protected bindings are `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. The
 - build `worker-bundle.mjs` with pinned `npm run build:worker`;
 - require `npm run check:worker-bundle` exact match;
 - run Email, Auth, account-retirement and broader app guards;
-- deploy only through `.github/workflows/email-gateway-deploy.yml`, with manual `DEPLOY` confirmation and the protected `email-gateway-production` environment;
+- deploy only through `.github/workflows/email-gateway-deploy.yml`, with manual `DEPLOY` confirmation and the protected `email-gateway-production` environment; the former unguarded generic Worker workflow is retired;
+- preserve the existing `GK_KV`/`PUB_KV` bindings and `30 18 * * *` GK cron declared in `wrangler.toml` while adding the Durable Object;
 - bind provider credentials directly as isolated Cloudflare Worker Secrets; the workflow deliberately does not map provider credentials from GitHub;
 - verify unsigned routes stay 404 and public app/AI/content remain healthy;
 - activate providers separately, one at a time, only with owner-approved evidence;
