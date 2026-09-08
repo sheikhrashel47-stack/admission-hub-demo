@@ -27,12 +27,16 @@
 
 ## ✍️ প্রতিটি আপডেট শেষে resume লেখার নিয়ম
 
-প্রতি আপডেট (feature, fix, deploy, content, phase — যেকোনো কাজ) শেষে:
+প্রতি আপডেট (feature, fix, deploy, content, phase — যেকোনো meaningful কাজ) শেষে এটি **বাধ্যতামূলক**:
 
 1. নতুন ফাইল: `AGENT_RESUME/YYYY-MM-DD-সংক্ষিপ্ত-নাম.md`
-2. `LATEST.md` আপডেট করে নতুন অবস্থা দেখাও
-3. commit message-এ resume ফাইল অন্তর্ভুক্ত করো
-4. `git push origin main` — GitHub Pages auto-deploy
+2. `LATEST.md` আপডেট করে নতুন অবস্থা ও exact STOP point দেখাও
+3. বদলানো ফাইল, চালানো test-এর ফল, deploy/live verification এবং pending কাজ লিখো
+4. commit message-এ resume ফাইল অন্তর্ভুক্ত করো
+5. `git push origin main` — GitHub Pages/Cloudflare auto-deploy
+6. কাজ শেষ হলে configured Telegram chat-এ সংক্ষিপ্ত completion notification পাঠাও; পাঠানো না গেলে user-কে স্পষ্ট জানাও
+
+> ২০২৬-০৯-০৮ থেকে এই ধারার দায়িত্বে Agent **জুজু**। অন্য Agent দায়িত্ব নিলে প্রথমে `LATEST.md` ও সর্বশেষ dated resume পড়ে existing state থেকেই কাজ চালাবে।
 
 ### Resume ফাইলের কাঠামো (টেমপ্লেট)
 
