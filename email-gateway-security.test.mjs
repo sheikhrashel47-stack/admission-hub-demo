@@ -12,6 +12,11 @@ import { createMockGateway, sampleEmailRequest } from './email-gateway/testing/c
 import { MockEmailProvider, mockProviderEntry } from './email-gateway/testing/mock-provider.mjs';
 import { EMAIL_FAILURE_CODES } from './email-gateway/core/constants.mjs';
 import { createEmailGatewayServiceClient } from './email-gateway/index.mjs';
+import {
+  REQUIRED_EMAIL_GATEWAY_BINDINGS,
+  inventoryCloudflareWorkerBindings,
+  summarizeWorkerSecretBindings
+} from './email-gateway/operations/inventory-cloudflare-bindings.mjs';
 
 const root = process.cwd();
 const read = file => readFileSync(resolve(root, file), 'utf8');
@@ -211,6 +216,45 @@ test('Cloudflare Pages returns 404 instead of SPA fallback for protected server 
     assert.equal(response.headers.get('Cache-Control'), 'no-store');
   }
   assert.equal(assetReads, 0);
+});
+
+test('Worker binding inventory reports names only and distinguishes missing activation prerequisites', () => {
+  assert.equal(REQUIRED_EMAIL_GATEWAY_BINDINGS.includes('COURIER_API_KEY'), true);
+  assert.equal(REQUIRED_EMAIL_GATEWAY_BINDINGS.includes('EMAILOCTOPUS_API_KEY'), false);
+  const complete = summarizeWorkerSecretBindings({
+    result: [
+      ...REQUIRED_EMAIL_GATEWAY_BINDINGS.map(name => ({ name, type: 'secret_text' })),
+      { name: 'OTHER_WORKER_SECRET', type: 'secret_text' },
+      { name: 'OTHER_WORKER_SECRET', type: 'secret_text' },
+      { name: 'invalid name', value: 'must-not-surface' }
+    ]
+  });
+  assert.equal(complete.requiredBindingNamesComplete, true);
+  assert.deepEqual(complete.missingRequiredNames, []);
+  assert.equal(complete.names.includes('OTHER_WORKER_SECRET'), true);
+  assert.doesNotMatch(JSON.stringify(complete), /must-not-surface/);
+
+  const missing = summarizeWorkerSecretBindings({
+    result: REQUIRED_EMAIL_GATEWAY_BINDINGS
+      .filter(name => name !== 'RESEND_API_KEY')
+      .map(name => ({ name, type: 'secret_text' }))
+  });
+  assert.equal(missing.requiredBindingNamesComplete, false);
+  assert.deepEqual(missing.missingRequiredNames, ['RESEND_API_KEY']);
+});
+
+test('Cloudflare binding inventory bounds transport and never includes response details in errors', async () => {
+  let authorization = '';
+  const fetchImpl = async (_url, options) => {
+    authorization = options.headers.Authorization;
+    return { ok: false, status: 403, json: async () => ({ secret: 'provider-secret-must-not-surface' }) };
+  };
+  await assert.rejects(
+    inventoryCloudflareWorkerBindings({ accountId: 'safe-account-id', apiToken: 'private-api-token', fetchImpl }),
+    error => error.message === 'Cloudflare binding inventory request failed (HTTP 403).' &&
+      !/private-api-token|provider-secret-must-not-surface/.test(error.message)
+  );
+  assert.equal(authorization, 'Bearer private-api-token');
 });
 
 test('oversized body is rejected without provider call', async () => {
