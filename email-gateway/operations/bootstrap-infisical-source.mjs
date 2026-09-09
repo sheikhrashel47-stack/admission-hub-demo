@@ -35,7 +35,6 @@ const FIXED_SAFE_VALUES = Object.freeze({
 });
 
 export const INFISICAL_SAFE_BOOTSTRAP_NAMES = Object.freeze([
-  'BREVO_API_KEY',
   'EMAIL_GATEWAY_SIGNING_SECRET',
   'EMAIL_RECIPIENT_HASH_PEPPER',
   ...Object.keys(FIXED_SAFE_VALUES)
@@ -59,10 +58,6 @@ function requireMetadata(env) {
   if (env.INFISICAL_SECRET_PATH !== INFISICAL_SECRET_PATH) fail('INFISICAL_PATH_NOT_ALLOWED');
   if (!validUuid(String(env.INFISICAL_IDENTITY_ID || ''))) fail('INFISICAL_IDENTITY_ID_INVALID');
   if (!validProjectSlug(String(env.INFISICAL_PROJECT_SLUG || ''))) fail('INFISICAL_PROJECT_SLUG_INVALID');
-  const key = env.BREVO_BOOTSTRAP_API_KEY;
-  if (typeof key !== 'string' || key.length < 8 || key.length > 32 * 1024 || /[\r\n\u0000]/.test(key)) {
-    fail('AUTHORIZED_BREVO_SOURCE_INVALID');
-  }
   if (!env.ACTIONS_ID_TOKEN_REQUEST_TOKEN) fail('GITHUB_OIDC_REQUEST_TOKEN_MISSING');
   let oidcUrl;
   try { oidcUrl = new URL(env.ACTIONS_ID_TOKEN_REQUEST_URL); } catch { fail('GITHUB_OIDC_REQUEST_URL_INVALID'); }
@@ -75,7 +70,6 @@ function requireMetadata(env) {
     secretPath: env.INFISICAL_SECRET_PATH,
     identityId: env.INFISICAL_IDENTITY_ID,
     projectSlug: env.INFISICAL_PROJECT_SLUG,
-    brevoApiKey: key,
     oidcRequestToken: env.ACTIONS_ID_TOKEN_REQUEST_TOKEN,
     oidcUrl
   });
@@ -101,15 +95,6 @@ async function readJson(response, failureCode) {
   try { text = await response.text(); } catch { fail(`${failureCode}_RESPONSE_UNREADABLE`); }
   if (Buffer.byteLength(text, 'utf8') > MAX_JSON_BYTES) fail(`${failureCode}_RESPONSE_TOO_LARGE`);
   try { return JSON.parse(text); } catch { fail(`${failureCode}_RESPONSE_INVALID`); }
-}
-
-async function requireBrevoAccount(fetchImpl, apiKey) {
-  const response = await request(fetchImpl, 'https://api.brevo.com/v3/account', {
-    method: 'GET',
-    headers: { accept: 'application/json', 'api-key': apiKey }
-  });
-  if (response.status !== 200) fail(`AUTHORIZED_BREVO_ACCOUNT_CHECK_HTTP_${response.status}`);
-  try { await response.body?.cancel?.(); } catch { /* response details are intentionally discarded */ }
 }
 
 async function loginWithGithubOidc(fetchImpl, metadata) {
@@ -163,11 +148,10 @@ async function listSecretNames(fetchImpl, metadata, accessToken) {
   return new Set(body.secrets.map(item => item?.secretKey).filter(name => typeof name === 'string'));
 }
 
-function buildSecrets(metadata, randomBytes) {
+function buildSecrets(randomBytes) {
   const generated = () => randomBytes(48).toString('base64url');
   const values = {
     ...FIXED_SAFE_VALUES,
-    BREVO_API_KEY: metadata.brevoApiKey,
     EMAIL_GATEWAY_SIGNING_SECRET: generated(),
     EMAIL_RECIPIENT_HASH_PEPPER: generated()
   };
@@ -203,21 +187,20 @@ export async function bootstrapInfisicalSafeSource({
 } = {}) {
   if (typeof fetchImpl !== 'function') fail('FETCH_IMPLEMENTATION_MISSING');
   const metadata = requireMetadata(env);
-  await requireBrevoAccount(fetchImpl, metadata.brevoApiKey);
   const accessToken = await loginWithGithubOidc(fetchImpl, metadata);
   const projectId = await getProject(fetchImpl, metadata, accessToken);
   const before = await listSecretNames(fetchImpl, metadata, accessToken);
   const existing = INFISICAL_SAFE_BOOTSTRAP_NAMES.filter(name => before.has(name));
   if (existing.length) fail(`INFISICAL_BOOTSTRAP_REFUSES_OVERWRITE_${existing.sort().join('_')}`);
 
-  const secrets = buildSecrets(metadata, randomBytes);
+  const secrets = buildSecrets(randomBytes);
   await createBatch(fetchImpl, metadata, accessToken, projectId, secrets);
   const after = await listSecretNames(fetchImpl, metadata, accessToken);
   const missing = INFISICAL_SAFE_BOOTSTRAP_NAMES.filter(name => !after.has(name));
   if (missing.length) fail(`INFISICAL_BOOTSTRAP_VERIFICATION_MISSING_${missing.sort().join('_')}`);
 
-  stdout.write(`INFISICAL_SAFE_BOOTSTRAP_COMPLETED names=${INFISICAL_SAFE_BOOTSTRAP_NAMES.length} provider=brevo activation=disabled senderVerified=false\n`);
-  return Object.freeze({ names: INFISICAL_SAFE_BOOTSTRAP_NAMES.length, activation: 'disabled', provider: 'brevo' });
+  stdout.write(`INFISICAL_SAFE_BOOTSTRAP_COMPLETED names=${INFISICAL_SAFE_BOOTSTRAP_NAMES.length} credentials=none activation=disabled senderVerified=false\n`);
+  return Object.freeze({ names: INFISICAL_SAFE_BOOTSTRAP_NAMES.length, activation: 'disabled', credentials: 'none' });
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(process.argv[1]).href : '';

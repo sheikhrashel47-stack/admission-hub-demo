@@ -1,32 +1,33 @@
-# LATEST — Infisical OIDC/path verified; safe source bootstrap prepared
+# LATEST — Infisical connected; credential-independent bootstrap correction in progress
 
 **আপডেট:** 2026-09-09 (Asia/Dhaka) · Agent: **জুজু**
 
 ## Current state
 
 - **IMPLEMENTED:** Phase 2B Email Gateway and protected GitHub OIDC → Infisical → existing Cloudflare staging infrastructure.
-- **TESTED:** Email **100/100** + Worker integration **4/4**; Auth **62/62**; account retirement **28/28**. Latest targeted Email/Infisical security set is **31/31**.
-- **DEPLOYED/VERIFIED:** Bridge PR `#8`, path PR `#9`, immutable OIDC PR `#10`, and Production-slug PR `#11` are merged. All post-merge guards/deployments and live Worker/Pages boundary checks passed.
-- **CONNECTED/VERIFIED:** The OIDC-only Machine Identity authenticates from the protected GitHub environment and reads display environment `Production` (slug `prod`) at `/email-gateway`. Both public identifiers are configured.
-- **NOT STAGED:** The source is empty; the verified probe stopped at the local exact-name validator with all **33** names missing. No Cloudflare binding changed, no provider activated, and no email was sent.
+- **TESTED:** Email **99/99** + Worker integration **4/4**; Auth **62/62**; account retirement **28/28**. (The corrected bootstrap removes one obsolete Brevo-specific test.)
+- **DEPLOYED/VERIFIED:** Bridge PR `#8`, path PR `#9`, immutable OIDC PR `#10`, Production-slug PR `#11`, and initial safe-bootstrap PR `#12` are merged. Their guards passed.
+- **CONNECTED/VERIFIED:** OIDC-only Machine Identity authentication and exact `Production` / `prod` / `/email-gateway` read path succeed from protected GitHub Actions.
+- **NOT STAGED:** No Cloudflare binding changed, no provider activated, and no email was sent.
 
-An existing authorized repository secret named `BREVO_KEY` remains available from the prior working integration. A new bounded bootstrap workflow is prepared to validate that key without sending, migrate it as `BREVO_API_KEY`, and atomically create only 18 additional safe disabled/generated entries in Infisical. It refuses overwrite/delete and has no Cloudflare step.
+The empty-source probe reached the local exact-name validator with all **33** names missing. A subsequent one-time bootstrap attempted to validate the previously authorized GitHub `BREVO_KEY` before any write; Brevo returned `401`, so the workflow stopped with **0 Infisical entries created**. That credential is truthfully treated as unavailable and is not migrated, retried blindly, revoked or replaced.
+
+The bootstrap is being corrected to create only **18 credential-independent** entries: two generated runtime values, activation disabled, all-disabled config, seven sender display names and seven false evidence flags. It refuses overwrite/delete, uses one atomic batch, and has no provider or Cloudflare call.
 
 ## Infisical integration
 
 - Source: dedicated Email Gateway project, `Production` / `prod` / `/email-gateway`
 - Machine Identity: exact immutable GitHub environment subject; Universal Auth removed
 - Normal role: project `Viewer` (read-only), organization `No Access`
-- Protected staging workflow: `.github/workflows/email-gateway-infisical-sync.yml`
-- Safe bootstrap workflow: `.github/workflows/email-gateway-infisical-bootstrap.yml`
-- Safe bootstrap output: **19 names** total; activation disabled; all provider policies disabled; all evidence flags false
+- Protected staging: `.github/workflows/email-gateway-infisical-sync.yml`
+- Safe core bootstrap: `.github/workflows/email-gateway-infisical-bootstrap.yml`
 - Required staging contract: **33 names**, including `EMAIL_RECIPIENT_HASH_PEPPER`
-- Remaining after successful safe bootstrap: seven provider sender addresses and seven credential names for providers other than the migrated Brevo source
+- Expected remaining after safe core: all 8 provider credential names plus all 7 provider sender addresses = **15 names**
 - EmailOctopus remains ineligible for direct transactional OTP
 
 ## Immediate next action
 
-Merge the tested safe-bootstrap workflow. Owner temporarily changes the dedicated project role from `Viewer` to `Member`; agent immediately dispatches the one-time workflow, verifies names only, then owner returns it to `Viewer`. Next, validate Brevo account/sender/quota and collect only genuinely available remaining provider sources directly in Infisical—never in chat.
+Merge the core-only bootstrap correction while the owner-granted temporary project `Member` role is active, dispatch it once, verify the exact 18 names without values, then immediately return the identity to `Viewer`. Afterward, genuine provider credentials/sender evidence must be sourced from each provider account directly into Infisical; they do not exist in authorized automation today.
 
 Concrete Supabase/Auth authority work remains unstarted and requires explicit owner instruction.
 
