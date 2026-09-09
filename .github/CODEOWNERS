@@ -2,6 +2,7 @@
 /auth/ @sheikhrashel47-stack
 /auth-native/ @sheikhrashel47-stack
 /native-auth*.test.mjs @sheikhrashel47-stack
+/firebase-auth-ui.test.mjs @sheikhrashel47-stack
 /account-access.js @sheikhrashel47-stack
 /account-access.css @sheikhrashel47-stack
 /auth-foundation.test.mjs @sheikhrashel47-stack
@@ -19,6 +20,8 @@
 /.github/workflows/email-gateway-infisical-bootstrap.yml @sheikhrashel47-stack
 /.github/workflows/email-gateway-cloudflare-inventory.yml @sheikhrashel47-stack
 /.github/workflows/email-gateway-provider-account-audit.yml @sheikhrashel47-stack
+/.github/workflows/native-auth-*.yml @sheikhrashel47-stack
+/.github/workflows/firebase-auth-*.yml @sheikhrashel47-stack
 /gk-agent-worker.js @sheikhrashel47-stack
 /worker-bundle.mjs @sheikhrashel47-stack
 /wrangler.toml @sheikhrashel47-stack

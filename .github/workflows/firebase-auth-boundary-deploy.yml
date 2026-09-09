@@ -1,0 +1,91 @@
+name: Deploy Firebase Auth Boundary Fail Closed
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type DEPLOY_FIREBASE_BOUNDARY to deploy the Firebase Auth API/UI boundary without activating an unverified project
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admission-hub-email-gateway-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirmation == 'DEPLOY_FIREBASE_BOUNDARY' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: email-gateway-production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Verify production Auth and exact Worker bundle
+        run: |
+          set -eu
+          npm run check:worker-bundle
+          npm run test:native-auth
+          node account-retirement.test.mjs
+
+      - name: Capture current Worker version for bounded rollback
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -eu
+          npx --yes wrangler@4.35.0 deployments list --name admission-gk --json > "${RUNNER_TEMP}/worker-deployments.json"
+          PREVIOUS_WORKER_VERSION="$(node -e "const x=require(process.argv[1]); const v=x?.[0]?.versions?.find(v=>Number(v.percentage)===100)?.version_id; if(!v) process.exit(1); process.stdout.write(v)" "${RUNNER_TEMP}/worker-deployments.json")"
+          rm -f "${RUNNER_TEMP}/worker-deployments.json"
+          echo "PREVIOUS_WORKER_VERSION=${PREVIOUS_WORKER_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Refuse boundary-only deployment when Firebase is already bound
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FIREBASE_WORKER_BINDING_EXPECT: absent
+        run: node auth-native/operations/verify-worker-binding.mjs
+
+      - name: Deploy Firebase Auth boundary without provider credential
+        id: worker-deploy
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.toml
+
+      - name: Verify new contract is live and provider access remains fail closed
+        run: |
+          set -eu
+          for attempt in 1 2 3 4 5 6; do
+            nonce="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}"
+            body="$(curl --silent --show-error --connect-timeout 10 --max-time 25 'https://admission-gk.admissionhub.workers.dev/api/auth/v1/config?deployment_check='"$nonce" || true)"
+            if node -e "const x=JSON.parse(process.argv[1]); if(x?.auth?.version!=='firebase-email-password-v1'||x?.auth?.provider!=='firebase'||x?.auth?.available!==false||x?.auth?.emailVerifiedRequired!==true||x?.auth?.verificationEmail?.dailyCapacity!==1000||x?.auth?.registeredAccountLimit!=='unlimited') process.exit(1)" "$body" 2>/dev/null; then
+              otp_status="$(curl --silent --show-error --connect-timeout 10 --max-time 20 --output /dev/null --write-out '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{}' 'https://admission-gk.admissionhub.workers.dev/api/auth/v1/otp/request' || true)"
+              public_status="$(curl --silent --show-error --connect-timeout 10 --max-time 20 --output /dev/null --write-out '%{http_code}' 'https://admission-gk.admissionhub.workers.dev/pub/health' || true)"
+              if [ "$otp_status" = '404' ] && [ "$public_status" = '200' ]; then
+                echo 'Firebase Auth boundary is live, old OTP routes are retired, and unconfigured access is fail closed.'
+                exit 0
+              fi
+            fi
+            [ "$attempt" = '6' ] || sleep 5
+          done
+          echo '::error title=Firebase fail-closed boundary verification failed::Expected new unavailable contract, retired OTP route, and healthy public Worker.'
+          exit 1
+
+      - name: Roll back Worker when boundary deployment does not verify
+        if: ${{ failure() && steps.worker-deploy.outcome == 'success' && env.PREVIOUS_WORKER_VERSION != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.35.0 rollback "$PREVIOUS_WORKER_VERSION" --name admission-gk --message "Automatic rollback after failed Firebase Auth boundary deployment" --yes

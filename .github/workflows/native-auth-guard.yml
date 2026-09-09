@@ -17,6 +17,7 @@ on:
       - 'sw.js'
       - 'package.json'
       - '.github/workflows/native-auth-*'
+      - '.github/workflows/firebase-auth-*'
       - '.github/CODEOWNERS'
 permissions:
   contents: read
