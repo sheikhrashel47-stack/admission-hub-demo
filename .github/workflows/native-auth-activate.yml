@@ -1,0 +1,110 @@
+name: Activate Cloudflare Native Auth
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type ACTIVATE_NATIVE_AUTH to deploy Auth, privately select the existing Active Mailjet sender, and run one real inbox verification
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: admission-hub-email-gateway-production
+  cancel-in-progress: false
+
+jobs:
+  activate:
+    if: ${{ inputs.confirmation == 'ACTIVATE_NATIVE_AUTH' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: email-gateway-production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Verify exact Worker bundle and production Auth contracts
+        run: |
+          set -eu
+          npm run check:worker-bundle
+          npm run test:production-auth
+          node account-retirement.test.mjs
+
+      - name: Verify non-secret Infisical connection metadata
+        env:
+          INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID }}
+          INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG }}
+          INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG }}
+          INFISICAL_SECRET_PATH: ${{ vars.INFISICAL_SECRET_PATH }}
+        run: |
+          set -eu
+          test -n "$INFISICAL_IDENTITY_ID"
+          test -n "$INFISICAL_PROJECT_SLUG"
+          test "$INFISICAL_ENV_SLUG" = "prod"
+          test "$INFISICAL_SECRET_PATH" = "/email-gateway"
+
+      - name: Fetch provider credentials from Infisical using OIDC
+        uses: Infisical/secrets-action@6cd3f7c0e4cc0d2395ee4ef414eb6eeb5d3e73db # v1.0.17
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ vars.INFISICAL_ENV_SLUG }}
+          secret-path: ${{ vars.INFISICAL_SECRET_PATH }}
+          recursive: false
+          include-imports: false
+          export-type: env
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
+
+      - name: Privately select Active Mailjet sender and prepare bounded secrets
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          AUTH_SECRET_BULK_FILE: ${{ runner.temp }}/native-auth-worker-secrets.json
+        run: node auth-native/operations/prepare-production-secrets.mjs
+
+      - name: Install or rotate only missing production secrets
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: secret bulk ${{ runner.temp }}/native-auth-worker-secrets.json --name admission-gk
+
+      - name: Remove transient secret payload
+        if: ${{ always() }}
+        run: rm -f "${{ runner.temp }}/native-auth-worker-secrets.json"
+
+      - name: Deploy Worker and SQLite Durable Object migration
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+
+      - name: Build sanitized Pages bundle
+        run: |
+          set -eu
+          rm -rf dist
+          mkdir -p dist
+          rsync -a --exclude='.git' --exclude='node_modules' --exclude='docs' --exclude='AGENT_RESUME' --exclude='ai-proxy' --exclude='auth' --exclude='auth-native' --exclude='email-gateway' --exclude='uploads' --exclude='.github' --exclude='gk-agent-worker.js' --exclude='public-worker.js' --exclude='ai-agent.js' --exclude='worker-bundle.mjs' --exclude='voice-worker.js' --exclude='notification-worker.js' --exclude='wrangler.toml' --exclude='package.json' --exclude='package-lock.json' --exclude='*.test.mjs' --exclude='*.md' ./ dist/
+
+      - name: Deploy same-origin Pages UI
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name admissionhub --branch main
+
+      - name: Run real external-inbox OTP, session, replay, and logout verification
+        env:
+          AUTH_LIVE_BASE: https://admissionhub.pages.dev
+        run: node auth-native/operations/live-mailbox-e2e.mjs

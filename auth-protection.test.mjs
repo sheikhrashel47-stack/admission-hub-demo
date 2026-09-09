@@ -69,10 +69,13 @@ test('Phase 2A is not loaded by production HTML or service worker', () => {
   assert.doesNotMatch(html, /ahAuthGate|ahOnboardGate|premium-auth|user-account/);
 });
 
-test('Phase 2A exposes no live account endpoint and retired Worker remains lean', () => {
+test('provider-neutral Phase 2A stays unmounted while the approved native v1 adapter is isolated', () => {
   for (const route of ['/api/auth', '/api/profile', '/api/onboarding', '/api/sessions']) {
     assert.equal(sourceWorker.includes(route), false, route);
-    assert.equal(bundle.includes(route), false, route);
+  }
+  assert.match(bundle, /AUTH_API_PREFIX = "\/api\/auth\/v1"/);
+  for (const legacyRoute of ['/api/auth/login', '/api/auth/register', '/api/auth/google', '/api/profile', '/api/onboarding', '/api/sessions/revoke']) {
+    assert.equal(bundle.includes(legacyRoute), false, legacyRoute);
   }
 });
 

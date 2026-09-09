@@ -151,7 +151,7 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     try {
-      if (path === '/api/health') return json({ ok: true, accountSystem: 'retired', identity: 'anonymous-device', at: Date.now() });
+      if (path === '/api/health') return json({ ok: true, accountSystem: 'retired', legacyAccountSystem: 'retired', nativeAuth: 'cloudflare-native-v1', identity: 'anonymous-device', at: Date.now() });
       if (path === '/api/content/meta' && request.method === 'GET') {
         const raw = await env.PUB_KV.get('pubContentMeta');
         if (raw) return json(JSON.parse(raw));

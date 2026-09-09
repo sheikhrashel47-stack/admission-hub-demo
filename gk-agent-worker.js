@@ -1,7 +1,24 @@
 // v133b: public-product module
 import pubHandler, { publishGlobal } from './public-worker.js';
+import { createEmailGateway } from './email-gateway/create-email-gateway.mjs';
+import { safeParseEmailGatewayConfig } from './email-gateway/core/config.mjs';
+import { DurableObjectEmailStore } from './email-gateway/storage/durable-object-store.mjs';
 import { handleInternalEmailRequest } from './email-gateway/worker/handler.mjs';
+import { createNativeAuthHandler } from './auth-native/worker/public-auth-handler.mjs';
 export { EmailGatewayCoordinator } from './email-gateway/worker/email-coordinator.mjs';
+export { AdmissionAuthAuthority } from './auth-native/worker/auth-authority-do.mjs';
+
+const nativeAuthHandler = createNativeAuthHandler({
+  async sendEmail(env, _executionContext, request) {
+    const gateway = await createEmailGateway({
+      config: safeParseEmailGatewayConfig(env.EMAIL_GATEWAY_CONFIG),
+      store: new DurableObjectEmailStore(env.EMAIL_COORDINATOR),
+      env,
+      privatePepper: env.EMAIL_PRIVATE_PEPPER
+    });
+    return gateway.send(request);
+  }
+});
 /**
  * 🤖 ADMISSION HUB — Daily GK Agent Worker
  * v111 · Browser Use cloud (৩ key failover) → দিনে মাত্র ১ রান → GK MCQ + verified admission news
@@ -426,6 +443,8 @@ const maybeStart = async (request, env, ctx) => {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const authResponse = await nativeAuthHandler(request, env, ctx);
+    if (authResponse) return authResponse;
     const emailResponse = await handleInternalEmailRequest(request, env, ctx);
     if (emailResponse) return emailResponse;
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(request) });

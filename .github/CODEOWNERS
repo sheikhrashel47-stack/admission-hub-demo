@@ -1,5 +1,9 @@
 # Authentication Foundation and Email Gateway are protected infrastructure.
 /auth/ @sheikhrashel47-stack
+/auth-native/ @sheikhrashel47-stack
+/native-auth*.test.mjs @sheikhrashel47-stack
+/account-access.js @sheikhrashel47-stack
+/account-access.css @sheikhrashel47-stack
 /auth-foundation.test.mjs @sheikhrashel47-stack
 /auth-foundation-chaos.test.mjs @sheikhrashel47-stack
 /auth-protection.test.mjs @sheikhrashel47-stack

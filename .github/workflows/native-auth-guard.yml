@@ -1,0 +1,35 @@
+name: Cloudflare Native Auth Guard
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'auth-native/**'
+      - 'native-auth*.test.mjs'
+      - 'account-access.js'
+      - 'account-access.css'
+      - 'gk-agent-worker.js'
+      - 'worker-bundle.mjs'
+      - 'wrangler.toml'
+      - '_worker.js'
+      - 'index.html'
+      - 'sw.js'
+      - 'package.json'
+      - '.github/workflows/native-auth-*'
+      - '.github/CODEOWNERS'
+permissions:
+  contents: read
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify exact Worker bundle
+        run: npm run check:worker-bundle
+      - name: Verify native Auth security and behavior
+        run: npm run test:native-auth
+      - name: Verify legacy account implementation remains retired
+        run: node account-retirement.test.mjs

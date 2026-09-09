@@ -3,6 +3,8 @@
 **Protected path:** `/auth/**`  
 **Foundation version:** `phase2a-1`
 
+> Roadmap note (2026-09-09): the owner exercised rule 12 and approved the separate Cloudflare-native production adapter in `/auth-native/**`. This contract continues to protect the provider-neutral `/auth/**` foundation and does not authorize restoration of the retired legacy implementation.
+
 ## Mandatory rules
 
 1. Auth Core is an isolated domain, never a feature child.
