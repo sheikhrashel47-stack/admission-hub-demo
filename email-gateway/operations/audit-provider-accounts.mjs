@@ -115,19 +115,23 @@ async function auditMailjet(env, fetchImpl) {
   const apiBase = ['https://api.mailjet.com', 'https://api.us.mailjet.com'].includes(env.MAILJET_API_BASE)
     ? env.MAILJET_API_BASE
     : 'https://api.mailjet.com';
+  const headers = { Authorization: basicAuthorization(env.MAILJET_API_KEY, env.MAILJET_SECRET_KEY) };
   const response = await readOnlyRequest({
-    url: `${apiBase}/v3/REST/sender?Limit=1000`,
-    headers: { Authorization: basicAuthorization(env.MAILJET_API_KEY, env.MAILJET_SECRET_KEY) },
-    fetchImpl
+    url: `${apiBase}/v3/REST/sender?Limit=1000`, headers, fetchImpl
   });
   if (response.auth !== 'VALID') return result('mailjet', response.auth, 'NOT_READY');
+  const metaResponse = await readOnlyRequest({
+    url: `${apiBase}/v3/REST/metasender?Limit=1000`, headers, fetchImpl
+  });
   const senders = Array.isArray(response.payload?.Data) ? response.payload.Data : [];
-  const active = senders.filter(sender => ['active', 'validated'].includes(String(sender?.Status || '').toLowerCase()));
+  const metaSenders = metaResponse.auth === 'VALID' && Array.isArray(metaResponse.payload?.Data) ? metaResponse.payload.Data : [];
+  const activeAddresses = new Set([
+    ...senders.filter(sender => ['active', 'validated'].includes(String(sender?.Status || '').toLowerCase())).map(sender => String(sender?.Email || sender?.SenderEmail || '').trim().toLowerCase()),
+    ...metaSenders.filter(sender => sender?.IsEnabled === true || sender?.IsEnabled === 1 || String(sender?.IsEnabled || '').toLowerCase() === 'true').map(sender => String(sender?.Email || '').trim().toLowerCase())
+  ].filter(address => address && !address.startsWith('*@') && !/@(?:[^@.]+\.)*pages\.dev$/i.test(address)));
   const configuredAddress = String(env.MAILJET_FROM_ADDRESS || '').trim().toLowerCase();
   const evidenceDeclared = String(env.MAILJET_SENDER_VERIFIED || '').trim() === 'true';
-  const configuredSenderActive = Boolean(configuredAddress && active.some(sender =>
-    String(sender?.Email || sender?.SenderEmail || '').trim().toLowerCase() === configuredAddress
-  ));
+  const configuredSenderActive = Boolean(configuredAddress && activeAddresses.has(configuredAddress));
   const configuredSenderState = !configuredAddress
     ? 'SOURCE_ADDRESS_MISSING'
     : !evidenceDeclared
@@ -135,8 +139,8 @@ async function auditMailjet(env, fetchImpl) {
       : configuredSenderActive
         ? 'MATCHED_ACTIVE_SENDER'
         : 'SOURCE_ADDRESS_NOT_ACTIVE';
-  return result('mailjet', 'VALID', active.length ? 'ACTIVE_SENDER_AVAILABLE' : 'SENDER_MISSING', {
-    activeSenders: active.length,
+  return result('mailjet', 'VALID', activeAddresses.size ? 'ACTIVE_SENDER_AVAILABLE' : 'SENDER_MISSING', {
+    activeSenders: activeAddresses.size,
     configuredSenderState
   });
 }

@@ -38,6 +38,22 @@ test('activation privately selects an Active Mailjet sender instead of stale Pen
   assert.equal(sender.apiBase, 'https://api.mailjet.com');
 });
 
+test('activation accepts an enabled account-wide MetaSender when the API-key sender list is Pending', async () => {
+  const fetchImpl = async url => {
+    if (String(url).includes('/v3/REST/metasender')) {
+      return response({ Data: [
+        { Email: '*@domain.example', IsEnabled: true },
+        { Email: 'pretend@admissionhub.pages.dev', IsEnabled: true },
+        { Email: 'shared.active@example.com', IsEnabled: true }
+      ] });
+    }
+    if (String(url).includes('/v3/REST/sender')) return response({ Data: [{ Email: 'pending@example.com', Status: 'Pending' }] });
+    return new Response('not found', { status: 404 });
+  };
+  const sender = await discoverActiveMailjetSender({ env: ENV, fetchImpl });
+  assert.equal(sender.address, 'shared.active@example.com');
+});
+
 test('activation config enables only Mailjet and caps free quota at 200/day and 6000/month', () => {
   const config = productionEmailGatewayConfig();
   assert.equal(config.environment, 'production');

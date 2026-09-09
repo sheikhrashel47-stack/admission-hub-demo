@@ -29,26 +29,44 @@ export async function discoverActiveMailjetSender({ env = process.env, fetchImpl
   const apiKey = required(env, 'MAILJET_API_KEY');
   const secretKey = required(env, 'MAILJET_SECRET_KEY');
   const apiBase = MAILJET_BASES.has(String(env.MAILJET_API_BASE || '').trim()) ? String(env.MAILJET_API_BASE).trim() : 'https://api.mailjet.com';
-  const payload = await fetchJson(`${apiBase}/v3/REST/sender?Limit=1000`, {
+  const requestOptions = {
     method: 'GET',
     headers: { Accept: 'application/json', Authorization: basicAuthorization(apiKey, secretKey), 'Cache-Control': 'no-store' }
-  }, fetchImpl);
-  const records = Array.isArray(payload?.Data) ? payload.Data : [];
-  const active = records.map(record => ({
-    address: String(record?.Email || record?.SenderEmail || '').trim().toLowerCase(),
-    name: String(record?.Name || '').trim(),
-    status: String(record?.Status || '').trim().toLowerCase(),
-    isDefault: record?.IsDefaultSender === true || record?.IsDefaultSender === 1
-  })).filter(record => ['active', 'validated'].includes(record.status) && /^[^\s@<>]{1,64}@[^\s@<>]{1,190}\.[A-Za-z]{2,63}$/.test(record.address));
-  if (!active.length) throw new Error('Mailjet has no Active individual sender available for production activation.');
+  };
+  const senderPayload = await fetchJson(`${apiBase}/v3/REST/sender?Limit=1000`, requestOptions, fetchImpl);
+  let metaPayload = null;
+  try {
+    metaPayload = await fetchJson(`${apiBase}/v3/REST/metasender?Limit=1000`, requestOptions, fetchImpl);
+  } catch {}
+  const senders = Array.isArray(senderPayload?.Data) ? senderPayload.Data : [];
+  const metaSenders = Array.isArray(metaPayload?.Data) ? metaPayload.Data : [];
+  const active = [
+    ...senders.map(record => ({
+      address: String(record?.Email || record?.SenderEmail || '').trim().toLowerCase(),
+      active: ['active', 'validated'].includes(String(record?.Status || '').trim().toLowerCase()),
+      isDefault: record?.IsDefaultSender === true || record?.IsDefaultSender === 1,
+      source: 'sender'
+    })),
+    ...metaSenders.map(record => ({
+      address: String(record?.Email || '').trim().toLowerCase(),
+      active: record?.IsEnabled === true || record?.IsEnabled === 1 || String(record?.IsEnabled || '').toLowerCase() === 'true',
+      isDefault: false,
+      source: 'metasender'
+    }))
+  ].filter(record => record.active
+    && !record.address.startsWith('*@')
+    && !/@(?:[^@.]+\.)*pages\.dev$/i.test(record.address)
+    && /^[^\s@<>]{1,64}@[^\s@<>]{1,190}\.[A-Za-z]{2,63}$/.test(record.address));
+  const unique = [...new Map(active.map(record => [record.address, record])).values()];
+  if (!unique.length) throw new Error('Mailjet has no Active individual sender available for production activation.');
   const configured = String(env.MAILJET_FROM_ADDRESS || '').trim().toLowerCase();
-  active.sort((left, right) => {
+  unique.sort((left, right) => {
     const score = record => (record.address === configured ? 100 : 0)
       + (record.isDefault ? 20 : 0)
-      + (/@(?:[^@.]+\.)*pages\.dev$/i.test(record.address) ? -50 : 0);
+      + (record.source === 'sender' ? 5 : 0);
     return score(right) - score(left) || left.address.localeCompare(right.address);
   });
-  const selected = active[0];
+  const selected = unique[0];
   return Object.freeze({
     apiBase,
     address: selected.address,

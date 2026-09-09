@@ -391,13 +391,35 @@ test('all eight adapters use bounded non-mutating remote health endpoints withou
     new EmailOctopusProvider({ apiKey: 'private-test-api-value', fetchImpl }), new CourierProvider(common)
   ];
   const results = await Promise.all(adapters.map(adapter => adapter.checkHealth()));
-  assert.equal(captures.length, 8);
+  assert.equal(captures.length, 9); // Mailjet checks per-key Sender and account-wide MetaSender in parallel.
   assert.ok(captures.every(capture => capture.init.method === 'GET' && capture.init.body == null));
   assert.ok(results.every(result => result.remoteVerified === true));
   assert.equal(results[0].senderVerified, true);
   assert.equal(results[4].senderVerified, true);
   assert.equal(results[5].senderVerified, true);
   assert.equal(results[6].status, 'INELIGIBLE');
+});
+
+test('Mailjet account-wide enabled MetaSender is accepted when the API-key Sender record is pending', async () => {
+  const captures = [];
+  const provider = new MailjetProvider({
+    apiKey: 'private-test-api-value',
+    secretKey: 'private-test-secret-value',
+    fromAddress: 'shared.sender@example.com',
+    fetchImpl: async (url, init = {}) => {
+      captures.push({ url: String(url), init });
+      const data = String(url).includes('/metasender')
+        ? { Data: [{ Email: 'shared.sender@example.com', IsEnabled: true }] }
+        : { Data: [{ Email: 'shared.sender@example.com', Status: 'Pending' }] };
+      return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+  });
+  const result = await provider.checkHealth();
+  assert.equal(result.status, 'HEALTHY');
+  assert.equal(result.senderVerified, true);
+  assert.equal(result.remoteVerified, true);
+  assert.equal(captures.length, 2);
+  assert.ok(captures.every(capture => capture.init.method === 'GET' && capture.init.body == null));
 });
 
 test('MailerSend paused and fully suppressed 202 responses are never reported as accepted', async () => {
