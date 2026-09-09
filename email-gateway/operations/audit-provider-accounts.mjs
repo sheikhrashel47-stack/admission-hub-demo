@@ -201,7 +201,9 @@ export function assertProviderAuditRequirements(audits, env = {}) {
   if (env.PROVIDER_ACCOUNT_REQUIRE_MAILJET_READY !== 'true') return;
   const mailjet = audits.find(audit => audit.provider === 'mailjet');
   if (mailjet?.auth !== 'VALID' || mailjet?.configuredSenderState !== 'MATCHED_ACTIVE_SENDER') {
-    throw new Error('Configured Mailjet sender evidence is not ready.');
+    const auth = mailjet?.auth || 'MISSING_RESULT';
+    const state = mailjet?.configuredSenderState || 'MISSING_RESULT';
+    throw new Error(`Configured Mailjet sender evidence is not ready: auth=${auth} state=${state}.`);
   }
 }
 
