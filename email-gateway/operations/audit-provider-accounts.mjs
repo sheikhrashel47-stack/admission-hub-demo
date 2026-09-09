@@ -50,14 +50,16 @@ async function readOnlyRequest({ url, headers, fetchImpl }) {
 const result = (provider, auth, readiness, {
   activeSenders = 0,
   verifiedDomains = 0,
-  credentialShape = 'NOT_REPORTED'
+  credentialShape = 'NOT_REPORTED',
+  configuredSenderState = 'NOT_EVALUATED'
 } = {}) => Object.freeze({
   provider,
   auth,
   readiness,
   activeSenders: integerCount(activeSenders),
   verifiedDomains: integerCount(verifiedDomains),
-  credentialShape
+  credentialShape,
+  configuredSenderState
 });
 
 function brevoCredentialShape(value) {
@@ -120,8 +122,23 @@ async function auditMailjet(env, fetchImpl) {
   });
   if (response.auth !== 'VALID') return result('mailjet', response.auth, 'NOT_READY');
   const senders = Array.isArray(response.payload?.Data) ? response.payload.Data : [];
-  const activeSenders = senders.filter(sender => ['active', 'validated'].includes(String(sender?.Status || '').toLowerCase())).length;
-  return result('mailjet', 'VALID', activeSenders ? 'ACTIVE_SENDER_AVAILABLE' : 'SENDER_MISSING', { activeSenders });
+  const active = senders.filter(sender => ['active', 'validated'].includes(String(sender?.Status || '').toLowerCase()));
+  const configuredAddress = String(env.MAILJET_FROM_ADDRESS || '').trim().toLowerCase();
+  const evidenceDeclared = String(env.MAILJET_SENDER_VERIFIED || '').trim() === 'true';
+  const configuredSenderActive = Boolean(configuredAddress && active.some(sender =>
+    String(sender?.Email || sender?.SenderEmail || '').trim().toLowerCase() === configuredAddress
+  ));
+  const configuredSenderState = !configuredAddress
+    ? 'SOURCE_ADDRESS_MISSING'
+    : !evidenceDeclared
+      ? 'SOURCE_EVIDENCE_FALSE'
+      : configuredSenderActive
+        ? 'MATCHED_ACTIVE_SENDER'
+        : 'SOURCE_ADDRESS_NOT_ACTIVE';
+  return result('mailjet', 'VALID', active.length ? 'ACTIVE_SENDER_AVAILABLE' : 'SENDER_MISSING', {
+    activeSenders: active.length,
+    configuredSenderState
+  });
 }
 
 async function auditMailtrap(env, fetchImpl) {
@@ -180,6 +197,14 @@ async function auditCourier(env, fetchImpl) {
     : result('courier', response.auth, 'NOT_READY');
 }
 
+export function assertProviderAuditRequirements(audits, env = {}) {
+  if (env.PROVIDER_ACCOUNT_REQUIRE_MAILJET_READY !== 'true') return;
+  const mailjet = audits.find(audit => audit.provider === 'mailjet');
+  if (mailjet?.auth !== 'VALID' || mailjet?.configuredSenderState !== 'MATCHED_ACTIVE_SENDER') {
+    throw new Error('Configured Mailjet sender evidence is not ready.');
+  }
+}
+
 export async function auditProviderAccounts({ env = {}, fetchImpl = globalThis.fetch } = {}) {
   if (typeof fetchImpl !== 'function') throw new Error('A fetch implementation is required.');
   const missing = credentialNames.filter(name => typeof env[name] !== 'string' || env[name].trim() === '');
@@ -204,8 +229,9 @@ export async function auditProviderAccounts({ env = {}, fetchImpl = globalThis.f
 async function main({ env = process.env, stdout = process.stdout } = {}) {
   const audits = await auditProviderAccounts({ env });
   for (const audit of audits) {
-    stdout.write(`PROVIDER_ACCOUNT_AUDIT provider=${audit.provider} auth=${audit.auth} readiness=${audit.readiness} activeSenders=${audit.activeSenders} verifiedDomains=${audit.verifiedDomains} credentialShape=${audit.credentialShape}\n`);
+    stdout.write(`PROVIDER_ACCOUNT_AUDIT provider=${audit.provider} auth=${audit.auth} readiness=${audit.readiness} activeSenders=${audit.activeSenders} verifiedDomains=${audit.verifiedDomains} credentialShape=${audit.credentialShape} configuredSenderState=${audit.configuredSenderState}\n`);
   }
+  assertProviderAuditRequirements(audits, env);
   const valid = audits.filter(audit => audit.auth === 'VALID').length;
   stdout.write(`PROVIDER_ACCOUNT_AUDIT_SUMMARY checked=${PROVIDERS.length} valid=${valid} nonValid=${PROVIDERS.length - valid} noSend=true valuesPrinted=false\n`);
 }

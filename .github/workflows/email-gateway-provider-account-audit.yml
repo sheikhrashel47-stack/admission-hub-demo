@@ -54,4 +54,6 @@ jobs:
           domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
 
       - name: Run bounded read-only provider account audit
+        env:
+          PROVIDER_ACCOUNT_REQUIRE_MAILJET_READY: 'true'
         run: node email-gateway/operations/audit-provider-accounts.mjs
