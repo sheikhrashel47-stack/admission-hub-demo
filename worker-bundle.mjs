@@ -3110,11 +3110,11 @@ var DEFAULTS2 = Object.freeze({
   [AUTH_ERROR_CODES.OTP_USED]: Object.freeze({ status: 409, message: "এই কোডটি ইতিমধ্যে ব্যবহার হয়েছে।" }),
   [AUTH_ERROR_CODES.INVALID_CREDENTIALS]: Object.freeze({ status: 401, message: "ইমেইল বা পাসওয়ার্ড সঠিক নয়।" }),
   [AUTH_ERROR_CODES.EMAIL_ALREADY_IN_USE]: Object.freeze({ status: 409, message: "এই ইমেইলে অ্যাকাউন্ট আছে—লগইন করুন।" }),
-  [AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED]: Object.freeze({ status: 403, message: "ইমেইলে পাঠানো verification link-এ ক্লিক করে তারপর লগইন করুন।" }),
+  [AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED]: Object.freeze({ status: 403, message: "ইমেইলে পাঠানো যাচাইয়ের লিংকে ক্লিক করে তারপর লগইন করুন।" }),
   [AUTH_ERROR_CODES.WEAK_PASSWORD]: Object.freeze({ status: 400, message: "কমপক্ষে ৮ অক্ষরের শক্তিশালী পাসওয়ার্ড দিন।" }),
   [AUTH_ERROR_CODES.ACCOUNT_DISABLED]: Object.freeze({ status: 403, message: "এই অ্যাকাউন্টটি এখন ব্যবহার করা যাচ্ছে না।" }),
   [AUTH_ERROR_CODES.SESSION_INVALID]: Object.freeze({ status: 401, message: "নিরাপদ সেশন পাওয়া যায়নি।" }),
-  [AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE]: Object.freeze({ status: 503, message: "Verification email এখন পাঠানো যাচ্ছে না—একটু পরে আবার চেষ্টা করুন।" }),
+  [AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE]: Object.freeze({ status: 503, message: "যাচাইয়ের ইমেইল এখন পাঠানো যাচ্ছে না—একটু পরে আবার চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE]: Object.freeze({ status: 503, message: "অ্যাকাউন্ট সেবা সাময়িকভাবে পাওয়া যাচ্ছে না—একটু পরে চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.DELIVERY_UNAVAILABLE]: Object.freeze({ status: 503, message: "ইমেইল এখন সাময়িকভাবে পাঠানো যাচ্ছে না—একটু পরে চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.STORAGE_UNAVAILABLE]: Object.freeze({ status: 503, message: "অ্যাকাউন্ট সেবা সাময়িকভাবে ব্যস্ত—একটু পরে চেষ্টা করুন।" }),
@@ -3238,6 +3238,7 @@ var OTP_TTL_MS = 10 * 60 * 1e3;
 var OTP_RESEND_COOLDOWN_MS = 60 * 1e3;
 var OTP_MAX_ATTEMPTS = 5;
 var SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
+var FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1e3;
 var PREPARE_LIMITS = Object.freeze([
   Object.freeze({ scope: "otp-email-15m", source: "email", limit: 3, windowMs: 15 * 60 * 1e3 }),
   Object.freeze({ scope: "otp-email-day", source: "email", limit: 8, windowMs: 24 * 60 * 60 * 1e3 }),
@@ -3253,13 +3254,13 @@ var VERIFY_LIMITS = Object.freeze([
 ]);
 var FIREBASE_OPERATION_LIMITS = Object.freeze({
   signup: Object.freeze([
-    Object.freeze({ scope: "firebase-verification-email-minute", source: "email", limit: 1, windowMs: 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-verification-email-minute", source: "email", limit: 1, windowMs: FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS }),
     Object.freeze({ scope: "firebase-verification-email-day", source: "email", limit: 8, windowMs: 24 * 60 * 60 * 1e3 }),
     Object.freeze({ scope: "firebase-verification-ip-hour", source: "ip", limit: 20, windowMs: 60 * 60 * 1e3 }),
     Object.freeze({ scope: "firebase-verification-device-hour", source: "device", limit: 10, windowMs: 60 * 60 * 1e3 })
   ]),
   "verification-resend": Object.freeze([
-    Object.freeze({ scope: "firebase-verification-email-minute", source: "email", limit: 1, windowMs: 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-verification-email-minute", source: "email", limit: 1, windowMs: FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS }),
     Object.freeze({ scope: "firebase-verification-email-day", source: "email", limit: 8, windowMs: 24 * 60 * 60 * 1e3 }),
     Object.freeze({ scope: "firebase-verification-ip-hour", source: "ip", limit: 20, windowMs: 60 * 60 * 1e3 }),
     Object.freeze({ scope: "firebase-verification-device-hour", source: "device", limit: 10, windowMs: 60 * 60 * 1e3 })
@@ -3700,6 +3701,7 @@ var YEAR_SECONDS = 365 * 24 * 60 * 60;
 var SESSION_SECONDS = 30 * 24 * 60 * 60;
 var PASSWORD_MIN = 8;
 var PASSWORD_MAX = 128;
+var FIREBASE_VERIFICATION_RESEND_SECONDS = Math.floor(FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS / 1e3);
 var JSON_HEADERS = Object.freeze({
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store, max-age=0",
@@ -3966,7 +3968,11 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             providerStatus: availability.providerStatus,
             storage: health.storage,
             emailVerifiedRequired: true,
-            verificationEmail: { kind: "address-verification", dailyCapacity: 1e3 },
+            verificationEmail: {
+              kind: "address-verification",
+              dailyCapacity: 1e3,
+              resendCooldownSeconds: FIREBASE_VERIFICATION_RESEND_SECONDS
+            },
             registeredAccountLimit: "unlimited",
             session: { transport: "secure-http-only-cookie", maxAge: SESSION_SECONDS }
           }
@@ -4010,7 +4016,8 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             sent: true,
             emailMasked: prepared.emailMask,
             requiredBeforeLogin: true,
-            dailyCapacity: 1e3
+            dailyCapacity: 1e3,
+            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
           }
         }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
       }
@@ -4049,7 +4056,12 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         return json3(request, 202, {
           ok: true,
           authenticated: false,
-          verification: { sent: true, emailMasked: prepared.emailMask, dailyCapacity: 1e3 }
+          verification: {
+            sent: true,
+            emailMasked: prepared.emailMask,
+            dailyCapacity: 1e3,
+            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
+          }
         }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/login`) {

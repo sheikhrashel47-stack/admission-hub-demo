@@ -103,10 +103,10 @@ await test('content hydration is public and account-independent',
   !/AHAuth|ahPubToken|authHeaders|Authorization/.test(CLOUD));
 
 await test('service-worker build and HTML registration are synchronized',
-  SW.includes("const BUILD_ID = 'v223-firebase-auth-20260909'") &&
-  H.includes("const expectedSwVersion = 'v223-firebase-auth-20260909'") &&
-  H.includes('sw.js?v=v223-firebase-auth-20260909') &&
-  H.includes('admission-hub-shell-v223-firebase-auth-20260909'));
+  SW.includes("const BUILD_ID = 'v224-firebase-verify-ux-20260909'") &&
+  H.includes("const expectedSwVersion = 'v224-firebase-verify-ux-20260909'") &&
+  H.includes('sw.js?v=v224-firebase-verify-ux-20260909') &&
+  H.includes('admission-hub-shell-v224-firebase-verify-ux-20260909'));
 await test('service-worker shell cannot cache retired assets', retiredMarkers.every(marker => !SW.includes(marker)));
 await test('service-worker caches guest AI UI v14 and purges prior shells',
   SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') &&

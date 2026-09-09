@@ -2,7 +2,15 @@
   'use strict';
 
   const API = '/api/auth/v1';
-  const state = { session: null, verification: null, busy: false, initialized: false, available: null };
+  const state = {
+    session: null,
+    verification: null,
+    busy: false,
+    initialized: false,
+    available: null,
+    resendTimer: null,
+    resendCooldownSeconds: 60
+  };
   const $ = selector => overlay.querySelector(selector);
 
   const launcher = document.createElement('button');
@@ -56,13 +64,13 @@
           </div>
           <button class="ah-account-primary" type="submit">সাইনআপ করুন</button>
           <p class="ah-account-switch">আগে থেকেই অ্যাকাউন্ট আছে? <button class="ah-account-link" type="button" data-role="show-login">লগইন করুন</button></p>
-          <p class="ah-account-note">সাইনআপের পর Firebase একটি সাধারণ email verification link পাঠাবে। লিংকে ক্লিক করলেই ইমেইল যাচাই হবে।</p>
+          <p class="ah-account-note">সাইনআপের পর Firebase ইমেইল যাচাইয়ের একটি নিরাপদ লিংক পাঠাবে। লিংকে ক্লিক করলেই যাচাই সম্পন্ন হবে।</p>
         </form>
 
         <div class="ah-account-view" data-view="verify" hidden>
           <div class="ah-account-verify-badge" aria-hidden="true">✉</div>
           <h3 class="ah-account-view-title">ইমেইল যাচাই করুন</h3>
-          <p class="ah-account-mask">Firebase থেকে verification link পাঠানো হয়েছে <strong data-role="mask">আপনার ইমেইলে</strong>। Inbox-এর সঙ্গে Spam/Promotions-ও দেখুন এবং লিংকে ক্লিক করুন।</p>
+          <p class="ah-account-mask">Firebase থেকে ইমেইল যাচাইয়ের লিংক পাঠানো হয়েছে <strong data-role="mask">আপনার ইমেইলে</strong>। Inbox-এর সঙ্গে Spam/Promotions-ও দেখুন এবং লিংকে ক্লিক করুন।</p>
           <button class="ah-account-primary" type="button" data-role="verified-login">যাচাই করেছি—এখন লগইন</button>
           <details class="ah-account-resend">
             <summary>ইমেইলটি আবার পাঠাবেন?</summary>
@@ -75,7 +83,8 @@
                 <label class="ah-account-label" for="ah-resend-password">পাসওয়ার্ড</label>
                 <input class="ah-account-input" id="ah-resend-password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required>
               </div>
-              <button class="ah-account-secondary" type="submit">Verification email আবার পাঠান</button>
+              <p class="ah-account-resend-status" data-role="resend-status" aria-live="polite"></p>
+              <button class="ah-account-secondary" type="submit" data-role="resend-submit">যাচাইয়ের ইমেইল আবার পাঠান</button>
             </form>
           </details>
           <p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="verify-back">অন্য ইমেইলে সাইনআপ</button></p>
@@ -104,6 +113,42 @@
     node.hidden = !text;
   };
 
+  const resendSecondsRemaining = () => Math.max(0, Math.ceil((Number(state.verification?.resendUntil || 0) - Date.now()) / 1000));
+
+  const updateResendCooldown = () => {
+    const button = $('[data-role="resend-submit"]');
+    const status = $('[data-role="resend-status"]');
+    if (!button || !status) return;
+    const remaining = resendSecondsRemaining();
+    button.disabled = state.busy || remaining > 0;
+    button.textContent = remaining > 0
+      ? `আবার পাঠানো যাবে (${remaining.toLocaleString('bn-BD')} সেকেন্ড)`
+      : 'যাচাইয়ের ইমেইল আবার পাঠান';
+    status.textContent = remaining > 0
+      ? `নিরাপত্তার জন্য ${remaining.toLocaleString('bn-BD')} সেকেন্ড পর আবার পাঠাতে পারবেন।`
+      : 'প্রয়োজনে এখন আবার পাঠাতে পারেন।';
+    if (remaining === 0 && state.resendTimer) {
+      clearInterval(state.resendTimer);
+      state.resendTimer = null;
+    }
+  };
+
+  const startResendCooldown = seconds => {
+    const duration = Math.min(86400, Math.max(0, Math.ceil(Number(seconds) || 0)));
+    if (!state.verification) return;
+    state.verification.resendUntil = Date.now() + duration * 1000;
+    if (state.resendTimer) clearInterval(state.resendTimer);
+    state.resendTimer = duration > 0 ? setInterval(updateResendCooldown, 1000) : null;
+    updateResendCooldown();
+  };
+
+  const clearResendCooldown = () => {
+    if (state.resendTimer) clearInterval(state.resendTimer);
+    state.resendTimer = null;
+    if (state.verification) state.verification.resendUntil = 0;
+    updateResendCooldown();
+  };
+
   const notify = () => {
     const detail = Object.freeze({
       authenticated: Boolean(state.session?.authenticated && state.session?.emailVerified),
@@ -123,6 +168,7 @@
         ? '<span class="ah-account-spinner" aria-hidden="true"></span>অপেক্ষা করুন…'
         : button.dataset.label;
     });
+    updateResendCooldown();
   };
 
   const showView = (name, keepMessage = false) => {
@@ -133,6 +179,7 @@
     if (name === 'verify') {
       $('[data-role="mask"]').textContent = state.verification?.emailMasked || 'আপনার ইমেইলে';
       if (state.verification?.email) $('#ah-resend-email').value = state.verification.email;
+      updateResendCooldown();
     }
     if (name === 'signed') $('[data-role="identity"]').textContent = state.session?.user?.emailMasked || 'যাচাইকৃত অ্যাকাউন্ট';
   };
@@ -234,7 +281,7 @@
 
     $('[data-view="signup"]').addEventListener('submit', async event => {
       event.preventDefault();
-      if (!ensureAvailable()) return;
+      if (state.busy || !ensureAvailable()) return;
       const email = $('#ah-signup-email').value.trim();
       const password = $('#ah-signup-password').value;
       const confirm = $('#ah-signup-confirm').value;
@@ -244,17 +291,21 @@
       setBusy(true);
       try {
         const result = await api('/signup', { method: 'POST', body: { email, password } });
-        state.verification = { email, emailMasked: result.verification?.emailMasked || email };
+        state.verification = { email, emailMasked: result.verification?.emailMasked || email, resendUntil: 0 };
+        startResendCooldown(result.verification?.resendAfter || state.resendCooldownSeconds);
         $('#ah-signup-password').value = '';
         $('#ah-signup-confirm').value = '';
         showView('verify');
-        message('অ্যাকাউন্ট তৈরি হয়েছে। ইমেইলের verification link-এ ক্লিক করুন।', 'success');
+        message('অ্যাকাউন্ট তৈরি হয়েছে। ইমেইলের যাচাইয়ের লিংকে ক্লিক করুন।', 'success');
       } catch (error) {
         if (error.code === 'EMAIL_ALREADY_IN_USE') {
+          clearResendCooldown();
+          state.verification = null;
           prefillLogin(email);
           showView('login');
         } else if (error.code === 'VERIFICATION_UNAVAILABLE') {
-          state.verification = { email, emailMasked: email };
+          state.verification = { email, emailMasked: email, resendUntil: 0 };
+          startResendCooldown(error.retryAfter || state.resendCooldownSeconds);
           showView('verify');
         }
         message(error.message, 'error');
@@ -267,7 +318,7 @@
 
     $('[data-view="login"]').addEventListener('submit', async event => {
       event.preventDefault();
-      if (!ensureAvailable()) return;
+      if (state.busy || !ensureAvailable()) return;
       const email = $('#ah-login-email').value.trim();
       const password = $('#ah-login-password').value;
       if (!email || !$('#ah-login-email').checkValidity()) return message('সঠিক ইমেইল ঠিকানা লিখুন।', 'error');
@@ -276,13 +327,15 @@
       try {
         const result = await api('/login', { method: 'POST', body: { email, password } });
         state.session = result;
+        clearResendCooldown();
         state.verification = null;
         updateLauncher();
         showView('signed');
         message('যাচাইকৃত অ্যাকাউন্টে লগইন হয়েছে।', 'success');
       } catch (error) {
         if (error.code === 'EMAIL_NOT_VERIFIED') {
-          state.verification = { email, emailMasked: email };
+          clearResendCooldown();
+          state.verification = { email, emailMasked: email, resendUntil: 0 };
           showView('verify');
         }
         message(error.message, 'error');
@@ -299,6 +352,7 @@
     });
 
     $('[data-role="verify-back"]').addEventListener('click', () => {
+      clearResendCooldown();
       state.verification = null;
       $('#ah-resend-email').value = '';
       $('#ah-resend-password').value = '';
@@ -307,7 +361,9 @@
 
     $('[data-role="resend-form"]').addEventListener('submit', async event => {
       event.preventDefault();
-      if (!ensureAvailable()) return;
+      if (state.busy || !ensureAvailable()) return;
+      const remaining = resendSecondsRemaining();
+      if (remaining > 0) return message(`আরও ${remaining.toLocaleString('bn-BD')} সেকেন্ড পর আবার পাঠাতে পারবেন।`, 'info');
       const email = $('#ah-resend-email').value.trim();
       const password = $('#ah-resend-password').value;
       if (!email || !$('#ah-resend-email').checkValidity() || password.length < 8) return message('ইমেইল ও পাসওয়ার্ড সঠিকভাবে লিখুন।', 'error');
@@ -315,15 +371,21 @@
       try {
         const result = await api('/verification/resend', { method: 'POST', body: { email, password } });
         if (result.alreadyVerified) {
+          clearResendCooldown();
+          state.verification = null;
           prefillLogin(email);
           showView('login');
           message('ইমেইল ইতিমধ্যে যাচাইকৃত—এখন লগইন করুন।', 'success');
         } else {
-          state.verification = { email, emailMasked: result.verification?.emailMasked || email };
+          state.verification = { email, emailMasked: result.verification?.emailMasked || email, resendUntil: 0 };
+          startResendCooldown(result.verification?.resendAfter || state.resendCooldownSeconds);
           showView('verify');
-          message('নতুন verification email পাঠানো হয়েছে।', 'success');
+          message('ইমেইল যাচাইয়ের নতুন বার্তা পাঠানো হয়েছে।', 'success');
         }
-      } catch (error) { message(error.message, 'error'); }
+      } catch (error) {
+        if (error.retryAfter > 0) startResendCooldown(error.retryAfter);
+        message(error.message, 'error');
+      }
       finally {
         $('#ah-resend-password').value = '';
         setBusy(false);
@@ -331,6 +393,7 @@
     });
 
     $('[data-role="logout"]').addEventListener('click', async () => {
+      if (state.busy) return;
       setBusy(true);
       try {
         await api('/session/logout', { method: 'POST', body: {} });
@@ -344,6 +407,8 @@
 
     api('/config').then(result => {
       state.available = result?.auth?.available === true;
+      const cooldown = Number(result?.auth?.verificationEmail?.resendCooldownSeconds);
+      if (Number.isFinite(cooldown) && cooldown >= 1 && cooldown <= 86400) state.resendCooldownSeconds = Math.ceil(cooldown);
     }).catch(() => { state.available = false; });
     refreshSession();
 

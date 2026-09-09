@@ -291,6 +291,7 @@ test('Firebase signup sends standard verification but creates no authenticated s
   assert.equal(body.authenticated, false);
   assert.equal(body.verification.sent, true);
   assert.equal(body.verification.dailyCapacity, 1000);
+  assert.equal(body.verification.resendAfter, 60);
   assert.equal(JSON.stringify(body).includes(email), false);
   assert.equal(JSON.stringify(body).includes(password), false);
   assert.equal(app.firebase.calls.filter(call => call.pathname.endsWith('/accounts:sendOobCode')).length, 1);
@@ -344,10 +345,16 @@ test('verification resend requires password and never authenticates the user', a
   const email = 'resend.user@example.com';
   const password = 'Resend-password-77';
   await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, { method: 'POST', body: { email, password } }), app.env, {});
+  const early = await app.handler(apiRequest(`${AUTH_API_PREFIX}/verification/resend`, { method: 'POST', body: { email, password } }), app.env, {});
+  assert.equal(early.status, 429);
+  assert.equal((await early.json()).error.retryAfter, 60);
+  assert.equal(app.firebase.calls.filter(call => call.pathname.endsWith('/accounts:sendOobCode')).length, 1);
   app.state.advance(60_001);
   const resent = await app.handler(apiRequest(`${AUTH_API_PREFIX}/verification/resend`, { method: 'POST', body: { email, password } }), app.env, {});
   assert.equal(resent.status, 202);
-  assert.equal((await resent.json()).authenticated, false);
+  const resentBody = await resent.json();
+  assert.equal(resentBody.authenticated, false);
+  assert.equal(resentBody.verification.resendAfter, 60);
   assert.equal(extractCookiePair(resent, '__Host-ah_session'), '');
   assert.equal(app.firebase.calls.filter(call => call.pathname.endsWith('/accounts:sendOobCode')).length, 2);
 });
@@ -364,6 +371,7 @@ test('config publishes verified-only Firebase mode and correct Spark verificatio
   assert.equal(body.auth.providerStatus, 0);
   assert.equal(body.auth.emailVerifiedRequired, true);
   assert.equal(body.auth.verificationEmail.dailyCapacity, 1000);
+  assert.equal(body.auth.verificationEmail.resendCooldownSeconds, 60);
   assert.equal(body.auth.registeredAccountLimit, 'unlimited');
 });
 

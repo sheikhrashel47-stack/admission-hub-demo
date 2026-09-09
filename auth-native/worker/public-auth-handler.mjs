@@ -1,4 +1,4 @@
-import { AUTH_NATIVE_VERSION } from '../core/auth-engine.mjs';
+import { AUTH_NATIVE_VERSION, FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS } from '../core/auth-engine.mjs';
 import { randomToken } from '../core/crypto.mjs';
 import { AUTH_ERROR_CODES, asNativeAuthError, NativeAuthError } from '../core/errors.mjs';
 import { FirebaseEmailPasswordProvider, FirebaseRequestError } from '../providers/firebase-auth.mjs';
@@ -13,6 +13,7 @@ const YEAR_SECONDS = 365 * 24 * 60 * 60;
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
 const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 128;
+const FIREBASE_VERIFICATION_RESEND_SECONDS = Math.floor(FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS / 1000);
 
 const JSON_HEADERS = Object.freeze({
   'Content-Type': 'application/json; charset=utf-8',
@@ -273,7 +274,11 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             providerStatus: availability.providerStatus,
             storage: health.storage,
             emailVerifiedRequired: true,
-            verificationEmail: { kind: 'address-verification', dailyCapacity: 1000 },
+            verificationEmail: {
+              kind: 'address-verification',
+              dailyCapacity: 1000,
+              resendCooldownSeconds: FIREBASE_VERIFICATION_RESEND_SECONDS
+            },
             registeredAccountLimit: 'unlimited',
             session: { transport: 'secure-http-only-cookie', maxAge: SESSION_SECONDS }
           }
@@ -307,7 +312,8 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             sent: true,
             emailMasked: prepared.emailMask,
             requiredBeforeLogin: true,
-            dailyCapacity: 1000
+            dailyCapacity: 1000,
+            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
           }
         }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
       }
@@ -336,7 +342,12 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         return json(request, 202, {
           ok: true,
           authenticated: false,
-          verification: { sent: true, emailMasked: prepared.emailMask, dailyCapacity: 1000 }
+          verification: {
+            sent: true,
+            emailMasked: prepared.emailMask,
+            dailyCapacity: 1000,
+            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
+          }
         }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
       }
 
