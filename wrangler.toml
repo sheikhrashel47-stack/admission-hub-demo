@@ -3,6 +3,9 @@ main = "worker-bundle.mjs"
 compatibility_date = "2024-11-01"
 workers_dev = true
 
+[vars]
+FIREBASE_CONTINUE_URL = "https://admissionhub.pages.dev/?firebaseVerified=1"
+
 [triggers]
 crons = ["30 18 * * *"]
 

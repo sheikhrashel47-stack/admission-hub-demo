@@ -27,8 +27,14 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Verify Email Gateway
-        run: npm run test:email
+      - name: Verify Email Gateway and Firebase Auth
+        run: |
+          npm run test:email
+          npm run test:native-auth
+      - name: Validate Firebase project and authorized Pages domain
+        env:
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+        run: node auth-native/operations/verify-firebase-config.mjs
       - name: Verify exact Worker bundle
         run: npm run check:worker-bundle
       - name: Inspect existing Worker secret binding names
@@ -36,7 +42,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_WORKER_NAME: admission-gk
-        run: node email-gateway/operations/inventory-cloudflare-bindings.mjs
+        run: |
+          node email-gateway/operations/inventory-cloudflare-bindings.mjs
+          node auth-native/operations/verify-worker-binding.mjs
       - name: Deploy protected Email Gateway Worker
         uses: cloudflare/wrangler-action@v3
         with:

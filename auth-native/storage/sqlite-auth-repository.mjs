@@ -25,6 +25,17 @@ export class SqliteAuthRepository {
         created_at INTEGER NOT NULL,
         last_login_at INTEGER NOT NULL
       )`,
+      `CREATE TABLE IF NOT EXISTS auth_external_identities (
+        provider TEXT NOT NULL,
+        subject_ref TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        last_verified_at INTEGER NOT NULL,
+        PRIMARY KEY(provider, subject_ref),
+        UNIQUE(provider, user_id),
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_external_user ON auth_external_identities(user_id)`,
       `CREATE TABLE IF NOT EXISTS auth_challenges (
         challenge_id TEXT PRIMARY KEY,
         email_ref TEXT NOT NULL,
@@ -78,7 +89,7 @@ export class SqliteAuthRepository {
       `CREATE INDEX IF NOT EXISTS auth_security_events_time ON auth_security_events(occurred_at DESC)`
     ];
     for (const statement of statements) this.sql.exec(statement);
-    this.sql.exec("INSERT OR IGNORE INTO auth_meta(key,value) VALUES('schema_version','1')");
+    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','2') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
   }
 
   #rows(statement, ...bindings) {
@@ -251,6 +262,109 @@ export class SqliteAuthRepository {
     });
   }
 
+  async consumeLimits({ limits, now, eventType, subjectRef }) {
+    return this.#transaction(() => {
+      const denied = this.#consumeLimits(limits, now);
+      if (denied) return denied;
+      this.#event(eventType, subjectRef, null, now);
+      return { accepted: true };
+    });
+  }
+
+  async establishExternalSession(input) {
+    return this.#transaction(() => {
+      const identity = this.#one(
+        `SELECT user_id AS userId FROM auth_external_identities
+         WHERE provider=? AND subject_ref=?`,
+        input.provider, input.subjectRef
+      );
+      let user = identity ? this.#one(
+        `SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt
+         FROM auth_users WHERE user_id=?`,
+        identity.userId
+      ) : this.#one(
+        `SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt
+         FROM auth_users WHERE email_ref=?`,
+        input.emailRef
+      );
+      if (identity && !user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+      if (!identity && user) {
+        this.sql.exec(
+          'DELETE FROM auth_external_identities WHERE provider=? AND user_id=?',
+          input.provider, user.id
+        );
+      }
+      let created = false;
+      if (!user) {
+        this.sql.exec(
+          `INSERT OR IGNORE INTO auth_users(user_id,email_ref,email_mask,status,created_at,last_login_at)
+           VALUES(?,?,?,'active',?,?)`,
+          input.userIdCandidate, input.emailRef, input.emailMask, input.now, input.now
+        );
+        user = this.#one(
+          `SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt
+           FROM auth_users WHERE email_ref=?`,
+          input.emailRef
+        );
+        created = user?.id === input.userIdCandidate;
+      }
+      if (!user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+      if (user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      if (identity && user.emailRef !== input.emailRef) {
+        const emailOwner = this.#one('SELECT user_id AS id FROM auth_users WHERE email_ref=?', input.emailRef);
+        if (emailOwner && emailOwner.id !== user.id) return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+        this.sql.exec('UPDATE auth_users SET email_ref=?,email_mask=? WHERE user_id=?', input.emailRef, input.emailMask, user.id);
+        user.emailRef = input.emailRef;
+        user.emailMask = input.emailMask;
+      }
+      if (!identity) {
+        this.sql.exec(
+          `INSERT INTO auth_external_identities(provider,subject_ref,user_id,created_at,last_verified_at)
+           VALUES(?,?,?,?,?)`,
+          input.provider, input.subjectRef, user.id, input.now, input.now
+        );
+      } else {
+        this.sql.exec(
+          'UPDATE auth_external_identities SET last_verified_at=? WHERE provider=? AND subject_ref=?',
+          input.now, input.provider, input.subjectRef
+        );
+      }
+      this.sql.exec('UPDATE auth_users SET last_login_at=? WHERE user_id=?', input.now, user.id);
+      this.sql.exec(
+        `INSERT INTO auth_sessions(
+          session_ref,user_id,created_at,expires_at,last_seen_at,revoked_at,ip_ref,device_ref,user_agent
+        ) VALUES(?,?,?,?,?,NULL,?,?,?)`,
+        input.sessionRef, user.id, input.now, input.sessionExpiresAt, input.now,
+        input.ipRef, input.deviceRef, input.userAgent
+      );
+      this.#event(created ? 'firebase-account-linked' : 'firebase-login', input.subjectRef, user.id, input.now);
+      return { established: true, created, user };
+    });
+  }
+
+  async getExternalSession({ sessionRef, provider, subjectRef, emailRef, now }) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT s.expires_at AS expiresAt,s.last_seen_at AS lastSeenAt,
+          u.user_id AS id,u.email_mask AS emailMask,u.status,u.created_at AS createdAt
+         FROM auth_sessions s
+         JOIN auth_users u ON u.user_id=s.user_id
+         JOIN auth_external_identities x ON x.user_id=u.user_id AND x.provider=? AND x.subject_ref=?
+         WHERE s.session_ref=? AND s.revoked_at IS NULL AND u.email_ref=?`,
+        provider, subjectRef, sessionRef, emailRef
+      );
+      if (!row || Number(row.expiresAt) <= now) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
+      if (row.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      if (now - Number(row.lastSeenAt) > 6 * 60 * 60 * 1000) {
+        this.sql.exec('UPDATE auth_sessions SET last_seen_at=? WHERE session_ref=?', now, sessionRef);
+      }
+      return {
+        expiresAt: Number(row.expiresAt),
+        user: { id: row.id, emailMask: row.emailMask, status: row.status, createdAt: Number(row.createdAt) }
+      };
+    });
+  }
+
   async getSession({ sessionRef, now }) {
     return this.#transaction(() => {
       const row = this.#one(
@@ -284,7 +398,7 @@ export class SqliteAuthRepository {
 
   async ping() {
     const row = this.#one("SELECT value FROM auth_meta WHERE key='schema_version'");
-    return { ok: row?.value === '1', storage: 'sqlite-durable-object', schema: Number(row?.value || 0) };
+    return { ok: row?.value === '2', storage: 'sqlite-durable-object', schema: Number(row?.value || 0) };
   }
 
   async cleanup(now) {

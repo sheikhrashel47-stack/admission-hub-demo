@@ -1,72 +1,92 @@
-# Cloudflare-native Auth — production contract
+# Firebase Email + Password Auth — production contract
 
-Status: approved implementation, replacing no part of the previously retired legacy account code.
+Status: configuration-gated production implementation. The public Auth boundary remains versioned and provider-replaceable.
+
+## Required user flow
+
+1. A user signs up with email and password.
+2. Firebase Authentication creates the account.
+3. Admission Hub asks Firebase to send a standard `VERIFY_EMAIL` address-verification email.
+4. The user clicks Firebase's verification link.
+5. Login is denied until a fresh Firebase account lookup returns `emailVerified=true`.
+6. A verified user logs in normally with the same email and password.
+
+Email-link sign-in is not part of this implementation. The verification link verifies the address; it does not sign the user in.
 
 ## Public boundary
 
-The browser uses only the versioned same-origin API:
+The browser uses only the same-origin API:
 
 - `GET /api/auth/v1/config`
-- `POST /api/auth/v1/otp/request`
-- `POST /api/auth/v1/otp/verify`
+- `POST /api/auth/v1/signup`
+- `POST /api/auth/v1/verification/resend`
+- `POST /api/auth/v1/login`
 - `GET /api/auth/v1/session`
 - `POST /api/auth/v1/session/logout`
 
-This boundary is transport-neutral from the browser's perspective. The Durable Object authority or email delivery adapter can be replaced without changing the UI contract.
+The browser never calls Google directly and never receives a Firebase ID token, refresh token, or Admission Hub session token in JSON. This keeps provider details behind the stable Admission Hub boundary.
 
-## Authority and data minimization
+## Firebase operations
 
-`AdmissionAuthAuthority` is a singleton SQLite Durable Object. It owns challenge state, attempt counters, replay prevention, identities, fixed-window abuse counters, and sessions atomically.
+The Worker uses Firebase's documented REST endpoints:
 
-It persists:
+- `accounts:signUp`
+- `accounts:sendOobCode` with `requestType=VERIFY_EMAIL`
+- `accounts:signInWithPassword`
+- `accounts:lookup`
+- Secure Token refresh
 
-- deterministic HMAC references for normalized email, IP, and device;
+`FIREBASE_WEB_API_KEY` is an encrypted Worker binding. `FIREBASE_CONTINUE_URL` is fixed to `https://admissionhub.pages.dev/?firebaseVerified=1`. Activation rejects a Firebase project whose authorized domains do not contain `admissionhub.pages.dev`.
+
+Passwords exist only in the bounded request body while the Worker forwards a signup or login request to Firebase over HTTPS. They are not written to SQLite, browser storage, logs, analytics, or API responses.
+
+## Verified-only authorization and session policy
+
+No local identity or authenticated session is created during signup. After password login, the Worker performs a fresh `accounts:lookup` and requires all of the following:
+
+- the lookup subject matches the signed-in Firebase subject;
+- the Firebase user is not disabled;
+- `emailVerified` is exactly `true`.
+
+Only then does the SQLite authority create or reuse the local app identity and issue a session. Credentials are transported only in Secure, HttpOnly, SameSite=Strict cookies:
+
+- `__Host-ah_session` — random opaque Admission Hub session;
+- `__Host-ah_firebase` — Firebase refresh credential used server-side for fresh provider validation.
+
+`GET /session` refreshes Firebase state, checks `emailVerified=true` again, and verifies that the Firebase subject/email still match the local HMAC-linked identity. Invalid, disabled, unverified, expired, or mismatched state revokes the local session and clears both cookies.
+
+## Data minimization
+
+`AdmissionAuthAuthority` is a singleton SQLite Durable Object. It atomically owns rate limits, HMAC-linked external identities, local users, and sessions. It stores:
+
+- HMAC references for normalized email, Firebase subject, IP, device, and session;
 - a masked email display value;
-- challenge-bound HMAC for the OTP;
-- HMAC references for random opaque sessions.
+- local user status and timestamps.
 
-It does not persist plaintext email addresses, plaintext OTP values, or raw session tokens. A user row is created only after successful proof of email ownership.
+It does not store plaintext email, password, Firebase token, or raw session token.
 
-## Browser session policy
+## No-cost limits and abuse controls
 
-Authentication is returned only as:
+The Firebase Spark contract used by this implementation is:
 
-`__Host-ah_session; Path=/; HttpOnly; Secure; SameSite=Strict`
+- standard address-verification emails: **1,000 per day**;
+- registered user accounts: **unlimited**.
 
-No session credential is returned in a JSON body or stored in `localStorage`, `sessionStorage`, or IndexedDB. The optional pending-form state contains only a masked email, public challenge ID, and expiry metadata—not the plaintext email, OTP, or session credential. After a page reload, the user re-enters the same email locally to use the existing challenge.
+The Durable Object enforces an atomic 1,000/day global verification-email admission limit, plus tighter recipient, network, device, resend, and login limits. There is no lifetime user cap in the application.
 
-## OTP controls
+The implementation uses Firebase Authentication and its built-in verification email only. It does not deploy Cloud Functions or another billable mail service.
 
-- Web Crypto CSPRNG six-digit code with rejection sampling
-- HMAC-SHA-256 challenge binding
-- 10-minute expiration
-- 60-second resend cooldown
-- five guesses per challenge
-- one-time atomic consumption and explicit replay rejection
-- recipient, network, device, and global fixed-window limits
-- previous active challenge superseded on resend
-
-## Delivery policy
-
-The existing strongly consistent Email Gateway is the only send path. Production activation privately queries Mailjet's API-key `Sender` and account-wide `MetaSender` resources. If the configured master key has no sender, it performs a bounded read-only inventory of its authorized active sub-account keys and checks those sender resources too. As a final non-delivery diagnostic, repository-author addresses already present in the checked-out commit metadata may be tested with Mailjet's official `SandboxMode: true`. A SandboxMode success validates only the payload; it is never treated as delivery authorization. Activation still stops unless the authorized API-key set lists an Active/enabled individual address (never a wildcard or `pages.dev` sender). Only Mailjet can be enabled; every other adapter remains disabled, and runtime sender health always fails closed.
-
-Hard production ceilings are:
-
-- 200 accepted messages per day
-- 6,000 accepted messages per month
-- one provider attempt; no blind fallback sends
-
-Cloudflare Auth processing has materially more headroom than this. The email-delivery ceiling remains the actual signup/login bottleneck and must never be presented as 1,000 delivered emails per day.
-
-## Activation and verification
+## Activation and live verification
 
 `.github/workflows/native-auth-activate.yml`:
 
-1. verifies Auth, Email Gateway, exact bundle, and retired-account guards;
-2. fetches provider credentials through the existing Infisical OIDC integration;
-3. performs bounded Mailjet Sender/MetaSender discovery, optionally runs non-delivery SandboxMode diagnostics, and selects only an API-listed Active sender without printing it;
-4. creates persistent Auth HMAC/internal secrets only when absent;
-5. deploys the Worker, SQLite Durable Object migration, and sanitized Pages bundle;
-6. creates a temporary external mailbox, requests one real OTP, reads it privately, verifies the secure session, rejects OTP replay, logs out, confirms revocation, and deletes the mailbox.
+1. verifies all Auth, Email Gateway, retirement, and exact-bundle tests;
+2. validates the Firebase project and authorized Pages domain without creating a user;
+3. installs `FIREBASE_WEB_API_KEY` as an encrypted Worker binding;
+4. deploys the Worker and SQLite schema;
+5. creates a disposable external mailbox and Firebase test user;
+6. proves that signup sends a verification email, unverified login is denied, the standard verification action changes Firebase state, verified password login succeeds, the session refreshes, and logout revokes it;
+7. deletes the Firebase test user and disposable mailbox;
+8. deploys the sanitized Pages UI and checks the live public contract.
 
-The workflow prints neither credentials, sender address, recipient address, OTP, nor session value.
+The workflow prints no API key, password, mailbox address, verification code, Firebase token, or session credential. A failed activation triggers a bounded Worker rollback.

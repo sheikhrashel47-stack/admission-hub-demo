@@ -2,9 +2,8 @@
   'use strict';
 
   const API = '/api/auth/v1';
-  const PENDING_KEY = 'admissionHubPendingAccountV1';
-  const state = { session: null, pending: null, busy: false, timer: null, initialized: false };
-  const $ = selector => document.querySelector(selector);
+  const state = { session: null, verification: null, busy: false, initialized: false, available: null };
+  const $ = selector => overlay.querySelector(selector);
 
   const launcher = document.createElement('button');
   launcher.type = 'button';
@@ -23,38 +22,76 @@
       <header class="ah-account-head">
         <p class="ah-account-kicker">নিরাপদ অ্যাকাউন্ট</p>
         <h2 class="ah-account-title" id="ah-account-title">Admission Hub অ্যাকাউন্ট</h2>
-        <p class="ah-account-subtitle">একই ইমেইলে সাইনআপ ও লগইন—কোনো পাসওয়ার্ড মনে রাখতে হবে না।</p>
+        <p class="ah-account-subtitle">ইমেইল ও পাসওয়ার্ডে সাইনআপ করুন। ইমেইল যাচাই না হওয়া পর্যন্ত অ্যাকাউন্টে প্রবেশ বন্ধ থাকবে।</p>
       </header>
       <div class="ah-account-body">
         <div class="ah-account-message" data-role="message" hidden aria-live="polite"></div>
-        <form class="ah-account-view" data-view="email" novalidate>
-          <label class="ah-account-label" for="ah-account-email">আপনার ইমেইল</label>
-          <input class="ah-account-input" id="ah-account-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="name@example.com" required>
-          <button class="ah-account-primary" type="submit" data-role="send">যাচাই কোড পাঠান</button>
-          <p class="ah-account-note">অ্যাপটি লগইন ছাড়াও ব্যবহার করা যায়। অ্যাকাউন্ট খুললে এই ডিভাইসে একটি নিরাপদ HttpOnly সেশন থাকবে।</p>
-        </form>
-        <form class="ah-account-view" data-view="verify" hidden novalidate>
-          <p class="ah-account-mask">ছয় সংখ্যার কোড পাঠানো হয়েছে <strong data-role="mask">আপনার ইমেইলে</strong>।</p>
-          <label class="ah-account-label" for="ah-account-otp">যাচাই কোড</label>
-          <input class="ah-account-input ah-account-otp" id="ah-account-otp" name="verification" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required>
-          <button class="ah-account-primary" type="submit" data-role="verify">নিরাপদভাবে প্রবেশ করুন</button>
-          <div class="ah-account-row">
-            <button class="ah-account-link" type="button" data-role="back">ইমেইল বদলান</button>
-            <button class="ah-account-link" type="button" data-role="resend">আবার পাঠান</button>
+
+        <form class="ah-account-view" data-view="login" novalidate>
+          <div class="ah-account-field">
+            <label class="ah-account-label" for="ah-login-email">ইমেইল</label>
+            <input class="ah-account-input" id="ah-login-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="name@example.com" required>
           </div>
-          <p class="ah-account-note" data-role="countdown">কোডটি ১০ মিনিট কার্যকর থাকবে।</p>
+          <div class="ah-account-field">
+            <label class="ah-account-label" for="ah-login-password">পাসওয়ার্ড</label>
+            <input class="ah-account-input" id="ah-login-password" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" placeholder="আপনার পাসওয়ার্ড" required>
+          </div>
+          <button class="ah-account-primary" type="submit">লগইন করুন</button>
+          <p class="ah-account-switch">নতুন ব্যবহারকারী? <button class="ah-account-link" type="button" data-role="show-signup">অ্যাকাউন্ট তৈরি করুন</button></p>
+          <p class="ah-account-note">শুধু Firebase-এ যাচাইকৃত ইমেইল দিয়ে লগইন হবে। নিরাপদ সেশন browser-readable storage-এ রাখা হয় না।</p>
         </form>
+
+        <form class="ah-account-view" data-view="signup" hidden novalidate>
+          <div class="ah-account-field">
+            <label class="ah-account-label" for="ah-signup-email">ইমেইল</label>
+            <input class="ah-account-input" id="ah-signup-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="name@example.com" required>
+          </div>
+          <div class="ah-account-field">
+            <label class="ah-account-label" for="ah-signup-password">পাসওয়ার্ড</label>
+            <input class="ah-account-input" id="ah-signup-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="কমপক্ষে ৮ অক্ষর" required>
+          </div>
+          <div class="ah-account-field">
+            <label class="ah-account-label" for="ah-signup-confirm">পাসওয়ার্ড আবার লিখুন</label>
+            <input class="ah-account-input" id="ah-signup-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="একই পাসওয়ার্ড" required>
+          </div>
+          <button class="ah-account-primary" type="submit">সাইনআপ করুন</button>
+          <p class="ah-account-switch">আগে থেকেই অ্যাকাউন্ট আছে? <button class="ah-account-link" type="button" data-role="show-login">লগইন করুন</button></p>
+          <p class="ah-account-note">সাইনআপের পর Firebase একটি সাধারণ email verification link পাঠাবে। লিংকে ক্লিক করলেই ইমেইল যাচাই হবে।</p>
+        </form>
+
+        <div class="ah-account-view" data-view="verify" hidden>
+          <div class="ah-account-verify-badge" aria-hidden="true">✉</div>
+          <h3 class="ah-account-view-title">ইমেইল যাচাই করুন</h3>
+          <p class="ah-account-mask">Firebase থেকে verification link পাঠানো হয়েছে <strong data-role="mask">আপনার ইমেইলে</strong>। Inbox-এর সঙ্গে Spam/Promotions-ও দেখুন এবং লিংকে ক্লিক করুন।</p>
+          <button class="ah-account-primary" type="button" data-role="verified-login">যাচাই করেছি—এখন লগইন</button>
+          <details class="ah-account-resend">
+            <summary>ইমেইলটি আবার পাঠাবেন?</summary>
+            <form data-role="resend-form" novalidate>
+              <div class="ah-account-field">
+                <label class="ah-account-label" for="ah-resend-email">ইমেইল</label>
+                <input class="ah-account-input" id="ah-resend-email" type="email" autocomplete="email" maxlength="254" required>
+              </div>
+              <div class="ah-account-field">
+                <label class="ah-account-label" for="ah-resend-password">পাসওয়ার্ড</label>
+                <input class="ah-account-input" id="ah-resend-password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required>
+              </div>
+              <button class="ah-account-secondary" type="submit">Verification email আবার পাঠান</button>
+            </form>
+          </details>
+          <p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="verify-back">অন্য ইমেইলে সাইনআপ</button></p>
+        </div>
+
         <div class="ah-account-view" data-view="signed" hidden>
           <div class="ah-account-secure">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6V10Zm6 4v2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <div><h3>নিরাপদ সেশন সক্রিয়</h3><p>সেশনটি ব্রাউজার-পঠনযোগ্য storage-এ রাখা হয়নি।</p></div>
+            <div><h3>যাচাইকৃত অ্যাকাউন্ট সক্রিয়</h3><p>Firebase নিশ্চিত করেছে যে ইমেইলটি যাচাই করা হয়েছে।</p></div>
           </div>
           <div class="ah-account-identity">
             <p class="ah-account-identity-label">যাচাইকৃত ইমেইল</p>
             <p class="ah-account-identity-value" data-role="identity">—</p>
           </div>
           <button class="ah-account-secondary" type="button" data-role="logout">লগ আউট</button>
-          <p class="ah-account-fine">Admission Hub কখনো ইমেইলের OTP বা নিরাপদ সেশন browser-readable storage-এ রাখে না।</p>
+          <p class="ah-account-fine">Firebase credential ও নিরাপদ সেশন HttpOnly cookie-তে সুরক্ষিত থাকে; JavaScript সেগুলো পড়তে পারে না।</p>
         </div>
       </div>
     </section>`;
@@ -65,6 +102,15 @@
     node.textContent = text;
     node.dataset.kind = kind;
     node.hidden = !text;
+  };
+
+  const notify = () => {
+    const detail = Object.freeze({
+      authenticated: Boolean(state.session?.authenticated && state.session?.emailVerified),
+      emailVerified: Boolean(state.session?.emailVerified),
+      user: state.session?.user || null
+    });
+    window.dispatchEvent(new CustomEvent('admissionhub:authchange', { detail }));
   };
 
   const setBusy = busy => {
@@ -79,51 +125,16 @@
     });
   };
 
-  const showView = name => {
+  const showView = (name, keepMessage = false) => {
     overlay.querySelectorAll('[data-view]').forEach(view => { view.hidden = view.dataset.view !== name; });
-    message();
+    if (!keepMessage) message();
+    if (name === 'login') setTimeout(() => $('#ah-login-email')?.focus(), 30);
+    if (name === 'signup') setTimeout(() => $('#ah-signup-email')?.focus(), 30);
     if (name === 'verify') {
-      $('[data-role="mask"]').textContent = state.pending?.emailMasked || 'আপনার ইমেইলে';
-      setTimeout(() => $('#ah-account-otp')?.focus(), 30);
-      startCountdown();
-    } else if (name === 'signed') {
-      $('[data-role="identity"]').textContent = state.session?.user?.emailMasked || 'যাচাইকৃত অ্যাকাউন্ট';
-      clearInterval(state.timer);
-    } else {
-      const send = $('[data-role="send"]');
-      if (send) {
-        send.dataset.label = state.pending?.challengeId && !state.pending.email ? 'আগের কোড ব্যবহার করুন' : 'যাচাই কোড পাঠান';
-        send.textContent = send.dataset.label;
-      }
-      setTimeout(() => $('#ah-account-email')?.focus(), 30);
-      clearInterval(state.timer);
+      $('[data-role="mask"]').textContent = state.verification?.emailMasked || 'আপনার ইমেইলে';
+      if (state.verification?.email) $('#ah-resend-email').value = state.verification.email;
     }
-  };
-
-  const savePending = value => {
-    state.pending = value;
-    try {
-      if (value) {
-        const publicState = {
-          challengeId: value.challengeId,
-          emailMasked: value.emailMasked,
-          expiresAt: value.expiresAt,
-          resendAt: value.resendAt
-        };
-        sessionStorage.setItem(PENDING_KEY, JSON.stringify(publicState));
-      } else sessionStorage.removeItem(PENDING_KEY);
-    } catch (_) {}
-  };
-
-  const restorePending = () => {
-    try {
-      const value = JSON.parse(sessionStorage.getItem(PENDING_KEY) || 'null');
-      if (!value || !/^[A-Za-z0-9_-]{24,64}$/.test(value.challengeId) || Number(value.expiresAt) <= Date.now()) {
-        sessionStorage.removeItem(PENDING_KEY);
-        return null;
-      }
-      return { ...value, email: '' };
-    } catch (_) { return null; }
+    if (name === 'signed') $('[data-role="identity"]').textContent = state.session?.user?.emailMasked || 'যাচাইকৃত অ্যাকাউন্ট';
   };
 
   const api = async (path, options = {}) => {
@@ -155,80 +166,32 @@
   };
 
   const updateLauncher = () => {
-    const signed = Boolean(state.session?.authenticated);
+    const signed = Boolean(state.session?.authenticated && state.session?.emailVerified);
     launcher.dataset.authenticated = String(signed);
-    launcher.setAttribute('aria-label', signed ? 'নিরাপদ অ্যাকাউন্ট সক্রিয়' : 'অ্যাকাউন্ট খুলুন');
+    launcher.setAttribute('aria-label', signed ? 'যাচাইকৃত অ্যাকাউন্ট সক্রিয়' : 'অ্যাকাউন্ট খুলুন');
     const label = launcher.querySelector('.ah-account-launcher-label');
     if (label) label.textContent = signed ? 'সক্রিয়' : 'অ্যাকাউন্ট';
+    notify();
   };
 
   const refreshSession = async () => {
     try {
       const current = await api('/session');
-      state.session = current;
-      savePending(null);
+      state.session = current?.authenticated && current?.emailVerified ? current : null;
     } catch (error) {
-      if (error.status === 401 || error.status === 403) state.session = null;
+      if ([401, 403].includes(error.status)) state.session = null;
     }
     updateLauncher();
-    if (!overlay.hidden && state.session?.authenticated) showView('signed');
+    if (!overlay.hidden && state.session) showView('signed');
     return state.session;
-  };
-
-  const startCountdown = () => {
-    clearInterval(state.timer);
-    const render = () => {
-      if (!state.pending) return;
-      const now = Date.now();
-      const resend = $('[data-role="resend"]');
-      const countdown = $('[data-role="countdown"]');
-      const resendSeconds = Math.max(0, Math.ceil((Number(state.pending.resendAt) - now) / 1000));
-      const expirySeconds = Math.max(0, Math.ceil((Number(state.pending.expiresAt) - now) / 1000));
-      if (resend) {
-        resend.disabled = state.busy || resendSeconds > 0;
-        resend.textContent = resendSeconds ? `আবার পাঠান (${resendSeconds}s)` : 'আবার পাঠান';
-      }
-      if (countdown) countdown.textContent = expirySeconds
-        ? `কোডটি আর ${Math.floor(expirySeconds / 60)}:${String(expirySeconds % 60).padStart(2, '0')} মিনিট কার্যকর।`
-        : 'কোডটির সময় শেষ—নতুন কোড নিন।';
-      if (!expirySeconds) clearInterval(state.timer);
-    };
-    render();
-    state.timer = setInterval(render, 1000);
-  };
-
-  const requestOtp = async email => {
-    const result = await api('/otp/request', { method: 'POST', body: { email } });
-    savePending({
-      email: String(email).trim().toLowerCase(),
-      challengeId: result.challenge.id,
-      emailMasked: result.challenge.emailMasked,
-      expiresAt: Number(result.challenge.expiresAt),
-      resendAt: Date.now() + Number(result.challenge.resendAfter || 60) * 1000
-    });
-    showView('verify');
-    if (result.challenge.delivery === 'uncertain') {
-      message('ইমেইল পাঠানোর নিশ্চিত খবর পাওয়া যায়নি। কোড এলে দিন; না এলে এক মিনিট পরে আবার পাঠান।', 'info');
-    } else {
-      message('কোড পাঠানো হয়েছে। Inbox-এর পাশাপাশি Spam/Promotions-ও দেখুন।', 'success');
-    }
   };
 
   const open = () => {
     overlay.hidden = false;
     document.documentElement.style.overflow = 'hidden';
-    if (state.session?.authenticated) showView('signed');
-    else {
-      state.pending = state.pending && Number(state.pending.expiresAt) > Date.now() ? state.pending : restorePending();
-      if (state.pending?.email) {
-        $('#ah-account-email').value = state.pending.email;
-        showView('verify');
-      } else {
-        $('#ah-account-email').value = '';
-        showView('email');
-        if (state.pending) message('আগে পাঠানো কোড ব্যবহার করতে একই ইমেইলটি আবার লিখুন।', 'info');
-      }
-    }
+    if (state.session?.authenticated && state.session?.emailVerified) showView('signed');
+    else showView('login');
+    if (state.available === false) message('Firebase account service এখনো চালু করা হয়নি।', 'info');
   };
 
   const close = () => {
@@ -236,6 +199,16 @@
     document.documentElement.style.overflow = '';
     message();
     launcher.focus();
+  };
+
+  const prefillLogin = email => {
+    if (email) $('#ah-login-email').value = email;
+  };
+
+  const ensureAvailable = () => {
+    if (state.available === true) return true;
+    message('Firebase account service এখনো চালু করা হয়নি।', 'info');
+    return false;
   };
 
   const initialize = () => {
@@ -247,56 +220,114 @@
     overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && !overlay.hidden) close(); });
 
-    $('[data-view="email"]').addEventListener('submit', async event => {
-      event.preventDefault();
-      const email = $('#ah-account-email').value.trim();
-      if (!email || !$('#ah-account-email').checkValidity()) return message('সঠিক ইমেইল ঠিকানা লিখুন।', 'error');
-      if (state.pending?.challengeId && !state.pending.email && Number(state.pending.expiresAt) > Date.now()) {
-        state.pending = { ...state.pending, email: email.toLowerCase() };
-        showView('verify');
-        message('ইমেইলে পাওয়া আগের ছয় সংখ্যার কোডটি দিন।', 'info');
-        return;
-      }
-      setBusy(true);
-      try { await requestOtp(email); }
-      catch (error) { message(error.message, 'error'); }
-      finally { setBusy(false); startCountdown(); }
+    $('[data-role="show-signup"]').addEventListener('click', () => {
+      $('#ah-signup-email').value = $('#ah-login-email').value;
+      $('#ah-login-password').value = '';
+      showView('signup');
+    });
+    $('[data-role="show-login"]').addEventListener('click', () => {
+      prefillLogin($('#ah-signup-email').value);
+      $('#ah-signup-password').value = '';
+      $('#ah-signup-confirm').value = '';
+      showView('login');
     });
 
-    $('[data-view="verify"]').addEventListener('submit', async event => {
+    $('[data-view="signup"]').addEventListener('submit', async event => {
       event.preventDefault();
-      const submittedDigits = $('#ah-account-otp').value.replace(/\D/g, '');
-      if (!state.pending || submittedDigits.length !== 6) return message('ছয় সংখ্যার কোডটি লিখুন।', 'error');
+      if (!ensureAvailable()) return;
+      const email = $('#ah-signup-email').value.trim();
+      const password = $('#ah-signup-password').value;
+      const confirm = $('#ah-signup-confirm').value;
+      if (!email || !$('#ah-signup-email').checkValidity()) return message('সঠিক ইমেইল ঠিকানা লিখুন।', 'error');
+      if (password.length < 8) return message('কমপক্ষে ৮ অক্ষরের পাসওয়ার্ড দিন।', 'error');
+      if (password !== confirm) return message('দুইবার লেখা পাসওয়ার্ড মিলছে না।', 'error');
       setBusy(true);
       try {
-        const result = await api('/otp/verify', {
-          method: 'POST',
-          body: { email: state.pending.email, challengeId: state.pending.challengeId, code: submittedDigits }
-        });
+        const result = await api('/signup', { method: 'POST', body: { email, password } });
+        state.verification = { email, emailMasked: result.verification?.emailMasked || email };
+        $('#ah-signup-password').value = '';
+        $('#ah-signup-confirm').value = '';
+        showView('verify');
+        message('অ্যাকাউন্ট তৈরি হয়েছে। ইমেইলের verification link-এ ক্লিক করুন।', 'success');
+      } catch (error) {
+        if (error.code === 'EMAIL_ALREADY_IN_USE') {
+          prefillLogin(email);
+          showView('login');
+        } else if (error.code === 'VERIFICATION_UNAVAILABLE') {
+          state.verification = { email, emailMasked: email };
+          showView('verify');
+        }
+        message(error.message, 'error');
+      } finally {
+        $('#ah-signup-password').value = '';
+        $('#ah-signup-confirm').value = '';
+        setBusy(false);
+      }
+    });
+
+    $('[data-view="login"]').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!ensureAvailable()) return;
+      const email = $('#ah-login-email').value.trim();
+      const password = $('#ah-login-password').value;
+      if (!email || !$('#ah-login-email').checkValidity()) return message('সঠিক ইমেইল ঠিকানা লিখুন।', 'error');
+      if (password.length < 8) return message('পাসওয়ার্ডটি সঠিকভাবে লিখুন।', 'error');
+      setBusy(true);
+      try {
+        const result = await api('/login', { method: 'POST', body: { email, password } });
         state.session = result;
-        $('#ah-account-otp').value = '';
-        savePending(null);
+        state.verification = null;
         updateLauncher();
         showView('signed');
-        message(result.created ? 'অ্যাকাউন্ট তৈরি ও যাচাই সম্পন্ন হয়েছে।' : 'নিরাপদভাবে লগইন হয়েছে।', 'success');
+        message('যাচাইকৃত অ্যাকাউন্টে লগইন হয়েছে।', 'success');
       } catch (error) {
+        if (error.code === 'EMAIL_NOT_VERIFIED') {
+          state.verification = { email, emailMasked: email };
+          showView('verify');
+        }
         message(error.message, 'error');
-        $('#ah-account-otp').select();
-      } finally { setBusy(false); }
+      } finally {
+        $('#ah-login-password').value = '';
+        setBusy(false);
+      }
     });
 
-    $('[data-role="back"]').addEventListener('click', () => {
-      savePending(null);
-      $('#ah-account-otp').value = '';
-      showView('email');
+    $('[data-role="verified-login"]').addEventListener('click', () => {
+      prefillLogin(state.verification?.email || '');
+      showView('login');
+      message('যাচাই শেষ হলে ইমেইল ও পাসওয়ার্ড দিয়ে লগইন করুন।', 'success');
     });
 
-    $('[data-role="resend"]').addEventListener('click', async () => {
-      if (!state.pending || Number(state.pending.resendAt) > Date.now()) return;
+    $('[data-role="verify-back"]').addEventListener('click', () => {
+      state.verification = null;
+      $('#ah-resend-email').value = '';
+      $('#ah-resend-password').value = '';
+      showView('signup');
+    });
+
+    $('[data-role="resend-form"]').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!ensureAvailable()) return;
+      const email = $('#ah-resend-email').value.trim();
+      const password = $('#ah-resend-password').value;
+      if (!email || !$('#ah-resend-email').checkValidity() || password.length < 8) return message('ইমেইল ও পাসওয়ার্ড সঠিকভাবে লিখুন।', 'error');
       setBusy(true);
-      try { await requestOtp(state.pending.email); }
-      catch (error) { message(error.message, 'error'); }
-      finally { setBusy(false); startCountdown(); }
+      try {
+        const result = await api('/verification/resend', { method: 'POST', body: { email, password } });
+        if (result.alreadyVerified) {
+          prefillLogin(email);
+          showView('login');
+          message('ইমেইল ইতিমধ্যে যাচাইকৃত—এখন লগইন করুন।', 'success');
+        } else {
+          state.verification = { email, emailMasked: result.verification?.emailMasked || email };
+          showView('verify');
+          message('নতুন verification email পাঠানো হয়েছে।', 'success');
+        }
+      } catch (error) { message(error.message, 'error'); }
+      finally {
+        $('#ah-resend-password').value = '';
+        setBusy(false);
+      }
     });
 
     $('[data-role="logout"]').addEventListener('click', async () => {
@@ -305,20 +336,39 @@
         await api('/session/logout', { method: 'POST', body: {} });
         state.session = null;
         updateLauncher();
-        showView('email');
+        showView('login');
         message('নিরাপদভাবে লগ আউট হয়েছে।', 'success');
       } catch (error) { message(error.message, 'error'); }
       finally { setBusy(false); }
     });
 
-    $('#ah-account-otp').addEventListener('input', event => {
-      event.target.value = event.target.value.replace(/\D/g, '').slice(0, 6);
-    });
-
+    api('/config').then(result => {
+      state.available = result?.auth?.available === true;
+    }).catch(() => { state.available = false; });
     refreshSession();
+
+    try {
+      const current = new URL(location.href);
+      if (current.searchParams.get('firebaseVerified') === '1') {
+        current.searchParams.delete('firebaseVerified');
+        history.replaceState(null, '', current.pathname + current.search + current.hash);
+        open();
+        message('ইমেইল যাচাই সম্পন্ন হয়েছে—এখন পাসওয়ার্ড দিয়ে লগইন করুন।', 'success');
+      }
+    } catch (_) {}
   };
 
-  window.AdmissionAccount = Object.freeze({ open, refresh: refreshSession, getSession: () => state.session });
+  window.AdmissionAccount = Object.freeze({
+    open,
+    refresh: refreshSession,
+    getSession: () => state.session,
+    isVerified: () => Boolean(state.session?.authenticated && state.session?.emailVerified),
+    requireVerified() {
+      const allowed = Boolean(state.session?.authenticated && state.session?.emailVerified);
+      if (!allowed) open();
+      return allowed;
+    }
+  });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true });
   else initialize();
 })();

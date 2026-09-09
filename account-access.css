@@ -1,4 +1,4 @@
-/* Admission Hub native passwordless account UI — additive; the study app remains guest-usable. */
+/* Admission Hub Firebase email/password account UI; verified-only account access. */
 .ah-account-launcher{position:fixed;top:max(12px,env(safe-area-inset-top));right:14px;z-index:1180;display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:8px 12px;border:1px solid rgba(31,100,82,.22);border-radius:999px;background:rgba(255,255,255,.93);color:#174f42;box-shadow:0 8px 28px rgba(20,58,49,.14);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font:700 13px/1.2 system-ui,-apple-system,"Noto Sans Bengali",sans-serif;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
 .ah-account-launcher:hover{transform:translateY(-1px);box-shadow:0 10px 34px rgba(20,58,49,.2);border-color:rgba(31,100,82,.4)}
 .ah-account-launcher:focus-visible,.ah-account-modal button:focus-visible,.ah-account-modal input:focus-visible{outline:3px solid rgba(38,145,113,.32);outline-offset:2px}
@@ -17,6 +17,7 @@
 .ah-account-close{position:absolute;top:15px;right:15px;width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:50%;background:#eef5f3;color:#315c50;font-size:22px;line-height:1;cursor:pointer}
 .ah-account-body{padding:22px 25px 25px}
 .ah-account-view[hidden]{display:none!important}
+.ah-account-field+.ah-account-field{margin-top:13px}
 .ah-account-label{display:block;margin:0 0 7px;color:#274d43;font-size:13px;font-weight:800}
 .ah-account-input{box-sizing:border-box;width:100%;height:50px;padding:0 14px;border:1.5px solid #cddbd7;border-radius:13px;background:#fff;color:#132e27;font:600 16px/1 system-ui,-apple-system,"Noto Sans Bengali",sans-serif;transition:border-color .15s ease,box-shadow .15s ease}
 .ah-account-input::placeholder{color:#95a49f;font-weight:500}
@@ -29,7 +30,13 @@
 .ah-account-secondary{width:100%;min-height:46px;margin-top:11px;border:1.5px solid #c9d9d4;border-radius:13px;background:#fff;color:#1e6754;font-size:14px;font-weight:800}
 .ah-account-link{border:0;background:transparent;color:#19775d;font-size:13px;font-weight:800;text-decoration:underline;text-underline-offset:3px}
 .ah-account-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px}
+.ah-account-switch{margin:16px 0 0;text-align:center;color:#61736e;font-size:13px;line-height:1.5}
 .ah-account-note{margin:14px 0 0;padding:11px 12px;border-radius:12px;background:#f2f7f5;color:#61736e;font-size:12px;line-height:1.55}
+.ah-account-view-title{margin:8px 0 7px;text-align:center;color:#173f34;font-size:20px}
+.ah-account-verify-badge{width:50px;height:50px;display:grid;place-items:center;margin:0 auto;border-radius:50%;background:#e7f7f1;color:#14745a;font-size:24px}
+.ah-account-resend{margin-top:18px;padding:12px 13px;border:1px solid #dce8e4;border-radius:13px;background:#fbfdfc}
+.ah-account-resend summary{color:#1e6754;font-size:13px;font-weight:800;cursor:pointer}
+.ah-account-resend form{margin-top:14px}
 .ah-account-message[hidden]{display:none!important}
 .ah-account-message{margin:0 0 14px;padding:11px 12px;border-radius:12px;font-size:13px;font-weight:650;line-height:1.55}
 .ah-account-message[data-kind="error"]{background:#fff0ed;color:#973c2b;border:1px solid #f4ccc3}
