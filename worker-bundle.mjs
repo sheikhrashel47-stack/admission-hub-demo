@@ -1695,17 +1695,35 @@ var MailjetProvider = class extends ProviderAdapter {
     const apiBaseValid = ["https://api.mailjet.com", "https://api.us.mailjet.com"].includes(this.#apiBase);
     return Object.freeze({ configured: Boolean(this.#apiKey && this.#secretKey && this.#fromAddress && apiBaseValid), missing: [!this.#apiKey && "apiKey", !this.#secretKey && "secretKey", !this.#fromAddress && "fromAddress", !apiBaseValid && "apiBase"].filter(Boolean) });
   }
-  checkHealth(context = {}) {
-    return this.probeHttp({
-      url: `${this.#apiBase}/v3/REST/sender?SenderEmail=${encodeURIComponent(this.#fromAddress)}`,
-      signal: context.signal,
-      headers: { Authorization: basicAuthorization(this.#apiKey, this.#secretKey) },
-      mapResult: (data) => {
-        const sender = Array.isArray(data?.Data) ? data.Data.find((item) => String(item?.Email || item?.SenderEmail || "").toLowerCase() === this.#fromAddress.toLowerCase()) : null;
-        const senderVerified = Boolean(sender && ["active", "validated"].includes(String(sender.Status || "").toLowerCase()));
-        return { status: senderVerified ? "HEALTHY" : "DEGRADED", senderVerified };
-      }
-    });
+  async checkHealth(context = {}) {
+    const headers = { Authorization: basicAuthorization(this.#apiKey, this.#secretKey) };
+    const checks = await Promise.allSettled([
+      this.probeHttp({
+        url: `${this.#apiBase}/v3/REST/sender?SenderEmail=${encodeURIComponent(this.#fromAddress)}`,
+        signal: context.signal,
+        headers,
+        mapResult: (data) => {
+          const match = Array.isArray(data?.Data) ? data.Data.find((item) => String(item?.Email || item?.SenderEmail || "").toLowerCase() === this.#fromAddress.toLowerCase()) : null;
+          const senderVerified = Boolean(match && ["active", "validated"].includes(String(match.Status || "").toLowerCase()));
+          return { status: senderVerified ? "HEALTHY" : "DEGRADED", senderVerified };
+        }
+      }),
+      this.probeHttp({
+        url: `${this.#apiBase}/v3/REST/metasender?Limit=100`,
+        signal: context.signal,
+        headers,
+        mapResult: (data) => {
+          const match = Array.isArray(data?.Data) ? data.Data.find((item) => String(item?.Email || "").toLowerCase() === this.#fromAddress.toLowerCase()) : null;
+          const senderVerified = Boolean(match && (match.IsEnabled === true || match.IsEnabled === 1 || String(match.IsEnabled || "").toLowerCase() === "true"));
+          return { status: senderVerified ? "HEALTHY" : "DEGRADED", senderVerified };
+        }
+      })
+    ]);
+    const healthy = checks.find((check) => check.status === "fulfilled" && check.value.senderVerified);
+    if (healthy) return healthy.value;
+    const available = checks.find((check) => check.status === "fulfilled");
+    if (available) return available.value;
+    throw checks[0].reason;
   }
   sendEmail(message, context = {}) {
     return this.sendHttp({

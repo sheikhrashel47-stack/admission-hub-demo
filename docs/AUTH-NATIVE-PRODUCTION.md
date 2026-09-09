@@ -48,7 +48,7 @@ No session credential is returned in a JSON body or stored in `localStorage`, `s
 
 ## Delivery policy
 
-The existing strongly consistent Email Gateway is the only send path. Production activation privately queries Mailjet and selects an existing `Active` individual sender. It enables only Mailjet and keeps every other adapter disabled.
+The existing strongly consistent Email Gateway is the only send path. Production activation privately queries both Mailjet's API-key `Sender` and account-wide `MetaSender` resources, selecting only an existing Active/enabled individual address (never a wildcard or `pages.dev` sender). It enables only Mailjet and keeps every other adapter disabled.
 
 Hard production ceilings are:
 
