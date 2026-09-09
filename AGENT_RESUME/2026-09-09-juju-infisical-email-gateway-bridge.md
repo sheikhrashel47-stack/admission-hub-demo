@@ -1,69 +1,82 @@
-# Admission Hub — Infisical and Cloudflare Email Gateway handoff
+# Admission Hub — Infisical provider-source and no-send audit handoff
 
 **Updated:** 2026-09-09 (Asia/Dhaka) · Agent: **Juju**
 
 ## STATUS
 
-- **IMPLEMENTED:** Protected GitHub OIDC → Infisical read/stage bridge, create-only credential-independent bootstrap, exact 33-name validation, additive Cloudflare staging, and names-only Cloudflare provider-location audit.
-- **TESTED:** Full Email suite **101/101** plus integration **4/4** after the latest correction/audit change. Inventory-specific tests passed **2/2**. YAML, Node syntax and diff checks passed.
-- **VERIFIED:** Infisical connection and exact path work; core source is **18/33**; owner confirmed the Machine Identity role was restored to normal `Viewer`.
-- **BLOCKED:** Fifteen genuine provider-owned values are absent. Complete multi-provider production sender verification cannot use the Cloudflare-owned `pages.dev` hostname as an email domain.
+- **IMPLEMENTED:** Protected OIDC source read/stage bridge, create-only credential-independent bootstrap, names-only Cloudflare inventory, and bounded provider account audits that use only GET requests.
+- **TESTED:** Email **105/105**, Worker integration **4/4**, provider-audit subset **4/4**; YAML, syntax, static secret scan and diff checks pass.
+- **VERIFIED:** Eight required provider credential names were owner-imported directly into Infisical without chat transfer. Required source state is **26/33**; exactly seven sender addresses remain.
+- **BLOCKED:** Brevo rejects the owner-updated standard-prefix REST credential with `401`. Full production sender alignment across the pool cannot use `admissionhub.pages.dev`, because the parent email/DNS domain is not owner-controlled.
 
-## INFISICAL RESULTS
+## SOURCE HISTORY
 
-The corrected core-only bootstrap was merged in PR `#13` as `9a4b2f464829cdd84ffafb5ff4e151aa508032cb`.
+1. Run `34324147787` atomically created exactly 18 credential-independent entries under `Production` / `prod` / `/email-gateway`: independent signing/pepper values, disabled activation/config, seven sender names and seven false evidence flags.
+2. Run `34324194702` verified the initial **18/33** state and reported 15 provider-owned names missing. No Cloudflare write ran.
+3. The owner restored the OIDC Machine Identity project role from temporary `Member` to normal `Viewer`.
+4. The owner used Infisical `Paste Secrets` to add all eight required credential names and retained one additional EmailOctopus credential. Values stayed masked and were not transferred through chat.
+5. Run `34333113150` verified that only these seven required names remain absent: `BREVO_FROM_ADDRESS`, `COURIER_FROM_ADDRESS`, `MAILERSEND_FROM_ADDRESS`, `MAILJET_FROM_ADDRESS`, `MAILTRAP_FROM_ADDRESS`, `RESEND_FROM_ADDRESS`, `SENDPULSE_FROM_ADDRESS`. Cloudflare staging and live checks were skipped.
 
-Run `34324147787` used the protected GitHub environment and OIDC to atomically create exactly 18 credential-independent entries under `Production` / `prod` / `/email-gateway`:
+The extra EmailOctopus source is intentionally excluded from the exact 33-binding Worker payload. EmailOctopus remains ineligible for direct transactional OTP.
 
-- independent generated signing and recipient-hash values;
-- `EMAIL_PROVIDER_ACTIVATION=disabled`;
-- all-disabled provider/router policy;
-- seven `Admission Hub` provider sender names;
-- seven false sender-evidence flags.
+## CLOUDFLARE INVENTORY
 
-It did not receive or call a provider credential, call Cloudflare, overwrite/delete a source entry, activate a provider or send email. Names-only post-write verification succeeded.
-
-Run `34324194702` then fetched the source successfully and the local validator reported exactly 15 missing names. Cloudflare staging, destination inventory and live checks were skipped. The missing names are:
-
-- `BREVO_API_KEY`, `BREVO_FROM_ADDRESS`
-- `COURIER_API_KEY`, `COURIER_FROM_ADDRESS`
-- `MAILERSEND_API_KEY`, `MAILERSEND_FROM_ADDRESS`
-- `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`, `MAILJET_FROM_ADDRESS`
-- `MAILTRAP_API_KEY`, `MAILTRAP_FROM_ADDRESS`
-- `RESEND_API_KEY`, `RESEND_FROM_ADDRESS`
-- `SENDPULSE_API_KEY`, `SENDPULSE_FROM_ADDRESS`
-
-The first superseded bootstrap attempt, run `34323712095`, checked the existing authorized GitHub `BREVO_KEY` without sending. Brevo returned HTTP `401` before OIDC/write, so it created zero entries. The invalid credential was not displayed, migrated, retried, replaced, revoked or rotated.
-
-## MACHINE IDENTITY
-
-The owner temporarily changed the dedicated Infisical Machine Identity project role from `Viewer` to `Member` for the one-time write. After the successful bootstrap, the owner confirmed on 2026-09-09 that it was restored to `Viewer`. Organization role remains `No Access`; OIDC is the only authentication method.
-
-## CLOUDFLARE NAMES-ONLY AUDIT
-
-PR `#14` added a protected, read-only audit and was squash-merged as `ffbedfb57b8796318aae4296d25559a8fafcaf89`. Audit run `34327554785` completed successfully.
-
-The audit inspected provider-related binding names across all visible Cloudflare Workers and Pages without printing, copying, changing or deleting a value. It found:
+Protected names-only run `34327554785` found:
 
 - Worker `admission-gk`: legacy `BREVO_FROM`, `BREVO_KEY`, `MAIL_FROM`, `RESEND_KEY`, `RESEND_KEY_2`.
 - Worker `ah-public`: legacy `MAIL_FROM`, `RESEND_KEY`, `RESEND_KEY_2`.
-- Pages: no provider-related binding names.
+- Pages: no provider-related names.
 
-No Cloudflare binding name was found for Mailjet, Mailtrap, MailerSend, SendPulse, EmailOctopus or Courier. The previous configuration therefore covered only legacy Resend/Brevo-era names, not the new seven-provider Phase 2B source contract. Cloudflare intentionally does not return existing Worker secret values, so those legacy values cannot be exported into Infisical. Legacy names are not consumed by the isolated Phase 2B catalog.
+No Mailjet, Mailtrap, MailerSend, SendPulse, EmailOctopus or Courier credential binding was found. Existing Worker secret values remain unreadable/export-ineligible by design. No binding was changed.
 
-## DOMAINLESS BOUNDARY
+## PROTECTED PROVIDER AUDIT
 
-`admissionhub.pages.dev` is a valid hosted website address, but DNS control for the parent `pages.dev` domain belongs to Cloudflare. It cannot be used to publish the provider-specific SPF/DKIM/DMARC records required for an owner-controlled transactional sender domain.
+PRs `#16`–`#19` added and hardened `.github/workflows/email-gateway-provider-account-audit.yml` and `email-gateway/operations/audit-provider-accounts.mjs`:
 
-Without purchasing/controlling a domain, only provider-specific sandbox or individually verified sender testing may be possible where that provider officially permits it. Such testing must remain bounded; unsupported providers stay disabled. It is not evidence that the full seven-provider production sender pool is activated.
+- manual, main-only, protected production environment;
+- GitHub OIDC reads credentials from exact Infisical path;
+- GET-only provider endpoints with 15-second request bounds;
+- fixed authentication/readiness enums and numeric counts only;
+- no response body, account/sender address, credential value, length, suffix or hash output;
+- no provider send/mutation, Cloudflare call, activation or deployment.
+
+Final normalized run `34334948971` verified:
+
+- Resend: credential valid; zero verified owner domains; account-email testing only.
+- Brevo: credential invalid; standard REST prefix present; read-only `/v3/account` returns `401`.
+- Mailjet: credential pair valid; zero active senders.
+- Mailtrap: credential valid; sandbox/demo only; zero compliant verified domains.
+- MailerSend: credential valid; one verified-or-trial domain. This is not evidence of owner-domain production eligibility.
+- SendPulse: credential valid; zero active SMTP senders.
+- Courier: credential valid; downstream email provider setup not verified.
+
+The Brevo credential remains an isolated adapter blocker. Do not retry blindly, revoke, rotate or delete any credential without owner action. Six valid providers can continue through their non-destructive setup paths.
+
+## MERGED COMMITS
+
+- PR `#13`: corrected core-only bootstrap → `9a4b2f464829cdd84ffafb5ff4e151aa508032cb`.
+- PR `#14`: Cloudflare names-only inventory → `ffbedfb57b8796318aae4296d25559a8fafcaf89`.
+- PR `#15`: corrected bootstrap/audit handoff → `835c752013cbce33c1ab2f2f6cea1c62ce686807`.
+- PR `#16`: provider no-send audit → `d322924215e4d2f173014b176246745f3c874c20`.
+- PR `#17`: normalized credentials and trial-domain truthfulness → `1cbbff0549dd9f40de55bc4806c84c7e55a84848`.
+- PR `#18`: Brevo account-vs-sender-scope distinction → `69b8887f92757bdd48e109388cec7eed8f3c3f63`.
+- PR `#19`: Brevo standard-prefix classification → `5c3867888c72ae2a95334db960f946d823403d35`.
+
+## CURRENT SAFETY STATE
+
+- Infisical required source: **26/33** plus one ignored EmailOctopus source.
+- OIDC identity: `Viewer`; organization: `No Access`.
+- Global activation and all provider policies: disabled.
+- All sender verification evidence: false.
+- No Cloudflare binding staged from Infisical yet.
+- No provider mutation or email send occurred.
 
 ## NEXT
 
-1. Do not rerun the create-only bootstrap; existing entries make overwrite refusal intentional.
-2. Do not ask the owner to paste credentials in chat.
-3. Get an explicit owner choice between limited domainless testing and a complete production pool using an owner-controlled domain.
-4. Add genuine remaining values to Infisical through the smallest owner UI action, preferably one prepared bulk import.
-5. At 33/33, use the protected additive staging workflow with global activation disabled and preserve unrelated Worker bindings.
-6. Validate account, sender/domain and quota per provider; then enable individually and perform one controlled Gmail OTP only after all gates pass.
+1. Continue six valid providers without waiting on Brevo.
+2. Obtain only genuine provider-approved sender addresses. Domainless sandbox/trial/account identities may be used only within their official restrictions; unsupported providers remain disabled.
+3. For full production, obtain one owner-controlled domain, verify it provider-by-provider, and publish required DNS records.
+4. When all seven sender names exist, run exact 33-name validation and additive Cloudflare staging with activation disabled.
+5. Validate account/sender/quota, enable providers individually, then perform one controlled Gmail OTP with no blind fallback or duplicate send.
 
-No Worker binding, provider activation, sender evidence or delivery changed during these audits. Concrete Supabase/Auth authority work remains out of scope until explicitly authorized.
+Do not start concrete Supabase/Auth authority work without explicit owner instruction.
