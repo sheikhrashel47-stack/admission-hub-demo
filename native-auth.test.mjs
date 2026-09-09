@@ -164,6 +164,7 @@ class FirebaseMock {
     this.sequence = 0;
     this.failVerification = false;
     this.malformedVerification = false;
+    this.malformedSignIn = false;
   }
 
   token(prefix) {
@@ -218,6 +219,7 @@ class FirebaseMock {
     }
 
     if (parsed.pathname.endsWith('/accounts:signInWithPassword')) {
+      if (this.malformedSignIn) return this.response({});
       const user = this.users.get(String(body.email || '').toLowerCase());
       if (!user || user.password !== body.password) return this.error('INVALID_LOGIN_CREDENTIALS');
       if (user.disabled) return this.error('USER_DISABLED');
@@ -423,6 +425,24 @@ test('failed duplicate signup cannot consume the 1000/day verification-send capa
   const globalRows = app.state.repository.snapshot().rates.filter(([key]) => key.startsWith('firebase-verification-global-day:'));
   assert.equal(globalRows.length, 1);
   assert.equal(globalRows[0][1].count, 1);
+});
+
+test('provider failures expose only a bounded operation diagnostic header', async () => {
+  const app = handlerSetup();
+  const email = 'diagnostic.user@example.com';
+  const password = 'Safe-password-77';
+  await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, { method: 'POST', body: { email, password } }), app.env, {});
+  app.firebase.malformedSignIn = true;
+  const response = await app.handler(apiRequest(`${AUTH_API_PREFIX}/login`, {
+    method: 'POST', body: { email, password }
+  }), app.env, {});
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('X-AH-Auth-Diagnostic'), 'SIGNIN_INVALID_PROVIDER_RESPONSE');
+  const body = await response.json();
+  assert.equal(body.error.code, AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
+  assert.equal('providerDiagnostic' in body.error, false);
+  assert.equal(JSON.stringify(body).includes(email), false);
+  assert.equal(JSON.stringify(body).includes(password), false);
 });
 
 test('malformed Firebase verification acceptance fails closed without an authenticated session', async () => {
