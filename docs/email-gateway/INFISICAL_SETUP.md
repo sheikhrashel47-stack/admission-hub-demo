@@ -18,8 +18,10 @@ OIDC settings:
 
 - Discovery URL: `https://token.actions.githubusercontent.com`
 - Issuer: `https://token.actions.githubusercontent.com`
-- Subject: `repo:sheikhrashel47-stack/admission-hub-demo:environment:email-gateway-production`
+- Subject: `repo:sheikhrashel47-stack@312915857/admission-hub-demo@1352051890:environment:email-gateway-production`
 - Audience: `https://github.com/sheikhrashel47-stack`
+
+Repository-টি 2026-07-15-এর পরে তৈরি, তাই GitHub-এর immutable OIDC subject-এ owner ও repository ID থাকা বাধ্যতামূলক। উপরের exact prefix GitHub OIDC settings API দিয়ে যাচাই করা।
 
 Identity-কে শুধু Admission Hub project-এর `production` environment এবং `/email-gateway` path পড়ার least-privilege permission দিতে হবে।
 
