@@ -5,6 +5,7 @@ import {
   prepareProductionSecrets,
   productionEmailGatewayConfig
 } from './auth-native/operations/prepare-production-secrets.mjs';
+import { auditRecentMailjetDelivery } from './auth-native/operations/audit-mailjet-recent-delivery.mjs';
 
 const ENV = Object.freeze({
   MAILJET_API_KEY: 'mailjet-test-key',
@@ -95,6 +96,31 @@ test('activation uses Mailjet SandboxMode to prove an existing repository-owner 
   assert.equal(sandboxPayload.SandboxMode, true);
   assert.equal(sandboxPayload.Messages.length, 1);
   assert.equal(sandboxPayload.Messages[0].From.Email, 'owner.sender@example.org');
+});
+
+test('recent Mailjet delivery audit is GET-only and returns status counts without addresses', async () => {
+  const now = Date.parse('2026-09-09T14:00:00Z');
+  let capture = null;
+  const result = await auditRecentMailjetDelivery({
+    env: ENV,
+    now,
+    fetchImpl: async (url, options) => {
+      capture = { url: String(url), options };
+      return response({ Data: [
+        { ArrivedAt: '2026-09-09T13:50:00Z', Status: 'queued', ContactAlt: 'private-one@example.org' },
+        { ArrivedAt: '2026-09-09T13:51:00Z', Status: 'blocked', ContactAlt: 'private-two@example.org' },
+        { ArrivedAt: '2026-09-09T13:52:00Z', Status: 'sent', ContactAlt: 'private-three@example.org' },
+        { ArrivedAt: '2026-09-08T13:52:00Z', Status: 'sent', ContactAlt: 'old@example.org' }
+      ] });
+    }
+  });
+  assert.deepEqual(result, {
+    recent: 3, delivered: 1, queued: 1, blocked: 1, bounced: 0, retrying: 0, other: 0
+  });
+  assert.equal(capture.options.method, 'GET');
+  assert.equal(capture.options.body, undefined);
+  assert.match(capture.url, /ShowContactAlt=false/);
+  assert.doesNotMatch(capture.url, /example\.org/);
 });
 
 test('activation config enables only Mailjet and caps free quota at 200/day and 6000/month', () => {
