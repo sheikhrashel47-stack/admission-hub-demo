@@ -124,7 +124,7 @@ async function auditMailerSend(env, fetchImpl) {
   if (response.auth !== 'VALID') return result('mailersend', response.auth, 'NOT_READY');
   const domains = Array.isArray(response.payload?.data) ? response.payload.data : [];
   const verifiedDomains = domains.filter(domain => domain?.is_verified === true && domain?.domain_settings?.send_paused !== true).length;
-  return result('mailersend', 'VALID', verifiedDomains ? 'LIVE_DOMAIN_AVAILABLE' : 'TRIAL_OR_SANDBOX_ONLY', { verifiedDomains });
+  return result('mailersend', 'VALID', verifiedDomains ? 'VERIFIED_OR_TRIAL_DOMAIN_PRESENT' : 'TRIAL_OR_SANDBOX_ONLY', { verifiedDomains });
 }
 
 async function auditSendPulse(env, fetchImpl) {
@@ -154,15 +154,19 @@ export async function auditProviderAccounts({ env = {}, fetchImpl = globalThis.f
   if (typeof fetchImpl !== 'function') throw new Error('A fetch implementation is required.');
   const missing = credentialNames.filter(name => typeof env[name] !== 'string' || env[name].trim() === '');
   if (missing.length) throw new Error(`Provider account audit is missing credential names: ${missing.sort().join(', ')}`);
+  const normalizedEnv = Object.freeze({
+    ...env,
+    ...Object.fromEntries(credentialNames.map(name => [name, env[name].trim()]))
+  });
 
   const audits = await Promise.all([
-    auditResend(env, fetchImpl),
-    auditBrevo(env, fetchImpl),
-    auditMailjet(env, fetchImpl),
-    auditMailtrap(env, fetchImpl),
-    auditMailerSend(env, fetchImpl),
-    auditSendPulse(env, fetchImpl),
-    auditCourier(env, fetchImpl)
+    auditResend(normalizedEnv, fetchImpl),
+    auditBrevo(normalizedEnv, fetchImpl),
+    auditMailjet(normalizedEnv, fetchImpl),
+    auditMailtrap(normalizedEnv, fetchImpl),
+    auditMailerSend(normalizedEnv, fetchImpl),
+    auditSendPulse(normalizedEnv, fetchImpl),
+    auditCourier(normalizedEnv, fetchImpl)
   ]);
   return Object.freeze(audits);
 }
