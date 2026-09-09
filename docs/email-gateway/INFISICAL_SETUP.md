@@ -90,7 +90,21 @@ Safe initial `EMAIL_GATEWAY_CONFIG` value:
 
 The placeholder limits above do not authorize real traffic; provider-specific verified quotas must replace them before activation.
 
-## 4. Protected staging
+## 4. Bounded safe-source bootstrap
+
+Workflow: `.github/workflows/email-gateway-infisical-bootstrap.yml`
+
+This optional one-time workflow uses the already-authorized GitHub `BREVO_KEY` without displaying it. It first requires a successful non-mutating Brevo account check, then uses GitHub OIDC to create one atomic, no-overwrite batch of **19** Infisical entries:
+
+- the migrated `BREVO_API_KEY`;
+- independent generated signing secret and recipient hash pepper;
+- `EMAIL_PROVIDER_ACTIVATION=disabled`;
+- the all-providers-disabled production config;
+- `Admission Hub` sender names and `false` evidence flags for all seven eligible providers.
+
+It does not create sender addresses, invent credentials for the other providers, stage Cloudflare bindings, enable a provider or send email. The Machine Identity needs project write access only during this bounded bootstrap and must return to read-only `Viewer` immediately after names-only verification. Existing target names make the workflow fail before writing; it never overwrites or deletes.
+
+## 5. Protected staging
 
 Workflow: `.github/workflows/email-gateway-infisical-sync.yml`
 
