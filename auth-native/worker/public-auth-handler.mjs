@@ -96,7 +96,7 @@ async function callAuthority(env, path, body, method = 'POST') {
   let response;
   try {
     const id = env.AUTH_AUTHORITY.idFromName(AUTHORITY_NAME);
-    const stub = env.AUTH_AUTHORITY.get(id);
+    const stub = env.AUTH_AUTHORITY.get(id, { locationHint: 'apac' });
     response = await stub.fetch(`https://auth.internal${path}`, method === 'GET' ? { method } : {
       method,
       headers: { 'Content-Type': 'application/json' },
