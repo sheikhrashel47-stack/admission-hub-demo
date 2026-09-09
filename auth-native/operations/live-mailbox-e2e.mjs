@@ -78,6 +78,123 @@ export function verificationAction(content) {
   return null;
 }
 
+const safeDomain = value => {
+  const match = String(value || '').toLowerCase().match(/@([a-z0-9.-]+)|^([a-z0-9.-]+)$/);
+  const domain = match?.[1] || match?.[2] || '';
+  return /^(?=.{4,253}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])$/.test(domain) && domain.includes('.') ? domain : '';
+};
+
+const headerDomain = value => safeDomain(String(value || '').match(/<([^>]+)>/)?.[1] || String(value || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+/i)?.[0] || '');
+
+function mimeHeaders(source) {
+  const head = String(source || '').split(/\r?\n\r?\n/, 1)[0];
+  const unfolded = head.replace(/\r?\n[ \t]+/g, ' ');
+  const result = new Map();
+  for (const line of unfolded.split(/\r?\n/)) {
+    const at = line.indexOf(':');
+    if (at < 1) continue;
+    const name = line.slice(0, at).trim().toLowerCase();
+    const value = line.slice(at + 1).trim();
+    result.set(name, result.has(name) ? `${result.get(name)}\n${value}` : value);
+  }
+  return result;
+}
+
+async function dnsAnswers(name, type, fetchImpl = globalThis.fetch) {
+  if (!safeDomain(name.replace(/^_dmarc\.|^[a-z0-9_-]+\._domainkey\./i, ''))) return [];
+  try {
+    const response = await fetchImpl(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`, {
+      headers: { Accept: 'application/dns-json' }, signal: AbortSignal.timeout(10_000)
+    });
+    if (!response.ok) return [];
+    const payload = await response.json();
+    return Array.isArray(payload?.Answer) ? payload.Answer.map(answer => String(answer?.data || '')).filter(Boolean) : [];
+  } catch { return []; }
+}
+
+const authResult = (headers, method) => {
+  const source = `${headers.get('authentication-results') || ''}\n${headers.get('arc-authentication-results') || ''}`;
+  const match = source.match(new RegExp(`\\b${method}=(pass|fail|softfail|neutral|none|temperror|permerror)\\b`, 'i'));
+  if (match) return match[1].toLowerCase();
+  if (method === 'spf') {
+    const received = String(headers.get('received-spf') || '').match(/^\s*(pass|fail|softfail|neutral|none|temperror|permerror)\b/i);
+    if (received) return received[1].toLowerCase();
+  }
+  return 'unknown';
+};
+
+const relaxedAligned = (left, right) => Boolean(left && right && (left === right || left.endsWith(`.${right}`) || right.endsWith(`.${left}`)));
+
+export async function auditVerificationMessage({ message = {}, source = '', fetchImpl = globalThis.fetch } = {}) {
+  const headers = mimeHeaders(source);
+  const fromAddress = message?.from?.address || headers.get('from') || '';
+  const fromDomain = headerDomain(fromAddress);
+  const returnPathDomain = headerDomain(headers.get('return-path') || '');
+  const dkimHeader = headers.get('dkim-signature') || '';
+  const dkimDomain = safeDomain(dkimHeader.match(/(?:^|;)\s*d=([^;\s]+)/i)?.[1] || '');
+  const dkimSelector = String(dkimHeader.match(/(?:^|;)\s*s=([^;\s]+)/i)?.[1] || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 63);
+  const html = Array.isArray(message?.html) ? message.html.join('\n') : String(message?.html || '');
+  const text = String(message?.text || '');
+  const visibleHtml = decodeHtml(html)
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const visible = `${visibleHtml} ${text}`.trim();
+  const hrefs = [...decodeHtml(html).matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)];
+  const verificationLinks = hrefs.filter(match => verificationAction(match[1]));
+  const styledCta = verificationLinks.some(match => {
+    const label = decodeHtml(match[2]).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    return /verify|যাচাই/i.test(label) && !/^https?:\/\//i.test(label) && label.length <= 80;
+  });
+  const rawUrlVisible = /https?:\/\/[^\s<]{8,}/i.test(visible);
+  const fallbackPresent = /button.*(?:work|কাজ)|verification link|যাচাইয়ের লিংক|লিংকটি ব্যবহার/i.test(visible);
+  const spfDomains = [...new Set([returnPathDomain, fromDomain].filter(Boolean))];
+  const spfRecordGroups = (await Promise.all(spfDomains.map(domain => dnsAnswers(domain, 'TXT', fetchImpl))))
+    .map(records => records.filter(record => /v=spf1\b/i.test(record)));
+  const spfRecordCount = Math.max(0, ...spfRecordGroups.map(records => records.length));
+  const dkimName = dkimSelector && dkimDomain ? `${dkimSelector}._domainkey.${dkimDomain}` : '';
+  const dkimRecords = dkimName ? [
+    ...(await dnsAnswers(dkimName, 'TXT', fetchImpl)),
+    ...(await dnsAnswers(dkimName, 'CNAME', fetchImpl))
+  ] : [];
+  const dmarcCandidates = fromDomain ? [`_dmarc.${fromDomain}`, `_dmarc.${fromDomain.split('.').slice(1).join('.')}`] : [];
+  let dmarcRecords = [];
+  let dmarcDomain = '';
+  for (const name of [...new Set(dmarcCandidates)]) {
+    const records = (await dnsAnswers(name, 'TXT', fetchImpl)).filter(record => /v=DMARC1\b/i.test(record));
+    if (records.length) { dmarcRecords = records; dmarcDomain = name.replace(/^_dmarc\./, ''); break; }
+  }
+  const senderName = String(message?.from?.name || '').trim();
+  const subject = String(message?.subject || '').trim();
+  return Object.freeze({
+    senderDomain: fromDomain || 'unknown',
+    returnPathDomain: returnPathDomain || 'unknown',
+    dkimDomain: dkimDomain || 'unknown',
+    senderNameAdmissionHub: /^admission hub$/i.test(senderName),
+    subjectAdmissionHub: /admission hub/i.test(subject),
+    spfResult: authResult(headers, 'spf'),
+    dkimResult: authResult(headers, 'dkim'),
+    dmarcResult: authResult(headers, 'dmarc'),
+    spfConfigured: spfRecordCount > 0,
+    spfRecordCount,
+    duplicateSpf: spfRecordGroups.some(records => records.length > 1),
+    dkimConfigured: dkimRecords.length > 0,
+    dmarcConfigured: dmarcRecords.length > 0,
+    dmarcDomain: dmarcDomain || 'unknown',
+    spfAligned: relaxedAligned(fromDomain, returnPathDomain),
+    dkimAligned: relaxedAligned(fromDomain, dkimDomain),
+    hasHtml: Boolean(html),
+    messageBytes: Number(message?.size || Buffer.byteLength(`${html}${text}`, 'utf8')),
+    verificationLinkCount: verificationLinks.length,
+    styledCta,
+    rawUrlVisible,
+    fallbackPresent,
+    brandInBody: /admission hub/i.test(visible),
+    securityNotice: /account.*(?:না|not)|ignore|উপেক্ষা|নিরাপদ|secure/i.test(visible)
+  });
+}
+
 async function readVerificationAction(mailbox, timeoutMs = 180_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -92,7 +209,22 @@ async function readVerificationAction(mailbox, timeoutMs = 180_000) {
         if (!detail.response.ok) continue;
         const content = `${detail.body?.text || ''} ${Array.isArray(detail.body?.html) ? detail.body.html.join(' ') : detail.body?.html || ''}`;
         const action = verificationAction(content);
-        if (action) return action;
+        if (action) {
+          let source = '';
+          const sourceUrl = String(detail.body?.sourceUrl || '');
+          if (sourceUrl) {
+            try {
+              const resolved = new URL(sourceUrl, MAILBOX_API);
+              if (resolved.origin === new URL(MAILBOX_API).origin) {
+                const raw = await jsonRequest(resolved.href, {
+                  headers: { Accept: 'application/json', Authorization: `Bearer ${mailbox.token}` }
+                }, 'mailbox-source');
+                if (raw.response.ok) source = String(raw.body?.data || '');
+              }
+            } catch { /* Structural evidence remains available from the parsed message. */ }
+          }
+          return { action, audit: await auditVerificationMessage({ message: detail.body, source }) };
+        }
       }
     }
     await sleep(3000);
@@ -194,7 +326,8 @@ export async function runLiveMailboxE2E({
       );
     }
 
-    const action = await readVerificationAction(mailbox);
+    const received = await readVerificationAction(mailbox);
+    const { action, audit: emailAudit } = received;
     if (!action.oobCode) throw new LiveCheckError('verification-link', 0, 'CODE_MISSING');
     if (action.continueUrl) {
       let continueHost = '';
@@ -234,7 +367,14 @@ export async function runLiveMailboxE2E({
     const after = await appRequest(normalizedBase, '/api/auth/v1/session', { cookie: `${session}; ${firebase}` });
     if (after.response.status !== 401) throw new LiveCheckError('logout-check', after.response.status, 'SESSION_STILL_ACTIVE');
 
-    return Object.freeze({ ok: true, delivery: 'firebase-external-inbox', verifiedGate: 'enforced', session: 'verified', logout: 'revoked' });
+    return Object.freeze({
+      ok: true,
+      delivery: 'firebase-external-inbox',
+      verifiedGate: 'enforced',
+      session: 'verified',
+      logout: 'revoked',
+      emailAudit
+    });
   } finally {
     await deleteFirebaseAccount(key, mailbox?.address, accountPassword);
     if (mailbox?.id && mailbox?.token) {
@@ -250,7 +390,9 @@ export async function runLiveMailboxE2E({
 async function main({ stdout = process.stdout, stderr = process.stderr } = {}) {
   try {
     const result = await runLiveMailboxE2E();
+    const audit = result.emailAudit || {};
     stdout.write(`FIREBASE_AUTH_LIVE_E2E status=PASS delivery=${result.delivery} verifiedGate=${result.verifiedGate} session=${result.session} logout=${result.logout} credentialsPrinted=false\n`);
+    stdout.write(`::notice title=Firebase verification email audit::senderDomain=${audit.senderDomain} returnPathDomain=${audit.returnPathDomain} dkimDomain=${audit.dkimDomain} spf=${audit.spfResult} dkim=${audit.dkimResult} dmarc=${audit.dmarcResult} spfDns=${audit.spfConfigured} duplicateSpf=${audit.duplicateSpf} dkimDns=${audit.dkimConfigured} dmarcDns=${audit.dmarcConfigured} spfAligned=${audit.spfAligned} dkimAligned=${audit.dkimAligned} senderBranded=${audit.senderNameAdmissionHub} subjectBranded=${audit.subjectAdmissionHub} html=${audit.hasHtml} styledCta=${audit.styledCta} rawUrlVisible=${audit.rawUrlVisible} fallback=${audit.fallbackPresent} bodyBranded=${audit.brandInBody} securityNotice=${audit.securityNotice} messageBytes=${audit.messageBytes} tokenPrinted=false urlPrinted=false\n`);
   } catch (error) {
     const safe = error instanceof LiveCheckError ? error : new LiveCheckError('unexpected');
     const code = String(safe.code || 'CHECK_FAILED').split(/\s*:\s*/, 1)[0].replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 80);

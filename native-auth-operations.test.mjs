@@ -7,7 +7,7 @@ import {
 } from './auth-native/operations/prepare-production-secrets.mjs';
 import { auditRecentMailjetDelivery } from './auth-native/operations/audit-mailjet-recent-delivery.mjs';
 import { FirebaseConfigError, validateFirebaseProjectConfig, verifyFirebaseConfig } from './auth-native/operations/verify-firebase-config.mjs';
-import { verificationAction } from './auth-native/operations/live-mailbox-e2e.mjs';
+import { auditVerificationMessage, verificationAction } from './auth-native/operations/live-mailbox-e2e.mjs';
 import { FirebaseEmailPasswordProvider } from './auth-native/providers/firebase-auth.mjs';
 import { verifyFirebaseWorkerBinding } from './auth-native/operations/verify-worker-binding.mjs';
 
@@ -247,6 +247,73 @@ test('live Firebase check extracts only a standard verify-email action', () => {
     continueUrl: 'https://admissionhub.pages.dev/?firebaseVerified=1'
   });
   assert.equal(verificationAction('https://sample.firebaseapp.com/__/auth/action?mode=signIn&oobCode=not-accepted'), null);
+});
+
+test('live Firebase check reports only sanitized sender, authentication, DNS, and template evidence', async () => {
+  const actionUrl = 'https://sample.firebaseapp.com/__/auth/action?mode=verifyEmail&oobCode=do-not-print';
+  const source = [
+    'From: Admission Hub <noreply@sample.firebaseapp.com>',
+    'Return-Path: <bounce@sample.firebaseapp.com>',
+    'Authentication-Results: mx.example; spf=pass smtp.mailfrom=sample.firebaseapp.com; dkim=pass header.d=firebaseapp.com; dmarc=pass header.from=sample.firebaseapp.com',
+    'DKIM-Signature: v=1; d=firebaseapp.com; s=firebase1; bh=safe; b=redacted',
+    'Content-Type: text/html; charset=UTF-8',
+    '',
+    'body omitted'
+  ].join('\r\n');
+  const fetchImpl = async url => {
+    const name = new URL(url).searchParams.get('name');
+    const data = name === 'sample.firebaseapp.com'
+      ? ['"v=spf1 include:_spf.google.com ~all"']
+      : name === 'firebase1._domainkey.firebaseapp.com'
+        ? ['"v=DKIM1; p=public-key"']
+        : name === '_dmarc.firebaseapp.com'
+          ? ['"v=DMARC1; p=reject"']
+          : [];
+    return response({ Status: 0, Answer: data.map(value => ({ data: value })) });
+  };
+  const audit = await auditVerificationMessage({
+    message: {
+      from: { name: 'Admission Hub', address: 'noreply@sample.firebaseapp.com' },
+      subject: 'Admission Hub ইমেইল যাচাই',
+      size: 2048,
+      text: 'বোতামটি কাজ না করলে যাচাইয়ের লিংকটি ব্যবহার করুন। এই অনুরোধ আপনার না হলে উপেক্ষা করুন।',
+      html: [`<p>Admission Hub</p><a href="${actionUrl}">Verify My Email</a>`]
+    },
+    source,
+    fetchImpl
+  });
+  assert.deepEqual({
+    senderDomain: audit.senderDomain,
+    returnPathDomain: audit.returnPathDomain,
+    dkimDomain: audit.dkimDomain,
+    spf: audit.spfResult,
+    dkim: audit.dkimResult,
+    dmarc: audit.dmarcResult,
+    spfConfigured: audit.spfConfigured,
+    duplicateSpf: audit.duplicateSpf,
+    dkimConfigured: audit.dkimConfigured,
+    dmarcConfigured: audit.dmarcConfigured,
+    spfAligned: audit.spfAligned,
+    dkimAligned: audit.dkimAligned,
+    styledCta: audit.styledCta,
+    rawUrlVisible: audit.rawUrlVisible
+  }, {
+    senderDomain: 'sample.firebaseapp.com',
+    returnPathDomain: 'sample.firebaseapp.com',
+    dkimDomain: 'firebaseapp.com',
+    spf: 'pass',
+    dkim: 'pass',
+    dmarc: 'pass',
+    spfConfigured: true,
+    duplicateSpf: false,
+    dkimConfigured: true,
+    dmarcConfigured: true,
+    spfAligned: true,
+    dkimAligned: true,
+    styledCta: true,
+    rawUrlVisible: false
+  });
+  assert.doesNotMatch(JSON.stringify(audit), /do-not-print|oobCode|https?:\/\//i);
 });
 
 test('protected deployments require the Firebase Worker binding by name without reading its value', async () => {

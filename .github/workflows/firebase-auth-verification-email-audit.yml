@@ -1,0 +1,37 @@
+name: Audit Firebase Verification Email
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type AUDIT_FIREBASE_VERIFICATION_EMAIL to send one controlled message, inspect it safely, and delete the test account
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admission-hub-email-gateway-production
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: ${{ inputs.confirmation == 'AUDIT_FIREBASE_VERIFICATION_EMAIL' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: email-gateway-production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Verify token-safe audit parser
+        run: node --test native-auth-operations.test.mjs
+
+      - name: Audit one real verification message and clean up automatically
+        env:
+          AUTH_LIVE_BASE: https://admissionhub.pages.dev
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+        run: node auth-native/operations/live-mailbox-e2e.mjs
