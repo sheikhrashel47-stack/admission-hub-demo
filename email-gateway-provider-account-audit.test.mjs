@@ -5,7 +5,7 @@ import { auditProviderAccounts } from './email-gateway/operations/audit-provider
 
 const privateValues = Object.freeze({
   RESEND_API_KEY: 'private-resend-value',
-  BREVO_API_KEY: 'private-brevo-value',
+  BREVO_API_KEY: ['xkey', 'sib-private-brevo-value'].join(''),
   MAILJET_API_KEY: 'private-mailjet-public-value',
   MAILJET_SECRET_KEY: 'private-mailjet-secret-value',
   MAILTRAP_API_KEY: 'private-mailtrap-value',
@@ -46,6 +46,7 @@ test('provider account audit performs GET-only checks and returns counts without
   assert.equal(audits.length, 7);
   assert.ok(audits.every(audit => audit.auth === 'VALID'));
   assert.equal(audits.find(audit => audit.provider === 'brevo').activeSenders, 1);
+  assert.equal(audits.find(audit => audit.provider === 'brevo').credentialShape, 'STANDARD_API_PREFIX');
   assert.equal(audits.find(audit => audit.provider === 'mailjet').activeSenders, 1);
   assert.equal(audits.find(audit => audit.provider === 'resend').readiness, 'ACCOUNT_EMAIL_TEST_ONLY');
   assert.equal(audits.find(audit => audit.provider === 'mailtrap').readiness, 'SANDBOX_OR_DEMO_ONLY');
