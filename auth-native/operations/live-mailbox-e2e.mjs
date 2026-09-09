@@ -187,7 +187,11 @@ export async function runLiveMailboxE2E({
       method: 'POST', cookie: device, body: { email: mailbox.address, password: accountPassword }
     });
     if (denied.response.status !== 403 || denied.body?.error?.code !== 'EMAIL_NOT_VERIFIED' || cookiePair(denied.response, '__Host-ah_session')) {
-      throw new LiveCheckError('verified-gate', denied.response.status, denied.body?.error?.code || 'UNVERIFIED_ACCESS');
+      throw new LiveCheckError(
+        'verified-gate',
+        denied.response.status,
+        denied.response.headers.get('x-ah-auth-diagnostic') || denied.body?.error?.code || 'UNVERIFIED_ACCESS'
+      );
     }
 
     const action = await readVerificationAction(mailbox);

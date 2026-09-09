@@ -152,29 +152,55 @@ function providerAvailabilityFailure(cause) {
   return Object.freeze({ code: providerStatus ? `PROVIDER_HTTP_${providerStatus}` : 'PROVIDER_CHECK_FAILED', providerStatus });
 }
 
+const PROVIDER_DIAGNOSTIC_REASONS = new Set([
+  'NETWORK_ERROR', 'INVALID_PROVIDER_RESPONSE', 'NOT_CONFIGURED', 'API_KEY_INVALID',
+  'PROJECT_NOT_FOUND', 'OPERATION_NOT_ALLOWED', 'INVALID_EMAIL', 'MISSING_EMAIL',
+  'MISSING_PASSWORD', 'EMAIL_EXISTS', 'WEAK_PASSWORD', 'INVALID_LOGIN_CREDENTIALS',
+  'EMAIL_NOT_FOUND', 'INVALID_PASSWORD', 'USER_DISABLED', 'TOO_MANY_ATTEMPTS_TRY_LATER',
+  'TOO_MANY_ATTEMPTS', 'IP_BLOCKED', 'QUOTA_EXCEEDED', 'INVALID_CONTINUE_URI',
+  'UNAUTHORIZED_DOMAIN', 'INVALID_REFRESH_TOKEN', 'TOKEN_EXPIRED', 'INVALID_ID_TOKEN',
+  'USER_NOT_FOUND', 'MISSING_RECAPTCHA_TOKEN', 'INVALID_RECAPTCHA_TOKEN',
+  'CAPTCHA_CHECK_FAILED', 'RECAPTCHA_CHECK_FAILED'
+]);
+
+function providerDiagnostic(cause, stage) {
+  const operation = String(stage || 'auth').toUpperCase().replace(/[^A-Z0-9_]/g, '_').slice(0, 24) || 'AUTH';
+  if (!(cause instanceof FirebaseRequestError)) return `${operation}_UNEXPECTED`;
+  const reason = PROVIDER_DIAGNOSTIC_REASONS.has(cause.reason)
+    ? cause.reason
+    : cause.status >= 100 && cause.status <= 599
+      ? `HTTP_${cause.status}`
+      : 'UNKNOWN';
+  return `${operation}_${reason}`;
+}
+
 function providerError(cause, stage = 'auth') {
-  if (!(cause instanceof FirebaseRequestError)) return new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
+  const tagged = error => {
+    error.providerDiagnostic = providerDiagnostic(cause, stage);
+    return error;
+  };
+  if (!(cause instanceof FirebaseRequestError)) return tagged(new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE));
   const reason = cause.reason;
   if (reason === 'NOT_CONFIGURED' || ['API_KEY_INVALID', 'PROJECT_NOT_FOUND', 'OPERATION_NOT_ALLOWED'].includes(reason)) {
-    return new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+    return tagged(new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED));
   }
-  if (['INVALID_EMAIL', 'MISSING_EMAIL', 'MISSING_PASSWORD'].includes(reason)) return new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
-  if (reason === 'EMAIL_EXISTS') return new NativeAuthError(AUTH_ERROR_CODES.EMAIL_ALREADY_IN_USE);
-  if (reason === 'WEAK_PASSWORD') return new NativeAuthError(AUTH_ERROR_CODES.WEAK_PASSWORD);
+  if (['INVALID_EMAIL', 'MISSING_EMAIL', 'MISSING_PASSWORD'].includes(reason)) return tagged(new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT));
+  if (reason === 'EMAIL_EXISTS') return tagged(new NativeAuthError(AUTH_ERROR_CODES.EMAIL_ALREADY_IN_USE));
+  if (reason === 'WEAK_PASSWORD') return tagged(new NativeAuthError(AUTH_ERROR_CODES.WEAK_PASSWORD));
   if (['INVALID_LOGIN_CREDENTIALS', 'EMAIL_NOT_FOUND', 'INVALID_PASSWORD'].includes(reason)) {
-    return new NativeAuthError(AUTH_ERROR_CODES.INVALID_CREDENTIALS);
+    return tagged(new NativeAuthError(AUTH_ERROR_CODES.INVALID_CREDENTIALS));
   }
-  if (reason === 'USER_DISABLED') return new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_DISABLED);
+  if (reason === 'USER_DISABLED') return tagged(new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_DISABLED));
   if (['TOO_MANY_ATTEMPTS_TRY_LATER', 'TOO_MANY_ATTEMPTS', 'IP_BLOCKED'].includes(reason)) {
-    return new NativeAuthError(AUTH_ERROR_CODES.RATE_LIMITED, { retryAfter: 60 });
+    return tagged(new NativeAuthError(AUTH_ERROR_CODES.RATE_LIMITED, { retryAfter: 60 }));
   }
   if (stage === 'verification' && ['QUOTA_EXCEEDED', 'INVALID_CONTINUE_URI', 'UNAUTHORIZED_DOMAIN', 'NETWORK_ERROR', 'INVALID_PROVIDER_RESPONSE'].includes(reason)) {
-    return new NativeAuthError(AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE);
+    return tagged(new NativeAuthError(AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE));
   }
-  if (stage === 'session' && ['INVALID_REFRESH_TOKEN', 'TOKEN_EXPIRED', 'INVALID_ID_TOKEN', 'USER_NOT_FOUND'].includes(reason)) {
-    return new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
+  if (['refresh', 'lookup-session'].includes(stage) && ['INVALID_REFRESH_TOKEN', 'TOKEN_EXPIRED', 'INVALID_ID_TOKEN', 'USER_NOT_FOUND'].includes(reason)) {
+    return tagged(new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID));
   }
-  return new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
+  return tagged(new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE));
 }
 
 const assertProviderUser = (signed, user) => {
@@ -294,10 +320,10 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         });
         let signed;
         let user;
-        try {
-          signed = await provider.signIn(prepared.email, input.password);
-          user = await provider.lookup(signed.idToken);
-        } catch (cause) { throw providerError(cause, 'auth'); }
+        try { signed = await provider.signIn(prepared.email, input.password); }
+        catch (cause) { throw providerError(cause, 'signin'); }
+        try { user = await provider.lookup(signed.idToken); }
+        catch (cause) { throw providerError(cause, 'lookup'); }
         assertProviderUser(signed, user);
         if (user.emailVerified) {
           return json(request, 200, { ok: true, alreadyVerified: true, authenticated: false });
@@ -322,10 +348,10 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         });
         let signed;
         let user;
-        try {
-          signed = await provider.signIn(prepared.email, input.password);
-          user = await provider.lookup(signed.idToken);
-        } catch (cause) { throw providerError(cause, 'auth'); }
+        try { signed = await provider.signIn(prepared.email, input.password); }
+        catch (cause) { throw providerError(cause, 'signin'); }
+        try { user = await provider.lookup(signed.idToken); }
+        catch (cause) { throw providerError(cause, 'lookup'); }
         assertProviderUser(signed, user);
         if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
         const established = await callAuthority(env, '/internal/firebase/session/create', {
@@ -350,10 +376,10 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         if (!sessionToken || !refreshToken) throw new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
         let refreshed;
         let user;
-        try {
-          refreshed = await provider.refresh(refreshToken);
-          user = await provider.lookup(refreshed.idToken);
-        } catch (cause) { throw providerError(cause, 'session'); }
+        try { refreshed = await provider.refresh(refreshToken); }
+        catch (cause) { throw providerError(cause, 'refresh'); }
+        try { user = await provider.lookup(refreshed.idToken); }
+        catch (cause) { throw providerError(cause, 'lookup-session'); }
         assertProviderUser(refreshed, user);
         if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
         const session = await callAuthority(env, '/internal/firebase/session/get', {
@@ -383,8 +409,12 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       if (clearSession && jar[AUTH_SESSION_COOKIE]) {
         try { await callAuthority(env, '/internal/session/revoke', { sessionToken: jar[AUTH_SESSION_COOKIE] }); } catch {}
       }
+      const providerDiagnosticCode = /^[A-Z0-9_]{1,80}$/.test(String(error.providerDiagnostic || ''))
+        ? String(error.providerDiagnostic)
+        : '';
       return json(request, error.status, { ok: false, error: error.toPublic() }, {
         ...(error.retryAfter ? { 'Retry-After': String(error.retryAfter) } : {}),
+        ...(providerDiagnosticCode ? { 'X-AH-Auth-Diagnostic': providerDiagnosticCode } : {}),
         ...(clearSession ? { 'Set-Cookie': clearAuthCookies() } : {})
       });
     }
