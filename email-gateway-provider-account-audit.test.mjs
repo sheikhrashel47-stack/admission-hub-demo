@@ -22,11 +22,12 @@ const jsonResponse = (status, payload) => ({
 
 test('provider account audit performs GET-only checks and returns counts without values or addresses', async () => {
   const calls = [];
-  const hiddenAddresses = ['private-brevo-address@example.test', 'private-mailjet-address@example.test'];
+  const hiddenAddresses = ['private-brevo-address@example.test', 'private-mailjet-address@example.test', 'private-account-address@example.test'];
   const fetchImpl = async (input, init = {}) => {
     const url = String(input);
     calls.push({ url, method: init.method, headers: init.headers });
     if (url === 'https://api.resend.com/domains') return jsonResponse(200, { data: [] });
+    if (url === 'https://api.brevo.com/v3/account') return jsonResponse(200, { email: 'private-account-address@example.test' });
     if (url === 'https://api.brevo.com/v3/senders') return jsonResponse(200, { senders: [{ email: hiddenAddresses[0], active: true }] });
     if (url.startsWith('https://api.mailjet.com/v3/REST/sender')) return jsonResponse(200, { Data: [{ Email: hiddenAddresses[1], Status: 'Validated' }] });
     if (url === 'https://mailtrap.io/api/accounts') return jsonResponse(200, [{ id: 123, name: 'private-account-name' }]);
@@ -81,6 +82,27 @@ test('provider account audit distinguishes invalid and unreachable credentials w
   assert.equal(byProvider.mailersend.auth, 'REQUEST_REJECTED');
   assert.equal(byProvider.courier.auth, 'VALID');
   assert.doesNotMatch(JSON.stringify(audits), /private provider|private transport|private scope|private quota|private outage|private request/);
+});
+
+test('Brevo account authentication remains distinct from sender-read permission', async () => {
+  const fetchImpl = async input => {
+    const url = String(input);
+    if (url === 'https://api.brevo.com/v3/account') return jsonResponse(200, { email: 'private-account-address@example.test' });
+    if (url === 'https://api.brevo.com/v3/senders') return jsonResponse(403, { message: 'private permission detail' });
+    if (url === 'https://api.resend.com/domains') return jsonResponse(200, { data: [] });
+    if (url.startsWith('https://api.mailjet.com/')) return jsonResponse(200, { Data: [] });
+    if (url === 'https://mailtrap.io/api/accounts') return jsonResponse(200, []);
+    if (url.startsWith('https://api.mailersend.com/')) return jsonResponse(200, { data: [] });
+    if (url === 'https://api.sendpulse.com/smtp/senders') return jsonResponse(200, []);
+    if (url === 'https://api.courier.com/messages?limit=1') return jsonResponse(200, {});
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  const audits = await auditProviderAccounts({ env: privateValues, fetchImpl });
+  const brevo = audits.find(audit => audit.provider === 'brevo');
+  assert.equal(brevo.auth, 'VALID');
+  assert.equal(brevo.readiness, 'SENDER_READ_PERMISSION_BLOCKED');
+  assert.doesNotMatch(JSON.stringify(audits), /private-account-address|private permission/);
 });
 
 test('provider account audit workflow is manual, OIDC-only and cannot send or mutate provider state', async () => {

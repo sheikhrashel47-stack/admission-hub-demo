@@ -68,13 +68,26 @@ async function auditResend(env, fetchImpl) {
 }
 
 async function auditBrevo(env, fetchImpl) {
-  const response = await readOnlyRequest({
-    url: 'https://api.brevo.com/v3/senders',
-    headers: { 'api-key': env.BREVO_API_KEY },
+  const headers = { 'api-key': env.BREVO_API_KEY };
+  const accountResponse = await readOnlyRequest({
+    url: 'https://api.brevo.com/v3/account',
+    headers,
     fetchImpl
   });
-  if (response.auth !== 'VALID') return result('brevo', response.auth, 'NOT_READY');
-  const senders = Array.isArray(response.payload?.senders) ? response.payload.senders : [];
+  if (accountResponse.auth !== 'VALID') return result('brevo', accountResponse.auth, 'NOT_READY');
+
+  const senderResponse = await readOnlyRequest({
+    url: 'https://api.brevo.com/v3/senders',
+    headers,
+    fetchImpl
+  });
+  if (senderResponse.auth !== 'VALID') {
+    const readiness = senderResponse.auth === 'SCOPE_OR_ACCOUNT_BLOCKED' || senderResponse.auth === 'INVALID'
+      ? 'SENDER_READ_PERMISSION_BLOCKED'
+      : 'SENDER_CHECK_INDETERMINATE';
+    return result('brevo', 'VALID', readiness);
+  }
+  const senders = Array.isArray(senderResponse.payload?.senders) ? senderResponse.payload.senders : [];
   const activeSenders = senders.filter(sender => sender?.active === true).length;
   return result('brevo', 'VALID', activeSenders ? 'ACTIVE_SENDER_AVAILABLE' : 'SENDER_MISSING', { activeSenders });
 }
