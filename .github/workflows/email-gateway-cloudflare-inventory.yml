@@ -1,0 +1,32 @@
+name: Email Gateway Cloudflare Names-Only Inventory
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type AUDIT_PROVIDER_LOCATIONS to inspect provider binding names and locations without values or changes
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admission-hub-email-gateway-production
+  cancel-in-progress: false
+
+jobs:
+  names-only-inventory:
+    if: ${{ inputs.confirmation == 'AUDIT_PROVIDER_LOCATIONS' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    environment: email-gateway-production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Inventory provider binding names across Cloudflare Workers and Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node email-gateway/operations/audit-cloudflare-provider-locations.mjs
