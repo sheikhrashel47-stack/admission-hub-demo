@@ -1,13 +1,18 @@
 import { AUTH_NATIVE_VERSION } from '../core/auth-engine.mjs';
 import { randomToken } from '../core/crypto.mjs';
 import { AUTH_ERROR_CODES, asNativeAuthError, NativeAuthError } from '../core/errors.mjs';
+import { FirebaseEmailPasswordProvider, FirebaseRequestError } from '../providers/firebase-auth.mjs';
 
 export const AUTH_API_PREFIX = '/api/auth/v1';
 export const AUTH_SESSION_COOKIE = '__Host-ah_session';
+export const AUTH_FIREBASE_COOKIE = '__Host-ah_firebase';
 export const AUTH_DEVICE_COOKIE = '__Host-ah_device';
 const AUTHORITY_NAME = 'admission-hub-global-auth-v1';
 const MAX_BODY_BYTES = 4096;
 const YEAR_SECONDS = 365 * 24 * 60 * 60;
+const SESSION_SECONDS = 30 * 24 * 60 * 60;
+const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 128;
 
 const JSON_HEADERS = Object.freeze({
   'Content-Type': 'application/json; charset=utf-8',
@@ -39,20 +44,29 @@ const corsHeaders = request => {
   } : {};
 };
 
-const json = (request, status, body, headers = {}) => new Response(JSON.stringify(body), {
-  status,
-  headers: { ...JSON_HEADERS, ...corsHeaders(request), ...headers }
-});
+const json = (request, status, body, extraHeaders = {}) => {
+  const headers = new Headers({ ...JSON_HEADERS, ...corsHeaders(request) });
+  for (const [name, value] of Object.entries(extraHeaders || {})) {
+    if (Array.isArray(value)) value.forEach(item => headers.append(name, item));
+    else headers.set(name, value);
+  }
+  return new Response(JSON.stringify(body), { status, headers });
+};
 
 const cookies = request => Object.fromEntries(
   String(request.headers.get('Cookie') || '').split(';').map(part => part.trim()).filter(Boolean).map(part => {
     const index = part.indexOf('=');
-    return index < 1 ? ['', ''] : [part.slice(0, index), part.slice(index + 1)];
+    if (index < 1) return ['', ''];
+    const value = part.slice(index + 1);
+    try { return [part.slice(0, index), decodeURIComponent(value)]; } catch { return [part.slice(0, index), '']; }
   }).filter(([key]) => key)
 );
 
-const sessionCookie = (token, maxAge) => `${AUTH_SESSION_COOKIE}=${token}; Path=/; Max-Age=${Math.max(0, Math.floor(maxAge))}; HttpOnly; Secure; SameSite=Strict`;
-const deviceCookie = token => `${AUTH_DEVICE_COOKIE}=${token}; Path=/; Max-Age=${YEAR_SECONDS}; HttpOnly; Secure; SameSite=Lax`;
+const secureCookie = (name, token, maxAge) => `${name}=${encodeURIComponent(String(token || ''))}; Path=/; Max-Age=${Math.max(0, Math.floor(maxAge))}; HttpOnly; Secure; SameSite=Strict`;
+const sessionCookie = (token, maxAge) => secureCookie(AUTH_SESSION_COOKIE, token, maxAge);
+const firebaseCookie = (token, maxAge) => secureCookie(AUTH_FIREBASE_COOKIE, token, maxAge);
+const deviceCookie = token => `${AUTH_DEVICE_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${YEAR_SECONDS}; HttpOnly; Secure; SameSite=Lax`;
+const clearAuthCookies = () => [sessionCookie('', 0), firebaseCookie('', 0)];
 
 async function readJson(request) {
   if (!String(request.headers.get('Content-Type') || '').toLowerCase().startsWith('application/json')) {
@@ -89,6 +103,15 @@ const clientContext = (request, existingDeviceId = '') => {
   });
 };
 
+const credentials = body => {
+  const email = String(body?.email || '').trim();
+  const password = typeof body?.password === 'string' ? body.password : '';
+  if (!email || password.length < PASSWORD_MIN || password.length > PASSWORD_MAX || /[\r\n\u0000]/.test(password)) {
+    throw new NativeAuthError(password && password.length < PASSWORD_MIN ? AUTH_ERROR_CODES.WEAK_PASSWORD : AUTH_ERROR_CODES.INVALID_INPUT);
+  }
+  return Object.freeze({ email, password });
+};
+
 async function callAuthority(env, path, body, method = 'POST') {
   if (!env?.AUTH_AUTHORITY || typeof env.AUTH_AUTHORITY.idFromName !== 'function') {
     throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
@@ -115,14 +138,38 @@ async function callAuthority(env, path, body, method = 'POST') {
   return data.result || data;
 }
 
-function deliverySucceeded(result) {
-  return Boolean(result?.ok && ['ACCEPTED', 'QUEUED', 'SENT', 'DELIVERED'].includes(result.status));
+function providerError(cause, stage = 'auth') {
+  if (!(cause instanceof FirebaseRequestError)) return new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
+  const reason = cause.reason;
+  if (reason === 'NOT_CONFIGURED' || ['API_KEY_INVALID', 'PROJECT_NOT_FOUND', 'OPERATION_NOT_ALLOWED'].includes(reason)) {
+    return new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+  }
+  if (['INVALID_EMAIL', 'MISSING_EMAIL', 'MISSING_PASSWORD'].includes(reason)) return new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  if (reason === 'EMAIL_EXISTS') return new NativeAuthError(AUTH_ERROR_CODES.EMAIL_ALREADY_IN_USE);
+  if (reason === 'WEAK_PASSWORD') return new NativeAuthError(AUTH_ERROR_CODES.WEAK_PASSWORD);
+  if (['INVALID_LOGIN_CREDENTIALS', 'EMAIL_NOT_FOUND', 'INVALID_PASSWORD'].includes(reason)) {
+    return new NativeAuthError(AUTH_ERROR_CODES.INVALID_CREDENTIALS);
+  }
+  if (reason === 'USER_DISABLED') return new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_DISABLED);
+  if (['TOO_MANY_ATTEMPTS_TRY_LATER', 'TOO_MANY_ATTEMPTS', 'IP_BLOCKED'].includes(reason)) {
+    return new NativeAuthError(AUTH_ERROR_CODES.RATE_LIMITED, { retryAfter: 60 });
+  }
+  if (stage === 'verification' && ['QUOTA_EXCEEDED', 'INVALID_CONTINUE_URI', 'UNAUTHORIZED_DOMAIN', 'NETWORK_ERROR', 'INVALID_PROVIDER_RESPONSE'].includes(reason)) {
+    return new NativeAuthError(AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE);
+  }
+  if (stage === 'session' && ['INVALID_REFRESH_TOKEN', 'TOKEN_EXPIRED', 'INVALID_ID_TOKEN', 'USER_NOT_FOUND'].includes(reason)) {
+    return new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
+  }
+  return new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
 }
 
-export function createNativeAuthHandler({ sendEmail } = {}) {
-  if (typeof sendEmail !== 'function') throw new TypeError('sendEmail dependency is required.');
+const assertProviderUser = (signed, user) => {
+  if (signed.subject !== user.subject) throw new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
+  if (user.disabled) throw new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_DISABLED);
+};
 
-  return async function handleNativeAuthRequest(request, env, executionContext) {
+export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
+  return async function handleNativeAuthRequest(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith(`${AUTH_API_PREFIX}/`) && url.pathname !== AUTH_API_PREFIX) return null;
 
@@ -142,114 +189,173 @@ export function createNativeAuthHandler({ sendEmail } = {}) {
       });
     }
 
+    const provider = new FirebaseEmailPasswordProvider({
+      apiKey: env?.FIREBASE_WEB_API_KEY,
+      continueUrl: env?.FIREBASE_CONTINUE_URL,
+      fetchImpl
+    });
+    const jar = cookies(request);
+    const context = clientContext(request, jar[AUTH_DEVICE_COOKIE]);
+
     try {
       if (request.method === 'GET' && url.pathname === `${AUTH_API_PREFIX}/config`) {
         const health = await callAuthority(env, '/internal/ping', null, 'GET');
+        let firebaseReady = false;
+        if (provider.configured) {
+          try {
+            const inspected = await provider.inspectProject();
+            firebaseReady = inspected.projectIdentified && inspected.continueDomainAuthorized;
+          } catch {}
+        }
         return json(request, 200, {
           ok: true,
           auth: {
             version: AUTH_NATIVE_VERSION,
-            mode: 'passwordless-email-otp',
+            mode: 'email-password-with-email-verification',
+            provider: 'firebase',
+            available: firebaseReady && health.ok === true,
             storage: health.storage,
-            otp: { digits: 6, expiresIn: 600, resendAfter: 60, maxAttempts: 5 },
-            session: { transport: 'secure-http-only-cookie', maxAge: 2592000 },
-            deliveryLimit: { daily: 200, monthly: 6000 }
+            emailVerifiedRequired: true,
+            verificationEmail: { kind: 'address-verification', dailyCapacity: 1000 },
+            registeredAccountLimit: 'unlimited',
+            session: { transport: 'secure-http-only-cookie', maxAge: SESSION_SECONDS }
           }
         });
       }
 
-      if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/otp/request`) {
-        const body = await readJson(request);
-        const jar = cookies(request);
-        const context = clientContext(request, jar[AUTH_DEVICE_COOKIE]);
-        const prepared = await callAuthority(env, '/internal/otp/prepare', {
-          input: { email: body.email }, context
+      if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/signup`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const input = credentials(await readJson(request));
+        const prepared = await callAuthority(env, '/internal/firebase/rate', {
+          input: { operation: 'signup', email: input.email }, context
         });
-        const requestId = `authotp:${prepared.challengeId}`;
-        let delivery;
+        let signed;
+        try { signed = await provider.signUp(prepared.email, input.password); }
+        catch (cause) { throw providerError(cause, 'signup'); }
         try {
-          delivery = await sendEmail(env, executionContext, {
-            type: 'SIGNUP_VERIFICATION',
-            recipient: prepared.email,
-            subject: 'Admission Hub নিরাপত্তা কোড',
-            template: 'SIGNUP_VERIFICATION',
-            variables: { otp: prepared.code, purpose: 'নিরাপদ অ্যাকাউন্ট যাচাই' },
-            requestId,
-            idempotencyKey: requestId,
-            priority: 'HIGH',
-            context: { ip: context.ip, deviceId: context.deviceId }
+          await callAuthority(env, '/internal/firebase/rate', {
+            input: { operation: 'verification-send', email: prepared.email }, context
           });
-        } catch (error) {
-          const uncertain = Boolean(error?.uncertain || error?.dispatched);
-          await callAuthority(env, '/internal/otp/delivery', {
-            challengeId: prepared.challengeId,
-            delivery: { accepted: false, uncertain, provider: error?.providerId || null }
-          });
-          if (!uncertain) throw new NativeAuthError(AUTH_ERROR_CODES.DELIVERY_UNAVAILABLE);
-          delivery = { ok: false, uncertain: true, status: 'UNCERTAIN' };
+        } catch (cause) {
+          try { await provider.deleteAccount(signed.idToken); } catch {}
+          throw cause;
         }
-        if (!deliverySucceeded(delivery) && !delivery?.uncertain) {
-          await callAuthority(env, '/internal/otp/delivery', {
-            challengeId: prepared.challengeId,
-            delivery: { accepted: false, uncertain: false, provider: delivery?.providerId || null }
-          });
-          throw new NativeAuthError(AUTH_ERROR_CODES.DELIVERY_UNAVAILABLE);
-        }
-        if (deliverySucceeded(delivery)) {
-          await callAuthority(env, '/internal/otp/delivery', {
-            challengeId: prepared.challengeId,
-            delivery: { accepted: true, uncertain: false, provider: delivery.providerId || null }
-          });
-        }
+        try { await provider.sendVerificationEmail(signed.idToken, prepared.email); }
+        catch (cause) { throw providerError(cause, 'verification'); }
         return json(request, 202, {
           ok: true,
-          challenge: {
-            id: prepared.challengeId,
+          accountCreated: true,
+          authenticated: false,
+          verification: {
+            sent: true,
             emailMasked: prepared.emailMask,
-            expiresAt: prepared.expiresAt,
-            expiresIn: prepared.expiresIn,
-            resendAfter: prepared.resendAfter,
-            delivery: delivery?.uncertain ? 'uncertain' : 'accepted'
+            requiredBeforeLogin: true,
+            dailyCapacity: 1000
           }
         }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
       }
 
-      if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/otp/verify`) {
-        const body = await readJson(request);
-        const jar = cookies(request);
-        const context = clientContext(request, jar[AUTH_DEVICE_COOKIE]);
-        const verified = await callAuthority(env, '/internal/otp/verify', {
-          input: { email: body.email, challengeId: body.challengeId, code: body.code }, context
+      if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/verification/resend`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const input = credentials(await readJson(request));
+        const prepared = await callAuthority(env, '/internal/firebase/rate', {
+          input: { operation: 'verification-resend', email: input.email }, context
         });
-        const maxAge = Math.max(1, Math.floor((Number(verified.sessionExpiresAt) - Date.now()) / 1000));
+        let signed;
+        let user;
+        try {
+          signed = await provider.signIn(prepared.email, input.password);
+          user = await provider.lookup(signed.idToken);
+        } catch (cause) { throw providerError(cause, 'auth'); }
+        assertProviderUser(signed, user);
+        if (user.emailVerified) {
+          return json(request, 200, { ok: true, alreadyVerified: true, authenticated: false });
+        }
+        await callAuthority(env, '/internal/firebase/rate', {
+          input: { operation: 'verification-send', email: user.email }, context
+        });
+        try { await provider.sendVerificationEmail(signed.idToken, user.email); }
+        catch (cause) { throw providerError(cause, 'verification'); }
+        return json(request, 202, {
+          ok: true,
+          authenticated: false,
+          verification: { sent: true, emailMasked: prepared.emailMask, dailyCapacity: 1000 }
+        }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
+      }
+
+      if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/login`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const input = credentials(await readJson(request));
+        const prepared = await callAuthority(env, '/internal/firebase/rate', {
+          input: { operation: 'login', email: input.email }, context
+        });
+        let signed;
+        let user;
+        try {
+          signed = await provider.signIn(prepared.email, input.password);
+          user = await provider.lookup(signed.idToken);
+        } catch (cause) { throw providerError(cause, 'auth'); }
+        assertProviderUser(signed, user);
+        if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+        const established = await callAuthority(env, '/internal/firebase/session/create', {
+          input: { email: user.email, subject: user.subject }, context
+        });
+        const maxAge = Math.max(1, Math.min(SESSION_SECONDS, Math.floor((Number(established.sessionExpiresAt) - Date.now()) / 1000)));
+        const setCookies = [sessionCookie(established.sessionToken, maxAge), firebaseCookie(signed.refreshToken, maxAge)];
+        if (context.isNewDevice) setCookies.push(deviceCookie(context.deviceId));
         return json(request, 200, {
           ok: true,
           authenticated: true,
-          created: verified.created,
-          user: verified.user,
-          session: { expiresAt: verified.sessionExpiresAt }
-        }, { 'Set-Cookie': sessionCookie(verified.sessionToken, maxAge) });
+          emailVerified: true,
+          created: established.created,
+          user: established.user,
+          session: { expiresAt: established.sessionExpiresAt }
+        }, { 'Set-Cookie': setCookies });
       }
 
       if (request.method === 'GET' && url.pathname === `${AUTH_API_PREFIX}/session`) {
-        const token = cookies(request)[AUTH_SESSION_COOKIE];
-        if (!token) throw new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
-        const session = await callAuthority(env, '/internal/session/get', { sessionToken: token });
-        return json(request, 200, { ok: true, authenticated: true, ...session });
+        const sessionToken = jar[AUTH_SESSION_COOKIE];
+        const refreshToken = jar[AUTH_FIREBASE_COOKIE];
+        if (!sessionToken || !refreshToken) throw new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
+        let refreshed;
+        let user;
+        try {
+          refreshed = await provider.refresh(refreshToken);
+          user = await provider.lookup(refreshed.idToken);
+        } catch (cause) { throw providerError(cause, 'session'); }
+        assertProviderUser(refreshed, user);
+        if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+        const session = await callAuthority(env, '/internal/firebase/session/get', {
+          sessionToken,
+          input: { email: user.email, subject: user.subject }
+        });
+        const maxAge = Math.max(1, Math.min(SESSION_SECONDS, Math.floor((Number(session.expiresAt) - Date.now()) / 1000)));
+        return json(request, 200, {
+          ok: true,
+          authenticated: true,
+          emailVerified: true,
+          ...session
+        }, { 'Set-Cookie': firebaseCookie(refreshed.refreshToken, maxAge) });
       }
 
       if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/session/logout`) {
-        const token = cookies(request)[AUTH_SESSION_COOKIE];
-        if (token) await callAuthority(env, '/internal/session/revoke', { sessionToken: token });
-        return json(request, 200, { ok: true, authenticated: false }, {
-          'Set-Cookie': sessionCookie('', 0)
-        });
+        const sessionToken = jar[AUTH_SESSION_COOKIE];
+        if (sessionToken) await callAuthority(env, '/internal/session/revoke', { sessionToken });
+        return json(request, 200, { ok: true, authenticated: false }, { 'Set-Cookie': clearAuthCookies() });
       }
 
       return json(request, 404, { ok: false, error: { code: 'NOT_FOUND', message: 'Endpoint পাওয়া যায়নি।' } });
     } catch (cause) {
       const error = asNativeAuthError(cause);
-      return json(request, error.status, { ok: false, error: error.toPublic() }, error.retryAfter ? { 'Retry-After': String(error.retryAfter) } : {});
+      const clearSession = [AUTH_ERROR_CODES.SESSION_INVALID, AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED, AUTH_ERROR_CODES.ACCOUNT_DISABLED].includes(error.code)
+        && url.pathname === `${AUTH_API_PREFIX}/session`;
+      if (clearSession && jar[AUTH_SESSION_COOKIE]) {
+        try { await callAuthority(env, '/internal/session/revoke', { sessionToken: jar[AUTH_SESSION_COOKIE] }); } catch {}
+      }
+      return json(request, error.status, { ok: false, error: error.toPublic() }, {
+        ...(error.retryAfter ? { 'Retry-After': String(error.retryAfter) } : {}),
+        ...(clearSession ? { 'Set-Cookie': clearAuthCookies() } : {})
+      });
     }
   };
 }

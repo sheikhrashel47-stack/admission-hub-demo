@@ -64,6 +64,20 @@ export class AdmissionAuthAuthority {
         await this.#scheduleExpiry();
         return response(200, { ok: true, result });
       }
+      if (url.pathname === '/internal/firebase/rate') {
+        const result = await this.engine.consumeFirebaseOperation(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/firebase/session/create') {
+        const result = await this.engine.establishFirebaseSession(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/firebase/session/get') {
+        const result = await this.engine.getFirebaseSession(body.sessionToken, body.input);
+        return response(200, { ok: true, result });
+      }
       if (url.pathname === '/internal/session/get') {
         const result = await this.engine.getSession(body.sessionToken);
         return response(200, { ok: true, result });

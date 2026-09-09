@@ -6,6 +6,9 @@ import {
   productionEmailGatewayConfig
 } from './auth-native/operations/prepare-production-secrets.mjs';
 import { auditRecentMailjetDelivery } from './auth-native/operations/audit-mailjet-recent-delivery.mjs';
+import { FirebaseConfigError, validateFirebaseProjectConfig, verifyFirebaseConfig } from './auth-native/operations/verify-firebase-config.mjs';
+import { verificationAction } from './auth-native/operations/live-mailbox-e2e.mjs';
+import { verifyFirebaseWorkerBinding } from './auth-native/operations/verify-worker-binding.mjs';
 
 const ENV = Object.freeze({
   MAILJET_API_KEY: 'mailjet-test-key',
@@ -191,4 +194,49 @@ test('activation refuses to proceed when no Active Mailjet sender exists', async
     ? response({ Data: [{ Email: 'pending@example.com', Status: 'Pending' }] })
     : response({ success: true, result: [] });
   await assert.rejects(() => prepareProductionSecrets({ env: ENV, fetchImpl }), /no Active individual sender/i);
+});
+
+test('Firebase activation preflight validates project identity and authorized Pages domain without mutation', async () => {
+  let request = null;
+  const result = await verifyFirebaseConfig({
+    apiKey: 'firebase-test-api-key-123456789',
+    fetchImpl: async (url, options) => {
+      request = { url: String(url), options };
+      return response({ projectId: 'admission-hub-test', authorizedDomains: ['localhost', 'admissionhub.pages.dev'] });
+    }
+  });
+  assert.deepEqual(result, { projectIdentified: true, authorizedDomainReady: true });
+  assert.match(request.url, /^https:\/\/identitytoolkit\.googleapis\.com\/v1\/projects\?key=/);
+  assert.equal(request.options.method, 'GET');
+  assert.equal(request.options.body, undefined);
+});
+
+test('Firebase activation preflight rejects a project without the Pages authorized domain', async () => {
+  assert.throws(
+    () => validateFirebaseProjectConfig({ projectId: 'admission-hub-test', authorizedDomains: ['localhost'] }),
+    error => error instanceof FirebaseConfigError && error.code === 'PAGES_DOMAIN_NOT_AUTHORIZED'
+  );
+});
+
+test('live Firebase check extracts only a standard verify-email action', () => {
+  const action = verificationAction('<a href="https://sample.firebaseapp.com/__/auth/action?mode=verifyEmail&amp;oobCode=secret-code&amp;continueUrl=https%3A%2F%2Fadmissionhub.pages.dev%2F%3FfirebaseVerified%3D1">Verify</a>');
+  assert.deepEqual(action, {
+    oobCode: 'secret-code',
+    continueUrl: 'https://admissionhub.pages.dev/?firebaseVerified=1'
+  });
+  assert.equal(verificationAction('https://sample.firebaseapp.com/__/auth/action?mode=signIn&oobCode=not-accepted'), null);
+});
+
+test('protected deployments require the Firebase Worker binding by name without reading its value', async () => {
+  const fetchImpl = async (_url, options) => {
+    assert.match(options.headers.Authorization, /^Bearer /);
+    return response({ success: true, result: [{ name: 'FIREBASE_WEB_API_KEY', type: 'secret_text' }] });
+  };
+  assert.deepEqual(await verifyFirebaseWorkerBinding({
+    accountId: 'account-test', apiToken: 'token-test', fetchImpl
+  }), { installed: true });
+  await assert.rejects(() => verifyFirebaseWorkerBinding({
+    accountId: 'account-test', apiToken: 'token-test',
+    fetchImpl: async () => response({ success: true, result: [] })
+  }), /not installed/i);
 });

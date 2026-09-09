@@ -140,6 +140,9 @@ class EngineNamespace {
         '/internal/otp/prepare': () => this.engine.prepareOtp(body.input, body.context),
         '/internal/otp/delivery': () => this.engine.markDelivery(body.challengeId, body.delivery),
         '/internal/otp/verify': () => this.engine.verifyOtp(body.input, body.context),
+        '/internal/firebase/rate': () => this.engine.consumeFirebaseOperation(body.input, body.context),
+        '/internal/firebase/session/create': () => this.engine.establishFirebaseSession(body.input, body.context),
+        '/internal/firebase/session/get': () => this.engine.getFirebaseSession(body.sessionToken, body.input),
         '/internal/session/get': () => this.engine.getSession(body.sessionToken),
         '/internal/session/revoke': () => this.engine.revokeSession(body.sessionToken)
       };
@@ -149,6 +152,99 @@ class EngineNamespace {
       const error = asNativeAuthError(cause);
       return Response.json({ ok: false, error: error.toPublic() }, { status: error.status, headers: error.retryAfter ? { 'Retry-After': String(error.retryAfter) } : {} });
     }
+  }
+}
+
+class FirebaseMock {
+  constructor() {
+    this.users = new Map();
+    this.tokens = new Map();
+    this.refreshTokens = new Map();
+    this.calls = [];
+    this.sequence = 0;
+    this.failVerification = false;
+    this.malformedVerification = false;
+  }
+
+  token(prefix) {
+    this.sequence += 1;
+    return `${prefix}_${String(this.sequence).padStart(4, '0')}_${'x'.repeat(30)}`;
+  }
+
+  response(payload, status = 200) {
+    return Response.json(payload, { status });
+  }
+
+  error(message, status = 400) {
+    return this.response({ error: { message } }, status);
+  }
+
+  async fetch(url, init) {
+    const parsed = new URL(url);
+    const form = String(init?.headers?.['Content-Type'] || '').includes('x-www-form-urlencoded');
+    const body = form ? Object.fromEntries(new URLSearchParams(String(init.body || ''))) : JSON.parse(String(init?.body || '{}'));
+    this.calls.push({ pathname: parsed.pathname, body: { ...body, ...(body.password ? { password: '[redacted]' } : {}) } });
+
+    if (parsed.pathname.endsWith('/projects') && init?.method === 'GET') {
+      return this.response({ projectId: 'admission-hub-test', authorizedDomains: ['admissionhub.pages.dev'] });
+    }
+
+    if (parsed.pathname.endsWith('/accounts:signUp')) {
+      const email = String(body.email || '').toLowerCase();
+      if (this.users.has(email)) return this.error('EMAIL_EXISTS');
+      const localId = this.token('firebase-user');
+      const idToken = this.token('firebase-id');
+      const refreshToken = this.token('firebase-refresh');
+      const user = { email, password: body.password, localId, emailVerified: false, disabled: false };
+      this.users.set(email, user);
+      this.tokens.set(idToken, user);
+      this.refreshTokens.set(refreshToken, user);
+      return this.response({ localId, idToken, refreshToken, expiresIn: '3600' });
+    }
+
+    if (parsed.pathname.endsWith('/accounts:sendOobCode')) {
+      if (this.failVerification) return this.error('QUOTA_EXCEEDED', 429);
+      if (this.malformedVerification) return this.response({});
+      const user = this.tokens.get(body.idToken);
+      if (!user || body.requestType !== 'VERIFY_EMAIL') return this.error('INVALID_ID_TOKEN');
+      return this.response({ email: user.email });
+    }
+
+    if (parsed.pathname.endsWith('/accounts:delete')) {
+      const user = this.tokens.get(body.idToken);
+      if (!user) return this.error('INVALID_ID_TOKEN');
+      this.users.delete(user.email);
+      return this.response({ kind: 'identitytoolkit#DeleteAccountResponse' });
+    }
+
+    if (parsed.pathname.endsWith('/accounts:signInWithPassword')) {
+      const user = this.users.get(String(body.email || '').toLowerCase());
+      if (!user || user.password !== body.password) return this.error('INVALID_LOGIN_CREDENTIALS');
+      if (user.disabled) return this.error('USER_DISABLED');
+      const idToken = this.token('firebase-id');
+      const refreshToken = this.token('firebase-refresh');
+      this.tokens.set(idToken, user);
+      this.refreshTokens.set(refreshToken, user);
+      return this.response({ localId: user.localId, idToken, refreshToken, expiresIn: '3600' });
+    }
+
+    if (parsed.pathname.endsWith('/accounts:lookup')) {
+      const user = this.tokens.get(body.idToken);
+      if (!user) return this.error('INVALID_ID_TOKEN');
+      return this.response({ users: [{ localId: user.localId, email: user.email, emailVerified: user.emailVerified, disabled: user.disabled }] });
+    }
+
+    if (parsed.pathname.endsWith('/token')) {
+      const user = this.refreshTokens.get(body.refresh_token);
+      if (!user) return this.error('INVALID_REFRESH_TOKEN');
+      const idToken = this.token('firebase-id');
+      const refreshToken = this.token('firebase-refresh');
+      this.tokens.set(idToken, user);
+      this.refreshTokens.set(refreshToken, user);
+      return this.response({ user_id: user.localId, id_token: idToken, refresh_token: refreshToken, expires_in: '3600' });
+    }
+
+    return this.error('NOT_FOUND', 404);
   }
 }
 
@@ -172,79 +268,163 @@ const apiRequest = (path, { method = 'GET', body, cookie = '', origin = 'https:/
 
 const handlerSetup = () => {
   const state = setup();
-  const mail = [];
-  const handler = createNativeAuthHandler({
-    async sendEmail(_env, _ctx, request) {
-      mail.push(request);
-      return { ok: true, status: 'ACCEPTED', providerId: 'mailjet' };
-    }
-  });
-  const env = { AUTH_AUTHORITY: new EngineNamespace(state.engine) };
-  return { state, mail, handler, env };
+  const firebase = new FirebaseMock();
+  const handler = createNativeAuthHandler({ fetchImpl: firebase.fetch.bind(firebase) });
+  const env = {
+    AUTH_AUTHORITY: new EngineNamespace(state.engine),
+    FIREBASE_WEB_API_KEY: 'test-firebase-api-key-1234567890',
+    FIREBASE_CONTINUE_URL: 'https://admissionhub.pages.dev/?firebaseVerified=1'
+  };
+  return { state, firebase, handler, env };
 };
 
-test('public v1 API performs request, verify, session, replay rejection, and logout with secure cookies', async () => {
+test('Firebase signup sends standard verification but creates no authenticated session', async () => {
   const app = handlerSetup();
   const email = 'real.user@example.com';
-  const requested = await app.handler(apiRequest(`${AUTH_API_PREFIX}/otp/request`, { method: 'POST', body: { email } }), app.env, {});
-  assert.equal(requested.status, 202);
-  const requestedBody = await requested.json();
-  assert.equal(requestedBody.ok, true);
-  assert.equal(requestedBody.challenge.delivery, 'accepted');
-  assert.equal(JSON.stringify(requestedBody).includes(email), false);
-  assert.equal(JSON.stringify(requestedBody).includes(app.mail[0].variables.otp), false);
-  assert.equal(app.mail[0].recipient, email);
-  assert.equal(app.mail[0].type, 'SIGNUP_VERIFICATION');
-  const device = extractCookiePair(requested, '__Host-ah_device');
-  assert.ok(device);
-  assert.match(requested.headers.get('Set-Cookie'), /HttpOnly; Secure; SameSite=Lax/);
+  const password = 'Correct-Horse-42';
+  const signup = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, { method: 'POST', body: { email, password } }), app.env, {});
+  assert.equal(signup.status, 202);
+  const body = await signup.json();
+  assert.equal(body.accountCreated, true);
+  assert.equal(body.authenticated, false);
+  assert.equal(body.verification.sent, true);
+  assert.equal(body.verification.dailyCapacity, 1000);
+  assert.equal(JSON.stringify(body).includes(email), false);
+  assert.equal(JSON.stringify(body).includes(password), false);
+  assert.equal(app.firebase.calls.filter(call => call.pathname.endsWith('/accounts:sendOobCode')).length, 1);
+  assert.equal(app.firebase.calls.find(call => call.pathname.endsWith('/accounts:sendOobCode')).body.requestType, 'VERIFY_EMAIL');
+  assert.equal(extractCookiePair(signup, '__Host-ah_session'), '');
+  assert.equal(extractCookiePair(signup, '__Host-ah_firebase'), '');
+  assert.ok(extractCookiePair(signup, '__Host-ah_device'));
+});
 
-  const verified = await app.handler(apiRequest(`${AUTH_API_PREFIX}/otp/verify`, {
-    method: 'POST', cookie: device,
-    body: { email, challengeId: requestedBody.challenge.id, code: app.mail[0].variables.otp }
-  }), app.env, {});
-  assert.equal(verified.status, 200);
-  const verifiedBody = await verified.json();
-  assert.equal(verifiedBody.authenticated, true);
-  assert.equal('sessionToken' in verifiedBody, false);
-  const setCookie = verified.headers.get('Set-Cookie');
-  assert.match(setCookie, /^__Host-ah_session=[A-Za-z0-9_-]+;/);
-  assert.match(setCookie, /Path=\/; Max-Age=\d+; HttpOnly; Secure; SameSite=Strict/);
-  const session = extractCookiePair(verified, '__Host-ah_session');
+test('unverified Firebase account is denied, verified account gets opaque HttpOnly session', async () => {
+  const app = handlerSetup();
+  const email = 'verified.user@example.com';
+  const password = 'Secure-password-88';
+  await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, { method: 'POST', body: { email, password } }), app.env, {});
 
-  const current = await app.handler(apiRequest(`${AUTH_API_PREFIX}/session`, { cookie: `${session}; ${device}` }), app.env, {});
+  const denied = await app.handler(apiRequest(`${AUTH_API_PREFIX}/login`, { method: 'POST', body: { email, password } }), app.env, {});
+  assert.equal(denied.status, 403);
+  assert.equal((await denied.json()).error.code, AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+  assert.equal(extractCookiePair(denied, '__Host-ah_session'), '');
+
+  app.firebase.users.get(email).emailVerified = true;
+  const login = await app.handler(apiRequest(`${AUTH_API_PREFIX}/login`, { method: 'POST', body: { email, password } }), app.env, {});
+  assert.equal(login.status, 200);
+  const loginBody = await login.json();
+  assert.equal(loginBody.authenticated, true);
+  assert.equal(loginBody.emailVerified, true);
+  assert.equal('sessionToken' in loginBody, false);
+  assert.equal(JSON.stringify(loginBody).includes(password), false);
+  const session = extractCookiePair(login, '__Host-ah_session');
+  const firebase = extractCookiePair(login, '__Host-ah_firebase');
+  assert.ok(session);
+  assert.ok(firebase);
+  assert.match(login.headers.get('Set-Cookie'), /HttpOnly; Secure; SameSite=Strict/);
+
+  const current = await app.handler(apiRequest(`${AUTH_API_PREFIX}/session`, { cookie: `${session}; ${firebase}` }), app.env, {});
   assert.equal(current.status, 200);
-  assert.equal((await current.json()).user.id, verifiedBody.user.id);
+  const currentBody = await current.json();
+  assert.equal(currentBody.emailVerified, true);
+  assert.equal(currentBody.user.id, loginBody.user.id);
+  assert.ok(extractCookiePair(current, '__Host-ah_firebase'));
 
-  const replay = await app.handler(apiRequest(`${AUTH_API_PREFIX}/otp/verify`, {
-    method: 'POST', cookie: device,
-    body: { email, challengeId: requestedBody.challenge.id, code: app.mail[0].variables.otp }
-  }), app.env, {});
-  assert.equal(replay.status, 409);
-  assert.equal((await replay.json()).error.code, AUTH_ERROR_CODES.OTP_USED);
-
-  const logout = await app.handler(apiRequest(`${AUTH_API_PREFIX}/session/logout`, { method: 'POST', cookie: session, body: {} }), app.env, {});
+  const logout = await app.handler(apiRequest(`${AUTH_API_PREFIX}/session/logout`, { method: 'POST', cookie: `${session}; ${firebase}`, body: {} }), app.env, {});
   assert.equal(logout.status, 200);
   assert.match(logout.headers.get('Set-Cookie'), /Max-Age=0; HttpOnly; Secure; SameSite=Strict/);
-  const after = await app.handler(apiRequest(`${AUTH_API_PREFIX}/session`, { cookie: session }), app.env, {});
+  const after = await app.handler(apiRequest(`${AUTH_API_PREFIX}/session`, { cookie: `${session}; ${firebase}` }), app.env, {});
   assert.equal(after.status, 401);
 });
 
-test('public API rejects untrusted origins, oversized bodies, and definite mail failures', async () => {
+test('verification resend requires password and never authenticates the user', async () => {
+  const app = handlerSetup();
+  const email = 'resend.user@example.com';
+  const password = 'Resend-password-77';
+  await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, { method: 'POST', body: { email, password } }), app.env, {});
+  app.state.advance(60_001);
+  const resent = await app.handler(apiRequest(`${AUTH_API_PREFIX}/verification/resend`, { method: 'POST', body: { email, password } }), app.env, {});
+  assert.equal(resent.status, 202);
+  assert.equal((await resent.json()).authenticated, false);
+  assert.equal(extractCookiePair(resent, '__Host-ah_session'), '');
+  assert.equal(app.firebase.calls.filter(call => call.pathname.endsWith('/accounts:sendOobCode')).length, 2);
+});
+
+test('config publishes verified-only Firebase mode and correct Spark verification capacity', async () => {
+  const app = handlerSetup();
+  const response = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), app.env, {});
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.auth.provider, 'firebase');
+  assert.equal(body.auth.mode, 'email-password-with-email-verification');
+  assert.equal(body.auth.available, true);
+  assert.equal(body.auth.emailVerifiedRequired, true);
+  assert.equal(body.auth.verificationEmail.dailyCapacity, 1000);
+  assert.equal(body.auth.registeredAccountLimit, 'unlimited');
+});
+
+test('public API rejects untrusted origins, weak or oversized input, and fails closed without Firebase config', async () => {
   const app = handlerSetup();
   const forbidden = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`, { origin: 'https://evil.example' }), app.env, {});
   assert.equal(forbidden.status, 403);
-  const oversized = await app.handler(apiRequest(`${AUTH_API_PREFIX}/otp/request`, {
-    method: 'POST', body: { email: 'large@example.com', padding: 'x'.repeat(5000) }
+
+  const weak = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
+    method: 'POST', body: { email: 'weak@example.com', password: 'short' }
+  }), app.env, {});
+  assert.equal(weak.status, 400);
+  assert.equal((await weak.json()).error.code, AUTH_ERROR_CODES.WEAK_PASSWORD);
+  assert.equal(app.firebase.calls.length, 0);
+
+  const oversized = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
+    method: 'POST', body: { email: 'large@example.com', password: 'x'.repeat(5000) }
   }), app.env, {});
   assert.equal(oversized.status, 400);
-  assert.equal(app.mail.length, 0);
-  assert.equal(app.state.repository.snapshot().challenges.length, 0);
+  assert.equal(app.firebase.calls.length, 0);
 
-  const state = setup();
-  const handler = createNativeAuthHandler({ sendEmail: async () => { throw new Error('provider failed'); } });
-  const failed = await handler(apiRequest(`${AUTH_API_PREFIX}/otp/request`, { method: 'POST', body: { email: 'fail@example.com' } }), { AUTH_AUTHORITY: new EngineNamespace(state.engine) }, {});
-  assert.equal(failed.status, 503);
-  assert.equal((await failed.json()).error.code, AUTH_ERROR_CODES.DELIVERY_UNAVAILABLE);
-  assert.equal(state.repository.snapshot().challenges[0].state, 'failed');
+  const missing = { ...app.env };
+  delete missing.FIREBASE_WEB_API_KEY;
+  const unavailable = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
+    method: 'POST', body: { email: 'closed@example.com', password: 'Safe-password-11' }
+  }), missing, {});
+  assert.equal(unavailable.status, 503);
+  assert.equal((await unavailable.json()).error.code, AUTH_ERROR_CODES.NOT_CONFIGURED);
+  assert.equal(extractCookiePair(unavailable, '__Host-ah_session'), '');
+});
+
+test('verification provider failure does not create a local authenticated identity', async () => {
+  const app = handlerSetup();
+  app.firebase.failVerification = true;
+  const response = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
+    method: 'POST', body: { email: 'quota@example.com', password: 'Safe-password-22' }
+  }), app.env, {});
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error.code, AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE);
+  assert.equal(app.state.repository.snapshot().users.length, 0);
+  assert.equal(app.state.repository.snapshot().sessions.length, 0);
+});
+
+test('failed duplicate signup cannot consume the 1000/day verification-send capacity', async () => {
+  const app = handlerSetup();
+  const email = 'duplicate.user@example.com';
+  const password = 'Secure-password-66';
+  const first = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, { method: 'POST', body: { email, password } }), app.env, {});
+  assert.equal(first.status, 202);
+  app.state.advance(60_001);
+  const duplicate = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, { method: 'POST', body: { email, password } }), app.env, {});
+  assert.equal(duplicate.status, 409);
+  const globalRows = app.state.repository.snapshot().rates.filter(([key]) => key.startsWith('firebase-verification-global-day:'));
+  assert.equal(globalRows.length, 1);
+  assert.equal(globalRows[0][1].count, 1);
+});
+
+test('malformed Firebase verification acceptance fails closed without an authenticated session', async () => {
+  const app = handlerSetup();
+  app.firebase.malformedVerification = true;
+  const response = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
+    method: 'POST', body: { email: 'malformed@example.com', password: 'Safe-password-33' }
+  }), app.env, {});
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error.code, AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE);
+  assert.equal(app.state.repository.snapshot().users.length, 0);
+  assert.equal(app.state.repository.snapshot().sessions.length, 0);
 });

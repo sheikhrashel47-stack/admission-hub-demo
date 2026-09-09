@@ -8,6 +8,7 @@ export class MemoryAuthRepository {
     this.challenges = new Map();
     this.usersByEmail = new Map();
     this.users = new Map();
+    this.externalIdentities = new Map();
     this.sessions = new Map();
     this.rates = new Map();
     this.events = [];
@@ -124,6 +125,81 @@ export class MemoryAuthRepository {
     return { verified: true, created, user: copy(user) };
   }
 
+  async consumeLimits({ limits, now, eventType, subjectRef }) {
+    const denied = this.#consume(limits, now);
+    if (denied) return denied;
+    this.events.push({ type: eventType, subjectRef, at: now });
+    return { accepted: true };
+  }
+
+  async establishExternalSession(input) {
+    const identityKey = `${input.provider}:${input.subjectRef}`;
+    const identity = this.externalIdentities.get(identityKey);
+    let user = identity ? this.users.get(identity.userId) : this.usersByEmail.get(input.emailRef);
+    let created = false;
+    if (identity && !user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+    if (!identity && user) {
+      const stale = [...this.externalIdentities.entries()].find(([, row]) => row.provider === input.provider && row.userId === user.id);
+      if (stale) this.externalIdentities.delete(stale[0]);
+    }
+    if (!user) {
+      user = {
+        id: input.userIdCandidate,
+        emailRef: input.emailRef,
+        emailMask: input.emailMask,
+        status: 'active',
+        createdAt: input.now,
+        lastLoginAt: input.now
+      };
+      this.usersByEmail.set(input.emailRef, user);
+      this.users.set(user.id, user);
+      created = true;
+    }
+    if (user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+    if (identity && user.emailRef !== input.emailRef) {
+      const emailOwner = this.usersByEmail.get(input.emailRef);
+      if (emailOwner && emailOwner.id !== user.id) return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      this.usersByEmail.delete(user.emailRef);
+      user.emailRef = input.emailRef;
+      user.emailMask = input.emailMask;
+      this.usersByEmail.set(input.emailRef, user);
+    }
+    if (!identity) {
+      this.externalIdentities.set(identityKey, {
+        provider: input.provider,
+        subjectRef: input.subjectRef,
+        userId: user.id,
+        createdAt: input.now,
+        lastVerifiedAt: input.now
+      });
+    } else identity.lastVerifiedAt = input.now;
+    user.lastLoginAt = input.now;
+    this.sessions.set(input.sessionRef, {
+      sessionRef: input.sessionRef,
+      userId: user.id,
+      createdAt: input.now,
+      expiresAt: input.sessionExpiresAt,
+      lastSeenAt: input.now,
+      revokedAt: null,
+      ipRef: input.ipRef,
+      deviceRef: input.deviceRef,
+      userAgent: input.userAgent
+    });
+    this.events.push({ type: created ? 'firebase-account-linked' : 'firebase-login', subjectRef: input.subjectRef, userId: user.id, at: input.now });
+    return { established: true, created, user: copy(user) };
+  }
+
+  async getExternalSession({ sessionRef, provider, subjectRef, emailRef, now }) {
+    const session = this.sessions.get(sessionRef);
+    if (!session || session.revokedAt || session.expiresAt <= now) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
+    const user = this.users.get(session.userId);
+    const identity = this.externalIdentities.get(`${provider}:${subjectRef}`);
+    if (!user || !identity || identity.userId !== user.id || user.emailRef !== emailRef) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
+    if (user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+    if (now - session.lastSeenAt > 6 * 60 * 60 * 1000) session.lastSeenAt = now;
+    return { expiresAt: session.expiresAt, user: copy(user) };
+  }
+
   async getSession({ sessionRef, now }) {
     const session = this.sessions.get(sessionRef);
     if (!session || session.revokedAt || session.expiresAt <= now) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
@@ -165,6 +241,7 @@ export class MemoryAuthRepository {
     return copy({
       challenges: [...this.challenges.values()],
       users: [...this.users.values()],
+      externalIdentities: [...this.externalIdentities.values()],
       sessions: [...this.sessions.values()],
       rates: [...this.rates.entries()],
       events: this.events

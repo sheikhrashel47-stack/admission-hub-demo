@@ -1,16 +1,15 @@
-name: Activate Cloudflare Native Auth
+name: Activate Firebase Email Password Auth
 
 on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: Type ACTIVATE_NATIVE_AUTH to deploy Auth only after privately finding an API-listed Active Mailjet sender, then run one real inbox verification
+        description: Type ACTIVATE_FIREBASE_AUTH to deploy Firebase Email + Password with standard email verification
         required: true
         type: string
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: admission-hub-email-gateway-production
@@ -18,7 +17,7 @@ concurrency:
 
 jobs:
   activate:
-    if: ${{ inputs.confirmation == 'ACTIVATE_NATIVE_AUTH' && github.ref == 'refs/heads/main' }}
+    if: ${{ inputs.confirmation == 'ACTIVATE_FIREBASE_AUTH' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment: email-gateway-production
@@ -39,56 +38,46 @@ jobs:
           npm run test:production-auth
           node account-retirement.test.mjs
 
-      - name: Verify non-secret Infisical connection metadata
+      - name: Validate Firebase project and authorized Pages domain without mutation
         env:
-          INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID }}
-          INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG }}
-          INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG }}
-          INFISICAL_SECRET_PATH: ${{ vars.INFISICAL_SECRET_PATH }}
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+        run: node auth-native/operations/verify-firebase-config.mjs
+
+      - name: Capture current Worker version for bounded rollback
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -eu
-          test -n "$INFISICAL_IDENTITY_ID"
-          test -n "$INFISICAL_PROJECT_SLUG"
-          test "$INFISICAL_ENV_SLUG" = "prod"
-          test "$INFISICAL_SECRET_PATH" = "/email-gateway"
+          npx --yes wrangler@4.35.0 deployments list --name admission-gk --json > "${RUNNER_TEMP}/worker-deployments.json"
+          PREVIOUS_WORKER_VERSION="$(node -e "const x=require(process.argv[1]); const v=x?.[0]?.versions?.find(v=>Number(v.percentage)===100)?.version_id; if(!v) process.exit(1); process.stdout.write(v)" "${RUNNER_TEMP}/worker-deployments.json")"
+          rm -f "${RUNNER_TEMP}/worker-deployments.json"
+          echo "PREVIOUS_WORKER_VERSION=${PREVIOUS_WORKER_VERSION}" >> "$GITHUB_ENV"
 
-      - name: Fetch provider credentials from Infisical using OIDC
-        uses: Infisical/secrets-action@6cd3f7c0e4cc0d2395ee4ef414eb6eeb5d3e73db # v1.0.17
-        with:
-          method: oidc
-          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
-          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
-          env-slug: ${{ vars.INFISICAL_ENV_SLUG }}
-          secret-path: ${{ vars.INFISICAL_SECRET_PATH }}
-          recursive: false
-          include-imports: false
-          export-type: env
-          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
-
-      - name: Privately require an API-listed Active Mailjet sender and prepare bounded secrets
+      - name: Install Firebase Web API key as encrypted Worker binding
+        id: firebase-secret
         env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          AUTH_SECRET_BULK_FILE: ${{ runner.temp }}/native-auth-worker-secrets.json
-        run: node auth-native/operations/prepare-production-secrets.mjs
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+        run: |
+          set -eu
+          test -n "$FIREBASE_WEB_API_KEY"
+          printf '%s' "$FIREBASE_WEB_API_KEY" | npx --yes wrangler@4.35.0 secret put FIREBASE_WEB_API_KEY --name admission-gk
 
-      - name: Install or rotate only missing production secrets
+      - name: Deploy Worker and SQLite Auth schema
+        id: worker-deploy
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: secret bulk ${{ runner.temp }}/native-auth-worker-secrets.json --name admission-gk
+          command: deploy --config wrangler.toml
 
-      - name: Remove transient secret payload
-        if: ${{ always() }}
-        run: rm -f "${{ runner.temp }}/native-auth-worker-secrets.json"
-
-      - name: Deploy Worker and SQLite Durable Object migration
-        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
+      - name: Run real Firebase signup, external-inbox verification, verified-only gate, session, and logout
+        env:
+          AUTH_LIVE_BASE: https://admission-gk.admissionhub.workers.dev
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+        run: node auth-native/operations/live-mailbox-e2e.mjs
 
       - name: Build sanitized Pages bundle
         run: |
@@ -98,13 +87,23 @@ jobs:
           rsync -a --exclude='.git' --exclude='node_modules' --exclude='docs' --exclude='AGENT_RESUME' --exclude='ai-proxy' --exclude='auth' --exclude='auth-native' --exclude='email-gateway' --exclude='uploads' --exclude='.github' --exclude='gk-agent-worker.js' --exclude='public-worker.js' --exclude='ai-agent.js' --exclude='worker-bundle.mjs' --exclude='voice-worker.js' --exclude='notification-worker.js' --exclude='wrangler.toml' --exclude='package.json' --exclude='package-lock.json' --exclude='*.test.mjs' --exclude='*.md' ./ dist/
 
       - name: Deploy same-origin Pages UI
+        id: pages-deploy
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name admissionhub --branch main
 
-      - name: Run real external-inbox OTP, session, replay, and logout verification
+      - name: Verify live Pages Auth contract
+        run: |
+          set -eu
+          body="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/api/auth/v1/config')"
+          node -e "const x=JSON.parse(process.argv[1]); if(x?.auth?.version!=='firebase-email-password-v1'||x?.auth?.available!==true||x?.auth?.emailVerifiedRequired!==true||x?.auth?.verificationEmail?.dailyCapacity!==1000||x?.auth?.registeredAccountLimit!=='unlimited') process.exit(1)" "$body"
+          echo 'Firebase Email + Password verified-only contract is live through Pages.'
+
+      - name: Roll back Worker when activation does not complete
+        if: ${{ failure() && steps.firebase-secret.outcome == 'success' && env.PREVIOUS_WORKER_VERSION != '' }}
         env:
-          AUTH_LIVE_BASE: https://admissionhub.pages.dev
-        run: node auth-native/operations/live-mailbox-e2e.mjs
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.35.0 rollback "$PREVIOUS_WORKER_VERSION" --name admission-gk --message "Automatic rollback after failed Firebase Auth activation" --yes

@@ -6,6 +6,7 @@ on:
     paths:
       - 'auth-native/**'
       - 'native-auth*.test.mjs'
+      - 'firebase-auth-ui.test.mjs'
       - 'account-access.js'
       - 'account-access.css'
       - 'gk-agent-worker.js'
@@ -27,9 +28,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
       - name: Verify exact Worker bundle
         run: npm run check:worker-bundle
-      - name: Verify native Auth security and behavior
+      - name: Verify Firebase Auth security and behavior
         run: npm run test:native-auth
       - name: Verify legacy account implementation remains retired
         run: node account-retirement.test.mjs

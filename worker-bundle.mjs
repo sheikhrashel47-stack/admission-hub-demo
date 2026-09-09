@@ -1136,6 +1136,176 @@ function safeParseEmailGatewayConfig(raw) {
   }
 }
 
+// email-gateway/core/crypto.mjs
+var encoder = new TextEncoder();
+var utf8 = (value) => encoder.encode(String(value));
+var bytesToHex = (bytes) => [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+var bytesToBase64 = (bytes) => {
+  let binary = "";
+  for (const byte of new Uint8Array(bytes)) binary += String.fromCharCode(byte);
+  return btoa(binary);
+};
+var bytesToBase64Url = (bytes) => bytesToBase64(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+var cryptoApi = (supplied) => supplied || globalThis.crypto;
+async function sha256Bytes(value, suppliedCrypto) {
+  const api = cryptoApi(suppliedCrypto);
+  if (!api?.subtle) throw new Error("Web Crypto is required.");
+  return new Uint8Array(await api.subtle.digest("SHA-256", value instanceof Uint8Array ? value : utf8(value)));
+}
+async function sha256Hex(value, suppliedCrypto) {
+  return bytesToHex(await sha256Bytes(value, suppliedCrypto));
+}
+async function hmacSha256Bytes(secret, value, suppliedCrypto) {
+  const api = cryptoApi(suppliedCrypto);
+  if (!api?.subtle) throw new Error("Web Crypto is required.");
+  const keyBytes = secret instanceof Uint8Array ? secret : utf8(secret);
+  const key = await api.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await api.subtle.sign("HMAC", key, value instanceof Uint8Array ? value : utf8(value)));
+}
+async function hmacSha256Hex(secret, value, suppliedCrypto) {
+  return bytesToHex(await hmacSha256Bytes(secret, value, suppliedCrypto));
+}
+async function hmacSha256Base64Url(secret, value, suppliedCrypto) {
+  return bytesToBase64Url(await hmacSha256Bytes(secret, value, suppliedCrypto));
+}
+function timingSafeEqual(left, right) {
+  const a = utf8(String(left || ""));
+  const b = utf8(String(right || ""));
+  let mismatch = a.length ^ b.length;
+  const length = Math.max(a.length, b.length);
+  for (let index = 0; index < length; index++) mismatch |= (a[index % (a.length || 1)] || 0) ^ (b[index % (b.length || 1)] || 0);
+  return mismatch === 0;
+}
+async function hashPrivateReference(value, pepper, suppliedCrypto) {
+  if (!pepper || String(pepper).length < 16) throw new Error("A private reference pepper is required.");
+  return (await hmacSha256Hex(pepper, String(value).trim().toLowerCase(), suppliedCrypto)).slice(0, 32);
+}
+function stableNumber(value) {
+  let hash = 2166136261;
+  for (const char of String(value)) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+// email-gateway/core/internal-auth.mjs
+var INTERNAL_AUTH_HEADERS = Object.freeze({
+  KEY_ID: "X-AH-Email-Key-Id",
+  TIMESTAMP: "X-AH-Email-Timestamp",
+  NONCE: "X-AH-Email-Nonce",
+  SIGNATURE: "X-AH-Email-Signature"
+});
+function signingSecretsFromEnv(env = {}) {
+  const secrets = {};
+  if (String(env.EMAIL_GATEWAY_SIGNING_SECRET || "").length >= 32) secrets.current = String(env.EMAIL_GATEWAY_SIGNING_SECRET);
+  if (String(env.EMAIL_GATEWAY_PREVIOUS_SIGNING_SECRET || "").length >= 32) secrets.previous = String(env.EMAIL_GATEWAY_PREVIOUS_SIGNING_SECRET);
+  return Object.freeze(secrets);
+}
+async function canonicalInternalRequest({ method, path, timestamp, nonce, bodyText, crypto: crypto2 }) {
+  const bodyHash = await sha256Hex(bodyText || "", crypto2);
+  return `${String(method).toUpperCase()}
+${path}
+${timestamp}
+${nonce}
+${bodyHash}`;
+}
+async function signInternalRequest({ secret, method = "POST", path, timestamp, nonce, bodyText = "", crypto: crypto2 }) {
+  const canonical = await canonicalInternalRequest({ method, path, timestamp, nonce, bodyText, crypto: crypto2 });
+  return hmacSha256Base64Url(secret, canonical, crypto2);
+}
+async function verifyInternalRequest({ request, bodyText = "", secrets, store, config, now = () => Date.now(), crypto: crypto2 }) {
+  const keyId = String(request.headers.get(INTERNAL_AUTH_HEADERS.KEY_ID) || "");
+  const timestamp = String(request.headers.get(INTERNAL_AUTH_HEADERS.TIMESTAMP) || "");
+  const nonce = String(request.headers.get(INTERNAL_AUTH_HEADERS.NONCE) || "");
+  const supplied = String(request.headers.get(INTERNAL_AUTH_HEADERS.SIGNATURE) || "");
+  const secret = secrets?.[keyId];
+  if (!secret || !/^\d{10}$/.test(timestamp) || !/^[A-Za-z0-9_-]{16,96}$/.test(nonce) || !/^[A-Za-z0-9_-]{40,96}$/.test(supplied)) {
+    throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
+  }
+  const currentSeconds = Math.floor(now() / 1e3);
+  if (Math.abs(currentSeconds - Number(timestamp)) > config.security.signatureMaxAgeSeconds) {
+    throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
+  }
+  const url = new URL(request.url);
+  const path = `${url.pathname}${url.search}`;
+  const expected = await signInternalRequest({ secret, method: request.method, path, timestamp, nonce, bodyText, crypto: crypto2 });
+  if (!timingSafeEqual(supplied, expected)) throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
+  const acquired = await store.acquireNonce(`${keyId}:${nonce}`, config.security.nonceTtlSeconds);
+  if (!acquired) throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.REPLAY_DETECTED, retryable: false, status: 409 });
+  return Object.freeze({ keyId, timestamp: Number(timestamp), nonce });
+}
+
+// email-gateway/storage/durable-object-store.mjs
+var DurableObjectEmailStore = class {
+  constructor(binding, { now = () => Date.now() } = {}) {
+    if (!binding || typeof binding.idFromName !== "function" || typeof binding.get !== "function") {
+      throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.STORAGE_UNAVAILABLE, safeMessage: "Email coordinator binding is unavailable." });
+    }
+    this.binding = binding;
+    this.now = now;
+    this.consistency = "strong";
+  }
+  async #call(shard, path, body = {}) {
+    try {
+      const id = this.binding.idFromName(String(shard));
+      const stub = this.binding.get(id);
+      const request = new Request(`https://email-coordinator${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...body, now: body.now ?? this.now() })
+      });
+      const response3 = await stub.fetch(request);
+      if (!response3.ok) throw new Error(`coordinator-${response3.status}`);
+      return await response3.json();
+    } catch (error) {
+      throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.STORAGE_UNAVAILABLE, cause: error });
+    }
+  }
+  acquireRequest(record, ttlSeconds) {
+    return this.#call(`request:${record.idempotencyKey || record.requestId}`, "/request/acquire", { record, ttlSeconds });
+  }
+  async getRequest(requestId) {
+    return (await this.#call(`request:${requestId}`, "/request/get")).record;
+  }
+  async updateRequest(requestId, patch, ttlSeconds, options = {}) {
+    return (await this.#call(`request:${requestId}`, "/request/update", { patch, ttlSeconds, deliveryTransition: Boolean(options.deliveryTransition) })).record;
+  }
+  async acquireNonce(key, ttlSeconds) {
+    return (await this.#call(`nonce:${key}`, "/nonce/acquire", { ttlSeconds })).acquired;
+  }
+  consumeRateLimit(key, limit, windowMs, now = this.now()) {
+    return this.#call(`rate:${key}`, "/rate/consume", { limit, windowMs, now });
+  }
+  async getProviderState(providerId) {
+    return (await this.#call(`provider:${providerId}`, "/provider/state/get", { providerId })).state;
+  }
+  mutateProviderState(providerId, operation, payload) {
+    return this.#call(`provider:${providerId}`, "/provider/state/mutate", { providerId, operation, payload });
+  }
+  reserveProviderQuota(providerId, policy, now = this.now()) {
+    return this.#call(`provider:${providerId}`, "/provider/quota/reserve", { providerId, policy, now });
+  }
+  getProviderQuota(providerId, policy) {
+    return this.#call(`provider:${providerId}`, "/provider/quota/get", { providerId, policy });
+  }
+  async appendEvent(event, retention = 500) {
+    return (await this.#call("events:global", "/events/append", { event, retention })).appended;
+  }
+  async listEvents(limit = 50) {
+    return (await this.#call("events:global", "/events/list", { limit })).events;
+  }
+  async acquireEvent(eventId, ttlSeconds, leaseSeconds = 30) {
+    return this.#call(`event:${eventId}`, "/event/acquire", { ttlSeconds, leaseSeconds });
+  }
+  async completeEvent(eventId, ttlSeconds) {
+    return (await this.#call(`event:${eventId}`, "/event/complete", { ttlSeconds })).completed;
+  }
+  async acquireAlert(key, cooldownMs) {
+    return (await this.#call(`alert:${key}`, "/alert/acquire", { cooldownMs })).acquired;
+  }
+};
+
 // email-gateway/storage/contracts.mjs
 var EMAIL_STORE_METHODS = Object.freeze([
   "acquireRequest",
@@ -1845,59 +2015,6 @@ var MailerSendProvider = class extends ProviderAdapter {
     });
   }
 };
-
-// email-gateway/core/crypto.mjs
-var encoder = new TextEncoder();
-var utf8 = (value) => encoder.encode(String(value));
-var bytesToHex = (bytes) => [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-var bytesToBase64 = (bytes) => {
-  let binary = "";
-  for (const byte of new Uint8Array(bytes)) binary += String.fromCharCode(byte);
-  return btoa(binary);
-};
-var bytesToBase64Url = (bytes) => bytesToBase64(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-var cryptoApi = (supplied) => supplied || globalThis.crypto;
-async function sha256Bytes(value, suppliedCrypto) {
-  const api = cryptoApi(suppliedCrypto);
-  if (!api?.subtle) throw new Error("Web Crypto is required.");
-  return new Uint8Array(await api.subtle.digest("SHA-256", value instanceof Uint8Array ? value : utf8(value)));
-}
-async function sha256Hex(value, suppliedCrypto) {
-  return bytesToHex(await sha256Bytes(value, suppliedCrypto));
-}
-async function hmacSha256Bytes(secret, value, suppliedCrypto) {
-  const api = cryptoApi(suppliedCrypto);
-  if (!api?.subtle) throw new Error("Web Crypto is required.");
-  const keyBytes = secret instanceof Uint8Array ? secret : utf8(secret);
-  const key = await api.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return new Uint8Array(await api.subtle.sign("HMAC", key, value instanceof Uint8Array ? value : utf8(value)));
-}
-async function hmacSha256Hex(secret, value, suppliedCrypto) {
-  return bytesToHex(await hmacSha256Bytes(secret, value, suppliedCrypto));
-}
-async function hmacSha256Base64Url(secret, value, suppliedCrypto) {
-  return bytesToBase64Url(await hmacSha256Bytes(secret, value, suppliedCrypto));
-}
-function timingSafeEqual(left, right) {
-  const a = utf8(String(left || ""));
-  const b = utf8(String(right || ""));
-  let mismatch = a.length ^ b.length;
-  const length = Math.max(a.length, b.length);
-  for (let index = 0; index < length; index++) mismatch |= (a[index % (a.length || 1)] || 0) ^ (b[index % (b.length || 1)] || 0);
-  return mismatch === 0;
-}
-async function hashPrivateReference(value, pepper, suppliedCrypto) {
-  if (!pepper || String(pepper).length < 16) throw new Error("A private reference pepper is required.");
-  return (await hmacSha256Hex(pepper, String(value).trim().toLowerCase(), suppliedCrypto)).slice(0, 32);
-}
-function stableNumber(value) {
-  let hash = 2166136261;
-  for (const char of String(value)) {
-    hash ^= char.charCodeAt(0);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
 
 // email-gateway/providers/sendpulse.mjs
 var SendPulseProvider = class extends ProviderAdapter {
@@ -2886,123 +3003,6 @@ async function createEmailGateway({ config: configOverrides = {}, store, entries
   return bind(gateway, ["send", "healthCheck", "getCapabilities", "recordDeliveryEvent"]);
 }
 
-// email-gateway/storage/durable-object-store.mjs
-var DurableObjectEmailStore = class {
-  constructor(binding, { now = () => Date.now() } = {}) {
-    if (!binding || typeof binding.idFromName !== "function" || typeof binding.get !== "function") {
-      throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.STORAGE_UNAVAILABLE, safeMessage: "Email coordinator binding is unavailable." });
-    }
-    this.binding = binding;
-    this.now = now;
-    this.consistency = "strong";
-  }
-  async #call(shard, path, body = {}) {
-    try {
-      const id = this.binding.idFromName(String(shard));
-      const stub = this.binding.get(id);
-      const request = new Request(`https://email-coordinator${path}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...body, now: body.now ?? this.now() })
-      });
-      const response3 = await stub.fetch(request);
-      if (!response3.ok) throw new Error(`coordinator-${response3.status}`);
-      return await response3.json();
-    } catch (error) {
-      throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.STORAGE_UNAVAILABLE, cause: error });
-    }
-  }
-  acquireRequest(record, ttlSeconds) {
-    return this.#call(`request:${record.idempotencyKey || record.requestId}`, "/request/acquire", { record, ttlSeconds });
-  }
-  async getRequest(requestId) {
-    return (await this.#call(`request:${requestId}`, "/request/get")).record;
-  }
-  async updateRequest(requestId, patch, ttlSeconds, options = {}) {
-    return (await this.#call(`request:${requestId}`, "/request/update", { patch, ttlSeconds, deliveryTransition: Boolean(options.deliveryTransition) })).record;
-  }
-  async acquireNonce(key, ttlSeconds) {
-    return (await this.#call(`nonce:${key}`, "/nonce/acquire", { ttlSeconds })).acquired;
-  }
-  consumeRateLimit(key, limit, windowMs, now = this.now()) {
-    return this.#call(`rate:${key}`, "/rate/consume", { limit, windowMs, now });
-  }
-  async getProviderState(providerId) {
-    return (await this.#call(`provider:${providerId}`, "/provider/state/get", { providerId })).state;
-  }
-  mutateProviderState(providerId, operation, payload) {
-    return this.#call(`provider:${providerId}`, "/provider/state/mutate", { providerId, operation, payload });
-  }
-  reserveProviderQuota(providerId, policy, now = this.now()) {
-    return this.#call(`provider:${providerId}`, "/provider/quota/reserve", { providerId, policy, now });
-  }
-  getProviderQuota(providerId, policy) {
-    return this.#call(`provider:${providerId}`, "/provider/quota/get", { providerId, policy });
-  }
-  async appendEvent(event, retention = 500) {
-    return (await this.#call("events:global", "/events/append", { event, retention })).appended;
-  }
-  async listEvents(limit = 50) {
-    return (await this.#call("events:global", "/events/list", { limit })).events;
-  }
-  async acquireEvent(eventId, ttlSeconds, leaseSeconds = 30) {
-    return this.#call(`event:${eventId}`, "/event/acquire", { ttlSeconds, leaseSeconds });
-  }
-  async completeEvent(eventId, ttlSeconds) {
-    return (await this.#call(`event:${eventId}`, "/event/complete", { ttlSeconds })).completed;
-  }
-  async acquireAlert(key, cooldownMs) {
-    return (await this.#call(`alert:${key}`, "/alert/acquire", { cooldownMs })).acquired;
-  }
-};
-
-// email-gateway/core/internal-auth.mjs
-var INTERNAL_AUTH_HEADERS = Object.freeze({
-  KEY_ID: "X-AH-Email-Key-Id",
-  TIMESTAMP: "X-AH-Email-Timestamp",
-  NONCE: "X-AH-Email-Nonce",
-  SIGNATURE: "X-AH-Email-Signature"
-});
-function signingSecretsFromEnv(env = {}) {
-  const secrets = {};
-  if (String(env.EMAIL_GATEWAY_SIGNING_SECRET || "").length >= 32) secrets.current = String(env.EMAIL_GATEWAY_SIGNING_SECRET);
-  if (String(env.EMAIL_GATEWAY_PREVIOUS_SIGNING_SECRET || "").length >= 32) secrets.previous = String(env.EMAIL_GATEWAY_PREVIOUS_SIGNING_SECRET);
-  return Object.freeze(secrets);
-}
-async function canonicalInternalRequest({ method, path, timestamp, nonce, bodyText, crypto: crypto2 }) {
-  const bodyHash = await sha256Hex(bodyText || "", crypto2);
-  return `${String(method).toUpperCase()}
-${path}
-${timestamp}
-${nonce}
-${bodyHash}`;
-}
-async function signInternalRequest({ secret, method = "POST", path, timestamp, nonce, bodyText = "", crypto: crypto2 }) {
-  const canonical = await canonicalInternalRequest({ method, path, timestamp, nonce, bodyText, crypto: crypto2 });
-  return hmacSha256Base64Url(secret, canonical, crypto2);
-}
-async function verifyInternalRequest({ request, bodyText = "", secrets, store, config, now = () => Date.now(), crypto: crypto2 }) {
-  const keyId = String(request.headers.get(INTERNAL_AUTH_HEADERS.KEY_ID) || "");
-  const timestamp = String(request.headers.get(INTERNAL_AUTH_HEADERS.TIMESTAMP) || "");
-  const nonce = String(request.headers.get(INTERNAL_AUTH_HEADERS.NONCE) || "");
-  const supplied = String(request.headers.get(INTERNAL_AUTH_HEADERS.SIGNATURE) || "");
-  const secret = secrets?.[keyId];
-  if (!secret || !/^\d{10}$/.test(timestamp) || !/^[A-Za-z0-9_-]{16,96}$/.test(nonce) || !/^[A-Za-z0-9_-]{40,96}$/.test(supplied)) {
-    throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
-  }
-  const currentSeconds = Math.floor(now() / 1e3);
-  if (Math.abs(currentSeconds - Number(timestamp)) > config.security.signatureMaxAgeSeconds) {
-    throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
-  }
-  const url = new URL(request.url);
-  const path = `${url.pathname}${url.search}`;
-  const expected = await signInternalRequest({ secret, method: request.method, path, timestamp, nonce, bodyText, crypto: crypto2 });
-  if (!timingSafeEqual(supplied, expected)) throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
-  const acquired = await store.acquireNonce(`${keyId}:${nonce}`, config.security.nonceTtlSeconds);
-  if (!acquired) throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.REPLAY_DETECTED, retryable: false, status: 409 });
-  return Object.freeze({ keyId, timestamp: Number(timestamp), nonce });
-}
-
 // email-gateway/worker/handler.mjs
 var HEADERS = Object.freeze({
   "Content-Type": "application/json; charset=utf-8",
@@ -3087,8 +3087,14 @@ var AUTH_ERROR_CODES = Object.freeze({
   OTP_EXPIRED: "OTP_EXPIRED",
   OTP_LOCKED: "OTP_LOCKED",
   OTP_USED: "OTP_USED",
+  INVALID_CREDENTIALS: "INVALID_CREDENTIALS",
+  EMAIL_ALREADY_IN_USE: "EMAIL_ALREADY_IN_USE",
+  EMAIL_NOT_VERIFIED: "EMAIL_NOT_VERIFIED",
+  WEAK_PASSWORD: "WEAK_PASSWORD",
   ACCOUNT_DISABLED: "ACCOUNT_DISABLED",
   SESSION_INVALID: "SESSION_INVALID",
+  VERIFICATION_UNAVAILABLE: "VERIFICATION_UNAVAILABLE",
+  AUTH_PROVIDER_UNAVAILABLE: "AUTH_PROVIDER_UNAVAILABLE",
   DELIVERY_UNAVAILABLE: "DELIVERY_UNAVAILABLE",
   STORAGE_UNAVAILABLE: "STORAGE_UNAVAILABLE",
   INTERNAL_ERROR: "INTERNAL_ERROR"
@@ -3102,8 +3108,14 @@ var DEFAULTS2 = Object.freeze({
   [AUTH_ERROR_CODES.OTP_EXPIRED]: Object.freeze({ status: 410, message: "কোডের সময় শেষ হয়েছে—নতুন কোড নিন।" }),
   [AUTH_ERROR_CODES.OTP_LOCKED]: Object.freeze({ status: 429, message: "অনেকবার ভুল কোড দেওয়া হয়েছে—নতুন কোড নিন।" }),
   [AUTH_ERROR_CODES.OTP_USED]: Object.freeze({ status: 409, message: "এই কোডটি ইতিমধ্যে ব্যবহার হয়েছে।" }),
+  [AUTH_ERROR_CODES.INVALID_CREDENTIALS]: Object.freeze({ status: 401, message: "ইমেইল বা পাসওয়ার্ড সঠিক নয়।" }),
+  [AUTH_ERROR_CODES.EMAIL_ALREADY_IN_USE]: Object.freeze({ status: 409, message: "এই ইমেইলে অ্যাকাউন্ট আছে—লগইন করুন।" }),
+  [AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED]: Object.freeze({ status: 403, message: "ইমেইলে পাঠানো verification link-এ ক্লিক করে তারপর লগইন করুন।" }),
+  [AUTH_ERROR_CODES.WEAK_PASSWORD]: Object.freeze({ status: 400, message: "কমপক্ষে ৮ অক্ষরের শক্তিশালী পাসওয়ার্ড দিন।" }),
   [AUTH_ERROR_CODES.ACCOUNT_DISABLED]: Object.freeze({ status: 403, message: "এই অ্যাকাউন্টটি এখন ব্যবহার করা যাচ্ছে না।" }),
   [AUTH_ERROR_CODES.SESSION_INVALID]: Object.freeze({ status: 401, message: "নিরাপদ সেশন পাওয়া যায়নি।" }),
+  [AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE]: Object.freeze({ status: 503, message: "Verification email এখন পাঠানো যাচ্ছে না—একটু পরে আবার চেষ্টা করুন।" }),
+  [AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE]: Object.freeze({ status: 503, message: "অ্যাকাউন্ট সেবা সাময়িকভাবে পাওয়া যাচ্ছে না—একটু পরে চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.DELIVERY_UNAVAILABLE]: Object.freeze({ status: 503, message: "ইমেইল এখন সাময়িকভাবে পাঠানো যাচ্ছে না—একটু পরে চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.STORAGE_UNAVAILABLE]: Object.freeze({ status: 503, message: "অ্যাকাউন্ট সেবা সাময়িকভাবে ব্যস্ত—একটু পরে চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.INTERNAL_ERROR]: Object.freeze({ status: 500, message: "অপ্রত্যাশিত সমস্যা হয়েছে—আবার চেষ্টা করুন।" })
@@ -3221,7 +3233,7 @@ function coarseUserAgent(value) {
 }
 
 // auth-native/core/auth-engine.mjs
-var AUTH_NATIVE_VERSION = "cloudflare-native-v1";
+var AUTH_NATIVE_VERSION = "firebase-email-password-v1";
 var OTP_TTL_MS = 10 * 60 * 1e3;
 var OTP_RESEND_COOLDOWN_MS = 60 * 1e3;
 var OTP_MAX_ATTEMPTS = 5;
@@ -3239,10 +3251,35 @@ var VERIFY_LIMITS = Object.freeze([
   Object.freeze({ scope: "verify-ip-15m", source: "ip", limit: 40, windowMs: 15 * 60 * 1e3 }),
   Object.freeze({ scope: "verify-device-15m", source: "device", limit: 30, windowMs: 15 * 60 * 1e3 })
 ]);
+var FIREBASE_OPERATION_LIMITS = Object.freeze({
+  signup: Object.freeze([
+    Object.freeze({ scope: "firebase-verification-email-minute", source: "email", limit: 1, windowMs: 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-verification-email-day", source: "email", limit: 8, windowMs: 24 * 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-verification-ip-hour", source: "ip", limit: 20, windowMs: 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-verification-device-hour", source: "device", limit: 10, windowMs: 60 * 60 * 1e3 })
+  ]),
+  "verification-resend": Object.freeze([
+    Object.freeze({ scope: "firebase-verification-email-minute", source: "email", limit: 1, windowMs: 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-verification-email-day", source: "email", limit: 8, windowMs: 24 * 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-verification-ip-hour", source: "ip", limit: 20, windowMs: 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-verification-device-hour", source: "device", limit: 10, windowMs: 60 * 60 * 1e3 })
+  ]),
+  "verification-send": Object.freeze([
+    Object.freeze({ scope: "firebase-verification-global-day", source: "global", limit: 1e3, windowMs: 24 * 60 * 60 * 1e3 })
+  ]),
+  login: Object.freeze([
+    Object.freeze({ scope: "firebase-login-email-15m", source: "email", limit: 12, windowMs: 15 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-login-ip-15m", source: "ip", limit: 60, windowMs: 15 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-login-device-15m", source: "device", limit: 30, windowMs: 15 * 60 * 1e3 })
+  ])
+});
 var requiredRepositoryMethods = Object.freeze([
   "prepareChallenge",
   "markDelivery",
   "verifyChallenge",
+  "consumeLimits",
+  "establishExternalSession",
+  "getExternalSession",
   "getSession",
   "revokeSession",
   "ping",
@@ -3373,6 +3410,93 @@ var CloudflareNativeAuthEngine = class {
       created: Boolean(verified.created)
     });
   }
+  async consumeFirebaseOperation(input = {}, requestContext = {}) {
+    const operation = String(input.operation || "");
+    const definitions = FIREBASE_OPERATION_LIMITS[operation];
+    if (!definitions) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+    const email = normalizeAuthEmail(input.email);
+    const context = normalizeContext(requestContext);
+    const refs = await this.#references(email, context);
+    const now = Number(this.now());
+    errorFromRepository(await this.repository.consumeLimits({
+      limits: this.#limits(definitions, refs),
+      now,
+      eventType: `firebase-${operation}`,
+      subjectRef: refs.emailRef
+    }));
+    return Object.freeze({
+      accepted: true,
+      email,
+      emailMask: maskAuthEmail(email),
+      acceptedAt: now
+    });
+  }
+  async establishFirebaseSession(input = {}, requestContext = {}) {
+    const email = normalizeAuthEmail(input.email);
+    const subject = String(input.subject || "").trim();
+    if (!subject || subject.length > 256 || /[\r\n\u0000]/.test(subject)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+    const context = normalizeContext(requestContext);
+    const refs = await this.#references(email, context);
+    const now = Number(this.now());
+    const sessionToken = randomToken(32, this.crypto);
+    const userIdCandidate = `usr_${randomToken(18, this.crypto)}`;
+    const [subjectRef, sessionRef] = await Promise.all([
+      this.hmac.hex("firebase-subject-v1", subject),
+      this.hmac.hex("session-ref-v1", sessionToken)
+    ]);
+    const established = errorFromRepository(await this.repository.establishExternalSession({
+      provider: "firebase",
+      subjectRef,
+      emailRef: refs.emailRef,
+      emailMask: maskAuthEmail(email),
+      sessionRef,
+      userIdCandidate,
+      ipRef: refs.ipRef,
+      deviceRef: refs.deviceRef,
+      userAgent: context.userAgent,
+      now,
+      sessionExpiresAt: now + SESSION_TTL_MS
+    }));
+    return Object.freeze({
+      sessionToken,
+      sessionExpiresAt: now + SESSION_TTL_MS,
+      user: Object.freeze({
+        id: established.user.id,
+        emailMasked: established.user.emailMask,
+        status: established.user.status,
+        createdAt: established.user.createdAt
+      }),
+      created: Boolean(established.created)
+    });
+  }
+  async getFirebaseSession(sessionToken, input = {}) {
+    const token = String(sessionToken || "").trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+    const email = normalizeAuthEmail(input.email);
+    const subject = String(input.subject || "").trim();
+    if (!subject || subject.length > 256 || /[\r\n\u0000]/.test(subject)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+    const [sessionRef, emailRef, subjectRef] = await Promise.all([
+      this.hmac.hex("session-ref-v1", token),
+      this.hmac.hex("email-ref-v1", email),
+      this.hmac.hex("firebase-subject-v1", subject)
+    ]);
+    const result = errorFromRepository(await this.repository.getExternalSession({
+      sessionRef,
+      provider: "firebase",
+      subjectRef,
+      emailRef,
+      now: Number(this.now())
+    }));
+    return Object.freeze({
+      expiresAt: result.expiresAt,
+      user: Object.freeze({
+        id: result.user.id,
+        emailMasked: result.user.emailMask,
+        status: result.user.status,
+        createdAt: result.user.createdAt
+      })
+    });
+  }
   async getSession(sessionToken) {
     const token = String(sessionToken || "").trim();
     if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
@@ -3406,13 +3530,176 @@ var CloudflareNativeAuthEngine = class {
   }
 };
 
+// auth-native/providers/firebase-auth.mjs
+var IDENTITY_TOOLKIT = "https://identitytoolkit.googleapis.com/v1";
+var SECURE_TOKEN = "https://securetoken.googleapis.com/v1/token";
+var DEFAULT_CONTINUE_URL = "https://admissionhub.pages.dev/?firebaseVerified=1";
+var FirebaseRequestError = class extends Error {
+  constructor(reason = "FIREBASE_UNAVAILABLE", status = 0) {
+    super(reason);
+    this.name = "FirebaseRequestError";
+    this.reason = String(reason || "FIREBASE_UNAVAILABLE").slice(0, 80);
+    this.status = Number(status || 0);
+  }
+};
+var errorReason = (payload) => String(payload?.error?.message || "FIREBASE_UNAVAILABLE").split(/\s*:\s*/, 1)[0].trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 80) || "FIREBASE_UNAVAILABLE";
+var validApiKey = (value) => /^[A-Za-z0-9_-]{20,128}$/.test(String(value || ""));
+var validToken = (value) => typeof value === "string" && value.length >= 20 && value.length <= 4096 && !/[\r\n\u0000;]/.test(value);
+var validSubject = (value) => typeof value === "string" && value.length >= 1 && value.length <= 256 && !/[\r\n\u0000]/.test(value);
+function safeContinueUrl(value) {
+  try {
+    const url = new URL(String(value || DEFAULT_CONTINUE_URL));
+    if (url.protocol !== "https:" || url.hostname !== "admissionhub.pages.dev") return DEFAULT_CONTINUE_URL;
+    return url.href;
+  } catch {
+    return DEFAULT_CONTINUE_URL;
+  }
+}
+var FirebaseEmailPasswordProvider = class {
+  constructor({ apiKey, continueUrl, fetchImpl = globalThis.fetch } = {}) {
+    this.apiKey = String(apiKey || "").trim();
+    this.continueUrl = safeContinueUrl(continueUrl);
+    this.fetch = fetchImpl;
+  }
+  get configured() {
+    return validApiKey(this.apiKey) && typeof this.fetch === "function";
+  }
+  async inspectProject() {
+    if (!this.configured) throw new FirebaseRequestError("NOT_CONFIGURED");
+    let response3;
+    try {
+      response3 = await this.fetch(`${IDENTITY_TOOLKIT}/projects?key=${encodeURIComponent(this.apiKey)}`, {
+        method: "GET",
+        headers: { Accept: "application/json", "Cache-Control": "no-store" },
+        signal: AbortSignal.timeout(12e3)
+      });
+    } catch {
+      throw new FirebaseRequestError("NETWORK_ERROR");
+    }
+    let payload = {};
+    try {
+      payload = await response3.json();
+    } catch {
+    }
+    if (!response3.ok) throw new FirebaseRequestError(errorReason(payload), response3.status);
+    const authorizedDomains = Array.isArray(payload?.authorizedDomains) ? payload.authorizedDomains.map((value) => String(value).toLowerCase()) : [];
+    return Object.freeze({
+      projectIdentified: typeof payload?.projectId === "string" && payload.projectId.length > 3,
+      continueDomainAuthorized: authorizedDomains.includes(new URL(this.continueUrl).hostname)
+    });
+  }
+  async #post(url, body, { form = false } = {}) {
+    if (!this.configured) throw new FirebaseRequestError("NOT_CONFIGURED");
+    let response3;
+    try {
+      response3 = await this.fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": form ? "application/x-www-form-urlencoded" : "application/json",
+          Accept: "application/json",
+          "Cache-Control": "no-store"
+        },
+        body: form ? String(body) : JSON.stringify(body),
+        signal: AbortSignal.timeout(12e3)
+      });
+    } catch {
+      throw new FirebaseRequestError("NETWORK_ERROR");
+    }
+    let payload = {};
+    try {
+      payload = await response3.json();
+    } catch {
+    }
+    if (!response3.ok) throw new FirebaseRequestError(errorReason(payload), response3.status);
+    return payload;
+  }
+  async signUp(email, password) {
+    const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:signUp?key=${encodeURIComponent(this.apiKey)}`, {
+      email,
+      password,
+      returnSecureToken: true
+    });
+    if (!validToken(payload?.idToken) || !validSubject(payload?.localId)) {
+      throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
+    }
+    return Object.freeze({ idToken: payload.idToken, subject: payload.localId });
+  }
+  async sendVerificationEmail(idToken, email) {
+    if (!validToken(idToken)) throw new FirebaseRequestError("INVALID_ID_TOKEN");
+    const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:sendOobCode?key=${encodeURIComponent(this.apiKey)}`, {
+      requestType: "VERIFY_EMAIL",
+      idToken,
+      email,
+      continueUrl: this.continueUrl,
+      canHandleCodeInApp: false
+    });
+    if (typeof payload?.email !== "string" || payload.email.trim().toLowerCase() !== String(email || "").trim().toLowerCase()) {
+      throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
+    }
+    return Object.freeze({ accepted: true });
+  }
+  async deleteAccount(idToken) {
+    if (!validToken(idToken)) throw new FirebaseRequestError("INVALID_ID_TOKEN");
+    await this.#post(`${IDENTITY_TOOLKIT}/accounts:delete?key=${encodeURIComponent(this.apiKey)}`, { idToken });
+    return Object.freeze({ deleted: true });
+  }
+  async signIn(email, password) {
+    const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:signInWithPassword?key=${encodeURIComponent(this.apiKey)}`, {
+      email,
+      password,
+      returnSecureToken: true
+    });
+    if (!validToken(payload?.idToken) || !validToken(payload?.refreshToken) || !validSubject(payload?.localId)) {
+      throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
+    }
+    return Object.freeze({
+      idToken: payload.idToken,
+      refreshToken: payload.refreshToken,
+      subject: payload.localId,
+      expiresIn: Math.max(60, Number(payload.expiresIn || 3600))
+    });
+  }
+  async lookup(idToken) {
+    if (!validToken(idToken)) throw new FirebaseRequestError("INVALID_ID_TOKEN");
+    const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:lookup?key=${encodeURIComponent(this.apiKey)}`, { idToken });
+    const user = Array.isArray(payload?.users) ? payload.users[0] : null;
+    if (!user || !validSubject(user.localId) || typeof user.email !== "string") {
+      throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
+    }
+    return Object.freeze({
+      subject: user.localId,
+      email: user.email,
+      emailVerified: user.emailVerified === true,
+      disabled: user.disabled === true
+    });
+  }
+  async refresh(refreshToken) {
+    if (!validToken(refreshToken)) throw new FirebaseRequestError("INVALID_REFRESH_TOKEN");
+    const body = new URLSearchParams({ grant_type: "refresh_token", refresh_token: refreshToken });
+    const payload = await this.#post(`${SECURE_TOKEN}?key=${encodeURIComponent(this.apiKey)}`, body, { form: true });
+    if (!validToken(payload?.id_token) || !validToken(payload?.refresh_token) || !validSubject(payload?.user_id)) {
+      throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
+    }
+    return Object.freeze({
+      idToken: payload.id_token,
+      refreshToken: payload.refresh_token,
+      subject: payload.user_id,
+      expiresIn: Math.max(60, Number(payload.expires_in || 3600))
+    });
+  }
+};
+
 // auth-native/worker/public-auth-handler.mjs
 var AUTH_API_PREFIX = "/api/auth/v1";
 var AUTH_SESSION_COOKIE = "__Host-ah_session";
+var AUTH_FIREBASE_COOKIE = "__Host-ah_firebase";
 var AUTH_DEVICE_COOKIE = "__Host-ah_device";
 var AUTHORITY_NAME = "admission-hub-global-auth-v1";
 var MAX_BODY_BYTES = 4096;
 var YEAR_SECONDS = 365 * 24 * 60 * 60;
+var SESSION_SECONDS = 30 * 24 * 60 * 60;
+var PASSWORD_MIN = 8;
+var PASSWORD_MAX = 128;
 var JSON_HEADERS = Object.freeze({
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store, max-age=0",
@@ -3440,18 +3727,31 @@ var corsHeaders = (request) => {
     "Access-Control-Allow-Credentials": "true"
   } : {};
 };
-var json3 = (request, status, body, headers = {}) => new Response(JSON.stringify(body), {
-  status,
-  headers: { ...JSON_HEADERS, ...corsHeaders(request), ...headers }
-});
+var json3 = (request, status, body, extraHeaders = {}) => {
+  const headers = new Headers({ ...JSON_HEADERS, ...corsHeaders(request) });
+  for (const [name, value] of Object.entries(extraHeaders || {})) {
+    if (Array.isArray(value)) value.forEach((item) => headers.append(name, item));
+    else headers.set(name, value);
+  }
+  return new Response(JSON.stringify(body), { status, headers });
+};
 var cookies = (request) => Object.fromEntries(
   String(request.headers.get("Cookie") || "").split(";").map((part) => part.trim()).filter(Boolean).map((part) => {
     const index = part.indexOf("=");
-    return index < 1 ? ["", ""] : [part.slice(0, index), part.slice(index + 1)];
+    if (index < 1) return ["", ""];
+    const value = part.slice(index + 1);
+    try {
+      return [part.slice(0, index), decodeURIComponent(value)];
+    } catch {
+      return [part.slice(0, index), ""];
+    }
   }).filter(([key]) => key)
 );
-var sessionCookie = (token, maxAge) => `${AUTH_SESSION_COOKIE}=${token}; Path=/; Max-Age=${Math.max(0, Math.floor(maxAge))}; HttpOnly; Secure; SameSite=Strict`;
-var deviceCookie = (token) => `${AUTH_DEVICE_COOKIE}=${token}; Path=/; Max-Age=${YEAR_SECONDS}; HttpOnly; Secure; SameSite=Lax`;
+var secureCookie = (name, token, maxAge) => `${name}=${encodeURIComponent(String(token || ""))}; Path=/; Max-Age=${Math.max(0, Math.floor(maxAge))}; HttpOnly; Secure; SameSite=Strict`;
+var sessionCookie = (token, maxAge) => secureCookie(AUTH_SESSION_COOKIE, token, maxAge);
+var firebaseCookie = (token, maxAge) => secureCookie(AUTH_FIREBASE_COOKIE, token, maxAge);
+var deviceCookie = (token) => `${AUTH_DEVICE_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${YEAR_SECONDS}; HttpOnly; Secure; SameSite=Lax`;
+var clearAuthCookies = () => [sessionCookie("", 0), firebaseCookie("", 0)];
 async function readJson(request) {
   if (!String(request.headers.get("Content-Type") || "").toLowerCase().startsWith("application/json")) {
     throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
@@ -3489,6 +3789,14 @@ var clientContext = (request, existingDeviceId = "") => {
     userAgent: String(request.headers.get("User-Agent") || "").slice(0, 300)
   });
 };
+var credentials = (body) => {
+  const email = String(body?.email || "").trim();
+  const password = typeof body?.password === "string" ? body.password : "";
+  if (!email || password.length < PASSWORD_MIN || password.length > PASSWORD_MAX || /[\r\n\u0000]/.test(password)) {
+    throw new NativeAuthError(password && password.length < PASSWORD_MIN ? AUTH_ERROR_CODES.WEAK_PASSWORD : AUTH_ERROR_CODES.INVALID_INPUT);
+  }
+  return Object.freeze({ email, password });
+};
 async function callAuthority(env, path, body, method = "POST") {
   if (!env?.AUTH_AUTHORITY || typeof env.AUTH_AUTHORITY.idFromName !== "function") {
     throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
@@ -3518,12 +3826,36 @@ async function callAuthority(env, path, body, method = "POST") {
   }
   return data.result || data;
 }
-function deliverySucceeded(result) {
-  return Boolean(result?.ok && ["ACCEPTED", "QUEUED", "SENT", "DELIVERED"].includes(result.status));
+function providerError(cause, stage = "auth") {
+  if (!(cause instanceof FirebaseRequestError)) return new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
+  const reason = cause.reason;
+  if (reason === "NOT_CONFIGURED" || ["API_KEY_INVALID", "PROJECT_NOT_FOUND", "OPERATION_NOT_ALLOWED"].includes(reason)) {
+    return new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+  }
+  if (["INVALID_EMAIL", "MISSING_EMAIL", "MISSING_PASSWORD"].includes(reason)) return new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  if (reason === "EMAIL_EXISTS") return new NativeAuthError(AUTH_ERROR_CODES.EMAIL_ALREADY_IN_USE);
+  if (reason === "WEAK_PASSWORD") return new NativeAuthError(AUTH_ERROR_CODES.WEAK_PASSWORD);
+  if (["INVALID_LOGIN_CREDENTIALS", "EMAIL_NOT_FOUND", "INVALID_PASSWORD"].includes(reason)) {
+    return new NativeAuthError(AUTH_ERROR_CODES.INVALID_CREDENTIALS);
+  }
+  if (reason === "USER_DISABLED") return new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_DISABLED);
+  if (["TOO_MANY_ATTEMPTS_TRY_LATER", "TOO_MANY_ATTEMPTS", "IP_BLOCKED"].includes(reason)) {
+    return new NativeAuthError(AUTH_ERROR_CODES.RATE_LIMITED, { retryAfter: 60 });
+  }
+  if (stage === "verification" && ["QUOTA_EXCEEDED", "INVALID_CONTINUE_URI", "UNAUTHORIZED_DOMAIN", "NETWORK_ERROR", "INVALID_PROVIDER_RESPONSE"].includes(reason)) {
+    return new NativeAuthError(AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE);
+  }
+  if (stage === "session" && ["INVALID_REFRESH_TOKEN", "TOKEN_EXPIRED", "INVALID_ID_TOKEN", "USER_NOT_FOUND"].includes(reason)) {
+    return new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
+  }
+  return new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
 }
-function createNativeAuthHandler({ sendEmail } = {}) {
-  if (typeof sendEmail !== "function") throw new TypeError("sendEmail dependency is required.");
-  return async function handleNativeAuthRequest(request, env, executionContext) {
+var assertProviderUser = (signed, user) => {
+  if (signed.subject !== user.subject) throw new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
+  if (user.disabled) throw new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_DISABLED);
+};
+function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
+  return async function handleNativeAuthRequest(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith(`${AUTH_API_PREFIX}/`) && url.pathname !== AUTH_API_PREFIX) return null;
     if (!allowedOrigin(request.headers.get("Origin") || "")) {
@@ -3541,111 +3873,193 @@ function createNativeAuthHandler({ sendEmail } = {}) {
         }
       });
     }
+    const provider = new FirebaseEmailPasswordProvider({
+      apiKey: env?.FIREBASE_WEB_API_KEY,
+      continueUrl: env?.FIREBASE_CONTINUE_URL,
+      fetchImpl
+    });
+    const jar = cookies(request);
+    const context = clientContext(request, jar[AUTH_DEVICE_COOKIE]);
     try {
       if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/config`) {
         const health = await callAuthority(env, "/internal/ping", null, "GET");
+        let firebaseReady = false;
+        if (provider.configured) {
+          try {
+            const inspected = await provider.inspectProject();
+            firebaseReady = inspected.projectIdentified && inspected.continueDomainAuthorized;
+          } catch {
+          }
+        }
         return json3(request, 200, {
           ok: true,
           auth: {
             version: AUTH_NATIVE_VERSION,
-            mode: "passwordless-email-otp",
+            mode: "email-password-with-email-verification",
+            provider: "firebase",
+            available: firebaseReady && health.ok === true,
             storage: health.storage,
-            otp: { digits: 6, expiresIn: 600, resendAfter: 60, maxAttempts: 5 },
-            session: { transport: "secure-http-only-cookie", maxAge: 2592e3 },
-            deliveryLimit: { daily: 200, monthly: 6e3 }
+            emailVerifiedRequired: true,
+            verificationEmail: { kind: "address-verification", dailyCapacity: 1e3 },
+            registeredAccountLimit: "unlimited",
+            session: { transport: "secure-http-only-cookie", maxAge: SESSION_SECONDS }
           }
         });
       }
-      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/otp/request`) {
-        const body = await readJson(request);
-        const jar = cookies(request);
-        const context = clientContext(request, jar[AUTH_DEVICE_COOKIE]);
-        const prepared = await callAuthority(env, "/internal/otp/prepare", {
-          input: { email: body.email },
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/signup`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const input = credentials(await readJson(request));
+        const prepared = await callAuthority(env, "/internal/firebase/rate", {
+          input: { operation: "signup", email: input.email },
           context
         });
-        const requestId = `authotp:${prepared.challengeId}`;
-        let delivery;
+        let signed;
         try {
-          delivery = await sendEmail(env, executionContext, {
-            type: "SIGNUP_VERIFICATION",
-            recipient: prepared.email,
-            subject: "Admission Hub নিরাপত্তা কোড",
-            template: "SIGNUP_VERIFICATION",
-            variables: { otp: prepared.code, purpose: "নিরাপদ অ্যাকাউন্ট যাচাই" },
-            requestId,
-            idempotencyKey: requestId,
-            priority: "HIGH",
-            context: { ip: context.ip, deviceId: context.deviceId }
-          });
-        } catch (error) {
-          const uncertain = Boolean(error?.uncertain || error?.dispatched);
-          await callAuthority(env, "/internal/otp/delivery", {
-            challengeId: prepared.challengeId,
-            delivery: { accepted: false, uncertain, provider: error?.providerId || null }
-          });
-          if (!uncertain) throw new NativeAuthError(AUTH_ERROR_CODES.DELIVERY_UNAVAILABLE);
-          delivery = { ok: false, uncertain: true, status: "UNCERTAIN" };
+          signed = await provider.signUp(prepared.email, input.password);
+        } catch (cause) {
+          throw providerError(cause, "signup");
         }
-        if (!deliverySucceeded(delivery) && !delivery?.uncertain) {
-          await callAuthority(env, "/internal/otp/delivery", {
-            challengeId: prepared.challengeId,
-            delivery: { accepted: false, uncertain: false, provider: delivery?.providerId || null }
+        try {
+          await callAuthority(env, "/internal/firebase/rate", {
+            input: { operation: "verification-send", email: prepared.email },
+            context
           });
-          throw new NativeAuthError(AUTH_ERROR_CODES.DELIVERY_UNAVAILABLE);
+        } catch (cause) {
+          try {
+            await provider.deleteAccount(signed.idToken);
+          } catch {
+          }
+          throw cause;
         }
-        if (deliverySucceeded(delivery)) {
-          await callAuthority(env, "/internal/otp/delivery", {
-            challengeId: prepared.challengeId,
-            delivery: { accepted: true, uncertain: false, provider: delivery.providerId || null }
-          });
+        try {
+          await provider.sendVerificationEmail(signed.idToken, prepared.email);
+        } catch (cause) {
+          throw providerError(cause, "verification");
         }
         return json3(request, 202, {
           ok: true,
-          challenge: {
-            id: prepared.challengeId,
+          accountCreated: true,
+          authenticated: false,
+          verification: {
+            sent: true,
             emailMasked: prepared.emailMask,
-            expiresAt: prepared.expiresAt,
-            expiresIn: prepared.expiresIn,
-            resendAfter: prepared.resendAfter,
-            delivery: delivery?.uncertain ? "uncertain" : "accepted"
+            requiredBeforeLogin: true,
+            dailyCapacity: 1e3
           }
         }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
       }
-      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/otp/verify`) {
-        const body = await readJson(request);
-        const jar = cookies(request);
-        const context = clientContext(request, jar[AUTH_DEVICE_COOKIE]);
-        const verified = await callAuthority(env, "/internal/otp/verify", {
-          input: { email: body.email, challengeId: body.challengeId, code: body.code },
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/verification/resend`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const input = credentials(await readJson(request));
+        const prepared = await callAuthority(env, "/internal/firebase/rate", {
+          input: { operation: "verification-resend", email: input.email },
           context
         });
-        const maxAge = Math.max(1, Math.floor((Number(verified.sessionExpiresAt) - Date.now()) / 1e3));
+        let signed;
+        let user;
+        try {
+          signed = await provider.signIn(prepared.email, input.password);
+          user = await provider.lookup(signed.idToken);
+        } catch (cause) {
+          throw providerError(cause, "auth");
+        }
+        assertProviderUser(signed, user);
+        if (user.emailVerified) {
+          return json3(request, 200, { ok: true, alreadyVerified: true, authenticated: false });
+        }
+        await callAuthority(env, "/internal/firebase/rate", {
+          input: { operation: "verification-send", email: user.email },
+          context
+        });
+        try {
+          await provider.sendVerificationEmail(signed.idToken, user.email);
+        } catch (cause) {
+          throw providerError(cause, "verification");
+        }
+        return json3(request, 202, {
+          ok: true,
+          authenticated: false,
+          verification: { sent: true, emailMasked: prepared.emailMask, dailyCapacity: 1e3 }
+        }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/login`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const input = credentials(await readJson(request));
+        const prepared = await callAuthority(env, "/internal/firebase/rate", {
+          input: { operation: "login", email: input.email },
+          context
+        });
+        let signed;
+        let user;
+        try {
+          signed = await provider.signIn(prepared.email, input.password);
+          user = await provider.lookup(signed.idToken);
+        } catch (cause) {
+          throw providerError(cause, "auth");
+        }
+        assertProviderUser(signed, user);
+        if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+        const established = await callAuthority(env, "/internal/firebase/session/create", {
+          input: { email: user.email, subject: user.subject },
+          context
+        });
+        const maxAge = Math.max(1, Math.min(SESSION_SECONDS, Math.floor((Number(established.sessionExpiresAt) - Date.now()) / 1e3)));
+        const setCookies = [sessionCookie(established.sessionToken, maxAge), firebaseCookie(signed.refreshToken, maxAge)];
+        if (context.isNewDevice) setCookies.push(deviceCookie(context.deviceId));
         return json3(request, 200, {
           ok: true,
           authenticated: true,
-          created: verified.created,
-          user: verified.user,
-          session: { expiresAt: verified.sessionExpiresAt }
-        }, { "Set-Cookie": sessionCookie(verified.sessionToken, maxAge) });
+          emailVerified: true,
+          created: established.created,
+          user: established.user,
+          session: { expiresAt: established.sessionExpiresAt }
+        }, { "Set-Cookie": setCookies });
       }
       if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/session`) {
-        const token = cookies(request)[AUTH_SESSION_COOKIE];
-        if (!token) throw new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
-        const session = await callAuthority(env, "/internal/session/get", { sessionToken: token });
-        return json3(request, 200, { ok: true, authenticated: true, ...session });
+        const sessionToken = jar[AUTH_SESSION_COOKIE];
+        const refreshToken = jar[AUTH_FIREBASE_COOKIE];
+        if (!sessionToken || !refreshToken) throw new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
+        let refreshed;
+        let user;
+        try {
+          refreshed = await provider.refresh(refreshToken);
+          user = await provider.lookup(refreshed.idToken);
+        } catch (cause) {
+          throw providerError(cause, "session");
+        }
+        assertProviderUser(refreshed, user);
+        if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+        const session = await callAuthority(env, "/internal/firebase/session/get", {
+          sessionToken,
+          input: { email: user.email, subject: user.subject }
+        });
+        const maxAge = Math.max(1, Math.min(SESSION_SECONDS, Math.floor((Number(session.expiresAt) - Date.now()) / 1e3)));
+        return json3(request, 200, {
+          ok: true,
+          authenticated: true,
+          emailVerified: true,
+          ...session
+        }, { "Set-Cookie": firebaseCookie(refreshed.refreshToken, maxAge) });
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/session/logout`) {
-        const token = cookies(request)[AUTH_SESSION_COOKIE];
-        if (token) await callAuthority(env, "/internal/session/revoke", { sessionToken: token });
-        return json3(request, 200, { ok: true, authenticated: false }, {
-          "Set-Cookie": sessionCookie("", 0)
-        });
+        const sessionToken = jar[AUTH_SESSION_COOKIE];
+        if (sessionToken) await callAuthority(env, "/internal/session/revoke", { sessionToken });
+        return json3(request, 200, { ok: true, authenticated: false }, { "Set-Cookie": clearAuthCookies() });
       }
       return json3(request, 404, { ok: false, error: { code: "NOT_FOUND", message: "Endpoint পাওয়া যায়নি।" } });
     } catch (cause) {
       const error = asNativeAuthError(cause);
-      return json3(request, error.status, { ok: false, error: error.toPublic() }, error.retryAfter ? { "Retry-After": String(error.retryAfter) } : {});
+      const clearSession = [AUTH_ERROR_CODES.SESSION_INVALID, AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED, AUTH_ERROR_CODES.ACCOUNT_DISABLED].includes(error.code) && url.pathname === `${AUTH_API_PREFIX}/session`;
+      if (clearSession && jar[AUTH_SESSION_COOKIE]) {
+        try {
+          await callAuthority(env, "/internal/session/revoke", { sessionToken: jar[AUTH_SESSION_COOKIE] });
+        } catch {
+        }
+      }
+      return json3(request, error.status, { ok: false, error: error.toPublic() }, {
+        ...error.retryAfter ? { "Retry-After": String(error.retryAfter) } : {},
+        ...clearSession ? { "Set-Cookie": clearAuthCookies() } : {}
+      });
     }
   };
 }
@@ -3853,6 +4267,17 @@ var SqliteAuthRepository = class {
         created_at INTEGER NOT NULL,
         last_login_at INTEGER NOT NULL
       )`,
+      `CREATE TABLE IF NOT EXISTS auth_external_identities (
+        provider TEXT NOT NULL,
+        subject_ref TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        last_verified_at INTEGER NOT NULL,
+        PRIMARY KEY(provider, subject_ref),
+        UNIQUE(provider, user_id),
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_external_user ON auth_external_identities(user_id)`,
       `CREATE TABLE IF NOT EXISTS auth_challenges (
         challenge_id TEXT PRIMARY KEY,
         email_ref TEXT NOT NULL,
@@ -3906,7 +4331,7 @@ var SqliteAuthRepository = class {
       `CREATE INDEX IF NOT EXISTS auth_security_events_time ON auth_security_events(occurred_at DESC)`
     ];
     for (const statement of statements) this.sql.exec(statement);
-    this.sql.exec("INSERT OR IGNORE INTO auth_meta(key,value) VALUES('schema_version','1')");
+    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','2') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
   }
   #rows(statement, ...bindings) {
     return Array.from(this.sql.exec(statement, ...bindings));
@@ -4104,6 +4529,127 @@ var SqliteAuthRepository = class {
       return { verified: true, created, user };
     });
   }
+  async consumeLimits({ limits, now, eventType, subjectRef }) {
+    return this.#transaction(() => {
+      const denied = this.#consumeLimits(limits, now);
+      if (denied) return denied;
+      this.#event(eventType, subjectRef, null, now);
+      return { accepted: true };
+    });
+  }
+  async establishExternalSession(input) {
+    return this.#transaction(() => {
+      const identity = this.#one(
+        `SELECT user_id AS userId FROM auth_external_identities
+         WHERE provider=? AND subject_ref=?`,
+        input.provider,
+        input.subjectRef
+      );
+      let user = identity ? this.#one(
+        `SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt
+         FROM auth_users WHERE user_id=?`,
+        identity.userId
+      ) : this.#one(
+        `SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt
+         FROM auth_users WHERE email_ref=?`,
+        input.emailRef
+      );
+      if (identity && !user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+      if (!identity && user) {
+        this.sql.exec(
+          "DELETE FROM auth_external_identities WHERE provider=? AND user_id=?",
+          input.provider,
+          user.id
+        );
+      }
+      let created = false;
+      if (!user) {
+        this.sql.exec(
+          `INSERT OR IGNORE INTO auth_users(user_id,email_ref,email_mask,status,created_at,last_login_at)
+           VALUES(?,?,?,'active',?,?)`,
+          input.userIdCandidate,
+          input.emailRef,
+          input.emailMask,
+          input.now,
+          input.now
+        );
+        user = this.#one(
+          `SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt
+           FROM auth_users WHERE email_ref=?`,
+          input.emailRef
+        );
+        created = user?.id === input.userIdCandidate;
+      }
+      if (!user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+      if (user.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      if (identity && user.emailRef !== input.emailRef) {
+        const emailOwner = this.#one("SELECT user_id AS id FROM auth_users WHERE email_ref=?", input.emailRef);
+        if (emailOwner && emailOwner.id !== user.id) return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+        this.sql.exec("UPDATE auth_users SET email_ref=?,email_mask=? WHERE user_id=?", input.emailRef, input.emailMask, user.id);
+        user.emailRef = input.emailRef;
+        user.emailMask = input.emailMask;
+      }
+      if (!identity) {
+        this.sql.exec(
+          `INSERT INTO auth_external_identities(provider,subject_ref,user_id,created_at,last_verified_at)
+           VALUES(?,?,?,?,?)`,
+          input.provider,
+          input.subjectRef,
+          user.id,
+          input.now,
+          input.now
+        );
+      } else {
+        this.sql.exec(
+          "UPDATE auth_external_identities SET last_verified_at=? WHERE provider=? AND subject_ref=?",
+          input.now,
+          input.provider,
+          input.subjectRef
+        );
+      }
+      this.sql.exec("UPDATE auth_users SET last_login_at=? WHERE user_id=?", input.now, user.id);
+      this.sql.exec(
+        `INSERT INTO auth_sessions(
+          session_ref,user_id,created_at,expires_at,last_seen_at,revoked_at,ip_ref,device_ref,user_agent
+        ) VALUES(?,?,?,?,?,NULL,?,?,?)`,
+        input.sessionRef,
+        user.id,
+        input.now,
+        input.sessionExpiresAt,
+        input.now,
+        input.ipRef,
+        input.deviceRef,
+        input.userAgent
+      );
+      this.#event(created ? "firebase-account-linked" : "firebase-login", input.subjectRef, user.id, input.now);
+      return { established: true, created, user };
+    });
+  }
+  async getExternalSession({ sessionRef, provider, subjectRef, emailRef, now }) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT s.expires_at AS expiresAt,s.last_seen_at AS lastSeenAt,
+          u.user_id AS id,u.email_mask AS emailMask,u.status,u.created_at AS createdAt
+         FROM auth_sessions s
+         JOIN auth_users u ON u.user_id=s.user_id
+         JOIN auth_external_identities x ON x.user_id=u.user_id AND x.provider=? AND x.subject_ref=?
+         WHERE s.session_ref=? AND s.revoked_at IS NULL AND u.email_ref=?`,
+        provider,
+        subjectRef,
+        sessionRef,
+        emailRef
+      );
+      if (!row || Number(row.expiresAt) <= now) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
+      if (row.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      if (now - Number(row.lastSeenAt) > 6 * 60 * 60 * 1e3) {
+        this.sql.exec("UPDATE auth_sessions SET last_seen_at=? WHERE session_ref=?", now, sessionRef);
+      }
+      return {
+        expiresAt: Number(row.expiresAt),
+        user: { id: row.id, emailMask: row.emailMask, status: row.status, createdAt: Number(row.createdAt) }
+      };
+    });
+  }
   async getSession({ sessionRef, now }) {
     return this.#transaction(() => {
       const row = this.#one(
@@ -4135,7 +4681,7 @@ var SqliteAuthRepository = class {
   }
   async ping() {
     const row = this.#one("SELECT value FROM auth_meta WHERE key='schema_version'");
-    return { ok: row?.value === "1", storage: "sqlite-durable-object", schema: Number(row?.value || 0) };
+    return { ok: row?.value === "2", storage: "sqlite-durable-object", schema: Number(row?.value || 0) };
   }
   async cleanup(now) {
     return this.#transaction(() => {
@@ -4225,6 +4771,20 @@ var AdmissionAuthAuthority = class {
         await this.#scheduleExpiry();
         return response2(200, { ok: true, result });
       }
+      if (url.pathname === "/internal/firebase/rate") {
+        const result = await this.engine.consumeFirebaseOperation(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/firebase/session/create") {
+        const result = await this.engine.establishFirebaseSession(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/firebase/session/get") {
+        const result = await this.engine.getFirebaseSession(body.sessionToken, body.input);
+        return response2(200, { ok: true, result });
+      }
       if (url.pathname === "/internal/session/get") {
         const result = await this.engine.getSession(body.sessionToken);
         return response2(200, { ok: true, result });
@@ -4252,17 +4812,7 @@ var AdmissionAuthAuthority = class {
 };
 
 // gk-agent-worker.js
-var nativeAuthHandler = createNativeAuthHandler({
-  async sendEmail(env, _executionContext, request) {
-    const gateway = await createEmailGateway({
-      config: safeParseEmailGatewayConfig(env.EMAIL_GATEWAY_CONFIG),
-      store: new DurableObjectEmailStore(env.EMAIL_COORDINATOR),
-      env,
-      privatePepper: env.EMAIL_PRIVATE_PEPPER
-    });
-    return gateway.send(request);
-  }
-});
+var nativeAuthHandler = createNativeAuthHandler();
 var APP_HEADER = "admission-hub";
 var BU_BASE = "https://api.browser-use.com/api/v2";
 var POLL_EVERY_MS = 3e4;
