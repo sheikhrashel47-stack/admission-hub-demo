@@ -1,76 +1,69 @@
-# Admission Hub — Infisical Email Gateway bridge
+# Admission Hub — Infisical and Cloudflare Email Gateway handoff
 
-**আপডেট:** 2026-09-09 (Asia/Dhaka) · Agent: **জুজু**
+**Updated:** 2026-09-09 (Asia/Dhaka) · Agent: **Juju**
 
-## Current truth
+## STATUS
 
-- Owner created the dedicated Infisical source with only display environment `Production` (slug `prod`) and `/email-gateway`.
-- Machine Identity `admission-hub-email-gateway-production` is OIDC-only, uses the exact immutable GitHub environment subject, has organization role `No Access`, and normally has read-only project role `Viewer`.
-- Public connection identifiers are configured in protected GitHub environment `email-gateway-production`; values are intentionally not repeated here.
-- PRs `#8`–`#12` for the bridge, path, immutable subject, Production slug and initial safe bootstrap are merged.
-- Provider activation and real Gmail OTP remain off. No probe changed a Worker binding.
+- **IMPLEMENTED:** Protected GitHub OIDC → Infisical read/stage bridge, create-only credential-independent bootstrap, exact 33-name validation, additive Cloudflare staging, and names-only Cloudflare provider-location audit.
+- **TESTED:** Full Email suite **101/101** plus integration **4/4** after the latest correction/audit change. Inventory-specific tests passed **2/2**. YAML, Node syntax and diff checks passed.
+- **VERIFIED:** Infisical connection and exact path work; core source is **18/33**; owner confirmed the Machine Identity role was restored to normal `Viewer`.
+- **BLOCKED:** Fifteen genuine provider-owned values are absent. Complete multi-provider production sender verification cannot use the Cloudflare-owned `pages.dev` hostname as an email domain.
 
-## VERIFIED CONNECTION
+## INFISICAL RESULTS
 
-Three bounded probes were used while the source was empty:
+The corrected core-only bootstrap was merged in PR `#13` as `9a4b2f464829cdd84ffafb5ff4e151aa508032cb`.
 
-1. The first failed closed before source access because the OIDC Issuer had an accidental trailing slash.
-2. After correction, OIDC authentication succeeded but source lookup showed that Infisical’s `Production` display environment uses slug `prod`, not `production`.
-3. After PR `#11` and metadata correction, OIDC authentication and exact `/email-gateway` retrieval succeeded. The local allowlist validator then stopped as expected with all **33** source names absent. Cloudflare staging was skipped.
+Run `34324147787` used the protected GitHub environment and OIDC to atomically create exactly 18 credential-independent entries under `Production` / `prod` / `/email-gateway`:
 
-This verifies GitHub OIDC, Machine Identity, project identifier, Production slug, read role and exact source path. It is not provider or delivery evidence.
+- independent generated signing and recipient-hash values;
+- `EMAIL_PROVIDER_ACTIVATION=disabled`;
+- all-disabled provider/router policy;
+- seven `Admission Hub` provider sender names;
+- seven false sender-evidence flags.
 
-## IMPLEMENTED
+It did not receive or call a provider credential, call Cloudflare, overwrite/delete a source entry, activate a provider or send email. Names-only post-write verification succeeded.
 
-- Protected staging workflow `.github/workflows/email-gateway-infisical-sync.yml`.
-- Exact 33-name allowlist including `EMAIL_RECIPIENT_HASH_PEPPER`.
-- Forced initial `EMAIL_PROVIDER_ACTIVATION=disabled`.
-- Mode-`0600` ephemeral Cloudflare bulk payload and unconditional cleanup.
-- No destructive destination sync; unrelated Worker bindings remain preserved.
-- All secret-bearing actions pinned to immutable commit SHAs.
-- Dedicated project boundary with normal read-only Machine Identity access.
-- One-time guide `docs/email-gateway/INFISICAL_SETUP.md`.
+Run `34324194702` then fetched the source successfully and the local validator reported exactly 15 missing names. Cloudflare staging, destination inventory and live checks were skipped. The missing names are:
 
-## BREVO SOURCE RESULT
+- `BREVO_API_KEY`, `BREVO_FROM_ADDRESS`
+- `COURIER_API_KEY`, `COURIER_FROM_ADDRESS`
+- `MAILERSEND_API_KEY`, `MAILERSEND_FROM_ADDRESS`
+- `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`, `MAILJET_FROM_ADDRESS`
+- `MAILTRAP_API_KEY`, `MAILTRAP_FROM_ADDRESS`
+- `RESEND_API_KEY`, `RESEND_FROM_ADDRESS`
+- `SENDPULSE_API_KEY`, `SENDPULSE_FROM_ADDRESS`
 
-Names-only GitHub inspection confirmed the previously authorized repository secret `BREVO_KEY` still exists. Its value was not read or displayed. The initial PR `#12` bootstrap performed one bounded, non-mutating Brevo account check before any Infisical write. Brevo returned `401`; therefore:
+The first superseded bootstrap attempt, run `34323712095`, checked the existing authorized GitHub `BREVO_KEY` without sending. Brevo returned HTTP `401` before OIDC/write, so it created zero entries. The invalid credential was not displayed, migrated, retried, replaced, revoked or rotated.
 
-- the old credential is truthfully unavailable;
-- **0** Infisical entries were created by that run;
-- it was not migrated, exposed, retried blindly, revoked or replaced;
-- only Brevo-dependent work is blocked by that credential result.
+## MACHINE IDENTITY
 
-## CREDENTIAL-INDEPENDENT BOOTSTRAP CORRECTION
+The owner temporarily changed the dedicated Infisical Machine Identity project role from `Viewer` to `Member` for the one-time write. After the successful bootstrap, the owner confirmed on 2026-09-09 that it was restored to `Viewer`. Organization role remains `No Access`; OIDC is the only authentication method.
 
-The bootstrap is corrected to make no provider request and receive no provider credential. It will:
+## CLOUDFLARE NAMES-ONLY AUDIT
 
-1. require explicit confirmation, `main`, protected environment and GitHub OIDC;
-2. refuse if any target name already exists;
-3. generate independent signing and recipient-hash values in memory;
-4. atomically create exactly **18** entries: two generated runtime values, activation disabled, all-disabled config, seven sender display names and seven `false` evidence flags;
-5. verify names only;
-6. never call Cloudflare, enable a provider, set evidence true, send email, overwrite or delete.
+PR `#14` added a protected, read-only audit and was squash-merged as `ffbedfb57b8796318aae4296d25559a8fafcaf89`. Audit run `34327554785` completed successfully.
 
-The identity needs project `Member` only for this bounded batch and must return to `Viewer` immediately after verification. All eight provider credential names and seven sender addresses remain absent; no placeholder credential or invented sender is created.
+The audit inspected provider-related binding names across all visible Cloudflare Workers and Pages without printing, copying, changing or deleting a value. It found:
 
-## TESTED / VERIFIED
+- Worker `admission-gk`: legacy `BREVO_FROM`, `BREVO_KEY`, `MAIL_FROM`, `RESEND_KEY`, `RESEND_KEY_2`.
+- Worker `ah-public`: legacy `MAIL_FROM`, `RESEND_KEY`, `RESEND_KEY_2`.
+- Pages: no provider-related binding names.
 
-- Full Email suite: **99/99 pass**
-- Worker integration: **4/4 pass**
-- Auth: **62/62 pass**
-- Account retirement: **28/28 pass**
-- Voice/same-origin regression: **7/7 pass**
-- exact Worker bundle, all workflow YAML and static/diff checks: pass
-- post-merge guards/deployments through PR `#12`: pass
-- live Worker public health and AI: `200`; unsigned internal Email route: `404`
-- protected Pages source/internal paths: `404`
+No Cloudflare binding name was found for Mailjet, Mailtrap, MailerSend, SendPulse, EmailOctopus or Courier. The previous configuration therefore covered only legacy Resend/Brevo-era names, not the new seven-provider Phase 2B source contract. Cloudflare intentionally does not return existing Worker secret values, so those legacy values cannot be exported into Infisical. Legacy names are not consumed by the isolated Phase 2B catalog.
 
-## STOP / next
+## DOMAINLESS BOUNDARY
 
-1. Merge the core-only bootstrap correction while temporary project `Member` is active.
-2. Dispatch once, verify the exact 18 names without values, and immediately return the identity to `Viewer`.
-3. Source genuine provider credentials and sender addresses from each provider account directly into Infisical; no authorized automation currently holds valid values.
-4. Stage 33/33 bindings with activation disabled, validate provider account/sender/domain/quota one by one, then activate providers individually.
-5. Perform one controlled Gmail OTP after all gates pass; no blind fallback or duplicate send.
+`admissionhub.pages.dev` is a valid hosted website address, but DNS control for the parent `pages.dev` domain belongs to Cloudflare. It cannot be used to publish the provider-specific SPF/DKIM/DMARC records required for an owner-controlled transactional sender domain.
 
-Do not start concrete Supabase/Auth authority work without explicit owner instruction.
+Without purchasing/controlling a domain, only provider-specific sandbox or individually verified sender testing may be possible where that provider officially permits it. Such testing must remain bounded; unsupported providers stay disabled. It is not evidence that the full seven-provider production sender pool is activated.
+
+## NEXT
+
+1. Do not rerun the create-only bootstrap; existing entries make overwrite refusal intentional.
+2. Do not ask the owner to paste credentials in chat.
+3. Get an explicit owner choice between limited domainless testing and a complete production pool using an owner-controlled domain.
+4. Add genuine remaining values to Infisical through the smallest owner UI action, preferably one prepared bulk import.
+5. At 33/33, use the protected additive staging workflow with global activation disabled and preserve unrelated Worker bindings.
+6. Validate account, sender/domain and quota per provider; then enable individually and perform one controlled Gmail OTP only after all gates pass.
+
+No Worker binding, provider activation, sender evidence or delivery changed during these audits. Concrete Supabase/Auth authority work remains out of scope until explicitly authorized.
