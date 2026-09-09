@@ -124,6 +124,7 @@ async function cleanup(apiKey, email, password) {
 async function waitForReport(mailbox, timeoutMs = 180_000) {
   const deadline = Date.now() + timeoutMs;
   let latest = null;
+  let technicalCompletedAt = 0;
   while (Date.now() < deadline) {
     const result = await requestJson(`${TESTER_API}/api/report/${encodeURIComponent(mailbox)}`, {
       headers: { Accept: 'application/json' }
@@ -131,7 +132,11 @@ async function waitForReport(mailbox, timeoutMs = 180_000) {
     if (result.response.ok) {
       latest = result.body;
       const status = String(latest?.status_info?.status || '');
-      if (['technical_completed', 'ai_completed', 'ai_failed', 'completed'].includes(status) && latest?.technical_analysis) return latest;
+      if (latest?.technical_analysis && ['ai_completed', 'ai_failed', 'completed'].includes(status)) return latest;
+      if (latest?.technical_analysis && status === 'technical_completed') {
+        technicalCompletedAt ||= Date.now();
+        if (Date.now() - technicalCompletedAt >= 45_000) return latest;
+      }
     }
     await sleep(4000);
   }

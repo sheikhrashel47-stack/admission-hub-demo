@@ -37,6 +37,7 @@
 .ah-account-resend{margin-top:18px;padding:12px 13px;border:1px solid #dce8e4;border-radius:13px;background:#fbfdfc}
 .ah-account-resend summary{color:#1e6754;font-size:13px;font-weight:800;cursor:pointer}
 .ah-account-resend form{margin-top:14px}
+.ah-account-resend-status{min-height:19px;margin:12px 1px -3px;color:#657b74;font-size:12px;line-height:1.55}
 .ah-account-message[hidden]{display:none!important}
 .ah-account-message{margin:0 0 14px;padding:11px 12px;border-radius:12px;font-size:13px;font-weight:650;line-height:1.55}
 .ah-account-message[data-kind="error"]{background:#fff0ed;color:#973c2b;border:1px solid #f4ccc3}

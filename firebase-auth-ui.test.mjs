@@ -22,7 +22,7 @@ async function waitFor(predicate, timeout = 1000) {
   throw new Error('Timed out waiting for UI state.');
 }
 
-function setup({ loginVerified = false } = {}) {
+function setup({ loginVerified = false, resendMode = 'sent' } = {}) {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {
     url: 'https://admissionhub.pages.dev/',
     runScripts: 'dangerously',
@@ -34,7 +34,9 @@ function setup({ loginVerified = false } = {}) {
     const path = String(url);
     const body = options.body ? JSON.parse(options.body) : null;
     calls.push({ path, method: options.method || 'GET', body });
-    if (path.endsWith('/config')) return reply(200, { auth: { available: true } });
+    if (path.endsWith('/config')) return reply(200, {
+      auth: { available: true, verificationEmail: { resendCooldownSeconds: 60 } }
+    });
     if (path.endsWith('/session') && (options.method || 'GET') === 'GET') {
       return reply(401, { error: { code: 'SESSION_INVALID', message: 'সেশন নেই।' } });
     }
@@ -42,7 +44,7 @@ function setup({ loginVerified = false } = {}) {
       return reply(202, {
         accountCreated: true,
         authenticated: false,
-        verification: { sent: true, emailMasked: 's***@example.com', dailyCapacity: 1000 }
+        verification: { sent: true, emailMasked: 's***@example.com', dailyCapacity: 1000, resendAfter: 60 }
       });
     }
     if (path.endsWith('/login')) {
@@ -55,7 +57,16 @@ function setup({ loginVerified = false } = {}) {
       });
     }
     if (path.endsWith('/verification/resend')) {
-      return reply(202, { authenticated: false, verification: { sent: true, emailMasked: 's***@example.com' } });
+      if (resendMode === 'rate-limited') {
+        return reply(429, {
+          error: { code: 'RATE_LIMITED', message: 'একটু অপেক্ষা করুন।', retryAfter: 45 }
+        }, { 'retry-after': '45' });
+      }
+      if (resendMode === 'already-verified') return reply(200, { alreadyVerified: true, authenticated: false });
+      return reply(202, {
+        authenticated: false,
+        verification: { sent: true, emailMasked: 's***@example.com', resendAfter: 60 }
+      });
     }
     if (path.endsWith('/session/logout')) return reply(200, { authenticated: false });
     return reply(404, { error: { message: 'not found' } });
@@ -74,12 +85,19 @@ test('signup UI collects Email and Password, clears passwords, and waits for sta
   app.document.querySelector('#ah-signup-email').value = 'student@example.com';
   app.document.querySelector('#ah-signup-password').value = 'Secure-password-44';
   app.document.querySelector('#ah-signup-confirm').value = 'Secure-password-44';
-  app.document.querySelector('[data-view="signup"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  const signupForm = app.document.querySelector('[data-view="signup"]');
+  signupForm.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  signupForm.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => app.calls.some(call => call.path.endsWith('/signup')));
   await waitFor(() => app.document.querySelector('[data-view="verify"]').hidden === false);
 
   const signupCall = app.calls.find(call => call.path.endsWith('/signup'));
   assert.deepEqual(signupCall.body, { email: 'student@example.com', password: 'Secure-password-44' });
+  assert.equal(app.calls.filter(call => call.path.endsWith('/signup')).length, 1);
+  const resendButton = app.document.querySelector('[data-role="resend-submit"]');
+  assert.equal(resendButton.disabled, true);
+  assert.match(resendButton.textContent, /৫[৮৯]|৬০|5[89]|60/);
+  assert.match(app.document.querySelector('[data-role="resend-status"]').textContent, /সেকেন্ড পর/);
   assert.equal(app.document.querySelector('#ah-signup-password').value, '');
   assert.equal(app.document.querySelector('#ah-signup-confirm').value, '');
   assert.equal(app.window.AdmissionAccount.isVerified(), false);
@@ -111,5 +129,54 @@ test('UI blocks unverified login and exposes verified state only after server-co
   assert.equal(latestAuth.authenticated, true);
   assert.equal(latestAuth.emailVerified, true);
   assert.equal(app.document.querySelector('.ah-account-launcher').dataset.authenticated, 'true');
+  app.dom.window.close();
+});
+
+test('resend UI enforces Retry-After countdown, blocks repeated submit, and clears the password', async () => {
+  const app = setup({ resendMode: 'rate-limited' });
+  await waitFor(() => app.document.querySelector('.ah-account-launcher'));
+  await waitFor(() => app.calls.some(call => call.path.endsWith('/config')));
+  await sleep(0);
+  app.document.querySelector('.ah-account-launcher').click();
+  app.document.querySelector('#ah-login-email').value = 'student@example.com';
+  app.document.querySelector('#ah-login-password').value = 'Secure-password-44';
+  app.document.querySelector('[data-view="login"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(() => app.document.querySelector('[data-view="verify"]').hidden === false);
+
+  app.document.querySelector('#ah-resend-email').value = 'student@example.com';
+  app.document.querySelector('#ah-resend-password').value = 'Secure-password-44';
+  const form = app.document.querySelector('[data-role="resend-form"]');
+  form.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  form.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(() => app.calls.some(call => call.path.endsWith('/verification/resend')));
+  await waitFor(() => app.document.querySelector('#ah-resend-password').value === '');
+  await waitFor(() => app.document.querySelector('[data-role="resend-submit"]').disabled === true);
+
+  assert.equal(app.calls.filter(call => call.path.endsWith('/verification/resend')).length, 1);
+  assert.equal(app.document.querySelector('#ah-resend-password').value, '');
+  assert.match(app.document.querySelector('[data-role="resend-submit"]').textContent, /৪[৩-৫]|4[3-5]/);
+  assert.match(app.document.querySelector('[data-role="message"]').textContent, /অপেক্ষা/);
+  app.dom.window.close();
+});
+
+test('resend UI handles an already-verified account without creating a frontend session', async () => {
+  const app = setup({ resendMode: 'already-verified' });
+  await waitFor(() => app.document.querySelector('.ah-account-launcher'));
+  await waitFor(() => app.calls.some(call => call.path.endsWith('/config')));
+  await sleep(0);
+  app.document.querySelector('.ah-account-launcher').click();
+  app.document.querySelector('#ah-login-email').value = 'student@example.com';
+  app.document.querySelector('#ah-login-password').value = 'Secure-password-44';
+  app.document.querySelector('[data-view="login"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(() => app.document.querySelector('[data-view="verify"]').hidden === false);
+
+  app.document.querySelector('#ah-resend-email').value = 'student@example.com';
+  app.document.querySelector('#ah-resend-password').value = 'Secure-password-44';
+  app.document.querySelector('[data-role="resend-form"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(() => app.document.querySelector('[data-view="login"]').hidden === false);
+
+  assert.match(app.document.querySelector('[data-role="message"]').textContent, /ইতিমধ্যে যাচাইকৃত/);
+  assert.equal(app.window.AdmissionAccount.isVerified(), false);
+  assert.equal(app.document.querySelector('.ah-account-launcher').dataset.authenticated, 'false');
   app.dom.window.close();
 });

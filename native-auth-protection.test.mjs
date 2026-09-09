@@ -69,10 +69,13 @@ test('public API uses Email and Password, standard Firebase address verification
   assert.doesNotMatch(handler, /\/otp\/request|\/otp\/verify|sendEmail|SIGNUP_VERIFICATION/);
 });
 
-test('verification architecture exposes the official Spark 1000/day capacity and no registered-user cap', () => {
+test('verification architecture exposes the Spark capacity, resend cooldown, and no registered-user cap', () => {
   assert.match(handler, /dailyCapacity: 1000/);
   assert.match(handler, /registeredAccountLimit: 'unlimited'/);
   assert.match(runtime, /firebase-verification-global-day[\s\S]*limit: 1000/);
+  assert.match(runtime, /FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS = 60 \* 1000/);
+  assert.match(client, /startResendCooldown/);
+  assert.match(client, /data-role="resend-status"/);
   assert.doesNotMatch(handler, /dailyCapacity:\s*5\b|daily:\s*5\b/);
 });
 

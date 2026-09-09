@@ -14,6 +14,7 @@ export const OTP_TTL_MS = 10 * 60 * 1000;
 export const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 export const OTP_MAX_ATTEMPTS = 5;
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export const FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
 
 const PREPARE_LIMITS = Object.freeze([
   Object.freeze({ scope: 'otp-email-15m', source: 'email', limit: 3, windowMs: 15 * 60 * 1000 }),
@@ -32,13 +33,13 @@ const VERIFY_LIMITS = Object.freeze([
 
 const FIREBASE_OPERATION_LIMITS = Object.freeze({
   signup: Object.freeze([
-    Object.freeze({ scope: 'firebase-verification-email-minute', source: 'email', limit: 1, windowMs: 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-verification-email-minute', source: 'email', limit: 1, windowMs: FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS }),
     Object.freeze({ scope: 'firebase-verification-email-day', source: 'email', limit: 8, windowMs: 24 * 60 * 60 * 1000 }),
     Object.freeze({ scope: 'firebase-verification-ip-hour', source: 'ip', limit: 20, windowMs: 60 * 60 * 1000 }),
     Object.freeze({ scope: 'firebase-verification-device-hour', source: 'device', limit: 10, windowMs: 60 * 60 * 1000 })
   ]),
   'verification-resend': Object.freeze([
-    Object.freeze({ scope: 'firebase-verification-email-minute', source: 'email', limit: 1, windowMs: 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-verification-email-minute', source: 'email', limit: 1, windowMs: FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS }),
     Object.freeze({ scope: 'firebase-verification-email-day', source: 'email', limit: 8, windowMs: 24 * 60 * 60 * 1000 }),
     Object.freeze({ scope: 'firebase-verification-ip-hour', source: 'ip', limit: 20, windowMs: 60 * 60 * 1000 }),
     Object.freeze({ scope: 'firebase-verification-device-hour', source: 'device', limit: 10, windowMs: 60 * 60 * 1000 })
