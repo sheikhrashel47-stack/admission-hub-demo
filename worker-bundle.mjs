@@ -2112,10 +2112,7 @@ async function createProviderEntries({ env = {}, config, runtime = {} }) {
       adapter,
       enabled,
       configured: verification.configured,
-      // Mailjet's activation evidence may come from its official non-delivery SandboxMode
-      // when the dashboard sender is not exposed by the Sender API. Mailjet itself still
-      // rejects a revoked sender at dispatch; no alternate provider is enabled.
-      requiresRemoteHealth: transactional && !(catalog.id === "mailjet" && providerSenderVerified && env.MAILJET_SANDBOX_SENDER_VERIFIED === "true"),
+      requiresRemoteHealth: transactional,
       activationIssues: Object.freeze(issues),
       policy: Object.freeze({
         priority: Number(policy.priority || catalog.priority),

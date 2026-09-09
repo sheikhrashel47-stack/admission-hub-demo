@@ -76,7 +76,7 @@ test('activation can discover an Active sender on an authorized Mailjet sub-acco
   assert.equal(sender.secretKey, childSecret);
 });
 
-test('activation uses Mailjet SandboxMode to prove an existing repository-owner sender without delivery', async () => {
+test('activation may validate a candidate with Mailjet SandboxMode but never treats it as delivery proof', async () => {
   let sandboxPayload = null;
   const fetchImpl = async (url, options = {}) => {
     const target = String(url);
@@ -88,11 +88,9 @@ test('activation uses Mailjet SandboxMode to prove an existing repository-owner 
     }
     return new Response('not found', { status: 404 });
   };
-  const sender = await discoverActiveMailjetSender({
+  await assert.rejects(discoverActiveMailjetSender({
     env: ENV, fetchImpl, senderCandidates: ['owner.sender@example.org']
-  });
-  assert.equal(sender.address, 'owner.sender@example.org');
-  assert.equal(sender.evidence, 'sandbox');
+  }), /SandboxMode validated a payload, but no API-listed Active individual sender/i);
   assert.equal(sandboxPayload.SandboxMode, true);
   assert.equal(sandboxPayload.Messages.length, 1);
   assert.equal(sandboxPayload.Messages[0].From.Email, 'owner.sender@example.org');
