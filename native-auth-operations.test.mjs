@@ -115,12 +115,39 @@ test('recent Mailjet delivery audit is GET-only and returns status counts withou
     }
   });
   assert.deepEqual(result, {
-    recent: 3, delivered: 1, queued: 1, blocked: 1, bounced: 0, retrying: 0, other: 0
+    recent: 3, credentialSetsInspected: 1,
+    delivered: 1, queued: 1, blocked: 1, bounced: 0, retrying: 0, other: 0
   });
   assert.equal(capture.options.method, 'GET');
   assert.equal(capture.options.body, undefined);
   assert.match(capture.url, /ShowContactAlt=false/);
   assert.doesNotMatch(capture.url, /example\.org/);
+});
+
+test('recent Mailjet delivery audit searches bounded authorized sub-account keys when the root has no records', async () => {
+  const childKey = 'child-audit-api-key';
+  const childSecret = 'child-audit-secret-key';
+  const childAuthorization = `Basic ${Buffer.from(`${childKey}:${childSecret}`).toString('base64')}`;
+  const captures = [];
+  const result = await auditRecentMailjetDelivery({
+    env: ENV,
+    now: Date.parse('2026-09-09T14:00:00Z'),
+    fetchImpl: async (url, options) => {
+      captures.push({ url: String(url), options });
+      if (String(url).includes('/apikey')) return response({ Data: [
+        { APIKey: childKey, SecretKey: childSecret, IsActive: true }
+      ] });
+      if (options.headers.Authorization === childAuthorization) return response({ Data: [
+        { ArrivedAt: '2026-09-09T13:55:00Z', Status: 'blocked', ContactAlt: 'private@example.org' }
+      ] });
+      return response({ Data: [] });
+    }
+  });
+  assert.equal(result.recent, 1);
+  assert.equal(result.blocked, 1);
+  assert.equal(result.credentialSetsInspected, 2);
+  assert.ok(captures.every(capture => capture.options.method === 'GET' && capture.options.body === undefined));
+  assert.ok(captures.every(capture => !capture.url.includes('private@example.org')));
 });
 
 test('activation config enables only Mailjet and caps free quota at 200/day and 6000/month', () => {
