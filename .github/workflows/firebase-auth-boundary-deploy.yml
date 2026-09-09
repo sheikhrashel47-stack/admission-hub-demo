@@ -44,9 +44,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -eu
-          npx --yes wrangler@4.35.0 deployments list --name admission-gk --json > "${RUNNER_TEMP}/worker-deployments.json"
-          PREVIOUS_WORKER_VERSION="$(node -e "const x=require(process.argv[1]); const v=x?.[0]?.versions?.find(v=>Number(v.percentage)===100)?.version_id; if(!v) process.exit(1); process.stdout.write(v)" "${RUNNER_TEMP}/worker-deployments.json")"
-          rm -f "${RUNNER_TEMP}/worker-deployments.json"
+          npx --yes wrangler@4.35.0 deployments status --name admission-gk --json > "${RUNNER_TEMP}/worker-deployment.json"
+          PREVIOUS_WORKER_VERSION="$(node -e "const x=require(process.argv[1]); const rows=Array.isArray(x)?x:[x]; const versions=rows.flatMap(row=>Array.isArray(row?.versions)?row.versions:[]); const v=versions.find(v=>Number(v.percentage)===100); if(!v?.version_id) process.exit(1); process.stdout.write(v.version_id)" "${RUNNER_TEMP}/worker-deployment.json")"
+          rm -f "${RUNNER_TEMP}/worker-deployment.json"
           echo "PREVIOUS_WORKER_VERSION=${PREVIOUS_WORKER_VERSION}" >> "$GITHUB_ENV"
 
       - name: Refuse boundary-only deployment when Firebase is already bound
@@ -62,6 +62,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.35.0'
           command: deploy --config wrangler.toml
 
       - name: Verify new contract is live and provider access remains fail closed
