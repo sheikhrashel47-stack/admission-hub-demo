@@ -3826,6 +3826,19 @@ async function callAuthority(env, path, body, method = "POST") {
   }
   return data.result || data;
 }
+function providerAvailabilityFailure(cause) {
+  if (!(cause instanceof FirebaseRequestError)) return Object.freeze({ code: "PROVIDER_CHECK_FAILED", providerStatus: 0 });
+  const reason = String(cause.reason || "");
+  const providerStatus = Number.isInteger(cause.status) && cause.status >= 100 && cause.status <= 599 ? cause.status : 0;
+  if (reason === "NETWORK_ERROR") return Object.freeze({ code: "PROVIDER_NETWORK_ERROR", providerStatus });
+  if (/REFERER|REFERRER/.test(reason)) return Object.freeze({ code: "API_KEY_REFERRER_RESTRICTED", providerStatus });
+  if (/ACCESS_NOT_CONFIGURED|SERVICE_DISABLED|API_NOT_ACTIVATED/.test(reason)) {
+    return Object.freeze({ code: "IDENTITY_TOOLKIT_DISABLED", providerStatus });
+  }
+  if (/API_KEY/.test(reason)) return Object.freeze({ code: "API_KEY_REJECTED", providerStatus });
+  if (reason === "PROJECT_NOT_FOUND") return Object.freeze({ code: "PROJECT_NOT_FOUND", providerStatus });
+  return Object.freeze({ code: providerStatus ? `PROVIDER_HTTP_${providerStatus}` : "PROVIDER_CHECK_FAILED", providerStatus });
+}
 function providerError(cause, stage = "auth") {
   if (!(cause instanceof FirebaseRequestError)) return new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
   const reason = cause.reason;
@@ -3884,20 +3897,32 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/config`) {
         const health = await callAuthority(env, "/internal/ping", null, "GET");
         let firebaseReady = false;
+        let availability = Object.freeze({
+          code: provider.configured ? "PROJECT_CHECK_FAILED" : "CREDENTIAL_MISSING",
+          providerStatus: 0
+        });
         if (provider.configured) {
           try {
             const inspected = await provider.inspectProject();
             firebaseReady = inspected.projectIdentified && inspected.continueDomainAuthorized;
-          } catch {
+            availability = Object.freeze({
+              code: !inspected.projectIdentified ? "PROJECT_NOT_IDENTIFIED" : !inspected.continueDomainAuthorized ? "PAGES_DOMAIN_NOT_AUTHORIZED" : "READY",
+              providerStatus: 0
+            });
+          } catch (cause) {
+            availability = providerAvailabilityFailure(cause);
           }
         }
+        const available = firebaseReady && health.ok === true;
         return json3(request, 200, {
           ok: true,
           auth: {
             version: AUTH_NATIVE_VERSION,
             mode: "email-password-with-email-verification",
             provider: "firebase",
-            available: firebaseReady && health.ok === true,
+            available,
+            availabilityCode: available ? "READY" : availability.code,
+            providerStatus: availability.providerStatus,
             storage: health.storage,
             emailVerifiedRequired: true,
             verificationEmail: { kind: "address-verification", dailyCapacity: 1e3 },
