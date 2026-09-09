@@ -34,7 +34,7 @@ The Firebase sender domain is Google-managed. Admission Hub does not own or cont
 
 `admissionhub.pages.dev` is the application host, not the message's From domain. It is a Cloudflare-owned `pages.dev` subdomain and has no project-controlled mail DNS. Adding SPF, DKIM, DMARC, or MX records there is neither available nor relevant to this sender path.
 
-### Current message structure
+### Baseline message structure before Console branding
 
 | Check | Observed result |
 |---|---|
@@ -71,16 +71,30 @@ Official references:
 - Keep the existing backend limits: 60-second per-address cooldown, 8 sends/address/day, bounded IP/device use, and 1,000 verification sends/day.
 - Publish the same 60-second cooldown to the frontend, show a live countdown, honor `Retry-After`, block repeated submissions, clear passwords, and handle already-verified state clearly.
 
-## Remaining owner-only console values
+## Applied owner-only branding and final re-test
 
-These fields require the Firebase project owner's existing signed-in Console session and cannot be changed with the project's Web API key:
+The project owner applied these values in the existing signed-in Firebase Console session:
 
 - **Public-facing name:** `Admission Hub`
-- **Template:** Email address verification
-- **Sender name:** `Admission Hub`
-- **Sender address:** keep the existing Firebase-managed address
-- **Subject:** `Admission Hub — আপনার ইমেইল যাচাই করুন`
-- **Reply-to:** keep the existing setting unless the owner intentionally chooses a monitored address
-- **Action URL:** keep the existing Firebase-hosted handler
+- **Email address verification sender name:** `Admission Hub`
+- **Sender address, Reply-to, and Action URL:** unchanged
+- **Subject field:** not directly editable in the project's Console view; the public-facing app name was used instead
 
-After those fields are saved, rerun the controlled audit and check that sender and subject branding become true. Gmail placement can vary by recipient history, reputation, and user feedback, so no configuration can guarantee 100% Primary-inbox delivery.
+Final controlled run: <https://github.com/sheikhrashel47-stack/admission-hub-demo/actions/runs/34392018902>
+
+| Final check | Result |
+|---|---|
+| Sender display name contains Admission Hub | Pass |
+| Subject contains Admission Hub | Pass |
+| Body contains Admission Hub | Pass |
+| SPF | Pass |
+| DKIM | Pass |
+| DMARC | Warning; Google-managed sender DNS has no project-editable policy |
+| Spam-filter check | Pass; SpamAssassin `-2.7`, threshold `5` |
+| Deliverability score | `92/100` |
+| Live verification, verified-only gate, session, and cleanup | Pass |
+| Credentials, mailbox, action code, or URL printed | No |
+
+The production resend UI and API now expose the same 60-second cooldown, show a live Bengali countdown, honor `Retry-After`, block duplicate submissions, clear password inputs, and handle already-verified state. Production activation run: <https://github.com/sheikhrashel47-stack/admission-hub-demo/actions/runs/34388304872>.
+
+No owner action remains. Gmail placement can still vary by recipient history, reputation, and user feedback, so no configuration can guarantee 100% Primary-inbox delivery.
