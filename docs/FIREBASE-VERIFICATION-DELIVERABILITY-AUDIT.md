@@ -1,6 +1,6 @@
 # Firebase verification email deliverability audit
 
-Audit date: 2026-09-09 (Asia/Dhaka)
+Audit date: 2026-09-10 (Asia/Dhaka)
 
 ## Production path
 
