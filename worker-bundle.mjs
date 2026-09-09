@@ -137,10 +137,10 @@ function sseParse(raw) {
   for (const line of String(raw || "").split("\n")) {
     const s = line.trim();
     if (!s.startsWith("data:")) continue;
-    const json4 = s.slice(5).trim();
-    if (!json4 || json4 === "[DONE]") continue;
+    const json5 = s.slice(5).trim();
+    if (!json5 || json5 === "[DONE]") continue;
     try {
-      out.push(JSON.parse(json4));
+      out.push(JSON.parse(json5));
     } catch (_) {
     }
   }
@@ -379,12 +379,12 @@ async function agentChat(request, env, uid, opts = {}) {
     }
     return jsonResp({ error: "provider_failed", message: "AI একটু ব্যস্ত — কয়েক সেকেন্ড পরে আবার চেষ্টা করো।", detail: lastErr, retryable: true }, 502);
   }
-  const encoder2 = new TextEncoder();
+  const encoder3 = new TextEncoder();
   const streamOut = new ReadableStream({
     async start(controller) {
       const push = (s) => {
         try {
-          controller.enqueue(encoder2.encode(s));
+          controller.enqueue(encoder3.encode(s));
         } catch (_) {
         }
       };
@@ -636,7 +636,7 @@ var public_worker_default = {
     const url = new URL(request.url);
     const path = url.pathname;
     try {
-      if (path === "/api/health") return json({ ok: true, accountSystem: "retired", identity: "anonymous-device", at: Date.now() });
+      if (path === "/api/health") return json({ ok: true, accountSystem: "retired", legacyAccountSystem: "retired", nativeAuth: "cloudflare-native-v1", identity: "anonymous-device", at: Date.now() });
       if (path === "/api/content/meta" && request.method === "GET") {
         const raw = await env.PUB_KV.get("pubContentMeta");
         if (raw) return json(JSON.parse(raw));
@@ -1136,176 +1136,6 @@ function safeParseEmailGatewayConfig(raw) {
   }
 }
 
-// email-gateway/core/crypto.mjs
-var encoder = new TextEncoder();
-var utf8 = (value) => encoder.encode(String(value));
-var bytesToHex = (bytes) => [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-var bytesToBase64 = (bytes) => {
-  let binary = "";
-  for (const byte of new Uint8Array(bytes)) binary += String.fromCharCode(byte);
-  return btoa(binary);
-};
-var bytesToBase64Url = (bytes) => bytesToBase64(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-var cryptoApi = (supplied) => supplied || globalThis.crypto;
-async function sha256Bytes(value, suppliedCrypto) {
-  const api = cryptoApi(suppliedCrypto);
-  if (!api?.subtle) throw new Error("Web Crypto is required.");
-  return new Uint8Array(await api.subtle.digest("SHA-256", value instanceof Uint8Array ? value : utf8(value)));
-}
-async function sha256Hex(value, suppliedCrypto) {
-  return bytesToHex(await sha256Bytes(value, suppliedCrypto));
-}
-async function hmacSha256Bytes(secret, value, suppliedCrypto) {
-  const api = cryptoApi(suppliedCrypto);
-  if (!api?.subtle) throw new Error("Web Crypto is required.");
-  const keyBytes = secret instanceof Uint8Array ? secret : utf8(secret);
-  const key = await api.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return new Uint8Array(await api.subtle.sign("HMAC", key, value instanceof Uint8Array ? value : utf8(value)));
-}
-async function hmacSha256Hex(secret, value, suppliedCrypto) {
-  return bytesToHex(await hmacSha256Bytes(secret, value, suppliedCrypto));
-}
-async function hmacSha256Base64Url(secret, value, suppliedCrypto) {
-  return bytesToBase64Url(await hmacSha256Bytes(secret, value, suppliedCrypto));
-}
-function timingSafeEqual(left, right) {
-  const a = utf8(String(left || ""));
-  const b = utf8(String(right || ""));
-  let mismatch = a.length ^ b.length;
-  const length = Math.max(a.length, b.length);
-  for (let index = 0; index < length; index++) mismatch |= (a[index % (a.length || 1)] || 0) ^ (b[index % (b.length || 1)] || 0);
-  return mismatch === 0;
-}
-async function hashPrivateReference(value, pepper, suppliedCrypto) {
-  if (!pepper || String(pepper).length < 16) throw new Error("A private reference pepper is required.");
-  return (await hmacSha256Hex(pepper, String(value).trim().toLowerCase(), suppliedCrypto)).slice(0, 32);
-}
-function stableNumber(value) {
-  let hash = 2166136261;
-  for (const char of String(value)) {
-    hash ^= char.charCodeAt(0);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-// email-gateway/core/internal-auth.mjs
-var INTERNAL_AUTH_HEADERS = Object.freeze({
-  KEY_ID: "X-AH-Email-Key-Id",
-  TIMESTAMP: "X-AH-Email-Timestamp",
-  NONCE: "X-AH-Email-Nonce",
-  SIGNATURE: "X-AH-Email-Signature"
-});
-function signingSecretsFromEnv(env = {}) {
-  const secrets = {};
-  if (String(env.EMAIL_GATEWAY_SIGNING_SECRET || "").length >= 32) secrets.current = String(env.EMAIL_GATEWAY_SIGNING_SECRET);
-  if (String(env.EMAIL_GATEWAY_PREVIOUS_SIGNING_SECRET || "").length >= 32) secrets.previous = String(env.EMAIL_GATEWAY_PREVIOUS_SIGNING_SECRET);
-  return Object.freeze(secrets);
-}
-async function canonicalInternalRequest({ method, path, timestamp, nonce, bodyText, crypto: crypto2 }) {
-  const bodyHash = await sha256Hex(bodyText || "", crypto2);
-  return `${String(method).toUpperCase()}
-${path}
-${timestamp}
-${nonce}
-${bodyHash}`;
-}
-async function signInternalRequest({ secret, method = "POST", path, timestamp, nonce, bodyText = "", crypto: crypto2 }) {
-  const canonical = await canonicalInternalRequest({ method, path, timestamp, nonce, bodyText, crypto: crypto2 });
-  return hmacSha256Base64Url(secret, canonical, crypto2);
-}
-async function verifyInternalRequest({ request, bodyText = "", secrets, store, config, now = () => Date.now(), crypto: crypto2 }) {
-  const keyId = String(request.headers.get(INTERNAL_AUTH_HEADERS.KEY_ID) || "");
-  const timestamp = String(request.headers.get(INTERNAL_AUTH_HEADERS.TIMESTAMP) || "");
-  const nonce = String(request.headers.get(INTERNAL_AUTH_HEADERS.NONCE) || "");
-  const supplied = String(request.headers.get(INTERNAL_AUTH_HEADERS.SIGNATURE) || "");
-  const secret = secrets?.[keyId];
-  if (!secret || !/^\d{10}$/.test(timestamp) || !/^[A-Za-z0-9_-]{16,96}$/.test(nonce) || !/^[A-Za-z0-9_-]{40,96}$/.test(supplied)) {
-    throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
-  }
-  const currentSeconds = Math.floor(now() / 1e3);
-  if (Math.abs(currentSeconds - Number(timestamp)) > config.security.signatureMaxAgeSeconds) {
-    throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
-  }
-  const url = new URL(request.url);
-  const path = `${url.pathname}${url.search}`;
-  const expected = await signInternalRequest({ secret, method: request.method, path, timestamp, nonce, bodyText, crypto: crypto2 });
-  if (!timingSafeEqual(supplied, expected)) throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
-  const acquired = await store.acquireNonce(`${keyId}:${nonce}`, config.security.nonceTtlSeconds);
-  if (!acquired) throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.REPLAY_DETECTED, retryable: false, status: 409 });
-  return Object.freeze({ keyId, timestamp: Number(timestamp), nonce });
-}
-
-// email-gateway/storage/durable-object-store.mjs
-var DurableObjectEmailStore = class {
-  constructor(binding, { now = () => Date.now() } = {}) {
-    if (!binding || typeof binding.idFromName !== "function" || typeof binding.get !== "function") {
-      throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.STORAGE_UNAVAILABLE, safeMessage: "Email coordinator binding is unavailable." });
-    }
-    this.binding = binding;
-    this.now = now;
-    this.consistency = "strong";
-  }
-  async #call(shard, path, body = {}) {
-    try {
-      const id = this.binding.idFromName(String(shard));
-      const stub = this.binding.get(id);
-      const request = new Request(`https://email-coordinator${path}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...body, now: body.now ?? this.now() })
-      });
-      const response2 = await stub.fetch(request);
-      if (!response2.ok) throw new Error(`coordinator-${response2.status}`);
-      return await response2.json();
-    } catch (error) {
-      throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.STORAGE_UNAVAILABLE, cause: error });
-    }
-  }
-  acquireRequest(record, ttlSeconds) {
-    return this.#call(`request:${record.idempotencyKey || record.requestId}`, "/request/acquire", { record, ttlSeconds });
-  }
-  async getRequest(requestId) {
-    return (await this.#call(`request:${requestId}`, "/request/get")).record;
-  }
-  async updateRequest(requestId, patch, ttlSeconds, options = {}) {
-    return (await this.#call(`request:${requestId}`, "/request/update", { patch, ttlSeconds, deliveryTransition: Boolean(options.deliveryTransition) })).record;
-  }
-  async acquireNonce(key, ttlSeconds) {
-    return (await this.#call(`nonce:${key}`, "/nonce/acquire", { ttlSeconds })).acquired;
-  }
-  consumeRateLimit(key, limit, windowMs, now = this.now()) {
-    return this.#call(`rate:${key}`, "/rate/consume", { limit, windowMs, now });
-  }
-  async getProviderState(providerId) {
-    return (await this.#call(`provider:${providerId}`, "/provider/state/get", { providerId })).state;
-  }
-  mutateProviderState(providerId, operation, payload) {
-    return this.#call(`provider:${providerId}`, "/provider/state/mutate", { providerId, operation, payload });
-  }
-  reserveProviderQuota(providerId, policy, now = this.now()) {
-    return this.#call(`provider:${providerId}`, "/provider/quota/reserve", { providerId, policy, now });
-  }
-  getProviderQuota(providerId, policy) {
-    return this.#call(`provider:${providerId}`, "/provider/quota/get", { providerId, policy });
-  }
-  async appendEvent(event, retention = 500) {
-    return (await this.#call("events:global", "/events/append", { event, retention })).appended;
-  }
-  async listEvents(limit = 50) {
-    return (await this.#call("events:global", "/events/list", { limit })).events;
-  }
-  async acquireEvent(eventId, ttlSeconds, leaseSeconds = 30) {
-    return this.#call(`event:${eventId}`, "/event/acquire", { ttlSeconds, leaseSeconds });
-  }
-  async completeEvent(eventId, ttlSeconds) {
-    return (await this.#call(`event:${eventId}`, "/event/complete", { ttlSeconds })).completed;
-  }
-  async acquireAlert(key, cooldownMs) {
-    return (await this.#call(`alert:${key}`, "/alert/acquire", { cooldownMs })).acquired;
-  }
-};
-
 // email-gateway/storage/contracts.mjs
 var EMAIL_STORE_METHODS = Object.freeze([
   "acquireRequest",
@@ -1661,9 +1491,9 @@ function assertProviderAdapter(adapter) {
   if (missing.length) throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.INVALID_CONFIGURATION, safeMessage: `Email provider ${adapter.id} is missing: ${missing.join(", ")}` });
   return adapter;
 }
-var readBoundedProviderResponse = async (response2, maximum = 64 * 1024) => {
-  if (!response2.body) return null;
-  const reader = response2.body.getReader();
+var readBoundedProviderResponse = async (response3, maximum = 64 * 1024) => {
+  if (!response3.body) return null;
+  const reader = response3.body.getReader();
   const chunks = [];
   let total = 0;
   while (true) {
@@ -1724,10 +1554,10 @@ var ProviderAdapter = class {
     else signal?.addEventListener("abort", abort, { once: true });
     const timer = setTimeout(() => controller.abort("email-provider-health-timeout"), Math.max(100, Math.min(1e4, Number(timeoutMs || 5e3))));
     try {
-      const response2 = await this.fetchImpl(url, { method: "GET", headers: { Accept: "application/json", ...headers }, signal: controller.signal });
-      if (!response2.ok) throw errorFromHttpStatus(response2.status, { providerId: this.id, retryAfter: response2.headers.get("Retry-After") });
-      const data = await readBoundedProviderResponse(response2);
-      const mapped = mapResult ? mapResult(data, response2) : {};
+      const response3 = await this.fetchImpl(url, { method: "GET", headers: { Accept: "application/json", ...headers }, signal: controller.signal });
+      if (!response3.ok) throw errorFromHttpStatus(response3.status, { providerId: this.id, retryAfter: response3.headers.get("Retry-After") });
+      const data = await readBoundedProviderResponse(response3);
+      const mapped = mapResult ? mapResult(data, response3) : {};
       return Object.freeze({ status: mapped?.status || "HEALTHY", remoteVerified: true, ...mapped });
     } catch (error) {
       throw asEmailGatewayError(error, { providerId: this.id, dispatched: false, uncertain: false });
@@ -1737,9 +1567,9 @@ var ProviderAdapter = class {
     }
   }
   async sendHttp({ url, headers, body, signal, requestId, deliveryAttemptId, mapResponse }) {
-    let response2;
+    let response3;
     try {
-      response2 = await this.fetchImpl(url, {
+      response3 = await this.fetchImpl(url, {
         method: "POST",
         headers: { Accept: "application/json", ...headers },
         body: typeof body === "string" || body instanceof FormData ? body : JSON.stringify(body),
@@ -1748,13 +1578,13 @@ var ProviderAdapter = class {
     } catch (error) {
       throw asEmailGatewayError(error, { providerId: this.id, dispatched: true, uncertain: true });
     }
-    if (!response2.ok) throw errorFromHttpStatus(response2.status, { providerId: this.id, retryAfter: response2.headers.get("Retry-After") });
+    if (!response3.ok) throw errorFromHttpStatus(response3.status, { providerId: this.id, retryAfter: response3.headers.get("Retry-After") });
     let data = null;
     try {
-      data = await readBoundedProviderResponse(response2);
+      data = await readBoundedProviderResponse(response3);
     } catch (_) {
     }
-    const mapped = mapResponse ? mapResponse(data, response2) : {};
+    const mapped = mapResponse ? mapResponse(data, response3) : {};
     const providerMessageId = mapped?.providerMessageId ? String(mapped.providerMessageId).slice(0, 200) : null;
     if (!providerMessageId) throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNKNOWN, providerId: this.id, retryable: false, dispatched: true, uncertain: true, safeMessage: "Email provider returned an invalid acceptance response." });
     return Object.freeze({
@@ -1989,14 +1819,67 @@ var MailerSendProvider = class extends ProviderAdapter {
         text: message.text,
         html: message.html
       },
-      mapResponse: (data, response2) => {
-        if (response2.headers.get("x-send-paused") === "true") throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.PROVIDER_SUSPENDED, providerId: this.id, dispatched: true, uncertain: false });
+      mapResponse: (data, response3) => {
+        if (response3.headers.get("x-send-paused") === "true") throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.PROVIDER_SUSPENDED, providerId: this.id, dispatched: true, uncertain: false });
         if (Array.isArray(data?.warnings) && data.warnings.some((item) => item?.type === "ALL_SUPPRESSED")) throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.RECIPIENT_REJECTED, providerId: this.id, dispatched: true, uncertain: false });
-        return { providerMessageId: response2.headers.get("X-Message-Id") || response2.headers.get("x-message-id") };
+        return { providerMessageId: response3.headers.get("X-Message-Id") || response3.headers.get("x-message-id") };
       }
     });
   }
 };
+
+// email-gateway/core/crypto.mjs
+var encoder = new TextEncoder();
+var utf8 = (value) => encoder.encode(String(value));
+var bytesToHex = (bytes) => [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+var bytesToBase64 = (bytes) => {
+  let binary = "";
+  for (const byte of new Uint8Array(bytes)) binary += String.fromCharCode(byte);
+  return btoa(binary);
+};
+var bytesToBase64Url = (bytes) => bytesToBase64(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+var cryptoApi = (supplied) => supplied || globalThis.crypto;
+async function sha256Bytes(value, suppliedCrypto) {
+  const api = cryptoApi(suppliedCrypto);
+  if (!api?.subtle) throw new Error("Web Crypto is required.");
+  return new Uint8Array(await api.subtle.digest("SHA-256", value instanceof Uint8Array ? value : utf8(value)));
+}
+async function sha256Hex(value, suppliedCrypto) {
+  return bytesToHex(await sha256Bytes(value, suppliedCrypto));
+}
+async function hmacSha256Bytes(secret, value, suppliedCrypto) {
+  const api = cryptoApi(suppliedCrypto);
+  if (!api?.subtle) throw new Error("Web Crypto is required.");
+  const keyBytes = secret instanceof Uint8Array ? secret : utf8(secret);
+  const key = await api.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await api.subtle.sign("HMAC", key, value instanceof Uint8Array ? value : utf8(value)));
+}
+async function hmacSha256Hex(secret, value, suppliedCrypto) {
+  return bytesToHex(await hmacSha256Bytes(secret, value, suppliedCrypto));
+}
+async function hmacSha256Base64Url(secret, value, suppliedCrypto) {
+  return bytesToBase64Url(await hmacSha256Bytes(secret, value, suppliedCrypto));
+}
+function timingSafeEqual(left, right) {
+  const a = utf8(String(left || ""));
+  const b = utf8(String(right || ""));
+  let mismatch = a.length ^ b.length;
+  const length = Math.max(a.length, b.length);
+  for (let index = 0; index < length; index++) mismatch |= (a[index % (a.length || 1)] || 0) ^ (b[index % (b.length || 1)] || 0);
+  return mismatch === 0;
+}
+async function hashPrivateReference(value, pepper, suppliedCrypto) {
+  if (!pepper || String(pepper).length < 16) throw new Error("A private reference pepper is required.");
+  return (await hmacSha256Hex(pepper, String(value).trim().toLowerCase(), suppliedCrypto)).slice(0, 32);
+}
+function stableNumber(value) {
+  let hash = 2166136261;
+  for (const char of String(value)) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
 
 // email-gateway/providers/sendpulse.mjs
 var SendPulseProvider = class extends ProviderAdapter {
@@ -2985,6 +2868,123 @@ async function createEmailGateway({ config: configOverrides = {}, store, entries
   return bind(gateway, ["send", "healthCheck", "getCapabilities", "recordDeliveryEvent"]);
 }
 
+// email-gateway/storage/durable-object-store.mjs
+var DurableObjectEmailStore = class {
+  constructor(binding, { now = () => Date.now() } = {}) {
+    if (!binding || typeof binding.idFromName !== "function" || typeof binding.get !== "function") {
+      throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.STORAGE_UNAVAILABLE, safeMessage: "Email coordinator binding is unavailable." });
+    }
+    this.binding = binding;
+    this.now = now;
+    this.consistency = "strong";
+  }
+  async #call(shard, path, body = {}) {
+    try {
+      const id = this.binding.idFromName(String(shard));
+      const stub = this.binding.get(id);
+      const request = new Request(`https://email-coordinator${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...body, now: body.now ?? this.now() })
+      });
+      const response3 = await stub.fetch(request);
+      if (!response3.ok) throw new Error(`coordinator-${response3.status}`);
+      return await response3.json();
+    } catch (error) {
+      throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.STORAGE_UNAVAILABLE, cause: error });
+    }
+  }
+  acquireRequest(record, ttlSeconds) {
+    return this.#call(`request:${record.idempotencyKey || record.requestId}`, "/request/acquire", { record, ttlSeconds });
+  }
+  async getRequest(requestId) {
+    return (await this.#call(`request:${requestId}`, "/request/get")).record;
+  }
+  async updateRequest(requestId, patch, ttlSeconds, options = {}) {
+    return (await this.#call(`request:${requestId}`, "/request/update", { patch, ttlSeconds, deliveryTransition: Boolean(options.deliveryTransition) })).record;
+  }
+  async acquireNonce(key, ttlSeconds) {
+    return (await this.#call(`nonce:${key}`, "/nonce/acquire", { ttlSeconds })).acquired;
+  }
+  consumeRateLimit(key, limit, windowMs, now = this.now()) {
+    return this.#call(`rate:${key}`, "/rate/consume", { limit, windowMs, now });
+  }
+  async getProviderState(providerId) {
+    return (await this.#call(`provider:${providerId}`, "/provider/state/get", { providerId })).state;
+  }
+  mutateProviderState(providerId, operation, payload) {
+    return this.#call(`provider:${providerId}`, "/provider/state/mutate", { providerId, operation, payload });
+  }
+  reserveProviderQuota(providerId, policy, now = this.now()) {
+    return this.#call(`provider:${providerId}`, "/provider/quota/reserve", { providerId, policy, now });
+  }
+  getProviderQuota(providerId, policy) {
+    return this.#call(`provider:${providerId}`, "/provider/quota/get", { providerId, policy });
+  }
+  async appendEvent(event, retention = 500) {
+    return (await this.#call("events:global", "/events/append", { event, retention })).appended;
+  }
+  async listEvents(limit = 50) {
+    return (await this.#call("events:global", "/events/list", { limit })).events;
+  }
+  async acquireEvent(eventId, ttlSeconds, leaseSeconds = 30) {
+    return this.#call(`event:${eventId}`, "/event/acquire", { ttlSeconds, leaseSeconds });
+  }
+  async completeEvent(eventId, ttlSeconds) {
+    return (await this.#call(`event:${eventId}`, "/event/complete", { ttlSeconds })).completed;
+  }
+  async acquireAlert(key, cooldownMs) {
+    return (await this.#call(`alert:${key}`, "/alert/acquire", { cooldownMs })).acquired;
+  }
+};
+
+// email-gateway/core/internal-auth.mjs
+var INTERNAL_AUTH_HEADERS = Object.freeze({
+  KEY_ID: "X-AH-Email-Key-Id",
+  TIMESTAMP: "X-AH-Email-Timestamp",
+  NONCE: "X-AH-Email-Nonce",
+  SIGNATURE: "X-AH-Email-Signature"
+});
+function signingSecretsFromEnv(env = {}) {
+  const secrets = {};
+  if (String(env.EMAIL_GATEWAY_SIGNING_SECRET || "").length >= 32) secrets.current = String(env.EMAIL_GATEWAY_SIGNING_SECRET);
+  if (String(env.EMAIL_GATEWAY_PREVIOUS_SIGNING_SECRET || "").length >= 32) secrets.previous = String(env.EMAIL_GATEWAY_PREVIOUS_SIGNING_SECRET);
+  return Object.freeze(secrets);
+}
+async function canonicalInternalRequest({ method, path, timestamp, nonce, bodyText, crypto: crypto2 }) {
+  const bodyHash = await sha256Hex(bodyText || "", crypto2);
+  return `${String(method).toUpperCase()}
+${path}
+${timestamp}
+${nonce}
+${bodyHash}`;
+}
+async function signInternalRequest({ secret, method = "POST", path, timestamp, nonce, bodyText = "", crypto: crypto2 }) {
+  const canonical = await canonicalInternalRequest({ method, path, timestamp, nonce, bodyText, crypto: crypto2 });
+  return hmacSha256Base64Url(secret, canonical, crypto2);
+}
+async function verifyInternalRequest({ request, bodyText = "", secrets, store, config, now = () => Date.now(), crypto: crypto2 }) {
+  const keyId = String(request.headers.get(INTERNAL_AUTH_HEADERS.KEY_ID) || "");
+  const timestamp = String(request.headers.get(INTERNAL_AUTH_HEADERS.TIMESTAMP) || "");
+  const nonce = String(request.headers.get(INTERNAL_AUTH_HEADERS.NONCE) || "");
+  const supplied = String(request.headers.get(INTERNAL_AUTH_HEADERS.SIGNATURE) || "");
+  const secret = secrets?.[keyId];
+  if (!secret || !/^\d{10}$/.test(timestamp) || !/^[A-Za-z0-9_-]{16,96}$/.test(nonce) || !/^[A-Za-z0-9_-]{40,96}$/.test(supplied)) {
+    throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
+  }
+  const currentSeconds = Math.floor(now() / 1e3);
+  if (Math.abs(currentSeconds - Number(timestamp)) > config.security.signatureMaxAgeSeconds) {
+    throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
+  }
+  const url = new URL(request.url);
+  const path = `${url.pathname}${url.search}`;
+  const expected = await signInternalRequest({ secret, method: request.method, path, timestamp, nonce, bodyText, crypto: crypto2 });
+  if (!timingSafeEqual(supplied, expected)) throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.UNAUTHORIZED, retryable: false, status: 403 });
+  const acquired = await store.acquireNonce(`${keyId}:${nonce}`, config.security.nonceTtlSeconds);
+  if (!acquired) throw new EmailGatewayError({ code: EMAIL_FAILURE_CODES.REPLAY_DETECTED, retryable: false, status: 409 });
+  return Object.freeze({ keyId, timestamp: Number(timestamp), nonce });
+}
+
 // email-gateway/worker/handler.mjs
 var HEADERS = Object.freeze({
   "Content-Type": "application/json; charset=utf-8",
@@ -3058,6 +3058,579 @@ async function handleInternalEmailRequest(request, env = {}, ctx = {}, runtime =
   }
 }
 var __emailWorkerTest = Object.freeze({ readBoundedBody });
+
+// auth-native/core/errors.mjs
+var AUTH_ERROR_CODES = Object.freeze({
+  INVALID_INPUT: "INVALID_INPUT",
+  NOT_CONFIGURED: "NOT_CONFIGURED",
+  RATE_LIMITED: "RATE_LIMITED",
+  RESEND_COOLDOWN: "RESEND_COOLDOWN",
+  OTP_INVALID: "OTP_INVALID",
+  OTP_EXPIRED: "OTP_EXPIRED",
+  OTP_LOCKED: "OTP_LOCKED",
+  OTP_USED: "OTP_USED",
+  ACCOUNT_DISABLED: "ACCOUNT_DISABLED",
+  SESSION_INVALID: "SESSION_INVALID",
+  DELIVERY_UNAVAILABLE: "DELIVERY_UNAVAILABLE",
+  STORAGE_UNAVAILABLE: "STORAGE_UNAVAILABLE",
+  INTERNAL_ERROR: "INTERNAL_ERROR"
+});
+var DEFAULTS2 = Object.freeze({
+  [AUTH_ERROR_CODES.INVALID_INPUT]: Object.freeze({ status: 400, message: "তথ্যটি সঠিকভাবে লিখুন।" }),
+  [AUTH_ERROR_CODES.NOT_CONFIGURED]: Object.freeze({ status: 503, message: "অ্যাকাউন্ট সেবা এখনো প্রস্তুত নয়।" }),
+  [AUTH_ERROR_CODES.RATE_LIMITED]: Object.freeze({ status: 429, message: "অনেকবার চেষ্টা হয়েছে—একটু পরে আবার চেষ্টা করুন।" }),
+  [AUTH_ERROR_CODES.RESEND_COOLDOWN]: Object.freeze({ status: 429, message: "নতুন কোড পাঠাতে একটু অপেক্ষা করুন।" }),
+  [AUTH_ERROR_CODES.OTP_INVALID]: Object.freeze({ status: 401, message: "কোডটি সঠিক নয়।" }),
+  [AUTH_ERROR_CODES.OTP_EXPIRED]: Object.freeze({ status: 410, message: "কোডের সময় শেষ হয়েছে—নতুন কোড নিন।" }),
+  [AUTH_ERROR_CODES.OTP_LOCKED]: Object.freeze({ status: 429, message: "অনেকবার ভুল কোড দেওয়া হয়েছে—নতুন কোড নিন।" }),
+  [AUTH_ERROR_CODES.OTP_USED]: Object.freeze({ status: 409, message: "এই কোডটি ইতিমধ্যে ব্যবহার হয়েছে।" }),
+  [AUTH_ERROR_CODES.ACCOUNT_DISABLED]: Object.freeze({ status: 403, message: "এই অ্যাকাউন্টটি এখন ব্যবহার করা যাচ্ছে না।" }),
+  [AUTH_ERROR_CODES.SESSION_INVALID]: Object.freeze({ status: 401, message: "নিরাপদ সেশন পাওয়া যায়নি।" }),
+  [AUTH_ERROR_CODES.DELIVERY_UNAVAILABLE]: Object.freeze({ status: 503, message: "ইমেইল এখন সাময়িকভাবে পাঠানো যাচ্ছে না—একটু পরে চেষ্টা করুন।" }),
+  [AUTH_ERROR_CODES.STORAGE_UNAVAILABLE]: Object.freeze({ status: 503, message: "অ্যাকাউন্ট সেবা সাময়িকভাবে ব্যস্ত—একটু পরে চেষ্টা করুন।" }),
+  [AUTH_ERROR_CODES.INTERNAL_ERROR]: Object.freeze({ status: 500, message: "অপ্রত্যাশিত সমস্যা হয়েছে—আবার চেষ্টা করুন।" })
+});
+var NativeAuthError = class extends Error {
+  constructor(code, options = {}) {
+    const fallback = DEFAULTS2[code] || DEFAULTS2[AUTH_ERROR_CODES.INTERNAL_ERROR];
+    super(String(options.message || fallback.message));
+    this.name = "NativeAuthError";
+    this.code = DEFAULTS2[code] ? code : AUTH_ERROR_CODES.INTERNAL_ERROR;
+    this.status = Number(options.status || fallback.status);
+    this.retryAfter = Math.max(0, Math.ceil(Number(options.retryAfter || 0)));
+    this.safe = true;
+  }
+  toPublic() {
+    return Object.freeze({
+      code: this.code,
+      message: this.message,
+      ...this.retryAfter ? { retryAfter: this.retryAfter } : {}
+    });
+  }
+};
+var failAuth = (code, options) => {
+  throw new NativeAuthError(code, options);
+};
+function asNativeAuthError(error) {
+  if (error instanceof NativeAuthError) return error;
+  return new NativeAuthError(AUTH_ERROR_CODES.INTERNAL_ERROR);
+}
+function errorFromRepository(result) {
+  if (!result || !result.error) return result;
+  throw new NativeAuthError(result.error, { retryAfter: result.retryAfter });
+}
+
+// auth-native/core/crypto.mjs
+var encoder2 = new TextEncoder();
+var EMAIL_LOCAL = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+$/;
+var DOMAIN_LABEL = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
+function normalizeAuthEmail(value) {
+  const email = String(value || "").trim().toLowerCase();
+  if (!email || email.length > 254 || email.includes("..")) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  const at = email.lastIndexOf("@");
+  if (at <= 0 || at !== email.indexOf("@")) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  if (local.length > 64 || local.startsWith(".") || local.endsWith(".") || !EMAIL_LOCAL.test(local)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  const labels = domain.split(".");
+  if (labels.length < 2 || labels.some((label) => !DOMAIN_LABEL.test(label))) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  if (labels.at(-1).length < 2 || labels.at(-1).length > 63) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  return email;
+}
+function maskAuthEmail(email) {
+  const normalized = normalizeAuthEmail(email);
+  const [local, domain] = normalized.split("@");
+  const labels = domain.split(".");
+  const localMask = local.length < 3 ? `${local[0]}••` : `${local.slice(0, 2)}${"•".repeat(Math.min(5, Math.max(2, local.length - 2)))}`;
+  const host = labels[0];
+  const hostMask = `${host[0]}${"•".repeat(Math.min(4, Math.max(2, host.length - 1)))}`;
+  return `${localMask}@${hostMask}.${labels.slice(1).join(".")}`;
+}
+var bytesToBase64Url2 = (bytes) => {
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 32768) {
+    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(bytes.length, offset + 32768)));
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+};
+function randomToken(byteLength = 32, cryptoImpl = globalThis.crypto) {
+  const size = Math.max(16, Math.min(64, Number(byteLength) || 32));
+  if (!cryptoImpl || typeof cryptoImpl.getRandomValues !== "function") failAuth(AUTH_ERROR_CODES.NOT_CONFIGURED);
+  const bytes = new Uint8Array(size);
+  cryptoImpl.getRandomValues(bytes);
+  return bytesToBase64Url2(bytes);
+}
+function randomSixDigitOtp(cryptoImpl = globalThis.crypto) {
+  if (!cryptoImpl || typeof cryptoImpl.getRandomValues !== "function") failAuth(AUTH_ERROR_CODES.NOT_CONFIGURED);
+  const range = 1e6;
+  const ceiling = Math.floor(4294967296 / range) * range;
+  const word = new Uint32Array(1);
+  for (let attempt = 0; attempt < 128; attempt += 1) {
+    cryptoImpl.getRandomValues(word);
+    if (word[0] < ceiling) return String(word[0] % range).padStart(6, "0");
+  }
+  failAuth(AUTH_ERROR_CODES.INTERNAL_ERROR);
+}
+function constantTimeEqual(left, right) {
+  const a = String(left || "");
+  const b = String(right || "");
+  const length = Math.max(a.length, b.length);
+  let mismatch = a.length ^ b.length;
+  for (let index = 0; index < length; index += 1) {
+    mismatch |= (a.charCodeAt(index % Math.max(1, a.length)) || 0) ^ (b.charCodeAt(index % Math.max(1, b.length)) || 0);
+  }
+  return mismatch === 0;
+}
+var AuthHmac = class {
+  constructor(secret, cryptoImpl = globalThis.crypto) {
+    const value = String(secret || "");
+    if (value.length < 32 || /[\r\n\u0000]/.test(value)) failAuth(AUTH_ERROR_CODES.NOT_CONFIGURED);
+    if (!cryptoImpl?.subtle) failAuth(AUTH_ERROR_CODES.NOT_CONFIGURED);
+    this.crypto = cryptoImpl;
+    this.key = cryptoImpl.subtle.importKey("raw", encoder2.encode(value), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  }
+  async hex(context, value) {
+    const key = await this.key;
+    const signature = await this.crypto.subtle.sign("HMAC", key, encoder2.encode(`${String(context)}\0${String(value)}`));
+    return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+};
+function coarseUserAgent(value) {
+  const ua = String(value || "").slice(0, 300);
+  const device = /iPhone/i.test(ua) ? "iPhone" : /iPad/i.test(ua) ? "iPad" : /Android/i.test(ua) ? "Android" : /Windows/i.test(ua) ? "Windows" : /Macintosh|Mac OS/i.test(ua) ? "Mac" : /Linux/i.test(ua) ? "Linux" : "Browser";
+  const browser = /Edg\//i.test(ua) ? "Edge" : /Firefox\//i.test(ua) ? "Firefox" : /Chrome\//i.test(ua) ? "Chrome" : /Safari\//i.test(ua) ? "Safari" : "Browser";
+  return `${device} · ${browser}`;
+}
+
+// auth-native/core/auth-engine.mjs
+var AUTH_NATIVE_VERSION = "cloudflare-native-v1";
+var OTP_TTL_MS = 10 * 60 * 1e3;
+var OTP_RESEND_COOLDOWN_MS = 60 * 1e3;
+var OTP_MAX_ATTEMPTS = 5;
+var SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
+var PREPARE_LIMITS = Object.freeze([
+  Object.freeze({ scope: "otp-email-15m", source: "email", limit: 3, windowMs: 15 * 60 * 1e3 }),
+  Object.freeze({ scope: "otp-email-day", source: "email", limit: 8, windowMs: 24 * 60 * 60 * 1e3 }),
+  Object.freeze({ scope: "otp-ip-15m", source: "ip", limit: 20, windowMs: 15 * 60 * 1e3 }),
+  Object.freeze({ scope: "otp-ip-day", source: "ip", limit: 80, windowMs: 24 * 60 * 60 * 1e3 }),
+  Object.freeze({ scope: "otp-device-15m", source: "device", limit: 10, windowMs: 15 * 60 * 1e3 }),
+  Object.freeze({ scope: "otp-global-minute", source: "global", limit: 60, windowMs: 60 * 1e3 })
+]);
+var VERIFY_LIMITS = Object.freeze([
+  Object.freeze({ scope: "verify-email-15m", source: "email", limit: 20, windowMs: 15 * 60 * 1e3 }),
+  Object.freeze({ scope: "verify-ip-15m", source: "ip", limit: 40, windowMs: 15 * 60 * 1e3 }),
+  Object.freeze({ scope: "verify-device-15m", source: "device", limit: 30, windowMs: 15 * 60 * 1e3 })
+]);
+var requiredRepositoryMethods = Object.freeze([
+  "prepareChallenge",
+  "markDelivery",
+  "verifyChallenge",
+  "getSession",
+  "revokeSession",
+  "ping",
+  "cleanup",
+  "nextExpiry"
+]);
+var assertRepository = (repository) => {
+  if (!repository || requiredRepositoryMethods.some((method) => typeof repository[method] !== "function")) {
+    failAuth(AUTH_ERROR_CODES.STORAGE_UNAVAILABLE);
+  }
+  return repository;
+};
+var normalizeContext = (context) => Object.freeze({
+  ip: String(context?.ip || "unknown").slice(0, 96),
+  deviceId: String(context?.deviceId || "unknown").slice(0, 128),
+  userAgent: coarseUserAgent(context?.userAgent)
+});
+var CloudflareNativeAuthEngine = class {
+  constructor({ repository, hmacSecret, now = () => Date.now(), cryptoImpl = globalThis.crypto } = {}) {
+    this.repository = assertRepository(repository);
+    this.hmac = new AuthHmac(hmacSecret, cryptoImpl);
+    this.now = now;
+    this.crypto = cryptoImpl;
+  }
+  async #references(email, context) {
+    const values = await Promise.all([
+      this.hmac.hex("email-ref-v1", email),
+      this.hmac.hex("network-ref-v1", context.ip),
+      this.hmac.hex("device-ref-v1", context.deviceId)
+    ]);
+    return Object.freeze({ emailRef: values[0], ipRef: values[1], deviceRef: values[2] });
+  }
+  #limits(definitions, refs) {
+    return definitions.map((definition) => Object.freeze({
+      scope: definition.scope,
+      key: definition.source === "email" ? refs.emailRef : definition.source === "ip" ? refs.ipRef : definition.source === "device" ? refs.deviceRef : "global",
+      limit: definition.limit,
+      windowMs: definition.windowMs
+    }));
+  }
+  async prepareOtp(input = {}, requestContext = {}) {
+    const email = normalizeAuthEmail(input.email);
+    const context = normalizeContext(requestContext);
+    const now = Number(this.now());
+    const challengeId = randomToken(24, this.crypto);
+    const code = randomSixDigitOtp(this.crypto);
+    const refs = await this.#references(email, context);
+    const codeMac = await this.hmac.hex("otp-code-v1", `${challengeId}:${code}`);
+    const record = Object.freeze({
+      challengeId,
+      emailRef: refs.emailRef,
+      emailMask: maskAuthEmail(email),
+      codeMac,
+      state: "active",
+      createdAt: now,
+      expiresAt: now + OTP_TTL_MS,
+      attempts: 0,
+      maxAttempts: OTP_MAX_ATTEMPTS,
+      ipRef: refs.ipRef,
+      deviceRef: refs.deviceRef,
+      deliveryState: "pending"
+    });
+    const prepared = errorFromRepository(await this.repository.prepareChallenge({
+      record,
+      limits: this.#limits(PREPARE_LIMITS, refs),
+      cooldownMs: OTP_RESEND_COOLDOWN_MS,
+      now
+    }));
+    return Object.freeze({
+      challengeId,
+      code,
+      email,
+      emailMask: record.emailMask,
+      expiresAt: record.expiresAt,
+      expiresIn: Math.floor(OTP_TTL_MS / 1e3),
+      resendAfter: Math.floor(OTP_RESEND_COOLDOWN_MS / 1e3),
+      preparedAt: prepared.preparedAt || now
+    });
+  }
+  async markDelivery(challengeId, { accepted, uncertain = false, provider = null } = {}) {
+    if (!/^[A-Za-z0-9_-]{24,64}$/.test(String(challengeId || ""))) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+    const result = await this.repository.markDelivery({
+      challengeId: String(challengeId),
+      accepted: Boolean(accepted),
+      uncertain: Boolean(uncertain),
+      provider: provider ? String(provider).slice(0, 32) : null,
+      now: Number(this.now())
+    });
+    return errorFromRepository(result);
+  }
+  async verifyOtp(input = {}, requestContext = {}) {
+    const email = normalizeAuthEmail(input.email);
+    const challengeId = String(input.challengeId || "").trim();
+    const code = String(input.code || "").trim();
+    if (!/^[A-Za-z0-9_-]{24,64}$/.test(challengeId) || !/^\d{6}$/.test(code)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+    const context = normalizeContext(requestContext);
+    const refs = await this.#references(email, context);
+    const now = Number(this.now());
+    const sessionToken = randomToken(32, this.crypto);
+    const userIdCandidate = `usr_${randomToken(18, this.crypto)}`;
+    const values = await Promise.all([
+      this.hmac.hex("otp-code-v1", `${challengeId}:${code}`),
+      this.hmac.hex("session-ref-v1", sessionToken)
+    ]);
+    const verified = errorFromRepository(await this.repository.verifyChallenge({
+      challengeId,
+      emailRef: refs.emailRef,
+      candidateCodeMac: values[0],
+      sessionRef: values[1],
+      sessionTokenShape: sessionToken.length,
+      userIdCandidate,
+      ipRef: refs.ipRef,
+      deviceRef: refs.deviceRef,
+      userAgent: context.userAgent,
+      limits: this.#limits(VERIFY_LIMITS, refs),
+      now,
+      sessionExpiresAt: now + SESSION_TTL_MS
+    }));
+    return Object.freeze({
+      sessionToken,
+      sessionExpiresAt: now + SESSION_TTL_MS,
+      user: Object.freeze({
+        id: verified.user.id,
+        emailMasked: verified.user.emailMask,
+        status: verified.user.status,
+        createdAt: verified.user.createdAt
+      }),
+      created: Boolean(verified.created)
+    });
+  }
+  async getSession(sessionToken) {
+    const token = String(sessionToken || "").trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+    const sessionRef = await this.hmac.hex("session-ref-v1", token);
+    const result = errorFromRepository(await this.repository.getSession({ sessionRef, now: Number(this.now()) }));
+    return Object.freeze({
+      expiresAt: result.expiresAt,
+      user: Object.freeze({
+        id: result.user.id,
+        emailMasked: result.user.emailMask,
+        status: result.user.status,
+        createdAt: result.user.createdAt
+      })
+    });
+  }
+  async revokeSession(sessionToken) {
+    const token = String(sessionToken || "").trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) return Object.freeze({ revoked: false });
+    const sessionRef = await this.hmac.hex("session-ref-v1", token);
+    const result = await this.repository.revokeSession({ sessionRef, now: Number(this.now()) });
+    return Object.freeze({ revoked: Boolean(result?.revoked) });
+  }
+  ping() {
+    return this.repository.ping();
+  }
+  cleanup() {
+    return this.repository.cleanup(Number(this.now()));
+  }
+  nextExpiry() {
+    return this.repository.nextExpiry(Number(this.now()));
+  }
+};
+
+// auth-native/worker/public-auth-handler.mjs
+var AUTH_API_PREFIX = "/api/auth/v1";
+var AUTH_SESSION_COOKIE = "__Host-ah_session";
+var AUTH_DEVICE_COOKIE = "__Host-ah_device";
+var AUTHORITY_NAME = "admission-hub-global-auth-v1";
+var MAX_BODY_BYTES = 4096;
+var YEAR_SECONDS = 365 * 24 * 60 * 60;
+var JSON_HEADERS = Object.freeze({
+  "Content-Type": "application/json; charset=utf-8",
+  "Cache-Control": "no-store, max-age=0",
+  Pragma: "no-cache",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  "Cross-Origin-Resource-Policy": "same-site",
+  Vary: "Origin"
+});
+var allowedOrigin = (origin) => {
+  if (!origin) return true;
+  try {
+    const url = new URL(origin);
+    if (url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)) return true;
+    if (url.protocol !== "https:") return false;
+    return url.hostname === "admissionhub.pages.dev" || /^[a-z0-9-]+\.admissionhub\.pages\.dev$/i.test(url.hostname) || url.hostname === "admission-gk.admissionhub.workers.dev";
+  } catch {
+    return false;
+  }
+};
+var corsHeaders = (request) => {
+  const origin = request.headers.get("Origin") || "";
+  return origin && allowedOrigin(origin) ? {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Credentials": "true"
+  } : {};
+};
+var json3 = (request, status, body, headers = {}) => new Response(JSON.stringify(body), {
+  status,
+  headers: { ...JSON_HEADERS, ...corsHeaders(request), ...headers }
+});
+var cookies = (request) => Object.fromEntries(
+  String(request.headers.get("Cookie") || "").split(";").map((part) => part.trim()).filter(Boolean).map((part) => {
+    const index = part.indexOf("=");
+    return index < 1 ? ["", ""] : [part.slice(0, index), part.slice(index + 1)];
+  }).filter(([key]) => key)
+);
+var sessionCookie = (token, maxAge) => `${AUTH_SESSION_COOKIE}=${token}; Path=/; Max-Age=${Math.max(0, Math.floor(maxAge))}; HttpOnly; Secure; SameSite=Strict`;
+var deviceCookie = (token) => `${AUTH_DEVICE_COOKIE}=${token}; Path=/; Max-Age=${YEAR_SECONDS}; HttpOnly; Secure; SameSite=Lax`;
+async function readJson(request) {
+  if (!String(request.headers.get("Content-Type") || "").toLowerCase().startsWith("application/json")) {
+    throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  }
+  const declared = Number(request.headers.get("Content-Length") || 0);
+  if (declared > MAX_BODY_BYTES || !request.body) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  let raw = "";
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_BODY_BYTES) {
+      await reader.cancel();
+      throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+    }
+    raw += decoder.decode(value, { stream: true });
+  }
+  raw += decoder.decode();
+  if (!raw) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  }
+}
+var clientContext = (request, existingDeviceId = "") => {
+  const deviceId = /^[A-Za-z0-9_-]{20,96}$/.test(existingDeviceId) ? existingDeviceId : randomToken(24);
+  return Object.freeze({
+    deviceId,
+    isNewDevice: deviceId !== existingDeviceId,
+    ip: String(request.headers.get("CF-Connecting-IP") || "unknown").slice(0, 96),
+    userAgent: String(request.headers.get("User-Agent") || "").slice(0, 300)
+  });
+};
+async function callAuthority(env, path, body, method = "POST") {
+  if (!env?.AUTH_AUTHORITY || typeof env.AUTH_AUTHORITY.idFromName !== "function") {
+    throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+  }
+  let response3;
+  try {
+    const id = env.AUTH_AUTHORITY.idFromName(AUTHORITY_NAME);
+    const stub = env.AUTH_AUTHORITY.get(id);
+    response3 = await stub.fetch(`https://auth.internal${path}`, method === "GET" ? { method } : {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {})
+    });
+  } catch {
+    throw new NativeAuthError(AUTH_ERROR_CODES.STORAGE_UNAVAILABLE);
+  }
+  let data;
+  try {
+    data = await response3.json();
+  } catch {
+    throw new NativeAuthError(AUTH_ERROR_CODES.STORAGE_UNAVAILABLE);
+  }
+  if (!response3.ok || !data?.ok) {
+    throw new NativeAuthError(data?.error?.code || AUTH_ERROR_CODES.STORAGE_UNAVAILABLE, {
+      retryAfter: data?.error?.retryAfter || response3.headers.get("Retry-After")
+    });
+  }
+  return data.result || data;
+}
+function deliverySucceeded(result) {
+  return Boolean(result?.ok && ["ACCEPTED", "QUEUED", "SENT", "DELIVERED"].includes(result.status));
+}
+function createNativeAuthHandler({ sendEmail } = {}) {
+  if (typeof sendEmail !== "function") throw new TypeError("sendEmail dependency is required.");
+  return async function handleNativeAuthRequest(request, env, executionContext) {
+    const url = new URL(request.url);
+    if (!url.pathname.startsWith(`${AUTH_API_PREFIX}/`) && url.pathname !== AUTH_API_PREFIX) return null;
+    if (!allowedOrigin(request.headers.get("Origin") || "")) {
+      return json3(request, 403, { ok: false, error: { code: "ORIGIN_FORBIDDEN", message: "অনুমোদিত উৎস নয়।" } });
+    }
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...JSON_HEADERS,
+          ...corsHeaders(request),
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "content-type",
+          "Access-Control-Max-Age": "600"
+        }
+      });
+    }
+    try {
+      if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/config`) {
+        const health = await callAuthority(env, "/internal/ping", null, "GET");
+        return json3(request, 200, {
+          ok: true,
+          auth: {
+            version: AUTH_NATIVE_VERSION,
+            mode: "passwordless-email-otp",
+            storage: health.storage,
+            otp: { digits: 6, expiresIn: 600, resendAfter: 60, maxAttempts: 5 },
+            session: { transport: "secure-http-only-cookie", maxAge: 2592e3 },
+            deliveryLimit: { daily: 200, monthly: 6e3 }
+          }
+        });
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/otp/request`) {
+        const body = await readJson(request);
+        const jar = cookies(request);
+        const context = clientContext(request, jar[AUTH_DEVICE_COOKIE]);
+        const prepared = await callAuthority(env, "/internal/otp/prepare", {
+          input: { email: body.email },
+          context
+        });
+        const requestId = `authotp:${prepared.challengeId}`;
+        let delivery;
+        try {
+          delivery = await sendEmail(env, executionContext, {
+            type: "SIGNUP_VERIFICATION",
+            recipient: prepared.email,
+            subject: "Admission Hub নিরাপত্তা কোড",
+            template: "SIGNUP_VERIFICATION",
+            variables: { otp: prepared.code, purpose: "নিরাপদ অ্যাকাউন্ট যাচাই" },
+            requestId,
+            idempotencyKey: requestId,
+            priority: "HIGH",
+            context: { ip: context.ip, deviceId: context.deviceId }
+          });
+        } catch (error) {
+          const uncertain = Boolean(error?.uncertain || error?.dispatched);
+          await callAuthority(env, "/internal/otp/delivery", {
+            challengeId: prepared.challengeId,
+            delivery: { accepted: false, uncertain, provider: error?.providerId || null }
+          });
+          if (!uncertain) throw new NativeAuthError(AUTH_ERROR_CODES.DELIVERY_UNAVAILABLE);
+          delivery = { ok: false, uncertain: true, status: "UNCERTAIN" };
+        }
+        if (!deliverySucceeded(delivery) && !delivery?.uncertain) {
+          await callAuthority(env, "/internal/otp/delivery", {
+            challengeId: prepared.challengeId,
+            delivery: { accepted: false, uncertain: false, provider: delivery?.providerId || null }
+          });
+          throw new NativeAuthError(AUTH_ERROR_CODES.DELIVERY_UNAVAILABLE);
+        }
+        if (deliverySucceeded(delivery)) {
+          await callAuthority(env, "/internal/otp/delivery", {
+            challengeId: prepared.challengeId,
+            delivery: { accepted: true, uncertain: false, provider: delivery.providerId || null }
+          });
+        }
+        return json3(request, 202, {
+          ok: true,
+          challenge: {
+            id: prepared.challengeId,
+            emailMasked: prepared.emailMask,
+            expiresAt: prepared.expiresAt,
+            expiresIn: prepared.expiresIn,
+            resendAfter: prepared.resendAfter,
+            delivery: delivery?.uncertain ? "uncertain" : "accepted"
+          }
+        }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/otp/verify`) {
+        const body = await readJson(request);
+        const jar = cookies(request);
+        const context = clientContext(request, jar[AUTH_DEVICE_COOKIE]);
+        const verified = await callAuthority(env, "/internal/otp/verify", {
+          input: { email: body.email, challengeId: body.challengeId, code: body.code },
+          context
+        });
+        const maxAge = Math.max(1, Math.floor((Number(verified.sessionExpiresAt) - Date.now()) / 1e3));
+        return json3(request, 200, {
+          ok: true,
+          authenticated: true,
+          created: verified.created,
+          user: verified.user,
+          session: { expiresAt: verified.sessionExpiresAt }
+        }, { "Set-Cookie": sessionCookie(verified.sessionToken, maxAge) });
+      }
+      if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/session`) {
+        const token = cookies(request)[AUTH_SESSION_COOKIE];
+        if (!token) throw new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
+        const session = await callAuthority(env, "/internal/session/get", { sessionToken: token });
+        return json3(request, 200, { ok: true, authenticated: true, ...session });
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/session/logout`) {
+        const token = cookies(request)[AUTH_SESSION_COOKIE];
+        if (token) await callAuthority(env, "/internal/session/revoke", { sessionToken: token });
+        return json3(request, 200, { ok: true, authenticated: false }, {
+          "Set-Cookie": sessionCookie("", 0)
+        });
+      }
+      return json3(request, 404, { ok: false, error: { code: "NOT_FOUND", message: "Endpoint পাওয়া যায়নি।" } });
+    } catch (cause) {
+      const error = asNativeAuthError(cause);
+      return json3(request, error.status, { ok: false, error: error.toPublic() }, error.retryAfter ? { "Retry-After": String(error.retryAfter) } : {});
+    }
+  };
+}
 
 // email-gateway/worker/email-coordinator.mjs
 var response = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -3239,7 +3812,439 @@ var EmailGatewayCoordinator = class {
   }
 };
 
+// auth-native/storage/sqlite-auth-repository.mjs
+var DAY_MS = 24 * 60 * 60 * 1e3;
+var EVENT_RETENTION_MS = 90 * DAY_MS;
+var SqliteAuthRepository = class {
+  constructor(storage) {
+    if (!storage?.sql || typeof storage.sql.exec !== "function") throw new TypeError("SQLite Durable Object storage is required.");
+    this.storage = storage;
+    this.sql = storage.sql;
+  }
+  migrate() {
+    const statements = [
+      `CREATE TABLE IF NOT EXISTS auth_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS auth_users (
+        user_id TEXT PRIMARY KEY,
+        email_ref TEXT NOT NULL UNIQUE,
+        email_mask TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('active','disabled','suspended')),
+        created_at INTEGER NOT NULL,
+        last_login_at INTEGER NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS auth_challenges (
+        challenge_id TEXT PRIMARY KEY,
+        email_ref TEXT NOT NULL,
+        email_mask TEXT NOT NULL,
+        code_mac TEXT NOT NULL,
+        state TEXT NOT NULL CHECK(state IN ('active','consumed','expired','locked','superseded','failed')),
+        delivery_state TEXT NOT NULL CHECK(delivery_state IN ('pending','accepted','uncertain','failed')),
+        provider TEXT,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        max_attempts INTEGER NOT NULL,
+        consumed_at INTEGER,
+        ip_ref TEXT NOT NULL,
+        device_ref TEXT NOT NULL,
+        delivery_updated_at INTEGER
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_challenges_email_created ON auth_challenges(email_ref, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS auth_challenges_expiry ON auth_challenges(expires_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_sessions (
+        session_ref TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        last_seen_at INTEGER NOT NULL,
+        revoked_at INTEGER,
+        ip_ref TEXT NOT NULL,
+        device_ref TEXT NOT NULL,
+        user_agent TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_sessions_user ON auth_sessions(user_id, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS auth_sessions_expiry ON auth_sessions(expires_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_rate_limits (
+        scope TEXT NOT NULL,
+        bucket_key TEXT NOT NULL,
+        window_start INTEGER NOT NULL,
+        window_ms INTEGER NOT NULL,
+        count INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        PRIMARY KEY(scope, bucket_key, window_start)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_rate_expiry ON auth_rate_limits(expires_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_security_events (
+        event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_type TEXT NOT NULL,
+        subject_ref TEXT,
+        user_id TEXT,
+        occurred_at INTEGER NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_security_events_time ON auth_security_events(occurred_at DESC)`
+    ];
+    for (const statement of statements) this.sql.exec(statement);
+    this.sql.exec("INSERT OR IGNORE INTO auth_meta(key,value) VALUES('schema_version','1')");
+  }
+  #rows(statement, ...bindings) {
+    return Array.from(this.sql.exec(statement, ...bindings));
+  }
+  #one(statement, ...bindings) {
+    return this.#rows(statement, ...bindings)[0] || null;
+  }
+  #transaction(work) {
+    if (typeof this.storage.transactionSync === "function") return this.storage.transactionSync(work);
+    return work();
+  }
+  #consumeLimits(limits, now) {
+    let denied = null;
+    for (const limit of limits || []) {
+      const start = Math.floor(now / limit.windowMs) * limit.windowMs;
+      const expiresAt = start + limit.windowMs;
+      this.sql.exec(
+        `INSERT INTO auth_rate_limits(scope,bucket_key,window_start,window_ms,count,expires_at)
+         VALUES(?,?,?,?,1,?)
+         ON CONFLICT(scope,bucket_key,window_start) DO UPDATE SET count=count+1`,
+        limit.scope,
+        limit.key,
+        start,
+        limit.windowMs,
+        expiresAt
+      );
+      const row = this.#one(
+        "SELECT count,expires_at AS expiresAt FROM auth_rate_limits WHERE scope=? AND bucket_key=? AND window_start=?",
+        limit.scope,
+        limit.key,
+        start
+      );
+      if (Number(row?.count || 0) > limit.limit) {
+        const retryAfter = Math.max(1, Math.ceil((Number(row.expiresAt) - now) / 1e3));
+        if (!denied || retryAfter > denied.retryAfter) denied = { error: AUTH_ERROR_CODES.RATE_LIMITED, retryAfter };
+      }
+    }
+    return denied;
+  }
+  #event(eventType, subjectRef, userId, now) {
+    this.sql.exec(
+      "INSERT INTO auth_security_events(event_type,subject_ref,user_id,occurred_at) VALUES(?,?,?,?)",
+      String(eventType).slice(0, 48),
+      subjectRef || null,
+      userId || null,
+      now
+    );
+  }
+  async prepareChallenge({ record, limits, cooldownMs, now }) {
+    return this.#transaction(() => {
+      const denied = this.#consumeLimits(limits, now);
+      if (denied) return denied;
+      const latest = this.#one(
+        `SELECT created_at AS createdAt FROM auth_challenges
+         WHERE email_ref=? AND state='active' ORDER BY created_at DESC LIMIT 1`,
+        record.emailRef
+      );
+      if (latest && now - Number(latest.createdAt) < cooldownMs) {
+        return {
+          error: AUTH_ERROR_CODES.RESEND_COOLDOWN,
+          retryAfter: Math.max(1, Math.ceil((cooldownMs - (now - Number(latest.createdAt))) / 1e3))
+        };
+      }
+      this.sql.exec("UPDATE auth_challenges SET state='superseded',code_mac='' WHERE email_ref=? AND state='active'", record.emailRef);
+      this.sql.exec(
+        `INSERT INTO auth_challenges(
+          challenge_id,email_ref,email_mask,code_mac,state,delivery_state,created_at,expires_at,
+          attempts,max_attempts,ip_ref,device_ref
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+        record.challengeId,
+        record.emailRef,
+        record.emailMask,
+        record.codeMac,
+        record.state,
+        record.deliveryState,
+        record.createdAt,
+        record.expiresAt,
+        record.attempts,
+        record.maxAttempts,
+        record.ipRef,
+        record.deviceRef
+      );
+      this.#event("otp-prepared", record.emailRef, null, now);
+      return { prepared: true, preparedAt: now };
+    });
+  }
+  async markDelivery({ challengeId, accepted, uncertain, provider, now }) {
+    return this.#transaction(() => {
+      const row = this.#one("SELECT state FROM auth_challenges WHERE challenge_id=?", challengeId);
+      if (!row) return { error: AUTH_ERROR_CODES.OTP_INVALID };
+      if (accepted) {
+        this.sql.exec(
+          "UPDATE auth_challenges SET delivery_state='accepted',provider=?,delivery_updated_at=? WHERE challenge_id=?",
+          provider,
+          now,
+          challengeId
+        );
+      } else if (uncertain) {
+        this.sql.exec(
+          "UPDATE auth_challenges SET delivery_state='uncertain',provider=?,delivery_updated_at=? WHERE challenge_id=?",
+          provider,
+          now,
+          challengeId
+        );
+      } else {
+        this.sql.exec(
+          "UPDATE auth_challenges SET state='failed',delivery_state='failed',code_mac='',provider=?,delivery_updated_at=? WHERE challenge_id=? AND state='active'",
+          provider,
+          now,
+          challengeId
+        );
+      }
+      return { updated: true };
+    });
+  }
+  async verifyChallenge(input) {
+    return this.#transaction(() => {
+      const denied = this.#consumeLimits(input.limits, input.now);
+      if (denied) return denied;
+      const row = this.#one(
+        `SELECT challenge_id AS challengeId,email_ref AS emailRef,email_mask AS emailMask,code_mac AS codeMac,
+          state,expires_at AS expiresAt,attempts,max_attempts AS maxAttempts
+         FROM auth_challenges WHERE challenge_id=?`,
+        input.challengeId
+      );
+      if (!row || row.emailRef !== input.emailRef || ["superseded", "failed"].includes(row?.state)) {
+        return { error: AUTH_ERROR_CODES.OTP_INVALID };
+      }
+      if (row.state === "consumed") return { error: AUTH_ERROR_CODES.OTP_USED };
+      if (row.state === "locked") return { error: AUTH_ERROR_CODES.OTP_LOCKED };
+      if (Number(row.expiresAt) <= input.now || row.state === "expired") {
+        this.sql.exec("UPDATE auth_challenges SET state='expired',code_mac='' WHERE challenge_id=?", input.challengeId);
+        return { error: AUTH_ERROR_CODES.OTP_EXPIRED };
+      }
+      if (Number(row.attempts) >= Number(row.maxAttempts)) {
+        this.sql.exec("UPDATE auth_challenges SET state='locked',code_mac='' WHERE challenge_id=?", input.challengeId);
+        return { error: AUTH_ERROR_CODES.OTP_LOCKED };
+      }
+      if (!constantTimeEqual(row.codeMac, input.candidateCodeMac)) {
+        const attempts = Number(row.attempts) + 1;
+        if (attempts >= Number(row.maxAttempts)) {
+          this.sql.exec("UPDATE auth_challenges SET attempts=?,state='locked',code_mac='' WHERE challenge_id=?", attempts, input.challengeId);
+          this.#event("otp-locked", input.emailRef, null, input.now);
+          return { error: AUTH_ERROR_CODES.OTP_LOCKED };
+        }
+        this.sql.exec("UPDATE auth_challenges SET attempts=? WHERE challenge_id=?", attempts, input.challengeId);
+        this.#event("otp-invalid", input.emailRef, null, input.now);
+        return { error: AUTH_ERROR_CODES.OTP_INVALID };
+      }
+      this.sql.exec(
+        "UPDATE auth_challenges SET state='consumed',consumed_at=?,code_mac='' WHERE challenge_id=? AND state='active'",
+        input.now,
+        input.challengeId
+      );
+      let user = this.#one(
+        `SELECT user_id AS id,email_mask AS emailMask,status,created_at AS createdAt
+         FROM auth_users WHERE email_ref=?`,
+        input.emailRef
+      );
+      let created = false;
+      if (!user) {
+        this.sql.exec(
+          `INSERT OR IGNORE INTO auth_users(user_id,email_ref,email_mask,status,created_at,last_login_at)
+           VALUES(?,?,?,'active',?,?)`,
+          input.userIdCandidate,
+          input.emailRef,
+          row.emailMask,
+          input.now,
+          input.now
+        );
+        user = this.#one(
+          `SELECT user_id AS id,email_mask AS emailMask,status,created_at AS createdAt
+           FROM auth_users WHERE email_ref=?`,
+          input.emailRef
+        );
+        created = user?.id === input.userIdCandidate;
+      }
+      if (!user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+      if (user.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      this.sql.exec("UPDATE auth_users SET last_login_at=? WHERE user_id=?", input.now, user.id);
+      this.sql.exec(
+        `INSERT INTO auth_sessions(
+          session_ref,user_id,created_at,expires_at,last_seen_at,revoked_at,ip_ref,device_ref,user_agent
+        ) VALUES(?,?,?,?,?,NULL,?,?,?)`,
+        input.sessionRef,
+        user.id,
+        input.now,
+        input.sessionExpiresAt,
+        input.now,
+        input.ipRef,
+        input.deviceRef,
+        input.userAgent
+      );
+      this.#event(created ? "account-created" : "login", input.emailRef, user.id, input.now);
+      return { verified: true, created, user };
+    });
+  }
+  async getSession({ sessionRef, now }) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT s.expires_at AS expiresAt,s.last_seen_at AS lastSeenAt,
+          u.user_id AS id,u.email_mask AS emailMask,u.status,u.created_at AS createdAt
+         FROM auth_sessions s JOIN auth_users u ON u.user_id=s.user_id
+         WHERE s.session_ref=? AND s.revoked_at IS NULL`,
+        sessionRef
+      );
+      if (!row || Number(row.expiresAt) <= now) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
+      if (row.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      if (now - Number(row.lastSeenAt) > 6 * 60 * 60 * 1e3) {
+        this.sql.exec("UPDATE auth_sessions SET last_seen_at=? WHERE session_ref=?", now, sessionRef);
+      }
+      return {
+        expiresAt: Number(row.expiresAt),
+        user: { id: row.id, emailMask: row.emailMask, status: row.status, createdAt: Number(row.createdAt) }
+      };
+    });
+  }
+  async revokeSession({ sessionRef, now }) {
+    return this.#transaction(() => {
+      const row = this.#one("SELECT revoked_at AS revokedAt FROM auth_sessions WHERE session_ref=?", sessionRef);
+      if (!row || row.revokedAt) return { revoked: false };
+      this.sql.exec("UPDATE auth_sessions SET revoked_at=? WHERE session_ref=?", now, sessionRef);
+      this.#event("logout", null, null, now);
+      return { revoked: true };
+    });
+  }
+  async ping() {
+    const row = this.#one("SELECT value FROM auth_meta WHERE key='schema_version'");
+    return { ok: row?.value === "1", storage: "sqlite-durable-object", schema: Number(row?.value || 0) };
+  }
+  async cleanup(now) {
+    return this.#transaction(() => {
+      this.sql.exec("DELETE FROM auth_challenges WHERE expires_at<=?", now);
+      this.sql.exec("DELETE FROM auth_rate_limits WHERE expires_at<=?", now);
+      this.sql.exec("DELETE FROM auth_sessions WHERE expires_at<=? OR revoked_at IS NOT NULL", now);
+      this.sql.exec("DELETE FROM auth_security_events WHERE occurred_at<?", now - EVENT_RETENTION_MS);
+      this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('last_cleanup',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", String(now));
+      return { cleaned: true };
+    });
+  }
+  async nextExpiry(now) {
+    const row = this.#one(
+      `SELECT MIN(expiry) AS nextExpiry FROM (
+        SELECT MIN(expires_at) AS expiry FROM auth_challenges WHERE expires_at>?
+        UNION ALL SELECT MIN(expires_at) FROM auth_sessions WHERE expires_at>? AND revoked_at IS NULL
+        UNION ALL SELECT MIN(expires_at) FROM auth_rate_limits WHERE expires_at>?
+      )`,
+      now,
+      now,
+      now
+    );
+    const next = Number(row?.nextExpiry || 0);
+    return next > now ? next : null;
+  }
+};
+
+// auth-native/worker/auth-authority-do.mjs
+var JSON_HEADERS2 = Object.freeze({
+  "Content-Type": "application/json; charset=utf-8",
+  "Cache-Control": "no-store, max-age=0",
+  Pragma: "no-cache",
+  "X-Content-Type-Options": "nosniff"
+});
+var response2 = (status, body, extraHeaders = {}) => new Response(JSON.stringify(body), {
+  status,
+  headers: { ...JSON_HEADERS2, ...extraHeaders }
+});
+async function readJson2(request) {
+  const raw = await request.text();
+  if (!raw || raw.length > 16384) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  }
+}
+var AdmissionAuthAuthority = class {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+    this.ready = state.blockConcurrencyWhile(async () => {
+      this.repository = new SqliteAuthRepository(state.storage);
+      this.repository.migrate();
+      this.engine = new CloudflareNativeAuthEngine({
+        repository: this.repository,
+        hmacSecret: env.AUTH_HMAC_SECRET
+      });
+    });
+  }
+  async #scheduleExpiry() {
+    const next = await this.engine.nextExpiry();
+    if (!next) return;
+    const scheduled = await this.state.storage.getAlarm();
+    if (!scheduled || next < scheduled) await this.state.storage.setAlarm(next);
+  }
+  async fetch(request) {
+    try {
+      await this.ready;
+      const url = new URL(request.url);
+      if (request.method === "GET" && url.pathname === "/internal/ping") {
+        return response2(200, { ok: true, ...await this.engine.ping() });
+      }
+      if (request.method !== "POST") return response2(405, { ok: false, error: { code: "METHOD_NOT_ALLOWED" } }, { Allow: "POST" });
+      const body = await readJson2(request);
+      if (url.pathname === "/internal/otp/prepare") {
+        const result = await this.engine.prepareOtp(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/otp/delivery") {
+        const result = await this.engine.markDelivery(body.challengeId, body.delivery);
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/otp/verify") {
+        const result = await this.engine.verifyOtp(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/session/get") {
+        const result = await this.engine.getSession(body.sessionToken);
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/session/revoke") {
+        const result = await this.engine.revokeSession(body.sessionToken);
+        return response2(200, { ok: true, result });
+      }
+      return response2(404, { ok: false, error: { code: "NOT_FOUND" } });
+    } catch (cause) {
+      const error = asNativeAuthError(cause);
+      return response2(error.status, { ok: false, error: error.toPublic() }, error.retryAfter ? { "Retry-After": String(error.retryAfter) } : {});
+    }
+  }
+  async alarm() {
+    try {
+      await this.ready;
+      await this.engine.cleanup();
+      const next = await this.engine.nextExpiry();
+      if (next) await this.state.storage.setAlarm(next);
+    } catch {
+      await this.state.storage.setAlarm(Date.now() + 60 * 60 * 1e3);
+    }
+  }
+};
+
 // gk-agent-worker.js
+var nativeAuthHandler = createNativeAuthHandler({
+  async sendEmail(env, _executionContext, request) {
+    const gateway = await createEmailGateway({
+      config: safeParseEmailGatewayConfig(env.EMAIL_GATEWAY_CONFIG),
+      store: new DurableObjectEmailStore(env.EMAIL_COORDINATOR),
+      env,
+      privatePepper: env.EMAIL_PRIVATE_PEPPER
+    });
+    return gateway.send(request);
+  }
+});
 var APP_HEADER = "admission-hub";
 var BU_BASE = "https://api.browser-use.com/api/v2";
 var POLL_EVERY_MS = 3e4;
@@ -3291,7 +4296,7 @@ var cors = (request) => {
   if (ok) headers["Access-Control-Allow-Origin"] = origin;
   return headers;
 };
-var json3 = (request, obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...cors(request) } });
+var json4 = (request, obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...cors(request) } });
 var dhakaToday = () => new Date(Date.now() + 6 * 36e5).toISOString().slice(0, 10);
 var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 var keys = (env) => String(env.BROWSER_USE_API_KEYS || "").split(",").map((k) => k.trim()).filter(Boolean);
@@ -3477,7 +4482,7 @@ var bankUpload = async (request, env) => {
     } catch (_) {
     }
     const bank = normalizeBank(body.questions, body.stats);
-    if (!bank.qs.length) return json3(request, { error: "empty-bank" }, 400);
+    if (!bank.qs.length) return json4(request, { error: "empty-bank" }, 400);
     await env.GK_KV.put("userBank", JSON.stringify({ ...bank, history: Array.isArray(body.history) ? body.history.slice(0, 500) : [], mistakes: Array.isArray(body.mistakes) ? body.mistakes.slice(0, 400) : [], vocabulary: Array.isArray(body.vocabulary) ? body.vocabulary.slice(0, 1500) : [], activity: body.activity && typeof body.activity === "object" ? body.activity : {}, ...body.full && typeof body.full === "object" ? { full: body.full } : {}, savedAt: Date.now() }));
     if (body.full && typeof body.full === "object" && env.PUB_KV) {
       try {
@@ -3485,23 +4490,23 @@ var bankUpload = async (request, env) => {
       } catch (_) {
       }
     }
-    return json3(request, { saved: true, count: bank.qs.length });
+    return json4(request, { saved: true, count: bank.qs.length });
   } catch (_) {
-    return json3(request, { error: "bank-failed" }, 500);
+    return json4(request, { error: "bank-failed" }, 500);
   }
 };
 var bankInfo = async (request, env) => {
   try {
     const raw = await env.GK_KV.get("userBank");
-    if (!raw) return json3(request, { saved: false });
+    if (!raw) return json4(request, { saved: false });
     try {
-      if (new URL(request.url).searchParams.get("full") === "1") return json3(request, { saved: true, bank: JSON.parse(raw) });
+      if (new URL(request.url).searchParams.get("full") === "1") return json4(request, { saved: true, bank: JSON.parse(raw) });
     } catch (_) {
     }
     const b = JSON.parse(raw);
-    return json3(request, { saved: true, count: b.qs.length, stats: b.stats, savedAt: b.savedAt, history: Array.isArray(b.history) ? b.history.length : 0, mistakes: Array.isArray(b.mistakes) ? b.mistakes.length : 0, vocabulary: Array.isArray(b.vocabulary) ? b.vocabulary.length : 0, activity: b.activity || {} });
+    return json4(request, { saved: true, count: b.qs.length, stats: b.stats, savedAt: b.savedAt, history: Array.isArray(b.history) ? b.history.length : 0, mistakes: Array.isArray(b.mistakes) ? b.mistakes.length : 0, vocabulary: Array.isArray(b.vocabulary) ? b.vocabulary.length : 0, activity: b.activity || {} });
   } catch (_) {
-    return json3(request, { saved: false });
+    return json4(request, { saved: false });
   }
 };
 var histBlock = (b) => {
@@ -3552,8 +4557,8 @@ var createAsk = async (request, env, ctx) => {
     }
     const question = String(body.question || "").trim().slice(0, 600);
     const context = String(body.context || "").trim().slice(0, 1200);
-    if (!question) return json3(request, { error: "empty-question" }, 400);
-    if (!keys(env).length) return json3(request, { error: "keys-not-configured" }, 503);
+    if (!question) return json4(request, { error: "empty-question" }, 400);
+    if (!keys(env).length) return json4(request, { error: "keys-not-configured" }, 503);
     const id = newId();
     const source = String(body.source || "auto").slice(0, 60);
     let bankBlock = "";
@@ -3579,33 +4584,33 @@ ${(q.o || []).map((o, oi) => `   ${"কখগঘঙ"[oi] || oi + 1}) ${o}`).join
     }
     const askBody = { task: ASK_PROMPT(question, context, bankBlock, histB), llm: env.BU_LLM || "browser-use-2.0", maxSteps: 14, structuredOutput: JSON.stringify(ASK_SCHEMA), flashMode: false };
     const askKey = String(env.ASK_API_KEY || "").trim();
-    if (!askKey) return json3(request, { error: "ask-key-not-configured" }, 503);
+    if (!askKey) return json4(request, { error: "ask-key-not-configured" }, 503);
     let job = await createWithFailover(env, date, askBody, 0, [askKey]);
     let dedicated = !!job;
     if (!job) job = await createWithFailover(env, date, askBody, Math.floor(Date.now() / 6e4));
-    if (!job) return json3(request, { error: "all-keys-exhausted" }, 429);
+    if (!job) return json4(request, { error: "all-keys-exhausted" }, 429);
     await env.GK_KV.put(`ask:${id}`, JSON.stringify({ id, jobId: job.id, keyIndex: job.keyIndex, dedicated, date, status: "running", createdAt: Date.now() }), { expirationTtl: 86400 * 3 });
-    return json3(request, { id, started: true });
+    return json4(request, { id, started: true });
   } catch (_) {
-    return json3(request, { error: "ask-failed" }, 500);
+    return json4(request, { error: "ask-failed" }, 500);
   }
 };
 var askStatus = async (request, env, id) => {
   try {
-    if (!/^[a-f0-9-]{8,40}$/i.test(id)) return json3(request, { error: "bad-id" }, 400);
+    if (!/^[a-f0-9-]{8,40}$/i.test(id)) return json4(request, { error: "bad-id" }, 400);
     const rec = await env.GK_KV.get(`ask:${id}`);
-    if (!rec) return json3(request, { error: "not-found" }, 404);
+    if (!rec) return json4(request, { error: "not-found" }, 404);
     const ask = JSON.parse(rec);
-    if (ask.status !== "running") return json3(request, ask);
+    if (ask.status !== "running") return json4(request, ask);
     const all = keys(env);
     const key = ask.dedicated ? String(env.ASK_API_KEY || "").trim() || all[0] : all[ask.keyIndex] || all[0];
     let task = await getTask(key, ask.jobId).catch(() => null);
     if (!task && String(env.ASK_API_KEY || "").trim() && key !== String(env.ASK_API_KEY).trim()) task = await getTask(String(env.ASK_API_KEY).trim(), ask.jobId).catch(() => null);
-    if (!task) return json3(request, { status: "running" });
+    if (!task) return json4(request, { status: "running" });
     if (task.status === "failed") {
       ask.status = "failed";
       await env.GK_KV.put(`ask:${id}`, JSON.stringify(ask));
-      return json3(request, { status: "failed" });
+      return json4(request, { status: "failed" });
     }
     const out = parseOutput(task);
     if (out && typeof out.answer === "string" && out.answer.trim()) {
@@ -3613,11 +4618,11 @@ var askStatus = async (request, env, id) => {
       ask.answer = String(out.answer).slice(0, 4e3);
       ask.sources = Array.isArray(out.sources) ? out.sources.map((x) => String(x).slice(0, 120)).slice(0, 6) : [];
       await env.GK_KV.put(`ask:${id}`, JSON.stringify(ask));
-      return json3(request, { status: "finished", answer: ask.answer, sources: ask.sources });
+      return json4(request, { status: "finished", answer: ask.answer, sources: ask.sources });
     }
-    return json3(request, { status: task.status === "finished" ? "failed" : "running" });
+    return json4(request, { status: task.status === "finished" ? "failed" : "running" });
   } catch (_) {
-    return json3(request, { error: "status-failed" }, 500);
+    return json4(request, { error: "status-failed" }, 500);
   }
 };
 var healTasks = async (env, date) => {
@@ -3645,9 +4650,9 @@ var healTasks = async (env, date) => {
 };
 var startNewsOnly = async (request, env, ctx, date) => {
   try {
-    if (!keys(env).length) return json3(request, { error: "keys-not-configured" }, 503);
+    if (!keys(env).length) return json4(request, { error: "keys-not-configured" }, 503);
     const newsJob = await createWithFailover(env, date, newsTaskBody(env, date), 1);
-    if (!newsJob) return json3(request, { error: "all-keys-exhausted" }, 429);
+    if (!newsJob) return json4(request, { error: "all-keys-exhausted" }, 429);
     const job = { kind: "news", id: newsJob.id, keyIndex: newsJob.keyIndex };
     const rec = await env.GK_KV.get(`gkTasks:${date}`);
     const tasksRec = rec ? JSON.parse(rec) : { jobs: [], startedAt: Date.now() };
@@ -3655,9 +4660,9 @@ var startNewsOnly = async (request, env, ctx, date) => {
     await env.GK_KV.put(`gkTasks:${date}`, JSON.stringify(tasksRec));
     if (ctx && ctx.waitUntil) ctx.waitUntil(runBackground(env, date, [job]));
     else runBackground(env, date, [job]);
-    return json3(request, { started: true, kind: "news" });
+    return json4(request, { started: true, kind: "news" });
   } catch (_) {
-    return json3(request, { error: "run-failed" }, 500);
+    return json4(request, { error: "run-failed" }, 500);
   }
 };
 var maybeStart = async (request, env, ctx) => {
@@ -3667,9 +4672,9 @@ var maybeStart = async (request, env, ctx) => {
     const lastDay = await env.GK_KV.get("gkDay");
     if (lastDay === date) {
       const stored = await env.GK_KV.get(`gkData:${date}`);
-      return json3(request, stored ? { already: true, ready: true } : { already: true, ready: false });
+      return json4(request, stored ? { already: true, ready: true } : { already: true, ready: false });
     }
-    if (!keys(env).length) return json3(request, { error: "keys-not-configured" }, 503);
+    if (!keys(env).length) return json4(request, { error: "keys-not-configured" }, 503);
     await env.GK_KV.put("gkDay", date);
     const gkJob = await createWithFailover(env, date, { task: GK_PROMPT(date), llm: env.BU_LLM || "browser-use-2.0", maxSteps: 45, structuredOutput: JSON.stringify(GK_SCHEMA), flashMode: false });
     const newsJob = await createWithFailover(env, date, newsTaskBody(env, date), 1);
@@ -3678,17 +4683,19 @@ var maybeStart = async (request, env, ctx) => {
       newsJob ? { kind: "news", id: newsJob.id, keyIndex: newsJob.keyIndex } : null
     ].filter(Boolean);
     await env.GK_KV.put(`gkTasks:${date}`, JSON.stringify({ jobs, startedAt: Date.now() }));
-    if (!jobs.length) return json3(request, { error: "all-keys-exhausted" }, 429);
+    if (!jobs.length) return json4(request, { error: "all-keys-exhausted" }, 429);
     if (ctx && ctx.waitUntil) ctx.waitUntil(runBackground(env, date, jobs));
     else runBackground(env, date, jobs);
-    return json3(request, { started: true, tasks: jobs.length });
+    return json4(request, { started: true, tasks: jobs.length });
   } catch (error) {
-    return json3(request, { error: "run-failed" }, 500);
+    return json4(request, { error: "run-failed" }, 500);
   }
 };
 var gk_agent_worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const authResponse = await nativeAuthHandler(request, env, ctx);
+    if (authResponse) return authResponse;
     const emailResponse = await handleInternalEmailRequest(request, env, ctx);
     if (emailResponse) return emailResponse;
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(request) });
@@ -3711,11 +4718,11 @@ var gk_agent_worker_default = {
       }
     }
     if (url.pathname === "/health") {
-      return json3(request, { ok: true, keys: keys(env).length, askKey: !!env.ASK_API_KEY, kv: !!env.GK_KV, tg: !!env.TG_BOT_TOKEN, agent: "agent-f1", gemini: !!env.GEMINI_KEYS, groq: !!env.GROQ_API_KEY, lastDay: env.GK_KV ? await env.GK_KV.get("gkDay") : null });
+      return json4(request, { ok: true, keys: keys(env).length, askKey: !!env.ASK_API_KEY, kv: !!env.GK_KV, tg: !!env.TG_BOT_TOKEN, agent: "agent-f1", gemini: !!env.GEMINI_KEYS, groq: !!env.GROQ_API_KEY, lastDay: env.GK_KV ? await env.GK_KV.get("gkDay") : null });
     }
     const isApp = request.headers.get("X-AH-App") === APP_HEADER;
     const beaconOk = !isApp && request.method === "POST" && url.pathname === "/api/bank" && request.headers.get("Origin") === "https://sheikhrashel47-stack.github.io";
-    if (!isApp && !beaconOk) return json3(request, { error: "forbidden" }, 403);
+    if (!isApp && !beaconOk) return json4(request, { error: "forbidden" }, 403);
     if (request.method === "POST" && url.pathname === "/api/ask") return await createAsk(request, env, ctx);
     if (request.method === "POST" && url.pathname === "/api/bank") return await bankUpload(request, env);
     if (request.method === "GET" && url.pathname === "/api/bank") return await bankInfo(request, env);
@@ -3726,9 +4733,9 @@ var gk_agent_worker_default = {
       } catch (_) {
       }
       const result = await publishGlobal(env, body);
-      if (result.error === "empty") return json3(request, { error: "empty-global" }, 400);
-      if (result.error) return json3(request, result, 500);
-      return json3(request, result);
+      if (result.error === "empty") return json4(request, { error: "empty-global" }, 400);
+      if (result.error) return json4(request, result, 500);
+      return json4(request, result);
     }
     if (request.method === "GET" && url.pathname.startsWith("/api/ask/")) return await askStatus(request, env, url.pathname.split("/").pop() || "");
     if (request.method === "POST" && url.pathname === "/api/gk/run") return maybeStart(request, env, ctx);
@@ -3738,16 +4745,16 @@ var gk_agent_worker_default = {
         const tasks = await env.GK_KV.get(`gkTasks:${date}`);
         if (tasks) {
           const healed = await healTasks(env, date);
-          if (healed) return json3(request, { ready: true, date, payload: healed });
+          if (healed) return json4(request, { ready: true, date, payload: healed });
         }
         const stored = await env.GK_KV.get(`gkData:${date}`);
-        if (stored) return json3(request, { ready: true, date, payload: JSON.parse(stored) });
-        return json3(request, { ready: false, date, running: !!tasks });
+        if (stored) return json4(request, { ready: true, date, payload: JSON.parse(stored) });
+        return json4(request, { ready: false, date, running: !!tasks });
       } catch (_) {
-        return json3(request, { ready: false, date, running: false });
+        return json4(request, { ready: false, date, running: false });
       }
     }
-    return json3(request, { error: "not_found" }, 404);
+    return json4(request, { error: "not_found" }, 404);
   },
   async scheduled(event, env, ctx) {
     if (!env.GK_KV || !keys(env).length) return;
@@ -3762,6 +4769,7 @@ var gk_agent_worker_default = {
 };
 var __test = { tryCreate, createWithFailover, parseOutput, dhakaToday, keys, GK_PROMPT, GK_SCHEMA, NEWS_SCHEMA, finalizeResults, normalizeBank, bankPick, bankUpload, bankInfo, ASK_PROMPT, histBlock };
 export {
+  AdmissionAuthAuthority,
   EmailGatewayCoordinator,
   __test,
   gk_agent_worker_default as default

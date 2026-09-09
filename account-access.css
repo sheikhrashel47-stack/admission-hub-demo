@@ -1,0 +1,53 @@
+/* Admission Hub native passwordless account UI — additive; the study app remains guest-usable. */
+.ah-account-launcher{position:fixed;top:max(12px,env(safe-area-inset-top));right:14px;z-index:1180;display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:8px 12px;border:1px solid rgba(31,100,82,.22);border-radius:999px;background:rgba(255,255,255,.93);color:#174f42;box-shadow:0 8px 28px rgba(20,58,49,.14);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font:700 13px/1.2 system-ui,-apple-system,"Noto Sans Bengali",sans-serif;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.ah-account-launcher:hover{transform:translateY(-1px);box-shadow:0 10px 34px rgba(20,58,49,.2);border-color:rgba(31,100,82,.4)}
+.ah-account-launcher:focus-visible,.ah-account-modal button:focus-visible,.ah-account-modal input:focus-visible{outline:3px solid rgba(38,145,113,.32);outline-offset:2px}
+.ah-account-launcher svg{width:19px;height:19px;flex:0 0 auto}
+.ah-account-launcher[data-authenticated="true"]{background:#eaf8f2;border-color:#83cbb5;color:#105946}
+.ah-account-launcher[data-authenticated="true"] .ah-account-dot{background:#1a9b72;box-shadow:0 0 0 3px rgba(26,155,114,.13)}
+.ah-account-dot{width:7px;height:7px;border-radius:50%;background:#8c9d98}
+.ah-account-overlay[hidden]{display:none!important}
+.ah-account-overlay{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:18px;background:rgba(11,31,26,.58);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);animation:ahAccountFade .16s ease-out}
+.ah-account-modal{position:relative;width:min(100%,430px);max-height:min(700px,calc(100dvh - 32px));overflow:auto;border:1px solid rgba(33,101,83,.18);border-radius:24px;background:#fff;color:#17362e;box-shadow:0 28px 90px rgba(7,35,28,.3);font-family:system-ui,-apple-system,"Noto Sans Bengali",sans-serif;animation:ahAccountRise .2s ease-out}
+.ah-account-head{padding:25px 25px 16px;background:linear-gradient(145deg,#effaf6 0%,#fff 64%);border-bottom:1px solid #e5efec}
+.ah-account-kicker{display:inline-flex;align-items:center;gap:7px;margin:0 0 9px;color:#20745d;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.ah-account-kicker::before{content:"";width:8px;height:8px;border-radius:50%;background:#29a980;box-shadow:0 0 0 4px rgba(41,169,128,.12)}
+.ah-account-title{margin:0;font-size:25px;line-height:1.28;letter-spacing:-.02em}
+.ah-account-subtitle{margin:8px 0 0;color:#5c716b;font-size:14px;line-height:1.65}
+.ah-account-close{position:absolute;top:15px;right:15px;width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:50%;background:#eef5f3;color:#315c50;font-size:22px;line-height:1;cursor:pointer}
+.ah-account-body{padding:22px 25px 25px}
+.ah-account-view[hidden]{display:none!important}
+.ah-account-label{display:block;margin:0 0 7px;color:#274d43;font-size:13px;font-weight:800}
+.ah-account-input{box-sizing:border-box;width:100%;height:50px;padding:0 14px;border:1.5px solid #cddbd7;border-radius:13px;background:#fff;color:#132e27;font:600 16px/1 system-ui,-apple-system,"Noto Sans Bengali",sans-serif;transition:border-color .15s ease,box-shadow .15s ease}
+.ah-account-input::placeholder{color:#95a49f;font-weight:500}
+.ah-account-input:focus{border-color:#2b9b79;box-shadow:0 0 0 4px rgba(43,155,121,.11);outline:0}
+.ah-account-otp{height:58px;text-align:center;font-size:27px;font-weight:800;letter-spacing:.3em;padding-left:calc(14px + .3em)}
+.ah-account-primary,.ah-account-secondary,.ah-account-link{font-family:inherit;cursor:pointer}
+.ah-account-primary{width:100%;min-height:49px;margin-top:15px;border:0;border-radius:13px;background:linear-gradient(135deg,#14745a,#219472);color:#fff;font-size:15px;font-weight:800;box-shadow:0 9px 22px rgba(26,126,97,.2)}
+.ah-account-primary:hover{filter:brightness(1.035)}
+.ah-account-primary:disabled,.ah-account-secondary:disabled,.ah-account-link:disabled{cursor:not-allowed;opacity:.58}
+.ah-account-secondary{width:100%;min-height:46px;margin-top:11px;border:1.5px solid #c9d9d4;border-radius:13px;background:#fff;color:#1e6754;font-size:14px;font-weight:800}
+.ah-account-link{border:0;background:transparent;color:#19775d;font-size:13px;font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.ah-account-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px}
+.ah-account-note{margin:14px 0 0;padding:11px 12px;border-radius:12px;background:#f2f7f5;color:#61736e;font-size:12px;line-height:1.55}
+.ah-account-message[hidden]{display:none!important}
+.ah-account-message{margin:0 0 14px;padding:11px 12px;border-radius:12px;font-size:13px;font-weight:650;line-height:1.55}
+.ah-account-message[data-kind="error"]{background:#fff0ed;color:#973c2b;border:1px solid #f4ccc3}
+.ah-account-message[data-kind="success"]{background:#eaf9f3;color:#176148;border:1px solid #bce7d6}
+.ah-account-message[data-kind="info"]{background:#eef6ff;color:#285d8c;border:1px solid #cfE1f3}
+.ah-account-mask{margin:0 0 17px;color:#516861;font-size:14px;line-height:1.65}
+.ah-account-mask strong{color:#1c5647}
+.ah-account-secure{display:flex;gap:11px;align-items:flex-start;padding:14px;border-radius:14px;background:#edf9f4;border:1px solid #c8e9dc}
+.ah-account-secure svg{width:24px;height:24px;flex:0 0 auto;color:#17805f}
+.ah-account-secure h3{margin:0 0 4px;font-size:15px;color:#145a45}
+.ah-account-secure p{margin:0;color:#557069;font-size:13px;line-height:1.55}
+.ah-account-identity{margin:17px 0 0;padding:14px;border:1px solid #dce8e4;border-radius:14px}
+.ah-account-identity-label{margin:0 0 4px;color:#7a8c87;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.ah-account-identity-value{margin:0;color:#193f35;font-size:15px;font-weight:800}
+.ah-account-fine{margin:15px 0 0;color:#7a8c87;font-size:11px;line-height:1.6;text-align:center}
+.ah-account-spinner{display:inline-block;width:15px;height:15px;margin-right:7px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;vertical-align:-3px;animation:ahAccountSpin .7s linear infinite}
+@keyframes ahAccountSpin{to{transform:rotate(360deg)}}
+@keyframes ahAccountFade{from{opacity:0}to{opacity:1}}
+@keyframes ahAccountRise{from{opacity:.5;transform:translateY(9px) scale(.985)}to{opacity:1;transform:none}}
+@media(max-width:620px){.ah-account-launcher{top:max(9px,env(safe-area-inset-top));right:9px;padding:8px 10px}.ah-account-launcher-label{display:none}.ah-account-modal{border-radius:22px}.ah-account-head{padding:23px 21px 15px}.ah-account-body{padding:20px 21px 23px}}
+@media(prefers-reduced-motion:reduce){.ah-account-overlay,.ah-account-modal,.ah-account-spinner{animation:none}.ah-account-launcher{transition:none}}

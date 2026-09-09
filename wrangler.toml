@@ -10,9 +10,17 @@ crons = ["30 18 * * *"]
 name = "EMAIL_COORDINATOR"
 class_name = "EmailGatewayCoordinator"
 
+[[durable_objects.bindings]]
+name = "AUTH_AUTHORITY"
+class_name = "AdmissionAuthAuthority"
+
 [[migrations]]
 tag = "v1-email-gateway-coordinator"
 new_sqlite_classes = ["EmailGatewayCoordinator"]
+
+[[migrations]]
+tag = "v2-native-auth-authority"
+new_sqlite_classes = ["AdmissionAuthAuthority"]
 
 [[kv_namespaces]]
 binding = "GK_KV"

@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v221-account-retired-20260908';
+const BUILD_ID = 'v222-native-auth-20260909';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -16,6 +16,8 @@ const APP_SHELL = [
   './dashboard-v2.css?v=dash2',
   './3d-loader.css?v=3d-v1',
   './session-persist.js?v=session-v1',
+  './account-access.css?v=20260909-native-v1',
+  './account-access.js?v=20260909-native-v1',
   './data-protection.js?v=dp-v3-fastboot',
   './dashboard-v2.js?v=dash2f7',
   './ai-agent-chat.js?v=agent-f1-ui-chatv14-guest',
@@ -102,6 +104,17 @@ self.addEventListener('fetch', event => {
 
   const requestUrl = new URL(request.url);
   if (requestUrl.origin !== self.location.origin) return;
+
+  // Authentication responses are always live and are never written to the PWA cache.
+  if (requestUrl.pathname.startsWith('/api/auth/')) {
+    event.respondWith(fetch(request, { cache: 'no-store' }).catch(() => new Response(JSON.stringify({
+      ok: false, error: { code: 'OFFLINE', message: 'অ্যাকাউন্ট সেবার জন্য ইন্টারনেট সংযোগ প্রয়োজন।' }
+    }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
+    })));
+    return;
+  }
 
   event.respondWith((async () => {
     // Installed PWA launches are shell-first: a flaky network must never hold the

@@ -4,7 +4,9 @@
 **Owner-approved execution:** Phase 2A + Phase 2B split
 **Auth authority decision:** concrete Supabase binding deferred until Phase 3
 **Phase 2A status (2026-09-09):** implemented and verified in `e8b2d56510c25bd339f6af03abee11bc70c8ed94`; awaiting owner approval
-**Phase 2B status:** not started
+**Phase 2B historical status at plan creation:** not started
+
+> **Superseded execution status — 2026-09-09:** The owner subsequently approved continuous no-cost production completion and selected Cloudflare-native Auth with the existing Email Gateway/Mailjet transport instead of Supabase. Phase 2B is implemented, and the approved Phase 3–5 native production adapter lives under `/auth-native/**`; see `AUTH-NATIVE-PRODUCTION.md`. The restrictions below remain the historical boundary for `/auth/**` and the retired legacy system, not a block on that separately isolated approved adapter.
 
 ## 1. Audit result
 

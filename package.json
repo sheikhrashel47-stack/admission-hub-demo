@@ -5,7 +5,9 @@
     "notify:telegram": "node email-gateway/operations/notify-telegram.mjs",
     "test:auth": "node --test --experimental-test-coverage auth-foundation.test.mjs auth-foundation-chaos.test.mjs auth-protection.test.mjs",
     "test:email": "node --test --experimental-test-coverage email-gateway.test.mjs email-gateway-failover.test.mjs email-gateway-security.test.mjs email-gateway-load.test.mjs email-gateway-infisical-bootstrap.test.mjs email-gateway-cloudflare-inventory.test.mjs email-gateway-provider-account-audit.test.mjs telegram-notifier.test.mjs && node --test email-gateway-integration.test.mjs",
-    "test:phase2": "npm run test:auth && npm run test:email"
+    "test:native-auth": "node --test native-auth.test.mjs native-auth-operations.test.mjs native-auth-protection.test.mjs",
+    "test:phase2": "npm run test:auth && npm run test:email",
+    "test:production-auth": "npm run test:auth && npm run test:email && npm run test:native-auth"
   },
   "dependencies": {
     "jsdom": "^29.1.1"
