@@ -12,7 +12,6 @@ const env = () => ({
   INFISICAL_SECRET_PATH: '/email-gateway',
   INFISICAL_IDENTITY_ID: '00000000-0000-4000-8000-000000000001',
   INFISICAL_PROJECT_SLUG: 'admission-hub-test',
-  BREVO_BOOTSTRAP_API_KEY: 'fake-authorized-brevo-key-for-tests',
   ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'fake-github-request-token-for-tests',
   ACTIONS_ID_TOKEN_REQUEST_URL: 'https://pipelines.actions.githubusercontent.com/oidc/token'
 });
@@ -28,7 +27,6 @@ function successfulFetch({ existing = [] } = {}) {
   const fetchImpl = async (input, options = {}) => {
     const url = String(input);
     calls.push({ url, options });
-    if (url === 'https://api.brevo.com/v3/account') return new Response(null, { status: 200 });
     if (url.startsWith('https://pipelines.actions.githubusercontent.com/')) return json({ value: 'x'.repeat(180) });
     if (url.endsWith('/api/v1/auth/oidc-auth/login')) return json({ accessToken: 'a'.repeat(64) });
     if (url.includes('/api/v1/projects/slug/')) {
@@ -52,7 +50,7 @@ function successfulFetch({ existing = [] } = {}) {
   return { fetchImpl, calls, getCreated: () => created };
 }
 
-test('safe bootstrap creates only fixed disabled controls, generated runtime values and the authorized Brevo key', async () => {
+test('safe bootstrap creates only credential-independent disabled controls and generated runtime values', async () => {
   const mock = successfulFetch();
   let output = '';
   const result = await bootstrapInfisicalSafeSource({
@@ -62,18 +60,19 @@ test('safe bootstrap creates only fixed disabled controls, generated runtime val
     stdout: { write: value => { output += value; } }
   });
 
-  assert.equal(result.names, 19);
+  assert.equal(result.names, 18);
   assert.equal(result.activation, 'disabled');
+  assert.equal(result.credentials, 'none');
   assert.deepEqual(mock.getCreated().sort(), [...INFISICAL_SAFE_BOOTSTRAP_NAMES].sort());
   const batch = mock.calls.find(call => call.url.endsWith('/api/v4/secrets/batch'));
   const body = JSON.parse(batch.options.body);
   assert.equal(body.environment, 'prod');
   assert.equal(body.secretPath, '/email-gateway');
   const values = Object.fromEntries(body.secrets.map(item => [item.secretKey, item.secretValue]));
-  assert.equal(values.BREVO_API_KEY, env().BREVO_BOOTSTRAP_API_KEY);
   assert.equal(values.EMAIL_PROVIDER_ACTIVATION, 'disabled');
   assert.ok(values.EMAIL_GATEWAY_SIGNING_SECRET.length >= 32);
   assert.ok(values.EMAIL_RECIPIENT_HASH_PEPPER.length >= 32);
+  assert.equal(Object.keys(values).some(name => name.endsWith('_API_KEY') || name.endsWith('_SECRET_KEY')), false);
   for (const prefix of ['RESEND', 'BREVO', 'MAILJET', 'MAILTRAP', 'MAILERSEND', 'SENDPULSE', 'COURIER']) {
     assert.equal(values[`${prefix}_FROM_NAME`], 'Admission Hub');
     assert.equal(values[`${prefix}_SENDER_VERIFIED`], 'false');
@@ -81,10 +80,10 @@ test('safe bootstrap creates only fixed disabled controls, generated runtime val
   const config = JSON.parse(values.EMAIL_GATEWAY_CONFIG);
   assert.equal(config.environment, 'production');
   assert.ok(Object.values(config.providerPolicies).every(policy => policy.enabled === false));
-  assert.match(output, /^INFISICAL_SAFE_BOOTSTRAP_COMPLETED names=19 provider=brevo activation=disabled senderVerified=false\n$/);
-  assert.ok(!output.includes(env().BREVO_BOOTSTRAP_API_KEY));
+  assert.match(output, /^INFISICAL_SAFE_BOOTSTRAP_COMPLETED names=18 credentials=none activation=disabled senderVerified=false\n$/);
   assert.ok(!output.includes(values.EMAIL_GATEWAY_SIGNING_SECRET));
   assert.ok(!output.includes(values.EMAIL_RECIPIENT_HASH_PEPPER));
+  assert.ok(mock.calls.every(call => !call.url.includes('api.brevo.com')));
 });
 
 test('safe bootstrap refuses every overwrite before a batch write', async () => {
@@ -96,27 +95,14 @@ test('safe bootstrap refuses every overwrite before a batch write', async () => 
   assert.equal(mock.calls.some(call => call.url.endsWith('/api/v4/secrets/batch')), false);
 });
 
-test('safe bootstrap validates the authorized Brevo account before requesting OIDC or writing', async () => {
-  const calls = [];
-  const fetchImpl = async input => {
-    calls.push(String(input));
-    return new Response(null, { status: 401 });
-  };
-  await assert.rejects(
-    bootstrapInfisicalSafeSource({ env: env(), fetchImpl, stdout: { write() {} } }),
-    /AUTHORIZED_BREVO_ACCOUNT_CHECK_HTTP_401/
-  );
-  assert.deepEqual(calls, ['https://api.brevo.com/v3/account']);
-});
-
-test('safe bootstrap workflow is manual, OIDC-only, pinned and has no Cloudflare destination step', async () => {
+test('safe bootstrap workflow is manual, OIDC-only, credential-independent, pinned and has no Cloudflare step', async () => {
   const workflow = await readFile('.github/workflows/email-gateway-infisical-bootstrap.yml', 'utf8');
   assert.match(workflow, /BOOTSTRAP_INFISICAL_SAFE_SOURCE/);
   assert.match(workflow, /id-token: write/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /environment: email-gateway-production/);
-  assert.match(workflow, /secrets\.BREVO_KEY/);
+  assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /actions\/checkout@[0-9a-f]{40}/);
   assert.match(workflow, /actions\/setup-node@[0-9a-f]{40}/);
-  assert.doesNotMatch(workflow, /wrangler|CLOUDFLARE|secret bulk/i);
+  assert.doesNotMatch(workflow, /secrets\.|BREVO_KEY|wrangler|CLOUDFLARE|secret bulk/i);
 });

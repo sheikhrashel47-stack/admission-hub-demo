@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: Type BOOTSTRAP_INFISICAL_SAFE_SOURCE to create only the activation-disabled core and migrate the existing authorized Brevo key without overwriting
+        description: Type BOOTSTRAP_INFISICAL_SAFE_SOURCE to create only credential-independent activation-disabled entries without overwriting
         required: true
         type: string
 
@@ -45,12 +45,11 @@ jobs:
           test "$INFISICAL_SECRET_PATH" = "/email-gateway"
           test "$INFISICAL_DOMAIN" = "https://app.infisical.com"
 
-      - name: Validate authorized Brevo source and create safe Infisical entries
+      - name: Create credential-independent safe Infisical entries
         env:
           INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID }}
           INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG }}
           INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG }}
           INFISICAL_SECRET_PATH: ${{ vars.INFISICAL_SECRET_PATH }}
           INFISICAL_DOMAIN: ${{ vars.INFISICAL_DOMAIN }}
-          BREVO_BOOTSTRAP_API_KEY: ${{ secrets.BREVO_KEY }}
         run: node email-gateway/operations/bootstrap-infisical-source.mjs
