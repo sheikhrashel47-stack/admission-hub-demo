@@ -6,7 +6,7 @@
 
 - Project name: `Admission Hub`
 - Environment slug: `production`
-- Secret path: `/email-gateway/worker`
+- Secret path: `/email-gateway`
 
 অন্য project secret এই path-এ রাখা যাবে না। বিশেষ করে AI, Telegram, Supabase, Gmail verification এবং Cloudflare management credential আলাদা path-এ থাকবে।
 
@@ -21,14 +21,14 @@ OIDC settings:
 - Subject: `repo:sheikhrashel47-stack/admission-hub-demo:environment:email-gateway-production`
 - Audience: `https://github.com/sheikhrashel47-stack`
 
-Identity-কে শুধু Admission Hub project-এর `production` environment এবং `/email-gateway/worker` path পড়ার least-privilege permission দিতে হবে।
+Identity-কে শুধু Admission Hub project-এর `production` environment এবং `/email-gateway` path পড়ার least-privilege permission দিতে হবে।
 
 GitHub environment `email-gateway-production`-এ non-secret variables:
 
 - `INFISICAL_IDENTITY_ID`
 - `INFISICAL_PROJECT_SLUG`
 - `INFISICAL_ENV_SLUG=production`
-- `INFISICAL_SECRET_PATH=/email-gateway/worker`
+- `INFISICAL_SECRET_PATH=/email-gateway`
 - `INFISICAL_DOMAIN=https://app.infisical.com`
 
 ## 3. Required Worker-bound names

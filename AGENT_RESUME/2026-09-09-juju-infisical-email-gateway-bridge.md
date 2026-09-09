@@ -14,7 +14,7 @@
 - Added protected manual workflow `.github/workflows/email-gateway-infisical-sync.yml`.
 - Uses GitHub OIDC and a path-scoped Infisical Machine Identity; no Infisical client secret is required in GitHub.
 - All third-party actions in the new secret-bearing workflow are pinned to immutable commit SHAs.
-- Reads only `production` path `/email-gateway/worker` with imports and recursion disabled.
+- Reads only `production` path `/email-gateway` with imports and recursion disabled.
 - Added allowlisted, bounded staging helper `email-gateway/operations/prepare-infisical-worker-secrets.mjs`.
 - Initial staging refuses to proceed unless `EMAIL_PROVIDER_ACTIVATION=disabled`.
 - Writes only the exact allowlist to a mode-`0600` ephemeral runner file and removes it with `always()` cleanup.
@@ -43,7 +43,7 @@
 Only the account-owner UI bootstrap remains before autonomous sync can run:
 
 1. Create Infisical project `Admission Hub`.
-2. Create environment slug `production` and path `/email-gateway/worker`.
+2. Create environment slug `production` and path `/email-gateway`.
 3. Configure the documented OIDC Machine Identity and add provider/sender/runtime values in Infisical.
 4. Configure the two remaining non-secret GitHub environment identifiers: project slug and OIDC identity ID. The agent has already configured `INFISICAL_DOMAIN`, `INFISICAL_ENV_SLUG` and `INFISICAL_SECRET_PATH` in the protected GitHub environment.
 

@@ -16,7 +16,7 @@ Owner confirmed an Infisical account exists but no Admission Hub project has bee
 
 - Workflow: `.github/workflows/email-gateway-infisical-sync.yml`
 - Guide: `docs/email-gateway/INFISICAL_SETUP.md`
-- Source: environment `production`, path `/email-gateway/worker`
+- Source: environment `production`, path `/email-gateway`
 - Destination: Cloudflare Worker `admission-gk` through the already-working protected GitHub Cloudflare access
 - Authentication: GitHub OIDC Machine Identity; no stored Infisical client secret in GitHub
 - Initial staging: activation must be `disabled`
@@ -26,7 +26,7 @@ Owner confirmed an Infisical account exists but no Admission Hub project has bee
 
 ## Immediate next action
 
-Account owner creates the empty Infisical project `Admission Hub`. Then configure `production` + `/email-gateway/worker`, OIDC identity and values using the one-time guide. After the connection appears, the agent stages 33/33 bindings, validates providers one at a time, activates safely and performs one controlled Gmail OTP test.
+Account owner creates the empty Infisical project `Admission Hub`. Then configure `production` + `/email-gateway`, OIDC identity and values using the one-time guide. After the connection appears, the agent stages 33/33 bindings, validates providers one at a time, activates safely and performs one controlled Gmail OTP test.
 
 Concrete Supabase/Auth authority work remains unstarted and requires explicit owner instruction.
 
