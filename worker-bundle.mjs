@@ -3559,7 +3559,7 @@ var FirebaseEmailPasswordProvider = class {
   constructor({ apiKey, continueUrl, fetchImpl = globalThis.fetch } = {}) {
     this.apiKey = String(apiKey || "").trim();
     this.continueUrl = safeContinueUrl(continueUrl);
-    this.fetch = fetchImpl;
+    this.fetch = typeof fetchImpl === "function" ? fetchImpl.bind(globalThis) : fetchImpl;
   }
   get configured() {
     return validApiKey(this.apiKey) && typeof this.fetch === "function";
