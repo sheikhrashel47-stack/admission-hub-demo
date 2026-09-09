@@ -75,6 +75,28 @@ test('activation can discover an Active sender on an authorized Mailjet sub-acco
   assert.equal(sender.secretKey, childSecret);
 });
 
+test('activation uses Mailjet SandboxMode to prove an existing repository-owner sender without delivery', async () => {
+  let sandboxPayload = null;
+  const fetchImpl = async (url, options = {}) => {
+    const target = String(url);
+    if (target.includes('/v3/REST/sender') || target.includes('/v3/REST/metasender')) return response({ Data: [] });
+    if (target.includes('/v3/REST/apikey')) return response({ Data: [] });
+    if (target.endsWith('/v3.1/send')) {
+      sandboxPayload = JSON.parse(options.body);
+      return response({ Messages: [{ Status: 'success', To: [] }] });
+    }
+    return new Response('not found', { status: 404 });
+  };
+  const sender = await discoverActiveMailjetSender({
+    env: ENV, fetchImpl, senderCandidates: ['owner.sender@example.org']
+  });
+  assert.equal(sender.address, 'owner.sender@example.org');
+  assert.equal(sender.evidence, 'sandbox');
+  assert.equal(sandboxPayload.SandboxMode, true);
+  assert.equal(sandboxPayload.Messages.length, 1);
+  assert.equal(sandboxPayload.Messages[0].From.Email, 'owner.sender@example.org');
+});
+
 test('activation config enables only Mailjet and caps free quota at 200/day and 6000/month', () => {
   const config = productionEmailGatewayConfig();
   assert.equal(config.environment, 'production');
@@ -102,6 +124,7 @@ test('activation creates missing persistent HMAC/internal secrets without replac
   assert.match(generated.secrets.EMAIL_PRIVATE_PEPPER, /^generated-2-/);
   assert.equal(generated.secrets.MAILJET_FROM_ADDRESS, 'active.sender@example.com');
   assert.equal(generated.secrets.MAILJET_SENDER_VERIFIED, 'true');
+  assert.equal(generated.secrets.MAILJET_SANDBOX_SENDER_VERIFIED, 'false');
   assert.equal(generated.secrets.EMAIL_PROVIDER_ACTIVATION, 'enabled');
   const config = JSON.parse(generated.secrets.EMAIL_GATEWAY_CONFIG);
   assert.equal(config.providerPolicies.mailjet.dailyLimit, 200);

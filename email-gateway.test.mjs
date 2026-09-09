@@ -98,6 +98,27 @@ test('provider requires explicit policy, activation, sender verification, creden
   assert.ok(octopus.activationIssues.includes('TRANSACTIONAL_CAPABILITY_MISSING'));
 });
 
+test('Mailjet sandbox-proven sender trusts bounded activation evidence while API-listed proof keeps live health', async () => {
+  const config = createEmailGatewayConfig({ providerPolicies: {
+    mailjet: { enabled: true, priority: 1, dailyLimit: 200, monthlyLimit: 6000 }
+  } });
+  const baseEnv = {
+    EMAIL_PROVIDER_ACTIVATION: 'enabled',
+    MAILJET_API_KEY: 'private-test-api-value',
+    MAILJET_SECRET_KEY: 'private-test-secret-value',
+    MAILJET_FROM_ADDRESS: 'sender@example.com',
+    MAILJET_SENDER_VERIFIED: 'true'
+  };
+  const apiListed = await createProviderEntries({ config, env: baseEnv, runtime: {} });
+  assert.equal(apiListed.find(entry => entry.id === 'mailjet').requiresRemoteHealth, true);
+  const sandboxProven = await createProviderEntries({
+    config, env: { ...baseEnv, MAILJET_SANDBOX_SENDER_VERIFIED: 'true' }, runtime: {}
+  });
+  const mailjet = sandboxProven.find(entry => entry.id === 'mailjet');
+  assert.equal(mailjet.enabled, true);
+  assert.equal(mailjet.requiresRemoteHealth, false);
+});
+
 test('provider-specific sender bindings isolate From identities with a global fallback available', async () => {
   const captures = [];
   const fetchImpl = async (url, init) => {
