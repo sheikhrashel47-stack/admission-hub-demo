@@ -25,7 +25,7 @@ test('provider account audit performs GET-only checks and returns counts without
   const hiddenAddresses = ['private-brevo-address@example.test', 'private-mailjet-address@example.test'];
   const fetchImpl = async (input, init = {}) => {
     const url = String(input);
-    calls.push({ url, method: init.method });
+    calls.push({ url, method: init.method, headers: init.headers });
     if (url === 'https://api.resend.com/domains') return jsonResponse(200, { data: [] });
     if (url === 'https://api.brevo.com/v3/senders') return jsonResponse(200, { senders: [{ email: hiddenAddresses[0], active: true }] });
     if (url.startsWith('https://api.mailjet.com/v3/REST/sender')) return jsonResponse(200, { Data: [{ Email: hiddenAddresses[1], Status: 'Validated' }] });
@@ -37,7 +37,10 @@ test('provider account audit performs GET-only checks and returns counts without
     throw new Error(`Unexpected URL: ${url}`);
   };
 
-  const audits = await auditProviderAccounts({ env: privateValues, fetchImpl });
+  const audits = await auditProviderAccounts({
+    env: { ...privateValues, BREVO_API_KEY: `  ${privateValues.BREVO_API_KEY}  ` },
+    fetchImpl
+  });
 
   assert.equal(audits.length, 7);
   assert.ok(audits.every(audit => audit.auth === 'VALID'));
@@ -46,6 +49,7 @@ test('provider account audit performs GET-only checks and returns counts without
   assert.equal(audits.find(audit => audit.provider === 'resend').readiness, 'ACCOUNT_EMAIL_TEST_ONLY');
   assert.equal(audits.find(audit => audit.provider === 'mailtrap').readiness, 'SANDBOX_OR_DEMO_ONLY');
   assert.ok(calls.every(call => call.method === 'GET'));
+  assert.equal(calls.find(call => call.url.includes('api.brevo.com')).headers['api-key'], privateValues.BREVO_API_KEY);
 
   const serialized = JSON.stringify(audits);
   for (const value of [...Object.values(privateValues), ...hiddenAddresses]) {
