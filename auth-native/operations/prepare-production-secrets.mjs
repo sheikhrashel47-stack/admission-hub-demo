@@ -149,6 +149,7 @@ export async function discoverActiveMailjetSender({ env = process.env, fetchImpl
     }
   }
 
+  let sandboxValidated = false;
   if (!active.length) {
     const addresses = (senderCandidates || repositorySenderCandidates(env))
       .map(value => String(value || '').trim().toLowerCase())
@@ -157,7 +158,9 @@ export async function discoverActiveMailjetSender({ env = process.env, fetchImpl
     outer: for (const credentials of credentialSets.slice(0, 4)) {
       for (const address of addresses) {
         if (await sandboxValidatesSender({ apiBase, ...credentials, address, fetchImpl })) {
-          active.push({ address, isDefault: false, source: 'sandbox-validated', ...credentials });
+          // SandboxMode proves that the payload is structurally valid and never delivers.
+          // It does not prove that Mailjet will admit a message into its delivery pipeline.
+          sandboxValidated = true;
           break outer;
         }
       }
@@ -165,7 +168,9 @@ export async function discoverActiveMailjetSender({ env = process.env, fetchImpl
   }
 
   const unique = [...new Map(active.map(record => [`${record.address}:${record.apiKey}`, record])).values()];
-  if (!unique.length) throw new Error('Mailjet has no Active individual sender or sandbox-validated individual sender available to the authorized API-key set.');
+  if (!unique.length) throw new Error(sandboxValidated
+    ? 'Mailjet SandboxMode validated a payload, but no API-listed Active individual sender is available to the authorized API-key set.'
+    : 'Mailjet has no Active individual sender listed by the authorized API-key set.');
   const configured = String(env.MAILJET_FROM_ADDRESS || '').trim().toLowerCase();
   unique.sort((left, right) => {
     const score = record => (record.address === configured ? 100 : 0)
@@ -181,7 +186,7 @@ export async function discoverActiveMailjetSender({ env = process.env, fetchImpl
     secretKey: selected.secretKey,
     address: selected.address,
     name: 'Admission Hub',
-    evidence: selected.source === 'sandbox-validated' ? 'sandbox' : 'api'
+    evidence: 'api'
   });
 }
 
@@ -250,7 +255,7 @@ async function main({ env = process.env, fetchImpl = globalThis.fetch, stdout = 
   const prepared = await prepareProductionSecrets({ env, fetchImpl });
   await writeFile(destination, `${JSON.stringify(prepared.secrets)}\n`, { mode: 0o600 });
   await chmod(destination, 0o600);
-  stdout.write(`NATIVE_AUTH_ACTIVATION prepared=${Object.keys(prepared.secrets).length} generated=${prepared.generated.length} reused=${prepared.reused.length} mailjetSender=verified-private-selection dailyLimit=200 monthlyLimit=6000 valuesPrinted=false\n`);
+  stdout.write(`NATIVE_AUTH_ACTIVATION prepared=${Object.keys(prepared.secrets).length} generated=${prepared.generated.length} reused=${prepared.reused.length} mailjetSender=api-active-private-selection dailyLimit=200 monthlyLimit=6000 valuesPrinted=false\n`);
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(process.argv[1]).href : '';

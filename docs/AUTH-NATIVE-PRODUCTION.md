@@ -48,7 +48,7 @@ No session credential is returned in a JSON body or stored in `localStorage`, `s
 
 ## Delivery policy
 
-The existing strongly consistent Email Gateway is the only send path. Production activation privately queries Mailjet's API-key `Sender` and account-wide `MetaSender` resources. If the configured master key has no sender, it performs a bounded read-only inventory of its authorized active sub-account keys and checks those sender resources too. As a final no-action fallback, repository-author addresses already present in the checked-out commit metadata are tested with Mailjet's official `SandboxMode: true`; Mailjet validates sender authorization but delivers no message. Only a listed Active/enabled or sandbox-validated individual address is selected (never a wildcard or `pages.dev` sender). Only Mailjet is enabled; every other adapter remains disabled. Sandbox proof is sealed as a private activation binding because that sender is not discoverable through Mailjet's runtime Sender resources; Mailjet's real Send API remains final enforcement, with no alternate carrier enabled.
+The existing strongly consistent Email Gateway is the only send path. Production activation privately queries Mailjet's API-key `Sender` and account-wide `MetaSender` resources. If the configured master key has no sender, it performs a bounded read-only inventory of its authorized active sub-account keys and checks those sender resources too. As a final non-delivery diagnostic, repository-author addresses already present in the checked-out commit metadata may be tested with Mailjet's official `SandboxMode: true`. A SandboxMode success validates only the payload; it is never treated as delivery authorization. Activation still stops unless the authorized API-key set lists an Active/enabled individual address (never a wildcard or `pages.dev` sender). Only Mailjet can be enabled; every other adapter remains disabled, and runtime sender health always fails closed.
 
 Hard production ceilings are:
 
@@ -64,7 +64,7 @@ Cloudflare Auth processing has materially more headroom than this. The email-del
 
 1. verifies Auth, Email Gateway, exact bundle, and retired-account guards;
 2. fetches provider credentials through the existing Infisical OIDC integration;
-3. performs bounded Mailjet Sender/MetaSender discovery, then non-delivery SandboxMode validation if needed, and selects only a proven sender without printing it;
+3. performs bounded Mailjet Sender/MetaSender discovery, optionally runs non-delivery SandboxMode diagnostics, and selects only an API-listed Active sender without printing it;
 4. creates persistent Auth HMAC/internal secrets only when absent;
 5. deploys the Worker, SQLite Durable Object migration, and sanitized Pages bundle;
 6. creates a temporary external mailbox, requests one real OTP, reads it privately, verifies the secure session, rejects OTP replay, logs out, confirms revocation, and deletes the mailbox.
