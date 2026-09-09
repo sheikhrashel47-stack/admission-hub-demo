@@ -47,13 +47,24 @@ async function readOnlyRequest({ url, headers, fetchImpl }) {
   }
 }
 
-const result = (provider, auth, readiness, { activeSenders = 0, verifiedDomains = 0 } = {}) => Object.freeze({
+const result = (provider, auth, readiness, {
+  activeSenders = 0,
+  verifiedDomains = 0,
+  credentialShape = 'NOT_REPORTED'
+} = {}) => Object.freeze({
   provider,
   auth,
   readiness,
   activeSenders: integerCount(activeSenders),
-  verifiedDomains: integerCount(verifiedDomains)
+  verifiedDomains: integerCount(verifiedDomains),
+  credentialShape
 });
+
+function brevoCredentialShape(value) {
+  if (/^xkeysib-/.test(value)) return 'STANDARD_API_PREFIX';
+  if (/^["']xkeysib-/.test(value)) return 'QUOTED_STANDARD_API_PREFIX';
+  return 'NONSTANDARD_API_PREFIX';
+}
 
 async function auditResend(env, fetchImpl) {
   const response = await readOnlyRequest({
@@ -69,12 +80,15 @@ async function auditResend(env, fetchImpl) {
 
 async function auditBrevo(env, fetchImpl) {
   const headers = { 'api-key': env.BREVO_API_KEY };
+  const credentialShape = brevoCredentialShape(env.BREVO_API_KEY);
   const accountResponse = await readOnlyRequest({
     url: 'https://api.brevo.com/v3/account',
     headers,
     fetchImpl
   });
-  if (accountResponse.auth !== 'VALID') return result('brevo', accountResponse.auth, 'NOT_READY');
+  if (accountResponse.auth !== 'VALID') {
+    return result('brevo', accountResponse.auth, 'NOT_READY', { credentialShape });
+  }
 
   const senderResponse = await readOnlyRequest({
     url: 'https://api.brevo.com/v3/senders',
@@ -85,11 +99,14 @@ async function auditBrevo(env, fetchImpl) {
     const readiness = senderResponse.auth === 'SCOPE_OR_ACCOUNT_BLOCKED' || senderResponse.auth === 'INVALID'
       ? 'SENDER_READ_PERMISSION_BLOCKED'
       : 'SENDER_CHECK_INDETERMINATE';
-    return result('brevo', 'VALID', readiness);
+    return result('brevo', 'VALID', readiness, { credentialShape });
   }
   const senders = Array.isArray(senderResponse.payload?.senders) ? senderResponse.payload.senders : [];
   const activeSenders = senders.filter(sender => sender?.active === true).length;
-  return result('brevo', 'VALID', activeSenders ? 'ACTIVE_SENDER_AVAILABLE' : 'SENDER_MISSING', { activeSenders });
+  return result('brevo', 'VALID', activeSenders ? 'ACTIVE_SENDER_AVAILABLE' : 'SENDER_MISSING', {
+    activeSenders,
+    credentialShape
+  });
 }
 
 async function auditMailjet(env, fetchImpl) {
@@ -187,7 +204,7 @@ export async function auditProviderAccounts({ env = {}, fetchImpl = globalThis.f
 async function main({ env = process.env, stdout = process.stdout } = {}) {
   const audits = await auditProviderAccounts({ env });
   for (const audit of audits) {
-    stdout.write(`PROVIDER_ACCOUNT_AUDIT provider=${audit.provider} auth=${audit.auth} readiness=${audit.readiness} activeSenders=${audit.activeSenders} verifiedDomains=${audit.verifiedDomains}\n`);
+    stdout.write(`PROVIDER_ACCOUNT_AUDIT provider=${audit.provider} auth=${audit.auth} readiness=${audit.readiness} activeSenders=${audit.activeSenders} verifiedDomains=${audit.verifiedDomains} credentialShape=${audit.credentialShape}\n`);
   }
   const valid = audits.filter(audit => audit.auth === 'VALID').length;
   stdout.write(`PROVIDER_ACCOUNT_AUDIT_SUMMARY checked=${PROVIDERS.length} valid=${valid} nonValid=${PROVIDERS.length - valid} noSend=true valuesPrinted=false\n`);
