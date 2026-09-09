@@ -100,12 +100,16 @@ test('activation uses Mailjet SandboxMode to prove an existing repository-owner 
 
 test('recent Mailjet delivery audit is GET-only and returns status counts without addresses', async () => {
   const now = Date.parse('2026-09-09T14:00:00Z');
-  let capture = null;
+  const captures = [];
   const result = await auditRecentMailjetDelivery({
     env: ENV,
     now,
     fetchImpl: async (url, options) => {
-      capture = { url: String(url), options };
+      captures.push({ url: String(url), options });
+      if (String(url).includes('/statcounters')) return response({ Data: [{
+        MessageSentCount: '2', MessageQueuedCount: '3', MessageBlockedCount: '4',
+        MessageDeferredCount: '5', MessageHardBouncedCount: '6', MessageSoftBouncedCount: '7'
+      }] });
       return response({ Data: [
         { ArrivedAt: '2026-09-09T13:50:00Z', Status: 'queued', ContactAlt: 'private-one@example.org' },
         { ArrivedAt: '2026-09-09T13:51:00Z', Status: 'blocked', ContactAlt: 'private-two@example.org' },
@@ -115,13 +119,14 @@ test('recent Mailjet delivery audit is GET-only and returns status counts withou
     }
   });
   assert.deepEqual(result, {
-    recent: 3, credentialSetsInspected: 1,
-    delivered: 1, queued: 1, blocked: 1, bounced: 0, retrying: 0, other: 0
+    recent: 3, credentialSetsInspected: 1, counterQueriesSucceeded: 1,
+    delivered: 1, queued: 1, blocked: 1, bounced: 0, retrying: 0, other: 0,
+    counterSent: 2, counterQueued: 3, counterBlocked: 4,
+    counterDeferred: 5, counterHardBounced: 6, counterSoftBounced: 7
   });
-  assert.equal(capture.options.method, 'GET');
-  assert.equal(capture.options.body, undefined);
-  assert.match(capture.url, /ShowContactAlt=false/);
-  assert.doesNotMatch(capture.url, /example\.org/);
+  assert.ok(captures.every(capture => capture.options.method === 'GET' && capture.options.body === undefined));
+  assert.ok(captures.some(capture => /ShowContactAlt=false/.test(capture.url)));
+  assert.ok(captures.every(capture => !/example\.org/.test(capture.url)));
 });
 
 test('recent Mailjet delivery audit searches bounded authorized sub-account keys when the root has no records', async () => {
