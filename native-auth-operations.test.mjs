@@ -8,6 +8,7 @@ import {
 import { auditRecentMailjetDelivery } from './auth-native/operations/audit-mailjet-recent-delivery.mjs';
 import { FirebaseConfigError, validateFirebaseProjectConfig, verifyFirebaseConfig } from './auth-native/operations/verify-firebase-config.mjs';
 import { auditVerificationMessage, verificationAction } from './auth-native/operations/live-mailbox-e2e.mjs';
+import { summarizePlacementReport } from './auth-native/operations/live-placement-audit.mjs';
 import { FirebaseEmailPasswordProvider } from './auth-native/providers/firebase-auth.mjs';
 import { verifyFirebaseWorkerBinding } from './auth-native/operations/verify-worker-binding.mjs';
 
@@ -314,6 +315,45 @@ test('live Firebase check reports only sanitized sender, authentication, DNS, an
     rawUrlVisible: false
   });
   assert.doesNotMatch(JSON.stringify(audit), /do-not-print|oobCode|https?:\/\//i);
+});
+
+test('placement report keeps only bounded authentication, score, spam, and provider signals', () => {
+  const report = {
+    email_info: { email_address: 'private@in.mailtester.ai', subject: 'private subject' },
+    status_info: { status: 'completed' },
+    deliverability_score: 87,
+    technical_analysis: {
+      view: { score: { value: 91 } },
+      results: [
+        { check_type: 'SPF', status: 'pass', details: { domain: 'private.example' } },
+        { check_type: 'DKIM', status: 'pass', details: { selector: 'private' } },
+        { check_type: 'DMARC', status: 'warning', details: { policy: 'none' } },
+        { check_type: 'spamassassin', status: 'pass', details: { is_spam: false, raw_spamassassin_score: 0.4, raw_required_score: 5 } }
+      ]
+    },
+    ai_analysis: {
+      ai_prediction: { inbox: 78, promotions: 17, spam: 5, primary_destination: 'inbox', confidence: 'high' },
+      provider_placement: {
+        gmail: { placement: 'primary', score: 90, email: 'leak@gmail.com' },
+        outlook: { folder: 'inbox' },
+        yahoo: { status: 'spam' }
+      }
+    }
+  };
+  const summary = summarizePlacementReport(report);
+  assert.deepEqual(summary, {
+    status: 'completed',
+    score: 91,
+    authentication: { spf: 'pass', dkim: 'pass', dmarc: 'warning' },
+    spamFilter: { status: 'pass', isSpam: false, score: 0.4, threshold: 5 },
+    placement: { inbox: 78, promotions: 17, spam: 5, primary: 'inbox', confidence: 'high' },
+    providers: {
+      gmail: { placement: 'primary', score: 90 },
+      outlook: { folder: 'inbox' },
+      yahoo: { status: 'spam' }
+    }
+  });
+  assert.doesNotMatch(JSON.stringify(summary), /private|@|subject|example|https?:\/\//i);
 });
 
 test('protected deployments require the Firebase Worker binding by name without reading its value', async () => {

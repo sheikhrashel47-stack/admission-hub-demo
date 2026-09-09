@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: Type AUDIT_FIREBASE_VERIFICATION_EMAIL to send one controlled message, inspect it safely, and delete the test account
+        description: Type AUDIT_FIREBASE_VERIFICATION_EMAIL to run controlled header/template and inbox-placement checks with automatic account cleanup
         required: true
         type: string
 
@@ -35,3 +35,9 @@ jobs:
           AUTH_LIVE_BASE: https://admissionhub.pages.dev
           FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
         run: node auth-native/operations/live-mailbox-e2e.mjs
+
+      - name: Audit real inbox-placement and authentication signals and clean up automatically
+        env:
+          AUTH_LIVE_BASE: https://admissionhub.pages.dev
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+        run: node auth-native/operations/live-placement-audit.mjs
