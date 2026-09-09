@@ -49,12 +49,21 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -eu
-          npx --yes wrangler@4.35.0 deployments list --name admission-gk --json > "${RUNNER_TEMP}/worker-deployments.json"
-          PREVIOUS_WORKER_VERSION="$(node -e "const x=require(process.argv[1]); const v=x?.[0]?.versions?.find(v=>Number(v.percentage)===100)?.version_id; if(!v) process.exit(1); process.stdout.write(v)" "${RUNNER_TEMP}/worker-deployments.json")"
-          rm -f "${RUNNER_TEMP}/worker-deployments.json"
+          npx --yes wrangler@4.35.0 deployments status --name admission-gk --json > "${RUNNER_TEMP}/worker-deployment.json"
+          PREVIOUS_WORKER_VERSION="$(node -e "const x=require(process.argv[1]); const rows=Array.isArray(x)?x:[x]; const versions=rows.flatMap(row=>Array.isArray(row?.versions)?row.versions:[]); const v=versions.find(v=>Number(v.percentage)===100); if(!v?.version_id) process.exit(1); process.stdout.write(v.version_id)" "${RUNNER_TEMP}/worker-deployment.json")"
+          rm -f "${RUNNER_TEMP}/worker-deployment.json"
           echo "PREVIOUS_WORKER_VERSION=${PREVIOUS_WORKER_VERSION}" >> "$GITHUB_ENV"
 
-      - name: Install Firebase Web API key as encrypted Worker binding
+      - name: Deploy Worker and SQLite Auth schema fail closed
+        id: worker-deploy
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.35.0'
+          command: deploy --config wrangler.toml
+
+      - name: Install Firebase Web API key on the deployed Worker version
         id: firebase-secret
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -65,13 +74,12 @@ jobs:
           test -n "$FIREBASE_WEB_API_KEY"
           printf '%s' "$FIREBASE_WEB_API_KEY" | npx --yes wrangler@4.35.0 secret put FIREBASE_WEB_API_KEY --name admission-gk
 
-      - name: Deploy Worker and SQLite Auth schema
-        id: worker-deploy
-        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --config wrangler.toml
+      - name: Verify Firebase binding exists without reading its value
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FIREBASE_WORKER_BINDING_EXPECT: present
+        run: node auth-native/operations/verify-worker-binding.mjs
 
       - name: Run real Firebase signup, external-inbox verification, verified-only gate, session, and logout
         env:

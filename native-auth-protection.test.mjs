@@ -18,6 +18,8 @@ const bundle = read('worker-bundle.mjs');
 const wrangler = read('wrangler.toml');
 const pagesWorker = read('_worker.js');
 const pagesWorkflow = read('.github/workflows/cf-pages.yml');
+const activationWorkflow = read('.github/workflows/native-auth-activate.yml');
+const boundaryWorkflow = read('.github/workflows/firebase-auth-boundary-deploy.yml');
 const serviceWorker = read('sw.js');
 
 const forbiddenLegacyRoutes = [
@@ -107,6 +109,19 @@ test('Worker bundle and Wrangler expose Firebase Auth with the distinct SQLite a
   assert.match(wrangler, /name = "AUTH_AUTHORITY"/);
   assert.match(wrangler, /new_sqlite_classes = \["AdmissionAuthAuthority"\]/);
   assert.match(wrangler, /FIREBASE_CONTINUE_URL = "https:\/\/admissionhub\.pages\.dev\//);
+});
+
+test('Firebase deployment recovery captures the active version and installs the secret after pinned deployment', () => {
+  for (const workflow of [activationWorkflow, boundaryWorkflow]) {
+    assert.match(workflow, /wrangler@4\.35\.0 deployments status --name admission-gk --json/);
+    assert.doesNotMatch(workflow, /deployments list --name admission-gk|x\?\.\[0\]/);
+    assert.match(workflow, /wranglerVersion: '4\.35\.0'/);
+    assert.match(workflow, /rollback "\$PREVIOUS_WORKER_VERSION"/);
+  }
+  const deployAt = activationWorkflow.indexOf('Deploy Worker and SQLite Auth schema fail closed');
+  const secretAt = activationWorkflow.indexOf('Install Firebase Web API key on the deployed Worker version');
+  const bindingAt = activationWorkflow.indexOf('Verify Firebase binding exists without reading its value');
+  assert.ok(deployAt >= 0 && deployAt < secretAt && secretAt < bindingAt);
 });
 
 test('Pages excludes server-only Auth source and keeps defensive source block', () => {
