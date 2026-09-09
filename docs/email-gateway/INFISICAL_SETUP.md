@@ -4,11 +4,12 @@
 
 ## 1. Project ও path
 
-- Project name: `Admission Hub`
-- Environment slug: `production`
+- Project name: `Admission Hub` (এই project-টি Email Gateway source-এর জন্য dedicated থাকবে)
+- Environment display name: `Production`
+- Environment slug: `prod`
 - Secret path: `/email-gateway`
 
-অন্য project secret এই path-এ রাখা যাবে না। বিশেষ করে AI, Telegram, Supabase, Gmail verification এবং Cloudflare management credential আলাদা path-এ থাকবে।
+এই Infisical project-এ Email Gateway ছাড়া অন্য component-এর secret রাখা যাবে না। বিশেষ করে AI, Telegram, Supabase, Gmail verification এবং Cloudflare management credential আলাদা project/source scope-এ থাকবে।
 
 ## 2. GitHub OIDC Machine Identity
 
@@ -23,13 +24,13 @@ OIDC settings:
 
 Repository-টি 2026-07-15-এর পরে তৈরি, তাই GitHub-এর immutable OIDC subject-এ owner ও repository ID থাকা বাধ্যতামূলক। উপরের exact prefix GitHub OIDC settings API দিয়ে যাচাই করা।
 
-Identity-কে শুধু Admission Hub project-এর `production` environment এবং `/email-gateway` path পড়ার least-privilege permission দিতে হবে।
+Identity-র organization role `No Access` এবং dedicated Admission Hub project role `Viewer` থাকবে। Viewer write/delete করতে পারে না; project-টিতে শুধু Production `/email-gateway` source থাকবে এবং workflow-ও ওই exact non-recursive path-ই পড়ে।
 
 GitHub environment `email-gateway-production`-এ non-secret variables:
 
 - `INFISICAL_IDENTITY_ID`
 - `INFISICAL_PROJECT_SLUG`
-- `INFISICAL_ENV_SLUG=production`
+- `INFISICAL_ENV_SLUG=prod`
 - `INFISICAL_SECRET_PATH=/email-gateway`
 - `INFISICAL_DOMAIN=https://app.infisical.com`
 

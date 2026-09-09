@@ -37,7 +37,7 @@ jobs:
           set -eu
           test -n "$INFISICAL_IDENTITY_ID" || { echo "::error title=Infisical connection incomplete::Missing INFISICAL_IDENTITY_ID environment variable."; exit 1; }
           test -n "$INFISICAL_PROJECT_SLUG" || { echo "::error title=Infisical connection incomplete::Missing INFISICAL_PROJECT_SLUG environment variable."; exit 1; }
-          test "$INFISICAL_ENV_SLUG" = "production" || { echo "::error title=Infisical connection incomplete::INFISICAL_ENV_SLUG must be production."; exit 1; }
+          test "$INFISICAL_ENV_SLUG" = "prod" || { echo "::error title=Infisical connection incomplete::INFISICAL_ENV_SLUG must be prod (the Infisical Production environment slug)."; exit 1; }
           test "$INFISICAL_SECRET_PATH" = "/email-gateway" || { echo "::error title=Infisical connection incomplete::INFISICAL_SECRET_PATH must be /email-gateway."; exit 1; }
 
       - name: Fetch production Email Gateway secrets from Infisical using OIDC
