@@ -1,0 +1,56 @@
+name: Email Gateway Infisical Safe Bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type BOOTSTRAP_INFISICAL_SAFE_SOURCE to create only the activation-disabled core and migrate the existing authorized Brevo key without overwriting
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: admission-hub-email-gateway-production
+  cancel-in-progress: false
+
+jobs:
+  bootstrap-safe-source:
+    if: ${{ inputs.confirmation == 'BOOTSTRAP_INFISICAL_SAFE_SOURCE' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: email-gateway-production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Verify bounded bootstrap inputs
+        env:
+          INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID }}
+          INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG }}
+          INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG }}
+          INFISICAL_SECRET_PATH: ${{ vars.INFISICAL_SECRET_PATH }}
+          INFISICAL_DOMAIN: ${{ vars.INFISICAL_DOMAIN }}
+        run: |
+          set -eu
+          test -n "$INFISICAL_IDENTITY_ID"
+          test -n "$INFISICAL_PROJECT_SLUG"
+          test "$INFISICAL_ENV_SLUG" = "prod"
+          test "$INFISICAL_SECRET_PATH" = "/email-gateway"
+          test "$INFISICAL_DOMAIN" = "https://app.infisical.com"
+
+      - name: Validate authorized Brevo source and create safe Infisical entries
+        env:
+          INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID }}
+          INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG }}
+          INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG }}
+          INFISICAL_SECRET_PATH: ${{ vars.INFISICAL_SECRET_PATH }}
+          INFISICAL_DOMAIN: ${{ vars.INFISICAL_DOMAIN }}
+          BREVO_BOOTSTRAP_API_KEY: ${{ secrets.BREVO_KEY }}
+        run: node email-gateway/operations/bootstrap-infisical-source.mjs

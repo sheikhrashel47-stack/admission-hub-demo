@@ -12,6 +12,7 @@
 /.github/workflows/email-gateway-guard.yml @sheikhrashel47-stack
 /.github/workflows/email-gateway-deploy.yml @sheikhrashel47-stack
 /.github/workflows/email-gateway-infisical-sync.yml @sheikhrashel47-stack
+/.github/workflows/email-gateway-infisical-bootstrap.yml @sheikhrashel47-stack
 /gk-agent-worker.js @sheikhrashel47-stack
 /worker-bundle.mjs @sheikhrashel47-stack
 /wrangler.toml @sheikhrashel47-stack
