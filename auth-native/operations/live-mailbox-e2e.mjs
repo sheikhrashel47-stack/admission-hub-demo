@@ -156,7 +156,11 @@ export async function runLiveMailboxE2E({
       await sleep(5000);
     }
     if (!config?.response?.ok || config.body?.auth?.version !== 'firebase-email-password-v1' || config.body?.auth?.available !== true) {
-      throw new LiveCheckError('config', config?.response?.status || 0, config?.body?.error?.code || 'CONFIG');
+      throw new LiveCheckError(
+        'config',
+        config?.body?.auth?.providerStatus || config?.response?.status || 0,
+        config?.body?.auth?.availabilityCode || config?.body?.error?.code || 'CONFIG'
+      );
     }
     if (config.body?.auth?.verificationEmail?.dailyCapacity !== 1000 || config.body?.auth?.registeredAccountLimit !== 'unlimited') {
       throw new LiveCheckError('config', 0, 'QUOTA_CONTRACT');

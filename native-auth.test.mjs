@@ -358,6 +358,8 @@ test('config publishes verified-only Firebase mode and correct Spark verificatio
   assert.equal(body.auth.provider, 'firebase');
   assert.equal(body.auth.mode, 'email-password-with-email-verification');
   assert.equal(body.auth.available, true);
+  assert.equal(body.auth.availabilityCode, 'READY');
+  assert.equal(body.auth.providerStatus, 0);
   assert.equal(body.auth.emailVerifiedRequired, true);
   assert.equal(body.auth.verificationEmail.dailyCapacity, 1000);
   assert.equal(body.auth.registeredAccountLimit, 'unlimited');
@@ -383,6 +385,12 @@ test('public API rejects untrusted origins, weak or oversized input, and fails c
 
   const missing = { ...app.env };
   delete missing.FIREBASE_WEB_API_KEY;
+  const missingConfig = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), missing, {});
+  const missingConfigBody = await missingConfig.json();
+  assert.equal(missingConfigBody.auth.available, false);
+  assert.equal(missingConfigBody.auth.availabilityCode, 'CREDENTIAL_MISSING');
+  assert.equal(missingConfigBody.auth.providerStatus, 0);
+
   const unavailable = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
     method: 'POST', body: { email: 'closed@example.com', password: 'Safe-password-11' }
   }), missing, {});
