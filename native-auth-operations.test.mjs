@@ -8,6 +8,7 @@ import {
 import { auditRecentMailjetDelivery } from './auth-native/operations/audit-mailjet-recent-delivery.mjs';
 import { FirebaseConfigError, validateFirebaseProjectConfig, verifyFirebaseConfig } from './auth-native/operations/verify-firebase-config.mjs';
 import { verificationAction } from './auth-native/operations/live-mailbox-e2e.mjs';
+import { FirebaseEmailPasswordProvider } from './auth-native/providers/firebase-auth.mjs';
 import { verifyFirebaseWorkerBinding } from './auth-native/operations/verify-worker-binding.mjs';
 
 const ENV = Object.freeze({
@@ -194,6 +195,27 @@ test('activation refuses to proceed when no Active Mailjet sender exists', async
     ? response({ Data: [{ Email: 'pending@example.com', Status: 'Pending' }] })
     : response({ success: true, result: [] });
   await assert.rejects(() => prepareProductionSecrets({ env: ENV, fetchImpl }), /no Active individual sender/i);
+});
+
+test('Firebase provider binds platform fetch to the global runtime receiver', async () => {
+  let receiver = null;
+  const strictPlatformFetch = async function (url, options) {
+    receiver = this;
+    if (this !== globalThis) throw new TypeError('Illegal invocation');
+    assert.match(String(url), /^https:\/\/identitytoolkit\.googleapis\.com\/v1\/projects\?key=/);
+    assert.equal(options.method, 'GET');
+    return response({ projectId: 'admission-hub-test', authorizedDomains: ['admissionhub.pages.dev'] });
+  };
+  const provider = new FirebaseEmailPasswordProvider({
+    apiKey: 'firebase-test-api-key-123456789',
+    continueUrl: 'https://admissionhub.pages.dev/?firebaseVerified=1',
+    fetchImpl: strictPlatformFetch
+  });
+  assert.deepEqual(await provider.inspectProject(), {
+    projectIdentified: true,
+    continueDomainAuthorized: true
+  });
+  assert.equal(receiver, globalThis);
 });
 
 test('Firebase activation preflight validates project identity and authorized Pages domain without mutation', async () => {
