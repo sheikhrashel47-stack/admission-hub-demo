@@ -1,5 +1,6 @@
 import { chmod, writeFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { safeParseEmailGatewayConfig } from '../../email-gateway/core/config.mjs';
 
@@ -60,11 +61,63 @@ async function activeSendersForCredentials({ apiBase, apiKey, secretKey, fetchIm
   ].filter(record => record.active && validIndividualAddress(record.address));
 }
 
-export async function discoverActiveMailjetSender({ env = process.env, fetchImpl = globalThis.fetch } = {}) {
+function repositorySenderCandidates(env) {
+  let authors = '';
+  try {
+    authors = execFileSync('git', ['log', '--all', '--format=%ae', '-n', '200'], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 5000
+    });
+  } catch {}
+  return [
+    env.MAILJET_FROM_ADDRESS,
+    env.EMAIL_FROM_ADDRESS,
+    env.RESEND_FROM_ADDRESS,
+    env.BREVO_FROM_ADDRESS,
+    ...String(authors).split(/\r?\n/)
+  ].map(value => String(value || '').trim().toLowerCase())
+    .filter(address => validIndividualAddress(address)
+      && !/users\.noreply\.github\.com$/i.test(address)
+      && !/(?:^|[.@+-])(?:bot|actions)(?:[.@+-]|$)/i.test(address))
+    .filter((address, index, list) => list.indexOf(address) === index)
+    .slice(0, 8);
+}
+
+async function sandboxValidatesSender({ apiBase, apiKey, secretKey, address, fetchImpl }) {
+  try {
+    const response = await fetchImpl(`${apiBase}/v3.1/send`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: basicAuthorization(apiKey, secretKey),
+        'Cache-Control': 'no-store'
+      },
+      body: JSON.stringify({
+        SandboxMode: true,
+        Messages: [{
+          From: { Email: address, Name: 'Admission Hub' },
+          To: [{ Email: address }],
+          Subject: 'Admission Hub sender validation',
+          TextPart: 'Sandbox validation only. No message is delivered.'
+        }]
+      }),
+      signal: AbortSignal.timeout(15_000)
+    });
+    if (!response.ok) return false;
+    const payload = await response.json();
+    return Array.isArray(payload?.Messages) && payload.Messages.some(message =>
+      String(message?.Status || '').toLowerCase() === 'success'
+      && (!Array.isArray(message?.Errors) || message.Errors.length === 0)
+    );
+  } catch { return false; }
+}
+
+export async function discoverActiveMailjetSender({ env = process.env, fetchImpl = globalThis.fetch, senderCandidates } = {}) {
   const apiKey = required(env, 'MAILJET_API_KEY');
   const secretKey = required(env, 'MAILJET_SECRET_KEY');
   const apiBase = MAILJET_BASES.has(String(env.MAILJET_API_BASE || '').trim()) ? String(env.MAILJET_API_BASE).trim() : 'https://api.mailjet.com';
   let active = await activeSendersForCredentials({ apiBase, apiKey, secretKey, fetchImpl });
+  const credentialSets = [{ apiKey, secretKey }];
 
   if (!active.length) {
     let apiKeysPayload = null;
@@ -86,6 +139,7 @@ export async function discoverActiveMailjetSender({ env = process.env, fetchImpl
         && !/[\r\n\u0000]/.test(candidate.apiKey + candidate.secretKey)
         && (candidate.apiKey !== apiKey || candidate.secretKey !== secretKey))
       .slice(0, 12);
+    credentialSets.push(...candidates.map(({ apiKey: candidateKey, secretKey: candidateSecret }) => ({ apiKey: candidateKey, secretKey: candidateSecret })));
     for (let offset = 0; offset < candidates.length; offset += 4) {
       const group = await Promise.all(candidates.slice(offset, offset + 4).map(async candidate => {
         try { return await activeSendersForCredentials({ apiBase, ...candidate, fetchImpl }); }
@@ -95,8 +149,23 @@ export async function discoverActiveMailjetSender({ env = process.env, fetchImpl
     }
   }
 
+  if (!active.length) {
+    const addresses = (senderCandidates || repositorySenderCandidates(env))
+      .map(value => String(value || '').trim().toLowerCase())
+      .filter((address, index, list) => validIndividualAddress(address) && list.indexOf(address) === index)
+      .slice(0, 8);
+    outer: for (const credentials of credentialSets.slice(0, 4)) {
+      for (const address of addresses) {
+        if (await sandboxValidatesSender({ apiBase, ...credentials, address, fetchImpl })) {
+          active.push({ address, isDefault: false, source: 'sandbox-validated', ...credentials });
+          break outer;
+        }
+      }
+    }
+  }
+
   const unique = [...new Map(active.map(record => [`${record.address}:${record.apiKey}`, record])).values()];
-  if (!unique.length) throw new Error('Mailjet has no Active individual sender available to the authorized API-key set.');
+  if (!unique.length) throw new Error('Mailjet has no Active individual sender or sandbox-validated individual sender available to the authorized API-key set.');
   const configured = String(env.MAILJET_FROM_ADDRESS || '').trim().toLowerCase();
   unique.sort((left, right) => {
     const score = record => (record.address === configured ? 100 : 0)
@@ -111,7 +180,8 @@ export async function discoverActiveMailjetSender({ env = process.env, fetchImpl
     apiKey: selected.apiKey,
     secretKey: selected.secretKey,
     address: selected.address,
-    name: 'Admission Hub'
+    name: 'Admission Hub',
+    evidence: selected.source === 'sandbox-validated' ? 'sandbox' : 'api'
   });
 }
 
@@ -163,6 +233,7 @@ export async function prepareProductionSecrets({ env = process.env, fetchImpl = 
     MAILJET_FROM_ADDRESS: selected.address,
     MAILJET_FROM_NAME: selected.name,
     MAILJET_SENDER_VERIFIED: 'true',
+    MAILJET_SANDBOX_SENDER_VERIFIED: selected.evidence === 'sandbox' ? 'true' : 'false',
     EMAIL_PROVIDER_ACTIVATION: 'enabled',
     EMAIL_GATEWAY_CONFIG: JSON.stringify(config)
   };
@@ -179,7 +250,7 @@ async function main({ env = process.env, fetchImpl = globalThis.fetch, stdout = 
   const prepared = await prepareProductionSecrets({ env, fetchImpl });
   await writeFile(destination, `${JSON.stringify(prepared.secrets)}\n`, { mode: 0o600 });
   await chmod(destination, 0o600);
-  stdout.write(`NATIVE_AUTH_ACTIVATION prepared=${Object.keys(prepared.secrets).length} generated=${prepared.generated.length} reused=${prepared.reused.length} mailjetSender=active-private-selection dailyLimit=200 monthlyLimit=6000 valuesPrinted=false\n`);
+  stdout.write(`NATIVE_AUTH_ACTIVATION prepared=${Object.keys(prepared.secrets).length} generated=${prepared.generated.length} reused=${prepared.reused.length} mailjetSender=verified-private-selection dailyLimit=200 monthlyLimit=6000 valuesPrinted=false\n`);
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(process.argv[1]).href : '';

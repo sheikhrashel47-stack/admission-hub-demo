@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: Type ACTIVATE_NATIVE_AUTH to deploy Auth, privately select the existing Active Mailjet sender, and run one real inbox verification
+        description: Type ACTIVATE_NATIVE_AUTH to deploy Auth, privately prove an existing Mailjet sender, and run one real inbox verification
         required: true
         type: string
 
@@ -65,7 +65,7 @@ jobs:
           export-type: env
           domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
 
-      - name: Privately select Active Mailjet sender and prepare bounded secrets
+      - name: Privately prove a Mailjet sender and prepare bounded secrets
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
