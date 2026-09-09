@@ -54,6 +54,27 @@ test('activation accepts an enabled account-wide MetaSender when the API-key sen
   assert.equal(sender.address, 'shared.active@example.com');
 });
 
+test('activation can discover an Active sender on an authorized Mailjet sub-account without printing credentials', async () => {
+  const childKey = 'child-mailjet-api-key';
+  const childSecret = 'child-mailjet-secret-key';
+  const childAuthorization = `Basic ${Buffer.from(`${childKey}:${childSecret}`, 'utf8').toString('base64')}`;
+  const fetchImpl = async (url, options = {}) => {
+    const target = String(url);
+    if (target.includes('/v3/REST/apikey')) return response({ Data: [{ APIKey: childKey, SecretKey: childSecret, IsActive: true }] });
+    if (target.includes('/v3/REST/metasender')) return response({ Data: [] });
+    if (target.includes('/v3/REST/sender')) {
+      return options?.headers?.Authorization === childAuthorization
+        ? response({ Data: [{ Email: 'subaccount.active@example.com', Status: 'Active' }] })
+        : response({ Data: [{ Email: 'pending@example.com', Status: 'Pending' }] });
+    }
+    return new Response('not found', { status: 404 });
+  };
+  const sender = await discoverActiveMailjetSender({ env: ENV, fetchImpl });
+  assert.equal(sender.address, 'subaccount.active@example.com');
+  assert.equal(sender.apiKey, childKey);
+  assert.equal(sender.secretKey, childSecret);
+});
+
 test('activation config enables only Mailjet and caps free quota at 200/day and 6000/month', () => {
   const config = productionEmailGatewayConfig();
   assert.equal(config.environment, 'production');

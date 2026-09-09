@@ -25,10 +25,14 @@ async function fetchJson(url, options, fetchImpl) {
   try { return await response.json(); } catch { throw new Error('Bounded provider or deployment metadata response was invalid.'); }
 }
 
-export async function discoverActiveMailjetSender({ env = process.env, fetchImpl = globalThis.fetch } = {}) {
-  const apiKey = required(env, 'MAILJET_API_KEY');
-  const secretKey = required(env, 'MAILJET_SECRET_KEY');
-  const apiBase = MAILJET_BASES.has(String(env.MAILJET_API_BASE || '').trim()) ? String(env.MAILJET_API_BASE).trim() : 'https://api.mailjet.com';
+const validIndividualAddress = address => Boolean(
+  address
+  && !address.startsWith('*@')
+  && !/@(?:[^@.]+\.)*pages\.dev$/i.test(address)
+  && /^[^\s@<>]{1,64}@[^\s@<>]{1,190}\.[A-Za-z]{2,63}$/.test(address)
+);
+
+async function activeSendersForCredentials({ apiBase, apiKey, secretKey, fetchImpl }) {
   const requestOptions = {
     method: 'GET',
     headers: { Accept: 'application/json', Authorization: basicAuthorization(apiKey, secretKey), 'Cache-Control': 'no-store' }
@@ -40,28 +44,63 @@ export async function discoverActiveMailjetSender({ env = process.env, fetchImpl
   } catch {}
   const senders = Array.isArray(senderPayload?.Data) ? senderPayload.Data : [];
   const metaSenders = Array.isArray(metaPayload?.Data) ? metaPayload.Data : [];
-  const active = [
+  return [
     ...senders.map(record => ({
       address: String(record?.Email || record?.SenderEmail || '').trim().toLowerCase(),
       active: ['active', 'validated'].includes(String(record?.Status || '').trim().toLowerCase()),
       isDefault: record?.IsDefaultSender === true || record?.IsDefaultSender === 1,
-      source: 'sender'
+      source: 'sender', apiKey, secretKey
     })),
     ...metaSenders.map(record => ({
       address: String(record?.Email || '').trim().toLowerCase(),
       active: record?.IsEnabled === true || record?.IsEnabled === 1 || String(record?.IsEnabled || '').toLowerCase() === 'true',
       isDefault: false,
-      source: 'metasender'
+      source: 'metasender', apiKey, secretKey
     }))
-  ].filter(record => record.active
-    && !record.address.startsWith('*@')
-    && !/@(?:[^@.]+\.)*pages\.dev$/i.test(record.address)
-    && /^[^\s@<>]{1,64}@[^\s@<>]{1,190}\.[A-Za-z]{2,63}$/.test(record.address));
-  const unique = [...new Map(active.map(record => [record.address, record])).values()];
-  if (!unique.length) throw new Error('Mailjet has no Active individual sender available for production activation.');
+  ].filter(record => record.active && validIndividualAddress(record.address));
+}
+
+export async function discoverActiveMailjetSender({ env = process.env, fetchImpl = globalThis.fetch } = {}) {
+  const apiKey = required(env, 'MAILJET_API_KEY');
+  const secretKey = required(env, 'MAILJET_SECRET_KEY');
+  const apiBase = MAILJET_BASES.has(String(env.MAILJET_API_BASE || '').trim()) ? String(env.MAILJET_API_BASE).trim() : 'https://api.mailjet.com';
+  let active = await activeSendersForCredentials({ apiBase, apiKey, secretKey, fetchImpl });
+
+  if (!active.length) {
+    let apiKeysPayload = null;
+    try {
+      apiKeysPayload = await fetchJson(`${apiBase}/v3/REST/apikey?Limit=50`, {
+        method: 'GET',
+        headers: { Accept: 'application/json', Authorization: basicAuthorization(apiKey, secretKey), 'Cache-Control': 'no-store' }
+      }, fetchImpl);
+    } catch {}
+    const candidates = (Array.isArray(apiKeysPayload?.Data) ? apiKeysPayload.Data : [])
+      .map(record => ({
+        apiKey: String(record?.APIKey || '').trim(),
+        secretKey: String(record?.SecretKey || '').trim(),
+        active: !['false', '0', 'inactive'].includes(String(record?.IsActive ?? 'true').toLowerCase())
+      }))
+      .filter(candidate => candidate.active
+        && candidate.apiKey.length >= 8 && candidate.apiKey.length <= 256
+        && candidate.secretKey.length >= 8 && candidate.secretKey.length <= 256
+        && !/[\r\n\u0000]/.test(candidate.apiKey + candidate.secretKey)
+        && (candidate.apiKey !== apiKey || candidate.secretKey !== secretKey))
+      .slice(0, 12);
+    for (let offset = 0; offset < candidates.length; offset += 4) {
+      const group = await Promise.all(candidates.slice(offset, offset + 4).map(async candidate => {
+        try { return await activeSendersForCredentials({ apiBase, ...candidate, fetchImpl }); }
+        catch { return []; }
+      }));
+      active.push(...group.flat());
+    }
+  }
+
+  const unique = [...new Map(active.map(record => [`${record.address}:${record.apiKey}`, record])).values()];
+  if (!unique.length) throw new Error('Mailjet has no Active individual sender available to the authorized API-key set.');
   const configured = String(env.MAILJET_FROM_ADDRESS || '').trim().toLowerCase();
   unique.sort((left, right) => {
     const score = record => (record.address === configured ? 100 : 0)
+      + (record.apiKey === apiKey ? 30 : 0)
       + (record.isDefault ? 20 : 0)
       + (record.source === 'sender' ? 5 : 0);
     return score(right) - score(left) || left.address.localeCompare(right.address);
@@ -69,6 +108,8 @@ export async function discoverActiveMailjetSender({ env = process.env, fetchImpl
   const selected = unique[0];
   return Object.freeze({
     apiBase,
+    apiKey: selected.apiKey,
+    secretKey: selected.secretKey,
     address: selected.address,
     name: 'Admission Hub'
   });
@@ -116,8 +157,8 @@ export async function prepareProductionSecrets({ env = process.env, fetchImpl = 
   safeParseEmailGatewayConfig(JSON.stringify(config));
 
   const output = {
-    MAILJET_API_KEY: required(env, 'MAILJET_API_KEY'),
-    MAILJET_SECRET_KEY: required(env, 'MAILJET_SECRET_KEY'),
+    MAILJET_API_KEY: selected.apiKey,
+    MAILJET_SECRET_KEY: selected.secretKey,
     MAILJET_API_BASE: selected.apiBase,
     MAILJET_FROM_ADDRESS: selected.address,
     MAILJET_FROM_NAME: selected.name,
