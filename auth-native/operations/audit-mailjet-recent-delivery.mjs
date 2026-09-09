@@ -57,7 +57,7 @@ export async function auditRecentMailjetDelivery({ env = process.env, fetchImpl 
   try { rootPayload = await payloadFor({ url: messageUrl(apiBase), apiKey, secretKey, fetchImpl }); }
   catch { throw new Error('Mailjet recent-delivery metadata was unavailable to the configured key.'); }
   let records = recentRecords(rootPayload, now);
-  let credentialSetsInspected = 1;
+  const credentialSets = [{ apiKey, secretKey }];
 
   if (!records.length) {
     let keyPayload = null;
@@ -78,7 +78,9 @@ export async function auditRecentMailjetDelivery({ env = process.env, fetchImpl 
         && !/[\r\n\u0000]/.test(candidate.apiKey + candidate.secretKey)
         && (candidate.apiKey !== apiKey || candidate.secretKey !== secretKey))
       .slice(0, 12);
-    credentialSetsInspected += candidates.length;
+    credentialSets.push(...candidates.map(({ apiKey: candidateKey, secretKey: candidateSecret }) => ({
+      apiKey: candidateKey, secretKey: candidateSecret
+    })));
     for (let offset = 0; offset < candidates.length; offset += 4) {
       const group = await Promise.all(candidates.slice(offset, offset + 4).map(async credentials => {
         try {
@@ -90,14 +92,55 @@ export async function auditRecentMailjetDelivery({ env = process.env, fetchImpl 
     }
   }
 
+  const counterTotals = {
+    counterSent: 0, counterQueued: 0, counterBlocked: 0,
+    counterDeferred: 0, counterHardBounced: 0, counterSoftBounced: 0
+  };
+  let counterQueriesSucceeded = 0;
+  const fromTs = Math.floor((now - WINDOW_MS) / 1000);
+  const toTs = Math.floor(now / 1000) + 60;
+  for (let offset = 0; offset < credentialSets.length; offset += 4) {
+    const group = await Promise.all(credentialSets.slice(offset, offset + 4).map(async credentials => {
+      try {
+        const payload = await payloadFor({
+          url: `${apiBase}/v3/REST/statcounters?CounterSource=APIKey&CounterTiming=Message&CounterResolution=Hour&FromTS=${fromTs}&ToTS=${toTs}`,
+          ...credentials, fetchImpl
+        });
+        return Array.isArray(payload?.Data) ? payload.Data : [];
+      } catch { return null; }
+    }));
+    for (const rows of group) {
+      if (!rows) continue;
+      counterQueriesSucceeded += 1;
+      for (const row of rows) {
+        const add = (name, field) => {
+          const value = Number(row?.[field]);
+          if (Number.isSafeInteger(value) && value >= 0) counterTotals[name] += value;
+        };
+        add('counterSent', 'MessageSentCount');
+        add('counterQueued', 'MessageQueuedCount');
+        add('counterBlocked', 'MessageBlockedCount');
+        add('counterDeferred', 'MessageDeferredCount');
+        add('counterHardBounced', 'MessageHardBouncedCount');
+        add('counterSoftBounced', 'MessageSoftBouncedCount');
+      }
+    }
+  }
+
   const counts = { delivered: 0, queued: 0, blocked: 0, bounced: 0, retrying: 0, other: 0 };
   for (const record of records) counts[bucket(record?.Status)] += 1;
-  return Object.freeze({ recent: records.length, credentialSetsInspected, ...counts });
+  return Object.freeze({
+    recent: records.length,
+    credentialSetsInspected: credentialSets.length,
+    counterQueriesSucceeded,
+    ...counts,
+    ...counterTotals
+  });
 }
 
 async function main({ env = process.env, stdout = process.stdout } = {}) {
   const result = await auditRecentMailjetDelivery({ env });
-  stdout.write(`MAILJET_DELIVERY_AUDIT recent=${result.recent} credentialSetsInspected=${result.credentialSetsInspected} delivered=${result.delivered} queued=${result.queued} blocked=${result.blocked} bounced=${result.bounced} retrying=${result.retrying} other=${result.other} windowHours=6 readOnly=true valuesPrinted=false\n`);
+  stdout.write(`MAILJET_DELIVERY_AUDIT recent=${result.recent} credentialSetsInspected=${result.credentialSetsInspected} counterQueriesSucceeded=${result.counterQueriesSucceeded} delivered=${result.delivered} queued=${result.queued} blocked=${result.blocked} bounced=${result.bounced} retrying=${result.retrying} other=${result.other} counterSent=${result.counterSent} counterQueued=${result.counterQueued} counterBlocked=${result.counterBlocked} counterDeferred=${result.counterDeferred} counterHardBounced=${result.counterHardBounced} counterSoftBounced=${result.counterSoftBounced} windowHours=6 readOnly=true valuesPrinted=false\n`);
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(process.argv[1]).href : '';
