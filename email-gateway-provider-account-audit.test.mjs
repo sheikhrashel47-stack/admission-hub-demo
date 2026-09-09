@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { auditProviderAccounts } from './email-gateway/operations/audit-provider-accounts.mjs';
+import { auditProviderAccounts, assertProviderAuditRequirements } from './email-gateway/operations/audit-provider-accounts.mjs';
 
 const privateValues = Object.freeze({
   RESEND_API_KEY: 'private-resend-value',
@@ -11,7 +11,9 @@ const privateValues = Object.freeze({
   MAILTRAP_API_KEY: 'private-mailtrap-value',
   MAILERSEND_API_KEY: 'private-mailersend-value',
   SENDPULSE_API_KEY: 'private-sendpulse-value',
-  COURIER_API_KEY: 'private-courier-value'
+  COURIER_API_KEY: 'private-courier-value',
+  MAILJET_FROM_ADDRESS: 'private-mailjet-address@example.test',
+  MAILJET_SENDER_VERIFIED: 'true'
 });
 
 const jsonResponse = (status, payload) => ({
@@ -48,6 +50,8 @@ test('provider account audit performs GET-only checks and returns counts without
   assert.equal(audits.find(audit => audit.provider === 'brevo').activeSenders, 1);
   assert.equal(audits.find(audit => audit.provider === 'brevo').credentialShape, 'STANDARD_API_PREFIX');
   assert.equal(audits.find(audit => audit.provider === 'mailjet').activeSenders, 1);
+  assert.equal(audits.find(audit => audit.provider === 'mailjet').configuredSenderState, 'MATCHED_ACTIVE_SENDER');
+  assert.doesNotThrow(() => assertProviderAuditRequirements(audits, { PROVIDER_ACCOUNT_REQUIRE_MAILJET_READY: 'true' }));
   assert.equal(audits.find(audit => audit.provider === 'resend').readiness, 'ACCOUNT_EMAIL_TEST_ONLY');
   assert.equal(audits.find(audit => audit.provider === 'mailtrap').readiness, 'SANDBOX_OR_DEMO_ONLY');
   assert.ok(calls.every(call => call.method === 'GET'));
@@ -83,6 +87,39 @@ test('provider account audit distinguishes invalid and unreachable credentials w
   assert.equal(byProvider.mailersend.auth, 'REQUEST_REJECTED');
   assert.equal(byProvider.courier.auth, 'VALID');
   assert.doesNotMatch(JSON.stringify(audits), /private provider|private transport|private scope|private quota|private outage|private request/);
+});
+
+test('protected Mailjet readiness gate requires the exact source address and declared evidence', async () => {
+  const fetchImpl = async input => {
+    const url = String(input);
+    if (url === 'https://api.resend.com/domains') return jsonResponse(200, { data: [] });
+    if (url === 'https://api.brevo.com/v3/account') return jsonResponse(401, {});
+    if (url.startsWith('https://api.mailjet.com/')) return jsonResponse(200, { Data: [{ Email: 'different-private-address@example.test', Status: 'Active' }] });
+    if (url === 'https://mailtrap.io/api/accounts') return jsonResponse(200, []);
+    if (url.startsWith('https://api.mailersend.com/')) return jsonResponse(200, { data: [] });
+    if (url === 'https://api.sendpulse.com/smtp/senders') return jsonResponse(200, []);
+    if (url === 'https://api.courier.com/messages?limit=1') return jsonResponse(200, {});
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  const mismatch = await auditProviderAccounts({ env: privateValues, fetchImpl });
+  const mailjet = mismatch.find(audit => audit.provider === 'mailjet');
+  assert.equal(mailjet.configuredSenderState, 'SOURCE_ADDRESS_NOT_ACTIVE');
+  assert.throws(
+    () => assertProviderAuditRequirements(mismatch, { PROVIDER_ACCOUNT_REQUIRE_MAILJET_READY: 'true' }),
+    /Configured Mailjet sender evidence is not ready/
+  );
+  assert.doesNotMatch(JSON.stringify(mismatch), /different-private-address|private-mailjet-address/);
+
+  const evidenceFalse = await auditProviderAccounts({
+    env: { ...privateValues, MAILJET_SENDER_VERIFIED: 'false' },
+    fetchImpl: async input => {
+      const url = String(input);
+      if (url.startsWith('https://api.mailjet.com/')) return jsonResponse(200, { Data: [{ Email: privateValues.MAILJET_FROM_ADDRESS, Status: 'Validated' }] });
+      return fetchImpl(input);
+    }
+  });
+  assert.equal(evidenceFalse.find(audit => audit.provider === 'mailjet').configuredSenderState, 'SOURCE_EVIDENCE_FALSE');
 });
 
 test('Brevo account authentication remains distinct from sender-read permission', async () => {
