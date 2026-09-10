@@ -572,7 +572,7 @@ textarea{min-height:96px}
 })();
 </script>
 <script src="./session-persist.js?v=session-v1"></script>
-<link rel="stylesheet" href="./account-access.css?v=20260910-auth-selector-v3">
+<link rel="stylesheet" href="./account-access.css?v=20260911-auth-selector-v4">
 <!-- মালিক-নির্দেশ ২০২৬-০৯-০৮: সব AI সিস্টেম বাদ — AI gateway সরানো হয়েছে -->
 <style id="ah-boot-min">.ah-boot{width:100%;min-height:100dvh;display:grid;place-content:center;justify-items:center;gap:9px;color:#17221d;background:#f1faf6}.ah-boot-mark{display:grid;place-items:center;width:56px;height:56px;border-radius:17px;background:#0f6b4f;color:#fff;font-size:26px;box-shadow:0 12px 28px rgba(15,107,79,.30)}.ah-boot b{font-size:19px;font-weight:800;letter-spacing:.01em}.ah-boot i{font-style:normal;font-size:12px;color:#5e7168;animation:ahBootPulse 1.15s ease-in-out infinite}@keyframes ahBootPulse{0%,100%{opacity:.55}50%{opacity:1}}@media(prefers-reduced-motion:reduce){.ah-boot i{animation:none}}</style>
 </head>
@@ -4680,15 +4680,15 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
     // Do not reload on controllerchange: iOS standalone clients can enter a blank-screen reload loop.
     // The updated worker takes control now; the current document remains usable and the next launch uses the new shell.
     try{
-      const expectedSwVersion = 'v231-account-identity-20260910';
+      const expectedSwVersion = 'v232-auth-ui-skew-20260911';
       // register() on the same scope performs an in-place update. Never unregister
       // the active iOS worker first: that discards the instant offline shell.
-      const registration=await navigator.serviceWorker.register('./sw.js?v=v231-account-identity-20260910',{scope:'./',updateViaCache:'none'});
+      const registration=await navigator.serviceWorker.register('./sw.js?v=v232-auth-ui-skew-20260911',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // stale pre-retirement application shells can never be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v231-account-identity-20260910';
+        const cur = 'admission-hub-shell-v232-auth-ui-skew-20260911';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -5131,7 +5131,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script defer src="./android-runtime-fix.js?v=and-scroll-v1"></script>
 <script>window.AH_CLOUD_ROLE='public';</script>
 <script defer src="./cloud-content-sync.js?v=account-retired-v221"></script>
-<script defer src="./account-access.js?v=20260910-auth-selector-v3"></script>
+<script defer src="./account-access.js?v=20260911-auth-selector-v4"></script>
 <script src="./app-seed.js?v=v189-empty" defer></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */

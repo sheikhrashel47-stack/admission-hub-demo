@@ -118,6 +118,9 @@ test('Google and the explicit Email-or-Telegram selector are public while Passke
   assert.match(handler, /googleCanaryRequested\(env, url\)/);
   assert.match(handler, /passkeyPublished\(env\)/);
   assert.match(handler, /passkeyCanaryRequested\(env, url\)/);
+  assert.match(handler, /AUTH_UI_VERSION\s*=\s*'auth-selector-v4'/);
+  assert.match(handler, /CLIENT_UPDATE_REQUIRED/);
+  assert.match(client, /'X-AH-Auth-UI':\s*'auth-selector-v4'/);
   assert.match(handler, /enrollmentAvailable:\s*passkeyEnrollmentAvailable/);
   assert.match(handler, /telegramCanaryRequested\(env, url\)/);
   assert.match(handler, /verificationPublished\(env\)/);

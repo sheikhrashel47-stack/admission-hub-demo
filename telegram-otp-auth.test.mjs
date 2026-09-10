@@ -243,6 +243,7 @@ class BrowserClient {
         Origin: ORIGIN,
         'CF-Connecting-IP': this.ip,
         'User-Agent': 'Mobile Safari',
+        'X-AH-Auth-UI': 'auth-selector-v4',
         Cookie: this.cookieHeader(),
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {})
       },

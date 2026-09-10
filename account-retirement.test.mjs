@@ -104,13 +104,13 @@ await test('content hydration is public and account-independent',
   !/AHAuth|ahPubToken|authHeaders|Authorization/.test(CLOUD));
 
 await test('service-worker build and HTML registration are synchronized',
-  SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") &&
-  H.includes("const expectedSwVersion = 'v231-account-identity-20260910'") &&
-  H.includes('sw.js?v=v231-account-identity-20260910') &&
-  H.includes('admission-hub-shell-v231-account-identity-20260910'));
+  SW.includes("const BUILD_ID = 'v232-auth-ui-skew-20260911'") &&
+  H.includes("const expectedSwVersion = 'v232-auth-ui-skew-20260911'") &&
+  H.includes('sw.js?v=v232-auth-ui-skew-20260911') &&
+  H.includes('admission-hub-shell-v232-auth-ui-skew-20260911'));
 await test('service-worker shell cannot cache retired assets', retiredMarkers.every(marker => !SW.includes(marker)));
 await test('multi-method account assets use the same cache-busting version in HTML and service worker',
-  ['account-access.css?v=20260910-auth-selector-v3', 'account-access.js?v=20260910-auth-selector-v3']
+  ['account-access.css?v=20260911-auth-selector-v4', 'account-access.js?v=20260911-auth-selector-v4']
     .every(asset => H.includes(asset) && SW.includes(asset)));
 await test('service-worker caches guest AI UI v14 and purges prior shells',
   SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') &&

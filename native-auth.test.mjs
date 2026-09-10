@@ -218,12 +218,13 @@ const extractCookiePair = (response, name) => {
   return match?.[1] || '';
 };
 
-const apiRequest = (path, { method = 'GET', body, cookie = '', origin = 'https://admissionhub.pages.dev' } = {}) => new Request(`https://worker.example${path}`, {
+const apiRequest = (path, { method = 'GET', body, cookie = '', origin = 'https://admissionhub.pages.dev', ui = 'auth-selector-v4' } = {}) => new Request(`https://worker.example${path}`, {
   method,
   headers: {
     Origin: origin,
     'CF-Connecting-IP': '203.0.113.10',
     'User-Agent': 'Mozilla/5.0 Android Chrome/140',
+    ...(ui ? { 'X-AH-Auth-UI': ui } : {}),
     ...(body ? { 'Content-Type': 'application/json' } : {}),
     ...(cookie ? { Cookie: cookie } : {})
   },
@@ -453,6 +454,37 @@ test('approved Telegram publication exposes only the Email-or-Telegram selector 
   assert.equal(auth.methods.backup.availabilityCode, 'LIVE_E2E_PENDING');
   const diagnostic = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config?telegramCanary=1`), app.env, {});
   assert.equal((await diagnostic.json()).auth.methods.backup.available, true);
+});
+
+test('stale cached Auth UI is rejected before signup creates an account or sends Email', async () => {
+  const app = handlerSetup({ backupCapabilities: { available: true, availabilityCode: 'READY', telegramAvailable: true } });
+  app.env.VERIFICATION_AUTH_ACTIVATION = 'enabled';
+  const response = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
+    method: 'POST',
+    ui: '',
+    body: { email: 'stale-ui@example.com', password: 'StrongPassword!9' }
+  }), app.env, {});
+  const body = await response.json();
+  assert.equal(response.status, 409);
+  assert.equal(body.error.code, AUTH_ERROR_CODES.CLIENT_UPDATE_REQUIRED);
+  assert.equal(app.firebase.users.size, 0);
+  assert.equal(app.firebase.calls.some(call => call.pathname.endsWith('/accounts:signUp')), false);
+  assert.equal(app.firebase.calls.some(call => call.pathname.endsWith('/accounts:sendOobCode')), false);
+});
+
+test('selector setup failure preserves the account but never auto-sends Firebase Email', async () => {
+  const app = handlerSetup({ backupCapabilities: { available: true, availabilityCode: 'READY', telegramAvailable: true } });
+  app.env.VERIFICATION_AUTH_ACTIVATION = 'enabled';
+  const email = 'selector-outage@example.com';
+  const response = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
+    method: 'POST',
+    body: { email, password: 'StrongPassword!9' }
+  }), app.env, {});
+  const body = await response.json();
+  assert.equal(response.status, 503);
+  assert.equal(body.error.code, AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE);
+  assert.equal(app.firebase.users.has(email), true);
+  assert.equal(app.firebase.calls.some(call => call.pathname.endsWith('/accounts:sendOobCode')), false);
 });
 
 test('approved Google activation publishes the provider on the ordinary config without publishing Passkey', async () => {

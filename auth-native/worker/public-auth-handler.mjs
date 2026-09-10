@@ -16,6 +16,7 @@ const YEAR_SECONDS = 365 * 24 * 60 * 60;
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
 const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 128;
+const AUTH_UI_VERSION = 'auth-selector-v4';
 const FIREBASE_VERIFICATION_RESEND_SECONDS = Math.floor(FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS / 1000);
 
 const JSON_HEADERS = Object.freeze({
@@ -302,6 +303,7 @@ const verificationPublished = env => env?.VERIFICATION_AUTH_ACTIVATION === 'enab
 const telegramCanaryRequested = (env, url) =>
   verificationEndpointReady(env) && url.searchParams.get('telegramCanary') === '1';
 const telegramVerificationRequested = (env, url) => verificationPublished(env) || telegramCanaryRequested(env, url);
+const currentAuthUi = request => request.headers.get('X-AH-Auth-UI') === AUTH_UI_VERSION;
 const telegramActivationAuthorized = (request, env) => {
   const expected = String(env?.TELEGRAM_CANARY_ACTIVATION_SECRET || '');
   const supplied = String(request.headers.get('X-AH-Telegram-Activation') || '');
@@ -341,7 +343,7 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           ...JSON_HEADERS,
           ...corsHeaders(request),
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'content-type, x-ah-admin-token',
+          'Access-Control-Allow-Headers': 'content-type, x-ah-admin-token, x-ah-auth-ui',
           'Access-Control-Max-Age': '600'
         }
       });
@@ -522,12 +524,15 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
 
       if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/signup`) {
         if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const telegramRequested = telegramVerificationRequested(env, url);
+        if (telegramRequested && !currentAuthUi(request)) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.CLIENT_UPDATE_REQUIRED);
+        }
         const input = credentials(await readJson(request));
         const prepared = await callAuthority(env, '/internal/firebase/rate', { input: { operation: 'signup', email: input.email }, context });
         let signed;
         try { signed = await provider.signUp(prepared.email, input.password); } catch (cause) { throw providerError(cause, 'signup'); }
 
-        const telegramRequested = telegramVerificationRequested(env, url);
         const telegramAvailable = await telegramVerificationAvailable(env, telegramRequested);
         if (telegramRequested) {
           try {
@@ -561,8 +566,12 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
               ]
             });
           } catch {
-            // Preserve the existing Firebase email path if secure selector setup is
-            // temporarily unavailable. No authenticated session is created.
+            // Public dual-choice signup must never silently fall back to sending
+            // Email. Keep the canonical Firebase subject recoverable by password
+            // login, but fail closed with an explicit no-delivery message.
+            throw new NativeAuthError(AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE, {
+              message: 'অ্যাকাউন্ট তৈরি হয়েছে, কিন্তু যাচাইয়ের পদ্ধতি এখন প্রস্তুত করা যাচ্ছে না—কিছু পাঠানো হয়নি। একটু পরে এই ইমেইল দিয়ে লগইন করুন।'
+            });
           }
         }
 
@@ -623,6 +632,9 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           context,
           allowed: telegramRequested
         });
+        if (!user.emailVerified && !telegramVerified && telegramRequested && !currentAuthUi(request)) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.CLIENT_UPDATE_REQUIRED);
+        }
         const telegramAvailable = await telegramVerificationAvailable(env, telegramRequested);
         if (!user.emailVerified && !telegramVerified && telegramRequested) {
           try {
