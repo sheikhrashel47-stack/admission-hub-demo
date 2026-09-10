@@ -1,4 +1,4 @@
-// Admission Hub v221 — retired account/profile/personalization-onboarding guard.
+// Admission Hub current shell — retired account/profile/personalization-onboarding guard.
 import { existsSync, readFileSync } from 'node:fs';
 import publicWorker, { publishGlobal } from './public-worker.js';
 import bundledWorker from './worker-bundle.mjs';
@@ -79,7 +79,7 @@ const retiredRoutes = [
 
 await test('retired frontend source/assets are deleted', retiredFiles.every(file => !existsSync(file)));
 await test('production HTML does not load or mount retired account/onboarding UI', retiredMarkers.every(marker => !H.includes(marker)));
-await test('Google identity client is no longer loaded', !H.includes('accounts.google.com') && !H.includes('openid email profile'));
+await test('Google identity client is not unconditionally loaded in HTML', !H.includes('accounts.google.com') && !H.includes('openid email profile'));
 
 const navBlock = (H.match(/const NAV_TABS=\[[\s\S]*?\];/) || [''])[0];
 await test('only Profile navigation was removed',
@@ -103,20 +103,24 @@ await test('content hydration is public and account-independent',
   !/AHAuth|ahPubToken|authHeaders|Authorization/.test(CLOUD));
 
 await test('service-worker build and HTML registration are synchronized',
-  SW.includes("const BUILD_ID = 'v224-firebase-verify-ux-20260909'") &&
-  H.includes("const expectedSwVersion = 'v224-firebase-verify-ux-20260909'") &&
-  H.includes('sw.js?v=v224-firebase-verify-ux-20260909') &&
-  H.includes('admission-hub-shell-v224-firebase-verify-ux-20260909'));
+  SW.includes("const BUILD_ID = 'v225-firebase-multimethod-20260910'") &&
+  H.includes("const expectedSwVersion = 'v225-firebase-multimethod-20260910'") &&
+  H.includes('sw.js?v=v225-firebase-multimethod-20260910') &&
+  H.includes('admission-hub-shell-v225-firebase-multimethod-20260910'));
 await test('service-worker shell cannot cache retired assets', retiredMarkers.every(marker => !SW.includes(marker)));
+await test('multi-method account assets use the same cache-busting version in HTML and service worker',
+  ['account-access.css?v=20260910-firebase-multimethod-v1', 'account-access.js?v=20260910-firebase-multimethod-v1']
+    .every(asset => H.includes(asset) && SW.includes(asset)));
 await test('service-worker caches guest AI UI v14 and purges prior shells',
   SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') &&
   H.includes("name.startsWith('admission-hub-shell-')") && SW.includes('.filter(key => key !== CACHE_NAME)'));
 
 const forbiddenWorkerRoutes = retiredRoutes.filter(route => !route.startsWith('/api/admin/'));
 await test('source Worker contains no retired account/profile/onboarding route literals', forbiddenWorkerRoutes.every(route => !SOURCE.includes(route)));
-await test('deploy bundle contains no retired route literals or implementation primitives',
+await test('deploy bundle contains no retired route literals or insecure implementation primitives',
   retiredRoutes.every(route => !BUNDLE.includes(route)) &&
-  !/issueToken|hashPassword|verifyAuth|otpSend|passkey|GOOGLE_CLIENT_ID|TWILIO_SID|RESEND_KEY|BREVO_KEY/.test(BUNDLE));
+  !/issueToken|hashPassword|verifyAuth|otpSend|GOOGLE_CLIENT_ID|TWILIO_SID|RESEND_KEY|BREVO_KEY/.test(BUNDLE) &&
+  BUNDLE.includes('PASSKEY_AUTH_ACTIVATION') && BUNDLE.includes('GOOGLE_AUTH_ACTIVATION'));
 await test('dispatcher forwards only content/admin/anonymous-AI environment',
   DISPATCH.includes('AGENT_PUBLIC_DAILY_CAP') &&
   !/GOOGLE_CLIENT_ID|GOOGLE_CLIENT_SECRET|TWILIO|RESEND|BREVO|BULKSMS|GREENWEB/.test(DISPATCH));

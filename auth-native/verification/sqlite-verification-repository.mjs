@@ -1,0 +1,522 @@
+import { AUTH_ERROR_CODES } from '../core/errors.mjs';
+import { constantTimeEqual } from '../core/crypto.mjs';
+import { VERIFICATION_FAILURE_CLASS } from './provider-contract.mjs';
+
+const DAY_MS = 86_400_000;
+const EVENT_RETENTION_MS = 90 * DAY_MS;
+const safeReason = value => String(value || 'UNKNOWN').toUpperCase().replace(/[^A-Z0-9_-]/g, '_').slice(0, 64) || 'UNKNOWN';
+
+export class SqliteVerificationRepository {
+  constructor(storage) {
+    if (!storage?.sql || typeof storage.sql.exec !== 'function') throw new TypeError('SQLite Durable Object storage is required.');
+    this.storage = storage;
+    this.sql = storage.sql;
+  }
+
+  migrate() {
+    const statements = [
+      `CREATE TABLE IF NOT EXISTS auth_verification_challenges (
+        attempt_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        session_ref TEXT NOT NULL,
+        subject_ref TEXT NOT NULL,
+        email_ref TEXT NOT NULL,
+        destination_ref TEXT NOT NULL,
+        device_ref TEXT NOT NULL,
+        ip_ref TEXT NOT NULL,
+        purpose TEXT NOT NULL CHECK(purpose IN ('account-backup','sensitive-action')),
+        code_mac TEXT NOT NULL,
+        link_token_mac TEXT NOT NULL,
+        provider_id TEXT,
+        channel TEXT,
+        verification_mode TEXT,
+        state TEXT NOT NULL CHECK(state IN ('pending','sent','verified','failed','expired','locked','superseded')),
+        attempts INTEGER NOT NULL DEFAULT 0,
+        max_attempts INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        resend_at INTEGER NOT NULL,
+        sent_at INTEGER,
+        verified_at INTEGER,
+        lockout_until INTEGER NOT NULL DEFAULT 0,
+        provider_confirmed INTEGER NOT NULL DEFAULT 0,
+        external_identity_ref TEXT,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_verification_user_purpose
+       ON auth_verification_challenges(user_id,purpose,created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS auth_verification_expiry
+       ON auth_verification_challenges(expires_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_verification_daily_quota (
+        provider_id TEXT NOT NULL,
+        day_start INTEGER NOT NULL,
+        used INTEGER NOT NULL,
+        quota_limit INTEGER NOT NULL,
+        reset_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY(provider_id,day_start)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_verification_quota_reset
+       ON auth_verification_daily_quota(reset_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_verification_provider_state (
+        provider_id TEXT PRIMARY KEY,
+        circuit TEXT NOT NULL CHECK(circuit IN ('closed','open','half-open')),
+        consecutive_failures INTEGER NOT NULL DEFAULT 0,
+        success_count INTEGER NOT NULL DEFAULT 0,
+        failure_count INTEGER NOT NULL DEFAULT 0,
+        user_error_count INTEGER NOT NULL DEFAULT 0,
+        latency_ewma_ms INTEGER NOT NULL DEFAULT 0,
+        cooldown_until INTEGER NOT NULL DEFAULT 0,
+        last_success_at INTEGER NOT NULL DEFAULT 0,
+        last_failure_at INTEGER NOT NULL DEFAULT 0,
+        last_reason TEXT NOT NULL DEFAULT 'NONE',
+        updated_at INTEGER NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS auth_verification_runtime_config (
+        config_key TEXT PRIMARY KEY,
+        config_json TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS auth_verification_events (
+        event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        attempt_id TEXT,
+        user_id TEXT,
+        subject_ref TEXT,
+        provider_id TEXT,
+        channel TEXT,
+        occurred_at INTEGER NOT NULL,
+        outcome TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        latency_ms INTEGER NOT NULL DEFAULT 0
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_verification_events_time
+       ON auth_verification_events(occurred_at DESC)`
+    ];
+    for (const statement of statements) this.sql.exec(statement);
+    const challengeColumns = new Set(
+      Array.from(this.sql.exec('PRAGMA table_info(auth_verification_challenges)')).map(row => String(row.name || ''))
+    );
+    const additiveColumns = [
+      ['link_token_mac', "ALTER TABLE auth_verification_challenges ADD COLUMN link_token_mac TEXT NOT NULL DEFAULT ''"],
+      ['provider_confirmed', 'ALTER TABLE auth_verification_challenges ADD COLUMN provider_confirmed INTEGER NOT NULL DEFAULT 0'],
+      ['external_identity_ref', 'ALTER TABLE auth_verification_challenges ADD COLUMN external_identity_ref TEXT']
+    ];
+    for (const [column, statement] of additiveColumns) {
+      if (!challengeColumns.has(column)) this.sql.exec(statement);
+    }
+    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','4') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
+  }
+
+  #rows(statement, ...bindings) { return Array.from(this.sql.exec(statement, ...bindings)); }
+  #one(statement, ...bindings) { return this.#rows(statement, ...bindings)[0] || null; }
+  #transaction(work) { return typeof this.storage.transactionSync === 'function' ? this.storage.transactionSync(work) : work(); }
+
+  async getRuntimeConfig() {
+    const row = this.#one("SELECT config_json AS configJson,updated_at AS updatedAt FROM auth_verification_runtime_config WHERE config_key='active'");
+    if (!row) return null;
+    try {
+      const config = JSON.parse(row.configJson);
+      return config && typeof config === 'object' ? { ...config, updatedAt: Number(row.updatedAt) } : null;
+    } catch { return null; }
+  }
+
+  async setRuntimeConfig({ config, now }) {
+    this.sql.exec(
+      `INSERT INTO auth_verification_runtime_config(config_key,config_json,updated_at) VALUES('active',?,?)
+       ON CONFLICT(config_key) DO UPDATE SET config_json=excluded.config_json,updated_at=excluded.updated_at`,
+      JSON.stringify(config), Number(now)
+    );
+    return { updated: true, updatedAt: Number(now) };
+  }
+
+  #event(input) {
+    this.sql.exec(
+      `INSERT INTO auth_verification_events(
+        attempt_id,user_id,subject_ref,provider_id,channel,occurred_at,outcome,reason,latency_ms
+      ) VALUES(?,?,?,?,?,?,?,?,?)`,
+      input.attemptId || null,
+      input.userId || null,
+      input.subjectRef || null,
+      input.providerId || null,
+      input.channel || null,
+      Number(input.now),
+      safeReason(input.outcome),
+      safeReason(input.reason),
+      Math.max(0, Math.round(Number(input.latencyMs || 0)))
+    );
+  }
+
+  #consumeLimits(limits, now) {
+    let denied = null;
+    for (const limit of limits || []) {
+      const start = Math.floor(now / limit.windowMs) * limit.windowMs;
+      const expiresAt = start + limit.windowMs;
+      this.sql.exec(
+        `INSERT INTO auth_rate_limits(scope,bucket_key,window_start,window_ms,count,expires_at)
+         VALUES(?,?,?,?,1,?)
+         ON CONFLICT(scope,bucket_key,window_start) DO UPDATE SET count=count+1`,
+        limit.scope, limit.key, start, limit.windowMs, expiresAt
+      );
+      const row = this.#one(
+        'SELECT count,expires_at AS expiresAt FROM auth_rate_limits WHERE scope=? AND bucket_key=? AND window_start=?',
+        limit.scope, limit.key, start
+      );
+      if (Number(row?.count || 0) > limit.limit) {
+        const retryAfter = Math.max(1, Math.ceil((Number(row.expiresAt) - now) / 1000));
+        if (!denied || retryAfter > denied.retryAfter) denied = { error: AUTH_ERROR_CODES.RATE_LIMITED, retryAfter };
+      }
+    }
+    return denied;
+  }
+
+  #challenge(input) {
+    const row = this.#one(
+      `SELECT attempt_id AS attemptId,user_id AS userId,session_ref AS sessionRef,subject_ref AS subjectRef,
+        email_ref AS emailRef,destination_ref AS destinationRef,device_ref AS deviceRef,ip_ref AS ipRef,
+        purpose,code_mac AS codeMac,link_token_mac AS linkTokenMac,provider_id AS providerId,channel,
+        verification_mode AS verificationMode,state,attempts,max_attempts AS maxAttempts,
+        created_at AS createdAt,expires_at AS expiresAt,resend_at AS resendAt,sent_at AS sentAt,
+        verified_at AS verifiedAt,lockout_until AS lockoutUntil,provider_confirmed AS providerConfirmed,
+        external_identity_ref AS externalIdentityRef
+       FROM auth_verification_challenges WHERE attempt_id=?`,
+      input.attemptId
+    );
+    if (!row || row.sessionRef !== input.sessionRef || row.subjectRef !== input.subjectRef || row.userId !== input.userId
+      || row.deviceRef !== input.deviceRef || row.emailRef !== input.emailRef || row.purpose !== input.purpose) {
+      return { error: AUTH_ERROR_CODES.OTP_INVALID };
+    }
+    if (row.state === 'verified') return { error: AUTH_ERROR_CODES.OTP_USED };
+    if (row.state === 'locked') return {
+      error: AUTH_ERROR_CODES.OTP_LOCKED,
+      retryAfter: Math.max(1, Math.ceil((Number(row.lockoutUntil || input.now + 1000) - input.now) / 1000))
+    };
+    if (row.state !== 'sent') return { error: AUTH_ERROR_CODES.OTP_INVALID };
+    if (Number(row.expiresAt) <= input.now) {
+      this.sql.exec("UPDATE auth_verification_challenges SET state='expired',code_mac='',link_token_mac='' WHERE attempt_id=?", input.attemptId);
+      return { error: AUTH_ERROR_CODES.OTP_EXPIRED };
+    }
+    return { challenge: row };
+  }
+
+  async reserveChallenge(input) {
+    return this.#transaction(() => {
+      const lockout = this.#one(
+        `SELECT MAX(lockout_until) AS lockoutUntil FROM auth_verification_challenges
+         WHERE user_id=? AND purpose=? AND state='locked' AND lockout_until>?`,
+        input.userId, input.purpose, input.now
+      );
+      if (Number(lockout?.lockoutUntil || 0) > input.now) {
+        return {
+          error: AUTH_ERROR_CODES.OTP_LOCKED,
+          retryAfter: Math.max(1, Math.ceil((Number(lockout.lockoutUntil) - input.now) / 1000))
+        };
+      }
+      const denied = this.#consumeLimits(input.limits, input.now);
+      if (denied) return denied;
+      const latest = this.#one(
+        `SELECT resend_at AS resendAt FROM auth_verification_challenges
+         WHERE user_id=? AND purpose=? AND state IN ('pending','sent')
+         ORDER BY created_at DESC LIMIT 1`,
+        input.userId, input.purpose
+      );
+      if (latest && input.now < Number(latest.resendAt)) {
+        return { error: AUTH_ERROR_CODES.RESEND_COOLDOWN, retryAfter: Math.max(1, Math.ceil((Number(latest.resendAt) - input.now) / 1000)) };
+      }
+      this.sql.exec(
+        `INSERT INTO auth_verification_challenges(
+          attempt_id,user_id,session_ref,subject_ref,email_ref,destination_ref,device_ref,ip_ref,purpose,
+          code_mac,link_token_mac,provider_id,channel,verification_mode,state,attempts,max_attempts,
+          created_at,expires_at,resend_at,sent_at,verified_at,lockout_until
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,'pending',0,?,?,?,?,NULL,NULL,0)`,
+        input.attemptId, input.userId, input.sessionRef, input.subjectRef, input.emailRef,
+        input.destinationRef, input.deviceRef, input.ipRef, input.purpose, input.codeMac,
+        input.linkTokenMac, input.maxAttempts, input.createdAt, input.expiresAt, input.resendAt
+      );
+      this.#event({ ...input, outcome: 'prepared', reason: 'accepted' });
+      return { reserved: true };
+    });
+  }
+
+  async markChallengeDelivery(input) {
+    return this.#transaction(() => {
+      const row = this.#one("SELECT user_id AS userId,subject_ref AS subjectRef,purpose,state FROM auth_verification_challenges WHERE attempt_id=?", input.attemptId);
+      if (!row || row.state !== 'pending') return { error: AUTH_ERROR_CODES.OTP_INVALID };
+      this.sql.exec(
+        `UPDATE auth_verification_challenges SET provider_id=?,channel=?,verification_mode=?,state='sent',sent_at=?
+         WHERE attempt_id=? AND state='pending'`,
+        input.providerId, input.channel, input.verificationMode, input.now, input.attemptId
+      );
+      this.sql.exec(
+        `UPDATE auth_verification_challenges SET state='superseded',code_mac='',link_token_mac=''
+         WHERE user_id=? AND purpose=? AND attempt_id<>? AND state IN ('pending','sent')`,
+        row.userId, row.purpose, input.attemptId
+      );
+      this.#event({ ...input, userId: row.userId, subjectRef: row.subjectRef, outcome: 'sent', reason: 'accepted' });
+      return { delivered: true };
+    });
+  }
+
+  async confirmProviderEvidence(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT attempt_id AS attemptId,user_id AS userId,subject_ref AS subjectRef,provider_id AS providerId,channel
+         FROM auth_verification_challenges
+         WHERE link_token_mac=? AND provider_id=? AND channel=? AND state='sent' AND expires_at>?`,
+        input.linkTokenMac, input.providerId, input.channel, input.now
+      );
+      if (!row) return { error: AUTH_ERROR_CODES.OTP_INVALID };
+      this.sql.exec(
+        `UPDATE auth_verification_challenges
+         SET provider_confirmed=1,external_identity_ref=?,link_token_mac=''
+         WHERE attempt_id=? AND state='sent' AND link_token_mac=?`,
+        input.externalIdentityRef, row.attemptId, input.linkTokenMac
+      );
+      this.#event({ ...row, now: input.now, outcome: 'provider_confirmed', reason: 'webhook_verified' });
+      return { confirmed: true, attemptId: row.attemptId };
+    });
+  }
+
+  async failChallenge(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        'SELECT user_id AS userId,subject_ref AS subjectRef,provider_id AS providerId,channel FROM auth_verification_challenges WHERE attempt_id=?',
+        input.attemptId
+      );
+      this.sql.exec(
+        "UPDATE auth_verification_challenges SET state='failed',code_mac='',link_token_mac='' WHERE attempt_id=? AND state IN ('pending','sent')",
+        input.attemptId
+      );
+      this.#event({ ...(row || {}), ...input, outcome: 'failed' });
+      return { failed: true };
+    });
+  }
+
+  async getChallenge(input) { return this.#transaction(() => this.#challenge(input)); }
+
+  async rejectChallengeAttempt(input) {
+    return this.#transaction(() => {
+      const selected = this.#challenge(input);
+      if (selected.error) return selected;
+      const row = selected.challenge;
+      const attempts = Number(row.attempts || 0) + 1;
+      if (attempts >= Number(row.maxAttempts)) {
+        const lockoutUntil = input.now + input.lockoutMs;
+        this.sql.exec(
+          "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',link_token_mac='',lockout_until=? WHERE attempt_id=?",
+          attempts, lockoutUntil, input.attemptId
+        );
+        this.#event({ ...row, now: input.now, outcome: 'locked', reason: 'attempt_limit' });
+        return { error: AUTH_ERROR_CODES.OTP_LOCKED, retryAfter: Math.ceil(input.lockoutMs / 1000) };
+      }
+      this.sql.exec('UPDATE auth_verification_challenges SET attempts=? WHERE attempt_id=?', attempts, input.attemptId);
+      this.#event({ ...row, now: input.now, outcome: 'rejected', reason: input.reason || 'user_code_mismatch' });
+      return { error: AUTH_ERROR_CODES.OTP_INVALID, attemptsRemaining: Number(row.maxAttempts) - attempts };
+    });
+  }
+
+  async verifyLocalChallenge(input) {
+    return this.#transaction(() => {
+      const selected = this.#challenge(input);
+      if (selected.error) return selected;
+      const row = selected.challenge;
+      if (!constantTimeEqual(row.codeMac, input.candidateCodeMac)) {
+        const attempts = Number(row.attempts || 0) + 1;
+        if (attempts >= Number(row.maxAttempts)) {
+          const lockoutUntil = input.now + input.lockoutMs;
+          this.sql.exec(
+            "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',link_token_mac='',lockout_until=? WHERE attempt_id=?",
+            attempts, lockoutUntil, input.attemptId
+          );
+          this.#event({ ...row, now: input.now, outcome: 'locked', reason: 'attempt_limit' });
+          return { error: AUTH_ERROR_CODES.OTP_LOCKED, retryAfter: Math.ceil(input.lockoutMs / 1000) };
+        }
+        this.sql.exec('UPDATE auth_verification_challenges SET attempts=? WHERE attempt_id=?', attempts, input.attemptId);
+        this.#event({ ...row, now: input.now, outcome: 'rejected', reason: 'user_code_mismatch' });
+        return { error: AUTH_ERROR_CODES.OTP_INVALID, attemptsRemaining: Number(row.maxAttempts) - attempts };
+      }
+      this.sql.exec(
+        "UPDATE auth_verification_challenges SET state='verified',code_mac='',link_token_mac='',verified_at=? WHERE attempt_id=? AND state='sent'",
+        input.now, input.attemptId
+      );
+      this.#event({ ...row, now: input.now, outcome: 'verified', reason: 'accepted' });
+      return { verified: true, userId: row.userId, purpose: row.purpose };
+    });
+  }
+
+  async completeRemoteChallenge(input) {
+    return this.#transaction(() => {
+      const selected = this.#challenge(input);
+      if (selected.error) return selected;
+      const row = selected.challenge;
+      this.sql.exec(
+        "UPDATE auth_verification_challenges SET state='verified',code_mac='',link_token_mac='',verified_at=? WHERE attempt_id=? AND state='sent'",
+        input.now, input.attemptId
+      );
+      this.#event({ ...row, now: input.now, outcome: 'verified', reason: 'provider_evidence' });
+      return { verified: true, userId: row.userId, purpose: row.purpose };
+    });
+  }
+
+  async dailyQuotaSnapshot({ providerId, dailyQuota, now }) {
+    const dayStart = Math.floor(now / DAY_MS) * DAY_MS;
+    const resetAt = dayStart + DAY_MS;
+    const row = this.#one(
+      'SELECT used FROM auth_verification_daily_quota WHERE provider_id=? AND day_start=?',
+      providerId, dayStart
+    );
+    const used = Math.max(0, Number(row?.used || 0));
+    return { used, remaining: Math.max(0, dailyQuota - used), limit: dailyQuota, resetAt };
+  }
+
+  async reserveDailyQuota({ providerId, dailyQuota, now }) {
+    return this.#transaction(() => {
+      const dayStart = Math.floor(now / DAY_MS) * DAY_MS;
+      const resetAt = dayStart + DAY_MS;
+      this.sql.exec(
+        `INSERT INTO auth_verification_daily_quota(provider_id,day_start,used,quota_limit,reset_at,updated_at)
+         VALUES(?,?,0,?,?,?) ON CONFLICT(provider_id,day_start)
+         DO UPDATE SET quota_limit=excluded.quota_limit,reset_at=excluded.reset_at,updated_at=excluded.updated_at`,
+        providerId, dayStart, dailyQuota, resetAt, now
+      );
+      const before = this.#one(
+        'SELECT used FROM auth_verification_daily_quota WHERE provider_id=? AND day_start=?',
+        providerId, dayStart
+      );
+      if (dailyQuota <= 0 || Number(before?.used || 0) >= dailyQuota) {
+        return { exhausted: true, used: Number(before?.used || 0), remaining: 0, limit: dailyQuota, resetAt };
+      }
+      this.sql.exec(
+        `UPDATE auth_verification_daily_quota SET used=used+1,updated_at=?
+         WHERE provider_id=? AND day_start=? AND used<quota_limit`,
+        now, providerId, dayStart
+      );
+      const row = this.#one(
+        'SELECT used FROM auth_verification_daily_quota WHERE provider_id=? AND day_start=?',
+        providerId, dayStart
+      );
+      const used = Number(row?.used || 0);
+      return { exhausted: false, used, remaining: Math.max(0, dailyQuota - used), limit: dailyQuota, resetAt };
+    });
+  }
+
+  async providerSnapshot({ providerId, now }) {
+    return this.#transaction(() => {
+      this.sql.exec(
+        `INSERT OR IGNORE INTO auth_verification_provider_state(
+          provider_id,circuit,consecutive_failures,success_count,failure_count,user_error_count,
+          latency_ewma_ms,cooldown_until,last_success_at,last_failure_at,last_reason,updated_at
+        ) VALUES(?,'closed',0,0,0,0,0,0,0,0,'NONE',?)`,
+        providerId, now
+      );
+      this.sql.exec(
+        "UPDATE auth_verification_provider_state SET circuit='half-open',updated_at=? WHERE provider_id=? AND circuit='open' AND cooldown_until<=?",
+        now, providerId, now
+      );
+      return this.#one(
+        `SELECT provider_id AS providerId,circuit,consecutive_failures AS consecutiveFailures,
+          success_count AS successCount,failure_count AS failureCount,user_error_count AS userErrorCount,
+          latency_ewma_ms AS latencyEwmaMs,cooldown_until AS cooldownUntil,
+          last_success_at AS lastSuccessAt,last_failure_at AS lastFailureAt,last_reason AS lastReason
+         FROM auth_verification_provider_state WHERE provider_id=?`,
+        providerId
+      );
+    });
+  }
+
+  async recordProviderResult(input) {
+    return this.#transaction(() => {
+      const current = this.#one(
+        `SELECT provider_id AS providerId,circuit,consecutive_failures AS consecutiveFailures,
+          success_count AS successCount,failure_count AS failureCount,user_error_count AS userErrorCount,
+          latency_ewma_ms AS latencyEwmaMs,cooldown_until AS cooldownUntil,
+          last_success_at AS lastSuccessAt,last_failure_at AS lastFailureAt,last_reason AS lastReason
+         FROM auth_verification_provider_state WHERE provider_id=?`,
+        input.providerId
+      ) || {
+        providerId: input.providerId, circuit: 'closed', consecutiveFailures: 0, successCount: 0,
+        failureCount: 0, userErrorCount: 0, latencyEwmaMs: 0, cooldownUntil: 0,
+        lastSuccessAt: 0, lastFailureAt: 0, lastReason: 'NONE'
+      };
+      const latency = Math.max(0, Number(input.latencyMs || 0));
+      const next = {
+        ...current,
+        latencyEwmaMs: current.latencyEwmaMs ? Math.round((Number(current.latencyEwmaMs) * 0.8) + (latency * 0.2)) : Math.round(latency),
+        lastReason: safeReason(input.reason)
+      };
+      if (input.success) {
+        next.successCount = Number(next.successCount) + 1;
+        next.consecutiveFailures = 0;
+        next.circuit = 'closed';
+        next.cooldownUntil = 0;
+        next.lastSuccessAt = input.now;
+      } else if (input.failureClass === VERIFICATION_FAILURE_CLASS.USER) {
+        next.userErrorCount = Number(next.userErrorCount) + 1;
+      } else {
+        next.failureCount = Number(next.failureCount) + 1;
+        next.consecutiveFailures = Number(next.consecutiveFailures) + 1;
+        next.lastFailureAt = input.now;
+        if (input.failureClass === VERIFICATION_FAILURE_CLASS.HARD || input.forceCooldown === true || next.consecutiveFailures >= input.failureThreshold) {
+          next.circuit = 'open';
+          next.cooldownUntil = input.now + input.cooldownMs;
+        }
+      }
+      this.sql.exec(
+        `INSERT INTO auth_verification_provider_state(
+          provider_id,circuit,consecutive_failures,success_count,failure_count,user_error_count,
+          latency_ewma_ms,cooldown_until,last_success_at,last_failure_at,last_reason,updated_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(provider_id) DO UPDATE SET
+          circuit=excluded.circuit,consecutive_failures=excluded.consecutive_failures,
+          success_count=excluded.success_count,failure_count=excluded.failure_count,
+          user_error_count=excluded.user_error_count,latency_ewma_ms=excluded.latency_ewma_ms,
+          cooldown_until=excluded.cooldown_until,last_success_at=excluded.last_success_at,
+          last_failure_at=excluded.last_failure_at,last_reason=excluded.last_reason,updated_at=excluded.updated_at`,
+        input.providerId, next.circuit, next.consecutiveFailures, next.successCount, next.failureCount,
+        next.userErrorCount, next.latencyEwmaMs, next.cooldownUntil, next.lastSuccessAt,
+        next.lastFailureAt, next.lastReason, input.now
+      );
+      this.#event({ ...input, outcome: input.success ? 'provider_success' : 'provider_failure' });
+      return next;
+    });
+  }
+
+  async status({ providerIds, now }) {
+    const providerStates = [];
+    for (const providerId of providerIds) providerStates.push(await this.providerSnapshot({ providerId, now }));
+    return {
+      providerStates,
+      quotas: this.#rows(
+        `SELECT provider_id AS providerId,day_start AS dayStart,used,quota_limit AS "limit",reset_at AS resetAt
+         FROM auth_verification_daily_quota WHERE reset_at>? ORDER BY provider_id`,
+        now
+      ),
+      recentEvents: this.#rows(
+        `SELECT attempt_id AS attemptId,user_id AS userId,subject_ref AS subjectRef,provider_id AS providerId,
+          channel,occurred_at AS occurredAt,outcome,reason,latency_ms AS latencyMs
+         FROM auth_verification_events ORDER BY occurred_at DESC,event_id DESC LIMIT 100`
+      ).reverse()
+    };
+  }
+
+  async cleanup(now) {
+    return this.#transaction(() => {
+      this.sql.exec('DELETE FROM auth_verification_challenges WHERE expires_at<=?', now);
+      this.sql.exec('DELETE FROM auth_verification_daily_quota WHERE reset_at<=?', now);
+      this.sql.exec('DELETE FROM auth_verification_events WHERE occurred_at<?', now - EVENT_RETENTION_MS);
+      return { cleaned: true };
+    });
+  }
+
+  async nextExpiry(now) {
+    const row = this.#one(
+      `SELECT MIN(expiry) AS nextExpiry FROM (
+        SELECT MIN(expires_at) AS expiry FROM auth_verification_challenges WHERE expires_at>?
+        UNION ALL SELECT MIN(reset_at) FROM auth_verification_daily_quota WHERE reset_at>?
+        UNION ALL SELECT MIN(cooldown_until) FROM auth_verification_provider_state WHERE cooldown_until>?
+      )`,
+      now, now, now
+    );
+    const next = Number(row?.nextExpiry || 0);
+    return next > now ? next : null;
+  }
+}

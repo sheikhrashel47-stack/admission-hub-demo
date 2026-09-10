@@ -1,4 +1,4 @@
-/* Admission Hub Firebase email/password account UI; verified-only account access. */
+/* Admission Hub Firebase-canonical Google, Passkey, Email/Password and generic backup access UI. */
 .ah-account-launcher{position:fixed;top:max(12px,env(safe-area-inset-top));right:14px;z-index:1180;display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:8px 12px;border:1px solid rgba(31,100,82,.22);border-radius:999px;background:rgba(255,255,255,.93);color:#174f42;box-shadow:0 8px 28px rgba(20,58,49,.14);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font:700 13px/1.2 system-ui,-apple-system,"Noto Sans Bengali",sans-serif;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
 .ah-account-launcher:hover{transform:translateY(-1px);box-shadow:0 10px 34px rgba(20,58,49,.2);border-color:rgba(31,100,82,.4)}
 .ah-account-launcher:focus-visible,.ah-account-modal button:focus-visible,.ah-account-modal input:focus-visible{outline:3px solid rgba(38,145,113,.32);outline-offset:2px}
@@ -53,6 +53,20 @@
 .ah-account-identity-label{margin:0 0 4px;color:#7a8c87;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
 .ah-account-identity-value{margin:0;color:#193f35;font-size:15px;font-weight:800}
 .ah-account-fine{margin:15px 0 0;color:#7a8c87;font-size:11px;line-height:1.6;text-align:center}
+.ah-account-preferred{margin:0 0 17px}.ah-account-preferred[hidden],.ah-account-google[hidden],.ah-account-method[hidden],.ah-account-security-tools[hidden]{display:none!important}
+.ah-account-preferred-label{margin:0 0 9px;color:#537069;font-size:12px;font-weight:800;text-align:center}
+.ah-account-google{min-height:44px;display:flex;justify-content:center;overflow:hidden;border-radius:12px}
+.ah-account-google>div{max-width:100%!important}
+.ah-account-method{box-sizing:border-box;width:100%;min-height:48px;margin-top:9px;display:flex;align-items:center;justify-content:center;gap:9px;border:1.5px solid #c9d9d4;border-radius:12px;background:#fff;color:#173f34;font-family:inherit;font-size:14px;font-weight:800;line-height:1.3;cursor:pointer}
+.ah-account-method:hover{background:#f7fbf9;border-color:#99c6b8}.ah-account-method span:first-child{font-size:20px;color:#14745a}
+.ah-account-method-help{margin:9px 4px 0;color:#776235;font-size:11px;line-height:1.5;text-align:center}
+.ah-account-divider{display:flex;align-items:center;gap:10px;margin:15px 0 0;color:#83938e;font-size:11px;white-space:nowrap}
+.ah-account-divider::before,.ah-account-divider::after{content:"";height:1px;flex:1;background:#dce7e3}
+.ah-account-security-tools{margin-top:14px;padding:13px;border:1px solid #dce8e4;border-radius:14px;background:#fbfdfc}
+.ah-account-tool-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.ah-account-tool-head h3{margin:0 0 3px;color:#174f42;font-size:14px}.ah-account-tool-head p{margin:0;color:#657b74;font-size:12px;line-height:1.5}.ah-account-tool-head>span{color:#16805f;font-size:20px}
+.ah-account-passkey-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:9px 10px;border-radius:10px;background:#eef7f4;color:#244c41;font-size:12px;font-weight:800}
+.ah-account-passkey-row .ah-account-link{font-size:11px;color:#8c3f35}
+.ah-account-interaction[hidden],.ah-account-field[hidden]{display:none!important}.ah-account-interaction{padding:12px;border:1px solid #cee4dc;border-radius:13px;background:#f4fbf8}.ah-account-interaction p{margin:10px 2px 0;color:#5e746d;font-size:12px;line-height:1.55}.ah-account-external{display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:0}
 .ah-account-spinner{display:inline-block;width:15px;height:15px;margin-right:7px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;vertical-align:-3px;animation:ahAccountSpin .7s linear infinite}
 @keyframes ahAccountSpin{to{transform:rotate(360deg)}}
 @keyframes ahAccountFade{from{opacity:0}to{opacity:1}}

@@ -1,10 +1,10 @@
-name: Activate Firebase Email Password Auth
+name: Activate Firebase Canonical Auth Baseline
 
 on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: Type ACTIVATE_FIREBASE_AUTH to deploy Firebase Email + Password with standard email verification
+        description: Type ACTIVATE_FIREBASE_AUTH to deploy the Firebase canonical baseline; Google, Passkey, and backup channels remain gated
         required: true
         type: string
 
@@ -106,11 +106,11 @@ jobs:
         run: |
           set -eu
           body="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/api/auth/v1/config')"
-          node -e "const x=JSON.parse(process.argv[1]); if(x?.auth?.version!=='firebase-email-password-v1'||x?.auth?.available!==true||x?.auth?.emailVerifiedRequired!==true||x?.auth?.verificationEmail?.dailyCapacity!==1000||x?.auth?.registeredAccountLimit!=='unlimited') process.exit(1)" "$body"
-          echo 'Firebase Email + Password verified-only contract is live through Pages.'
+          node -e "const x=JSON.parse(process.argv[1]); if(x?.auth?.version!=='firebase-canonical-auth-v2'||x?.auth?.mode!=='firebase-canonical-multi-method'||x?.auth?.available!==true||x?.auth?.emailVerifiedRequired!==true||x?.auth?.methods?.emailPassword?.available!==true||x?.auth?.methods?.google?.available!==false||x?.auth?.methods?.passkey?.available!==false||x?.auth?.methods?.backup?.available!==false||x?.auth?.verificationEmail?.dailyCapacity!==1000||x?.auth?.registeredAccountLimit!=='unlimited') process.exit(1)" "$body"
+          echo 'Firebase canonical Email + Password baseline is live; unverified methods remain unpublished.'
 
       - name: Roll back Worker when activation does not complete
-        if: ${{ failure() && steps.firebase-secret.outcome == 'success' && env.PREVIOUS_WORKER_VERSION != '' }}
+        if: ${{ failure() && steps.worker-deploy.outcome == 'success' && env.PREVIOUS_WORKER_VERSION != '' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

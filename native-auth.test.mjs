@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CloudflareNativeAuthEngine, OTP_MAX_ATTEMPTS, OTP_RESEND_COOLDOWN_MS, OTP_TTL_MS, SESSION_TTL_MS } from './auth-native/core/auth-engine.mjs';
+import { CloudflareNativeAuthEngine, SESSION_TTL_MS } from './auth-native/core/auth-engine.mjs';
 import { AUTH_ERROR_CODES, asNativeAuthError } from './auth-native/core/errors.mjs';
 import { MemoryAuthRepository } from './auth-native/testing/memory-auth-repository.mjs';
 import { AUTH_API_PREFIX, createNativeAuthHandler } from './auth-native/worker/public-auth-handler.mjs';
@@ -19,108 +19,57 @@ async function expectCode(action, code) {
   await assert.rejects(action, error => error?.code === code);
 }
 
-test('OTP challenge stores only HMAC references and never plaintext email or code', async () => {
+test('retired standalone OTP identity methods are absent and cannot create a session', () => {
   const state = setup();
-  const prepared = await state.engine.prepareOtp({ email: 'Student.Test+1@example.com' }, state.context);
-  assert.match(prepared.code, /^\d{6}$/);
-  assert.match(prepared.challengeId, /^[A-Za-z0-9_-]+$/);
+  assert.equal(typeof state.engine.prepareOtp, 'undefined');
+  assert.equal(typeof state.engine.markDelivery, 'undefined');
+  assert.equal(typeof state.engine.verifyOtp, 'undefined');
   const snapshot = state.repository.snapshot();
-  const serialized = JSON.stringify(snapshot);
-  assert.equal(serialized.includes('student.test+1@example.com'), false);
-  assert.equal(serialized.includes(prepared.code), false);
-  assert.match(snapshot.challenges[0].codeMac, /^[a-f0-9]{64}$/);
-  assert.match(snapshot.challenges[0].emailRef, /^[a-f0-9]{64}$/);
-  assert.notEqual(snapshot.challenges[0].ipRef, state.context.ip);
-  assert.notEqual(snapshot.challenges[0].deviceRef, state.context.deviceId);
+  assert.equal(snapshot.users.length, 0);
+  assert.equal(snapshot.sessions.length, 0);
 });
 
-test('successful OTP atomically creates an identity, consumes challenge, and returns opaque session', async () => {
+test('same Firebase subject and email preserve one durable identity across sessions', async () => {
   const state = setup();
-  const prepared = await state.engine.prepareOtp({ email: 'student@example.com' }, state.context);
-  await state.engine.markDelivery(prepared.challengeId, { accepted: true, provider: 'mailjet' });
-  const verified = await state.engine.verifyOtp({ email: 'student@example.com', challengeId: prepared.challengeId, code: prepared.code }, state.context);
-  assert.equal(verified.created, true);
-  assert.equal(verified.user.status, 'active');
-  assert.match(verified.user.id, /^usr_[A-Za-z0-9_-]+$/);
-  assert.match(verified.sessionToken, /^[A-Za-z0-9_-]{40,96}$/);
-  const snapshot = state.repository.snapshot();
-  assert.equal(snapshot.challenges[0].state, 'consumed');
-  assert.equal(snapshot.challenges[0].codeMac, '');
-  assert.equal(JSON.stringify(snapshot).includes(verified.sessionToken), false);
-  const session = await state.engine.getSession(verified.sessionToken);
-  assert.equal(session.user.id, verified.user.id);
-  assert.equal(session.expiresAt, state.now() + SESSION_TTL_MS);
+  const first = await state.engine.establishFirebaseSession({ email: 'SAME@example.com', subject: 'firebase-uid-one' }, state.context);
+  const second = await state.engine.establishFirebaseSession({ email: 'same@example.com', subject: 'firebase-uid-one' }, state.context);
+  assert.equal(first.created, true);
+  assert.equal(second.created, false);
+  assert.equal(second.user.id, first.user.id);
+  assert.notEqual(second.sessionToken, first.sessionToken);
+  assert.equal(state.repository.snapshot().users.length, 1);
 });
 
-test('same verified email logs into the same durable identity', async () => {
+test('different Firebase subject cannot silently take over an existing email-linked account', async () => {
   const state = setup();
-  const first = await state.engine.prepareOtp({ email: 'SAME@example.com' }, state.context);
-  const firstLogin = await state.engine.verifyOtp({ email: 'same@example.com', challengeId: first.challengeId, code: first.code }, state.context);
-  state.advance(OTP_RESEND_COOLDOWN_MS + 1);
-  const second = await state.engine.prepareOtp({ email: 'same@example.com' }, state.context);
-  const secondLogin = await state.engine.verifyOtp({ email: 'same@example.com', challengeId: second.challengeId, code: second.code }, state.context);
-  assert.equal(secondLogin.created, false);
-  assert.equal(secondLogin.user.id, firstLogin.user.id);
-  assert.notEqual(secondLogin.sessionToken, firstLogin.sessionToken);
+  await state.engine.establishFirebaseSession({ email: 'collision@example.com', subject: 'firebase-uid-original' }, state.context);
+  await expectCode(
+    () => state.engine.establishFirebaseSession({ email: 'collision@example.com', subject: 'firebase-uid-other' }, state.context),
+    AUTH_ERROR_CODES.ACCOUNT_CONFLICT
+  );
+  assert.equal(state.repository.snapshot().users.length, 1);
+  assert.equal(state.repository.snapshot().externalIdentities.length, 1);
 });
 
-test('replay, expiry, supersession, cooldown, and attempt exhaustion are rejected', async t => {
-  await t.test('consumed challenge cannot be replayed', async () => {
-    const state = setup();
-    const challenge = await state.engine.prepareOtp({ email: 'replay@example.com' }, state.context);
-    await state.engine.verifyOtp({ email: 'replay@example.com', challengeId: challenge.challengeId, code: challenge.code }, state.context);
-    await expectCode(() => state.engine.verifyOtp({ email: 'replay@example.com', challengeId: challenge.challengeId, code: challenge.code }, state.context), AUTH_ERROR_CODES.OTP_USED);
-  });
-
-  await t.test('expired challenge is unusable', async () => {
-    const state = setup();
-    const challenge = await state.engine.prepareOtp({ email: 'expired@example.com' }, state.context);
-    state.advance(OTP_TTL_MS + 1);
-    await expectCode(() => state.engine.verifyOtp({ email: 'expired@example.com', challengeId: challenge.challengeId, code: challenge.code }, state.context), AUTH_ERROR_CODES.OTP_EXPIRED);
-  });
-
-  await t.test('resend cooldown and superseded challenge are enforced', async () => {
-    const state = setup();
-    const first = await state.engine.prepareOtp({ email: 'resend@example.com' }, state.context);
-    await expectCode(() => state.engine.prepareOtp({ email: 'resend@example.com' }, state.context), AUTH_ERROR_CODES.RESEND_COOLDOWN);
-    state.advance(OTP_RESEND_COOLDOWN_MS + 1);
-    const second = await state.engine.prepareOtp({ email: 'resend@example.com' }, state.context);
-    await expectCode(() => state.engine.verifyOtp({ email: 'resend@example.com', challengeId: first.challengeId, code: first.code }, state.context), AUTH_ERROR_CODES.OTP_INVALID);
-    const result = await state.engine.verifyOtp({ email: 'resend@example.com', challengeId: second.challengeId, code: second.code }, state.context);
-    assert.equal(result.created, true);
-  });
-
-  await t.test('wrong guesses lock at the configured attempt bound', async () => {
-    const state = setup();
-    const challenge = await state.engine.prepareOtp({ email: 'locked@example.com' }, state.context);
-    const wrong = challenge.code === '999999' ? '000000' : '999999';
-    for (let attempt = 1; attempt < OTP_MAX_ATTEMPTS; attempt += 1) {
-      await expectCode(() => state.engine.verifyOtp({ email: 'locked@example.com', challengeId: challenge.challengeId, code: wrong }, state.context), AUTH_ERROR_CODES.OTP_INVALID);
-    }
-    await expectCode(() => state.engine.verifyOtp({ email: 'locked@example.com', challengeId: challenge.challengeId, code: wrong }, state.context), AUTH_ERROR_CODES.OTP_LOCKED);
-    await expectCode(() => state.engine.verifyOtp({ email: 'locked@example.com', challengeId: challenge.challengeId, code: challenge.code }, state.context), AUTH_ERROR_CODES.OTP_LOCKED);
-  });
-});
-
-test('recipient, network, and device fixed-window limits are consumed atomically', async () => {
+test('Firebase operation limits are consumed atomically', async () => {
   const state = setup();
-  for (let index = 0; index < 3; index += 1) {
-    await state.engine.prepareOtp({ email: 'limited@example.com' }, state.context);
-    state.advance(OTP_RESEND_COOLDOWN_MS + 1);
+  for (let index = 0; index < 12; index += 1) {
+    await state.engine.consumeFirebaseOperation({ operation: 'login', email: 'limited@example.com' }, state.context);
   }
-  await expectCode(() => state.engine.prepareOtp({ email: 'limited@example.com' }, state.context), AUTH_ERROR_CODES.RATE_LIMITED);
+  await expectCode(
+    () => state.engine.consumeFirebaseOperation({ operation: 'login', email: 'limited@example.com' }, state.context),
+    AUTH_ERROR_CODES.RATE_LIMITED
+  );
 });
 
-test('opaque sessions expire and revoke without exposing stored token', async () => {
+test('opaque Firebase sessions expire and revoke without exposing stored token', async () => {
   const state = setup();
-  const prepared = await state.engine.prepareOtp({ email: 'session@example.com' }, state.context);
-  const login = await state.engine.verifyOtp({ email: 'session@example.com', challengeId: prepared.challengeId, code: prepared.code }, state.context);
+  const login = await state.engine.establishFirebaseSession({ email: 'session@example.com', subject: 'firebase-uid-session' }, state.context);
+  assert.equal(JSON.stringify(state.repository.snapshot()).includes(login.sessionToken), false);
   assert.equal((await state.engine.revokeSession(login.sessionToken)).revoked, true);
   await expectCode(() => state.engine.getSession(login.sessionToken), AUTH_ERROR_CODES.SESSION_INVALID);
 
-  state.advance(OTP_RESEND_COOLDOWN_MS + 1);
-  const prepared2 = await state.engine.prepareOtp({ email: 'session@example.com' }, state.context);
-  const login2 = await state.engine.verifyOtp({ email: 'session@example.com', challengeId: prepared2.challengeId, code: prepared2.code }, state.context);
+  const login2 = await state.engine.establishFirebaseSession({ email: 'session@example.com', subject: 'firebase-uid-session' }, state.context);
   state.advance(SESSION_TTL_MS + 1);
   await expectCode(() => state.engine.getSession(login2.sessionToken), AUTH_ERROR_CODES.SESSION_INVALID);
 });
@@ -137,9 +86,6 @@ class EngineNamespace {
       if (request.method === 'GET' && url.pathname === '/internal/ping') return Response.json({ ok: true, ...(await this.engine.ping()) });
       const body = await request.json();
       const routes = {
-        '/internal/otp/prepare': () => this.engine.prepareOtp(body.input, body.context),
-        '/internal/otp/delivery': () => this.engine.markDelivery(body.challengeId, body.delivery),
-        '/internal/otp/verify': () => this.engine.verifyOtp(body.input, body.context),
         '/internal/firebase/rate': () => this.engine.consumeFirebaseOperation(body.input, body.context),
         '/internal/firebase/session/create': () => this.engine.establishFirebaseSession(body.input, body.context),
         '/internal/firebase/session/get': () => this.engine.getFirebaseSession(body.sessionToken, body.input),
@@ -365,20 +311,32 @@ test('config publishes verified-only Firebase mode and correct Spark verificatio
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.auth.provider, 'firebase');
-  assert.equal(body.auth.mode, 'email-password-with-email-verification');
+  assert.equal(body.auth.mode, 'firebase-canonical-multi-method');
   assert.equal(body.auth.available, true);
+  assert.equal(body.auth.methods.emailPassword.available, true);
+  assert.equal(body.auth.methods.google.available, false);
+  assert.equal(body.auth.methods.passkey.neverMandatory, true);
+  assert.equal(body.auth.methods.backup.available, false);
   assert.equal(body.auth.availabilityCode, 'READY');
   assert.equal(body.auth.providerStatus, 0);
   assert.equal(body.auth.emailVerifiedRequired, true);
   assert.equal(body.auth.verificationEmail.dailyCapacity, 1000);
   assert.equal(body.auth.verificationEmail.resendCooldownSeconds, 60);
   assert.equal(body.auth.registeredAccountLimit, 'unlimited');
+  const firebaseCalls = app.firebase.calls.length;
+  const cached = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), app.env, {});
+  assert.equal(cached.status, 200);
+  assert.equal(app.firebase.calls.length, firebaseCalls);
 });
 
 test('public API rejects untrusted origins, weak or oversized input, and fails closed without Firebase config', async () => {
   const app = handlerSetup();
   const forbidden = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`, { origin: 'https://evil.example' }), app.env, {});
   assert.equal(forbidden.status, 403);
+  const missingOrigin = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
+    method: 'POST', origin: '', body: { email: 'origin@example.com', password: 'StrongPass!123' }
+  }), app.env, {});
+  assert.equal(missingOrigin.status, 403);
 
   const weak = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
     method: 'POST', body: { email: 'weak@example.com', password: 'short' }

@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v224-firebase-verify-ux-20260909';
+const BUILD_ID = 'v225-firebase-multimethod-20260910';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -16,8 +16,8 @@ const APP_SHELL = [
   './dashboard-v2.css?v=dash2',
   './3d-loader.css?v=3d-v1',
   './session-persist.js?v=session-v1',
-  './account-access.css?v=20260909-firebase-v2',
-  './account-access.js?v=20260909-firebase-v2',
+  './account-access.css?v=20260910-firebase-multimethod-v1',
+  './account-access.js?v=20260910-firebase-multimethod-v1',
   './data-protection.js?v=dp-v3-fastboot',
   './dashboard-v2.js?v=dash2f7',
   './ai-agent-chat.js?v=agent-f1-ui-chatv14-guest',
@@ -104,6 +104,16 @@ self.addEventListener('fetch', event => {
 
   const requestUrl = new URL(request.url);
   if (requestUrl.origin !== self.location.origin) return;
+
+  // The privileged control page is network-only and must never be replaced by or
+  // written into the offline application shell.
+  if (requestUrl.pathname === '/verification-control-center' || requestUrl.pathname === '/verification-control-center.html') {
+    event.respondWith(fetch(request, { cache: 'no-store' }).catch(() => new Response('Control Center requires an internet connection.', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
+    })));
+    return;
+  }
 
   // Authentication responses are always live and are never written to the PWA cache.
   if (requestUrl.pathname.startsWith('/api/auth/')) {

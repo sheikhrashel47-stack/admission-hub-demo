@@ -9,6 +9,24 @@
 /dashboard-v2.js
   Cache-Control: no-cache, no-store, must-revalidate
 
+/verification-control-center
+  Cache-Control: no-store, max-age=0
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Content-Security-Policy: default-src 'none'; script-src 'sha256-3Wvz5dnFVDvTd82OyUWDKlLpd2pQCbhhUF16xoNzX7k='; style-src 'sha256-ISpUa2hAF3Be5xsNT/e0dDHWrNtQqjEIhnXPunOdIqQ='; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; img-src 'none'
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+
+/verification-control-center.html
+  Cache-Control: no-store, max-age=0
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Content-Security-Policy: default-src 'none'; script-src 'sha256-3Wvz5dnFVDvTd82OyUWDKlLpd2pQCbhhUF16xoNzX7k='; style-src 'sha256-ISpUa2hAF3Be5xsNT/e0dDHWrNtQqjEIhnXPunOdIqQ='; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; img-src 'none'
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+
 /phase3-intelligence.js*
   Cache-Control: no-cache, no-store, must-revalidate
 

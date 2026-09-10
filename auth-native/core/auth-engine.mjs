@@ -4,31 +4,33 @@ import {
   coarseUserAgent,
   maskAuthEmail,
   normalizeAuthEmail,
-  randomSixDigitOtp,
   randomToken
 } from './crypto.mjs';
+import { AuthSecretVault } from './secret-vault.mjs';
+import {
+  PASSKEY_ALGORITHM,
+  readPasskeyClientChallenge,
+  verifyPasskeyAuthentication,
+  verifyPasskeyRegistration
+} from './webauthn.mjs';
 
-export const AUTH_NATIVE_VERSION = 'firebase-email-password-v1';
-export const OTP_DIGITS = 6;
-export const OTP_TTL_MS = 10 * 60 * 1000;
-export const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
-export const OTP_MAX_ATTEMPTS = 5;
+export const AUTH_NATIVE_VERSION = 'firebase-canonical-auth-v2';
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
+export const PASSKEY_CHALLENGE_TTL_MS = 5 * 60 * 1000;
+export const PASSKEY_TICKET_TTL_MS = 60 * 1000;
+export const PASSKEY_RP_ID = 'admissionhub.pages.dev';
 
-const PREPARE_LIMITS = Object.freeze([
-  Object.freeze({ scope: 'otp-email-15m', source: 'email', limit: 3, windowMs: 15 * 60 * 1000 }),
-  Object.freeze({ scope: 'otp-email-day', source: 'email', limit: 8, windowMs: 24 * 60 * 60 * 1000 }),
-  Object.freeze({ scope: 'otp-ip-15m', source: 'ip', limit: 20, windowMs: 15 * 60 * 1000 }),
-  Object.freeze({ scope: 'otp-ip-day', source: 'ip', limit: 80, windowMs: 24 * 60 * 60 * 1000 }),
-  Object.freeze({ scope: 'otp-device-15m', source: 'device', limit: 10, windowMs: 15 * 60 * 1000 }),
-  Object.freeze({ scope: 'otp-global-minute', source: 'global', limit: 60, windowMs: 60 * 1000 })
+const PASSKEY_REGISTRATION_LIMITS = Object.freeze([
+  Object.freeze({ scope: 'passkey-register-user-hour', source: 'email', limit: 6, windowMs: 60 * 60 * 1000 }),
+  Object.freeze({ scope: 'passkey-register-ip-hour', source: 'ip', limit: 20, windowMs: 60 * 60 * 1000 }),
+  Object.freeze({ scope: 'passkey-register-device-hour', source: 'device', limit: 12, windowMs: 60 * 60 * 1000 })
 ]);
 
-const VERIFY_LIMITS = Object.freeze([
-  Object.freeze({ scope: 'verify-email-15m', source: 'email', limit: 20, windowMs: 15 * 60 * 1000 }),
-  Object.freeze({ scope: 'verify-ip-15m', source: 'ip', limit: 40, windowMs: 15 * 60 * 1000 }),
-  Object.freeze({ scope: 'verify-device-15m', source: 'device', limit: 30, windowMs: 15 * 60 * 1000 })
+const PASSKEY_LOGIN_LIMITS = Object.freeze([
+  Object.freeze({ scope: 'passkey-login-ip-15m', source: 'ip', limit: 60, windowMs: 15 * 60 * 1000 }),
+  Object.freeze({ scope: 'passkey-login-device-15m', source: 'device', limit: 30, windowMs: 15 * 60 * 1000 }),
+  Object.freeze({ scope: 'passkey-login-global-minute', source: 'global', limit: 180, windowMs: 60 * 1000 })
 ]);
 
 const FIREBASE_OPERATION_LIMITS = Object.freeze({
@@ -51,12 +53,21 @@ const FIREBASE_OPERATION_LIMITS = Object.freeze({
     Object.freeze({ scope: 'firebase-login-email-15m', source: 'email', limit: 12, windowMs: 15 * 60 * 1000 }),
     Object.freeze({ scope: 'firebase-login-ip-15m', source: 'ip', limit: 60, windowMs: 15 * 60 * 1000 }),
     Object.freeze({ scope: 'firebase-login-device-15m', source: 'device', limit: 30, windowMs: 15 * 60 * 1000 })
+  ]),
+  google: Object.freeze([
+    Object.freeze({ scope: 'firebase-google-ip-15m', source: 'ip', limit: 60, windowMs: 15 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-google-device-15m', source: 'device', limit: 30, windowMs: 15 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-google-global-minute', source: 'global', limit: 180, windowMs: 60 * 1000 })
   ])
 });
 
 const requiredRepositoryMethods = Object.freeze([
-  'prepareChallenge', 'markDelivery', 'verifyChallenge', 'consumeLimits', 'establishExternalSession',
-  'getExternalSession', 'getSession', 'revokeSession', 'ping', 'cleanup', 'nextExpiry'
+  'consumeLimits', 'establishExternalSession',
+  'getExternalSession', 'getSession', 'revokeSession',
+  'beginPasskeyRegistration', 'getPasskeyRegistrationChallenge', 'finishPasskeyRegistration',
+  'beginPasskeyAuthentication', 'getPasskeyAuthenticationMaterial', 'issuePasskeyTicket',
+  'completePasskeySession', 'getPasskeyStatus', 'removePasskey',
+  'ping', 'cleanup', 'nextExpiry'
 ]);
 
 const assertRepository = repository => {
@@ -66,18 +77,51 @@ const assertRepository = repository => {
   return repository;
 };
 
+const trustedContextOrigin = value => {
+  try {
+    const url = new URL(String(value || ''));
+    if (url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname)) return url.origin;
+    if (url.protocol !== 'https:') return '';
+    if (url.hostname === PASSKEY_RP_ID || /^[a-z0-9-]+\.admissionhub\.pages\.dev$/i.test(url.hostname) || url.hostname === 'admission-gk.admissionhub.workers.dev') return url.origin;
+  } catch {}
+  return '';
+};
+
 const normalizeContext = context => Object.freeze({
   ip: String(context?.ip || 'unknown').slice(0, 96),
   deviceId: String(context?.deviceId || 'unknown').slice(0, 128),
-  userAgent: coarseUserAgent(context?.userAgent)
+  userAgent: coarseUserAgent(context?.userAgent),
+  origin: trustedContextOrigin(context?.origin)
 });
 
+const publicUser = user => Object.freeze({
+  id: user.id,
+  emailMasked: user.emailMask,
+  status: user.status,
+  createdAt: Number(user.createdAt)
+});
+
+const validSubject = value => {
+  const subject = String(value || '').trim();
+  if (!subject || subject.length > 256 || /[\r\n\u0000]/.test(subject)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  return subject;
+};
+
+const validChallengeId = value => {
+  const challengeId = String(value || '').trim();
+  if (!/^[A-Za-z0-9_-]{24,96}$/.test(challengeId)) failAuth(AUTH_ERROR_CODES.PASSKEY_INVALID);
+  return challengeId;
+};
+
 export class CloudflareNativeAuthEngine {
-  constructor({ repository, hmacSecret, now = () => Date.now(), cryptoImpl = globalThis.crypto } = {}) {
+  constructor({ repository, hmacSecret, now = () => Date.now(), cryptoImpl = globalThis.crypto, passkeyRpId = PASSKEY_RP_ID, passkeyOrigins = [`https://${PASSKEY_RP_ID}`] } = {}) {
     this.repository = assertRepository(repository);
     this.hmac = new AuthHmac(hmacSecret, cryptoImpl);
+    this.vault = new AuthSecretVault(hmacSecret, cryptoImpl);
     this.now = now;
     this.crypto = cryptoImpl;
+    this.passkeyRpId = String(passkeyRpId || PASSKEY_RP_ID);
+    this.passkeyOrigins = Object.freeze([...new Set(passkeyOrigins.map(value => new URL(value).origin))]);
   }
 
   async #references(email, context) {
@@ -87,6 +131,19 @@ export class CloudflareNativeAuthEngine {
       this.hmac.hex('device-ref-v1', context.deviceId)
     ]);
     return Object.freeze({ emailRef: values[0], ipRef: values[1], deviceRef: values[2] });
+  }
+
+  async #firebaseIdentity(input, requestContext, invalidCode = AUTH_ERROR_CODES.INVALID_INPUT) {
+    const email = normalizeAuthEmail(input?.email);
+    let subject;
+    try { subject = validSubject(input?.subject); } catch { failAuth(invalidCode); }
+    const context = normalizeContext(requestContext);
+    const refs = await this.#references(email, context);
+    const [subjectRef, sessionRef] = await Promise.all([
+      this.hmac.hex('firebase-subject-v1', subject),
+      input?.sessionToken ? this.hmac.hex('session-ref-v1', String(input.sessionToken)) : Promise.resolve('')
+    ]);
+    return Object.freeze({ email, subject, context, refs, subjectRef, sessionRef });
   }
 
   #limits(definitions, refs) {
@@ -100,104 +157,15 @@ export class CloudflareNativeAuthEngine {
     }));
   }
 
-  async prepareOtp(input = {}, requestContext = {}) {
-    const email = normalizeAuthEmail(input.email);
-    const context = normalizeContext(requestContext);
-    const now = Number(this.now());
-    const challengeId = randomToken(24, this.crypto);
-    const code = randomSixDigitOtp(this.crypto);
-    const refs = await this.#references(email, context);
-    const codeMac = await this.hmac.hex('otp-code-v1', `${challengeId}:${code}`);
-    const record = Object.freeze({
-      challengeId,
-      emailRef: refs.emailRef,
-      emailMask: maskAuthEmail(email),
-      codeMac,
-      state: 'active',
-      createdAt: now,
-      expiresAt: now + OTP_TTL_MS,
-      attempts: 0,
-      maxAttempts: OTP_MAX_ATTEMPTS,
-      ipRef: refs.ipRef,
-      deviceRef: refs.deviceRef,
-      deliveryState: 'pending'
-    });
-    const prepared = errorFromRepository(await this.repository.prepareChallenge({
-      record,
-      limits: this.#limits(PREPARE_LIMITS, refs),
-      cooldownMs: OTP_RESEND_COOLDOWN_MS,
-      now
-    }));
-    return Object.freeze({
-      challengeId,
-      code,
-      email,
-      emailMask: record.emailMask,
-      expiresAt: record.expiresAt,
-      expiresIn: Math.floor(OTP_TTL_MS / 1000),
-      resendAfter: Math.floor(OTP_RESEND_COOLDOWN_MS / 1000),
-      preparedAt: prepared.preparedAt || now
-    });
-  }
-
-  async markDelivery(challengeId, { accepted, uncertain = false, provider = null } = {}) {
-    if (!/^[A-Za-z0-9_-]{24,64}$/.test(String(challengeId || ''))) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
-    const result = await this.repository.markDelivery({
-      challengeId: String(challengeId),
-      accepted: Boolean(accepted),
-      uncertain: Boolean(uncertain),
-      provider: provider ? String(provider).slice(0, 32) : null,
-      now: Number(this.now())
-    });
-    return errorFromRepository(result);
-  }
-
-  async verifyOtp(input = {}, requestContext = {}) {
-    const email = normalizeAuthEmail(input.email);
-    const challengeId = String(input.challengeId || '').trim();
-    const code = String(input.code || '').trim();
-    if (!/^[A-Za-z0-9_-]{24,64}$/.test(challengeId) || !/^\d{6}$/.test(code)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
-    const context = normalizeContext(requestContext);
-    const refs = await this.#references(email, context);
-    const now = Number(this.now());
-    const sessionToken = randomToken(32, this.crypto);
-    const userIdCandidate = `usr_${randomToken(18, this.crypto)}`;
-    const values = await Promise.all([
-      this.hmac.hex('otp-code-v1', `${challengeId}:${code}`),
-      this.hmac.hex('session-ref-v1', sessionToken)
-    ]);
-    const verified = errorFromRepository(await this.repository.verifyChallenge({
-      challengeId,
-      emailRef: refs.emailRef,
-      candidateCodeMac: values[0],
-      sessionRef: values[1],
-      sessionTokenShape: sessionToken.length,
-      userIdCandidate,
-      ipRef: refs.ipRef,
-      deviceRef: refs.deviceRef,
-      userAgent: context.userAgent,
-      limits: this.#limits(VERIFY_LIMITS, refs),
-      now,
-      sessionExpiresAt: now + SESSION_TTL_MS
-    }));
-    return Object.freeze({
-      sessionToken,
-      sessionExpiresAt: now + SESSION_TTL_MS,
-      user: Object.freeze({
-        id: verified.user.id,
-        emailMasked: verified.user.emailMask,
-        status: verified.user.status,
-        createdAt: verified.user.createdAt
-      }),
-      created: Boolean(verified.created)
-    });
+  #passkeyOrigins() {
+    return this.passkeyOrigins;
   }
 
   async consumeFirebaseOperation(input = {}, requestContext = {}) {
     const operation = String(input.operation || '');
     const definitions = FIREBASE_OPERATION_LIMITS[operation];
     if (!definitions) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
-    const email = normalizeAuthEmail(input.email);
+    const email = input.email ? normalizeAuthEmail(input.email) : 'firebase-operation@admissionhub.invalid';
     const context = normalizeContext(requestContext);
     const refs = await this.#references(email, context);
     const now = Number(this.now());
@@ -205,20 +173,18 @@ export class CloudflareNativeAuthEngine {
       limits: this.#limits(definitions, refs),
       now,
       eventType: `firebase-${operation}`,
-      subjectRef: refs.emailRef
+      subjectRef: input.email ? refs.emailRef : null
     }));
     return Object.freeze({
       accepted: true,
-      email,
-      emailMask: maskAuthEmail(email),
+      ...(input.email ? { email, emailMask: maskAuthEmail(email) } : {}),
       acceptedAt: now
     });
   }
 
   async establishFirebaseSession(input = {}, requestContext = {}) {
     const email = normalizeAuthEmail(input.email);
-    const subject = String(input.subject || '').trim();
-    if (!subject || subject.length > 256 || /[\r\n\u0000]/.test(subject)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+    const subject = validSubject(input.subject);
     const context = normalizeContext(requestContext);
     const refs = await this.#references(email, context);
     const now = Number(this.now());
@@ -244,12 +210,7 @@ export class CloudflareNativeAuthEngine {
     return Object.freeze({
       sessionToken,
       sessionExpiresAt: now + SESSION_TTL_MS,
-      user: Object.freeze({
-        id: established.user.id,
-        emailMasked: established.user.emailMask,
-        status: established.user.status,
-        createdAt: established.user.createdAt
-      }),
+      user: publicUser(established.user),
       created: Boolean(established.created)
     });
   }
@@ -257,30 +218,229 @@ export class CloudflareNativeAuthEngine {
   async getFirebaseSession(sessionToken, input = {}) {
     const token = String(sessionToken || '').trim();
     if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
-    const email = normalizeAuthEmail(input.email);
-    const subject = String(input.subject || '').trim();
-    if (!subject || subject.length > 256 || /[\r\n\u0000]/.test(subject)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
-    const [sessionRef, emailRef, subjectRef] = await Promise.all([
-      this.hmac.hex('session-ref-v1', token),
-      this.hmac.hex('email-ref-v1', email),
-      this.hmac.hex('firebase-subject-v1', subject)
-    ]);
+    const identity = await this.#firebaseIdentity({ ...input, sessionToken: token }, {}, AUTH_ERROR_CODES.SESSION_INVALID);
     const result = errorFromRepository(await this.repository.getExternalSession({
-      sessionRef,
+      sessionRef: identity.sessionRef,
       provider: 'firebase',
-      subjectRef,
-      emailRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
       now: Number(this.now())
     }));
+    return Object.freeze({ expiresAt: result.expiresAt, user: publicUser(result.user) });
+  }
+
+  async beginPasskeyRegistration(input = {}, requestContext = {}) {
+    const token = String(input.sessionToken || '').trim();
+    const refreshToken = String(input.refreshToken || '').trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token) || refreshToken.length < 20 || refreshToken.length > 4096 || /[\r\n\u0000;]/.test(refreshToken)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+    const identity = await this.#firebaseIdentity({ ...input, sessionToken: token }, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const now = Number(this.now());
+    const challengeId = randomToken(24, this.crypto);
+    const challenge = randomToken(32, this.crypto);
+    const challengeMac = await this.hmac.hex('passkey-challenge-v1', `${challengeId}:${challenge}`);
+    const refreshCipher = await this.vault.seal(refreshToken, `passkey-refresh:${identity.subjectRef}`);
+    const userHandleCandidate = randomToken(32, this.crypto);
+    const prepared = errorFromRepository(await this.repository.beginPasskeyRegistration({
+      challengeId,
+      challengeMac,
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      deviceRef: identity.refs.deviceRef,
+      ipRef: identity.refs.ipRef,
+      userHandleCandidate,
+      refreshCipher,
+      limits: this.#limits(PASSKEY_REGISTRATION_LIMITS, identity.refs),
+      now,
+      expiresAt: now + PASSKEY_CHALLENGE_TTL_MS
+    }));
     return Object.freeze({
-      expiresAt: result.expiresAt,
-      user: Object.freeze({
-        id: result.user.id,
-        emailMasked: result.user.emailMask,
-        status: result.user.status,
-        createdAt: result.user.createdAt
+      challengeId,
+      options: Object.freeze({
+        challenge,
+        rp: Object.freeze({ id: this.passkeyRpId, name: 'Admission Hub' }),
+        user: Object.freeze({ id: prepared.userHandle, name: prepared.user.emailMask, displayName: 'Admission Hub শিক্ষার্থী' }),
+        pubKeyCredParams: Object.freeze([{ type: 'public-key', alg: PASSKEY_ALGORITHM }]),
+        timeout: 120_000,
+        attestation: 'none',
+        authenticatorSelection: Object.freeze({ residentKey: 'required', requireResidentKey: true, userVerification: 'required' }),
+        excludeCredentials: Object.freeze((prepared.credentials || []).map(row => Object.freeze({
+          type: 'public-key', id: row.credentialId, transports: row.transports
+        })))
       })
     });
+  }
+
+  async finishPasskeyRegistration(input = {}, requestContext = {}) {
+    const challengeId = validChallengeId(input.challengeId);
+    const token = String(input.sessionToken || '').trim();
+    const refreshToken = String(input.refreshToken || '').trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)
+      || refreshToken.length < 20 || refreshToken.length > 4096 || /[\r\n\u0000;]/.test(refreshToken)) {
+      failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+    }
+    const identity = await this.#firebaseIdentity({ ...input, sessionToken: token }, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const suppliedChallenge = readPasskeyClientChallenge(input.response?.clientDataJSON, 'webauthn.create');
+    const candidateChallengeMac = await this.hmac.hex('passkey-challenge-v1', `${challengeId}:${suppliedChallenge}`);
+    const challenge = errorFromRepository(await this.repository.getPasskeyRegistrationChallenge({
+      challengeId,
+      candidateChallengeMac,
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      deviceRef: identity.refs.deviceRef,
+      now: Number(this.now())
+    }));
+    const verified = await verifyPasskeyRegistration({
+      response: input.response,
+      expectedChallenge: suppliedChallenge,
+      rpId: this.passkeyRpId,
+      allowedOrigins: this.#passkeyOrigins(identity.context),
+      cryptoImpl: this.crypto
+    });
+    await this.vault.open(challenge.refreshCipher, `passkey-refresh:${challenge.subjectRef}`);
+    const refreshCipher = await this.vault.seal(refreshToken, `passkey-refresh:${challenge.subjectRef}`);
+    const stored = errorFromRepository(await this.repository.finishPasskeyRegistration({
+      challengeId,
+      candidateChallengeMac,
+      deviceRef: identity.refs.deviceRef,
+      credential: {
+        ...verified,
+        userHandle: challenge.userHandle,
+        refreshCipher
+      },
+      now: Number(this.now())
+    }));
+    return Object.freeze({ registered: true, credentialCount: stored.credentialCount, user: publicUser(stored.user) });
+  }
+
+  async beginPasskeyAuthentication(requestContext = {}) {
+    const context = normalizeContext(requestContext);
+    const refs = await this.#references('passkey-login@admissionhub.invalid', context);
+    const now = Number(this.now());
+    const challengeId = randomToken(24, this.crypto);
+    const challenge = randomToken(32, this.crypto);
+    const challengeMac = await this.hmac.hex('passkey-challenge-v1', `${challengeId}:${challenge}`);
+    errorFromRepository(await this.repository.beginPasskeyAuthentication({
+      challengeId,
+      challengeMac,
+      deviceRef: refs.deviceRef,
+      ipRef: refs.ipRef,
+      limits: this.#limits(PASSKEY_LOGIN_LIMITS, refs),
+      now,
+      expiresAt: now + PASSKEY_CHALLENGE_TTL_MS
+    }));
+    return Object.freeze({
+      challengeId,
+      options: Object.freeze({
+        challenge,
+        rpId: this.passkeyRpId,
+        timeout: 120_000,
+        userVerification: 'required'
+      })
+    });
+  }
+
+  async finishPasskeyAuthentication(input = {}, requestContext = {}) {
+    const challengeId = validChallengeId(input.challengeId);
+    const credentialId = String(input.response?.rawId || '');
+    if (!/^[A-Za-z0-9_-]{16,1400}$/.test(credentialId)) failAuth(AUTH_ERROR_CODES.PASSKEY_INVALID);
+    const context = normalizeContext(requestContext);
+    const refs = await this.#references('passkey-login@admissionhub.invalid', context);
+    const suppliedChallenge = readPasskeyClientChallenge(input.response?.clientDataJSON, 'webauthn.get');
+    const candidateChallengeMac = await this.hmac.hex('passkey-challenge-v1', `${challengeId}:${suppliedChallenge}`);
+    const material = errorFromRepository(await this.repository.getPasskeyAuthenticationMaterial({
+      challengeId,
+      candidateChallengeMac,
+      credentialId,
+      deviceRef: refs.deviceRef,
+      now: Number(this.now())
+    }));
+    const verified = await verifyPasskeyAuthentication({
+      response: input.response,
+      expectedChallenge: suppliedChallenge,
+      rpId: this.passkeyRpId,
+      allowedOrigins: this.#passkeyOrigins(context),
+      credential: material.credential,
+      cryptoImpl: this.crypto
+    });
+    const loginTicket = randomToken(32, this.crypto);
+    const ticketRef = await this.hmac.hex('passkey-ticket-v1', loginTicket);
+    const issued = errorFromRepository(await this.repository.issuePasskeyTicket({
+      challengeId,
+      candidateChallengeMac,
+      credentialId,
+      previousCounter: material.credential.counter,
+      nextCounter: verified.counter,
+      backupState: verified.backupState,
+      ticketRef,
+      deviceRef: refs.deviceRef,
+      now: Number(this.now()),
+      expiresAt: Number(this.now()) + PASSKEY_TICKET_TTL_MS
+    }));
+    const refreshToken = await this.vault.open(issued.refreshCipher, `passkey-refresh:${issued.subjectRef}`);
+    return Object.freeze({ loginTicket, refreshToken });
+  }
+
+  async completePasskeySession(input = {}, requestContext = {}) {
+    const loginTicket = String(input.loginTicket || '').trim();
+    const rotatedRefreshToken = String(input.refreshToken || '').trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(loginTicket) || rotatedRefreshToken.length < 20 || rotatedRefreshToken.length > 4096 || /[\r\n\u0000;]/.test(rotatedRefreshToken)) failAuth(AUTH_ERROR_CODES.PASSKEY_INVALID);
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.PASSKEY_INVALID);
+    const now = Number(this.now());
+    const sessionToken = randomToken(32, this.crypto);
+    const [ticketRef, sessionRef, refreshCipher] = await Promise.all([
+      this.hmac.hex('passkey-ticket-v1', loginTicket),
+      this.hmac.hex('session-ref-v1', sessionToken),
+      this.vault.seal(rotatedRefreshToken, `passkey-refresh:${identity.subjectRef}`)
+    ]);
+    const completed = errorFromRepository(await this.repository.completePasskeySession({
+      ticketRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      emailMask: maskAuthEmail(identity.email),
+      sessionRef,
+      refreshCipher,
+      ipRef: identity.refs.ipRef,
+      deviceRef: identity.refs.deviceRef,
+      userAgent: identity.context.userAgent,
+      now,
+      sessionExpiresAt: now + SESSION_TTL_MS
+    }));
+    return Object.freeze({
+      sessionToken,
+      sessionExpiresAt: now + SESSION_TTL_MS,
+      user: publicUser(completed.user),
+      created: false
+    });
+  }
+
+  async getPasskeyStatus(input = {}, requestContext = {}) {
+    const token = String(input.sessionToken || '').trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+    const identity = await this.#firebaseIdentity({ ...input, sessionToken: token }, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const result = errorFromRepository(await this.repository.getPasskeyStatus({
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      now: Number(this.now())
+    }));
+    return Object.freeze({ enabled: result.count > 0, count: result.count, credentials: Object.freeze(result.credentials) });
+  }
+
+  async removePasskey(input = {}, requestContext = {}) {
+    const token = String(input.sessionToken || '').trim();
+    const credentialId = String(input.credentialId || '');
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token) || !/^[A-Za-z0-9_-]{16,1400}$/.test(credentialId)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+    const identity = await this.#firebaseIdentity({ ...input, sessionToken: token }, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const result = errorFromRepository(await this.repository.removePasskey({
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      credentialId,
+      now: Number(this.now())
+    }));
+    return Object.freeze({ removed: true, credentialCount: result.credentialCount });
   }
 
   async getSession(sessionToken) {
@@ -288,15 +448,7 @@ export class CloudflareNativeAuthEngine {
     if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
     const sessionRef = await this.hmac.hex('session-ref-v1', token);
     const result = errorFromRepository(await this.repository.getSession({ sessionRef, now: Number(this.now()) }));
-    return Object.freeze({
-      expiresAt: result.expiresAt,
-      user: Object.freeze({
-        id: result.user.id,
-        emailMasked: result.user.emailMask,
-        status: result.user.status,
-        createdAt: result.user.createdAt
-      })
-    });
+    return Object.freeze({ expiresAt: result.expiresAt, user: publicUser(result.user) });
   }
 
   async revokeSession(sessionToken) {
