@@ -136,6 +136,14 @@ class FirebaseMock {
       return this.response({ projectId: 'admission-hub-test', authorizedDomains: ['admissionhub.pages.dev'] });
     }
 
+    if (parsed.pathname.endsWith('/accounts:createAuthUri')) {
+      return this.response({
+        providerId: 'google.com',
+        sessionId: `provider-session-${'x'.repeat(32)}`,
+        authUri: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=123456789012-nativeauthclient.apps.googleusercontent.com'
+      });
+    }
+
     if (parsed.pathname.endsWith('/accounts:signUp')) {
       const email = String(body.email || '').toLowerCase();
       if (this.users.has(email)) return this.error('EMAIL_EXISTS');
@@ -345,6 +353,28 @@ test('Passkey canary is server-authorized only for the explicit test URL and can
 
   const cachedCanary = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config?passkeyCanary=1`), app.env, {});
   assert.equal((await cachedCanary.json()).auth.methods.passkey.available, true);
+});
+
+test('Google canary is server-authorized only for its explicit test URL and cannot leak through config cache', async () => {
+  const app = handlerSetup();
+  app.env.GOOGLE_AUTH_ACTIVATION = 'canary';
+
+  const canary = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config?googleCanary=1`), app.env, {});
+  assert.equal(canary.status, 200);
+  const canaryBody = await canary.json();
+  assert.equal(canaryBody.auth.methods.google.available, true);
+  assert.equal(canaryBody.auth.methods.google.availabilityCode, 'READY');
+  assert.match(canaryBody.auth.methods.google.clientId, /\.apps\.googleusercontent\.com$/);
+
+  const publicConfig = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), app.env, {});
+  assert.equal(publicConfig.status, 200);
+  const publicBody = await publicConfig.json();
+  assert.equal(publicBody.auth.methods.google.available, false);
+  assert.equal(publicBody.auth.methods.google.availabilityCode, 'LIVE_E2E_PENDING');
+  assert.equal('clientId' in publicBody.auth.methods.google, false);
+
+  const cachedCanary = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config?googleCanary=1`), app.env, {});
+  assert.equal((await cachedCanary.json()).auth.methods.google.available, true);
 });
 
 test('public API rejects untrusted origins, weak or oversized input, and fails closed without Firebase config', async () => {

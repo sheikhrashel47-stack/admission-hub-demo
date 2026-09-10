@@ -290,9 +290,16 @@
     else link.removeAttribute('href');
   };
 
-  const passkeyCanaryRequested = () => {
-    try { return new URL(location.href).searchParams.get('passkeyCanary') === '1'; }
-    catch (_) { return false; }
+  const canaryConfigPath = () => {
+    try {
+      const current = new URL(location.href);
+      const query = new URLSearchParams();
+      for (const name of ['googleCanary', 'passkeyCanary']) {
+        if (current.searchParams.get(name) === '1') query.set(name, '1');
+      }
+      const suffix = query.toString();
+      return `/config${suffix ? `?${suffix}` : ''}`;
+    } catch (_) { return '/config'; }
   };
 
   const api = async (path, options = {}) => {
@@ -789,7 +796,7 @@
       finally { setBusy(false); }
     });
 
-    api(passkeyCanaryRequested() ? '/config?passkeyCanary=1' : '/config').then(result => {
+    api(canaryConfigPath()).then(result => {
       applyCapabilities(result?.auth || {});
       const cooldown = Number(result?.auth?.verificationEmail?.resendCooldownSeconds);
       if (Number.isFinite(cooldown) && cooldown >= 1 && cooldown <= 86400) state.resendCooldownSeconds = Math.ceil(cooldown);

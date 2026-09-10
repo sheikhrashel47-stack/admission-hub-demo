@@ -127,6 +127,20 @@ test('Google is capability-gated, uses Firebase endpoint, and keeps tokens out o
   app.dom.window.close();
 });
 
+test('Google canary requests the explicit server-authorized config only from the opt-in URL', async () => {
+  const clientId = '123456789012-exampleclientidentifier.apps.googleusercontent.com';
+  const app = setup({
+    pageUrl: 'https://admissionhub.pages.dev/?googleCanary=1',
+    methods: { google: { available: true, clientId } }
+  });
+  await waitFor(() => app.calls.some(call => call.path.endsWith('/config?googleCanary=1')));
+  await waitFor(() => app.document.querySelector('[data-role="google-button"] button'));
+  assert.equal(app.document.querySelector('[data-role="preferred-methods"]').hidden, false);
+  assert.equal(app.window.localStorage.length, 0);
+  assert.equal(app.window.sessionStorage.length, 0);
+  app.dom.window.close();
+});
+
 test('Passkey canary requests the explicit server-authorized config only from the opt-in URL', async () => {
   const app = setup({
     pageUrl: 'https://admissionhub.pages.dev/?passkeyCanary=1',

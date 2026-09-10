@@ -4771,7 +4771,9 @@ var authSuccess = (request, established, refreshToken, context) => json3(request
   user: established.user,
   session: { expiresAt: established.sessionExpiresAt }
 }, { "Set-Cookie": sessionCookies(established, refreshToken, context) });
-var googleActivated = (env) => env?.GOOGLE_AUTH_ACTIVATION === "enabled";
+var googleEndpointReady = (env) => ["canary", "enabled"].includes(String(env?.GOOGLE_AUTH_ACTIVATION || ""));
+var googlePublished = (env) => env?.GOOGLE_AUTH_ACTIVATION === "enabled";
+var googleCanaryRequested = (env, url) => env?.GOOGLE_AUTH_ACTIVATION === "canary" && url.searchParams.get("googleCanary") === "1";
 var validWebhookSecret = (value) => /^[A-Za-z0-9_-]{20,256}$/.test(String(value || ""));
 var adminAuthorized = (request, env) => {
   const expected = String(env?.ADMIN_TOKEN || "");
@@ -4832,8 +4834,9 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         return json3(request, 200, { ok: true });
       }
       if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/config`) {
+        const googleCanary = googleCanaryRequested(env, url);
         const passkeyCanary = passkeyCanaryRequested(env, url);
-        const cacheVariant = passkeyCanary ? "passkey-canary" : "public";
+        const cacheVariant = `${googleCanary ? "google-canary" : "public"}:${passkeyCanary ? "passkey-canary" : "public"}`;
         const cache = publicConfigCache.get(env);
         const cached = cache?.get(cacheVariant);
         if (cached && cached.expiresAt > Date.now()) return json3(request, 200, cached.body);
@@ -4854,8 +4857,12 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           }
         }
         const available = firebaseReady && health.ok === true;
-        let google = { available: false, availabilityCode: googleActivated(env) ? "PROVIDER_CHECK_FAILED" : "LIVE_E2E_NOT_APPROVED" };
-        if (available && googleActivated(env)) {
+        const googleRequested = googlePublished(env) || googleCanary;
+        let google = {
+          available: false,
+          availabilityCode: googleRequested ? "PROVIDER_CHECK_FAILED" : googleEndpointReady(env) ? "LIVE_E2E_PENDING" : "LIVE_E2E_NOT_APPROVED"
+        };
+        if (available && googleRequested) {
           try {
             const discovered = project?.google?.enabled && project.google.clientId ? { available: true, clientId: project.google.clientId } : await provider.inspectGoogleProvider();
             google = { available: discovered.available === true, availabilityCode: "READY", clientId: discovered.clientId };
@@ -4998,7 +5005,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         return authSuccess(request, established, signed.refreshToken, context);
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/google`) {
-        if (!provider.configured || !googleActivated(env)) throw new NativeAuthError(AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE);
+        if (!provider.configured || !googleEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE);
         try {
           await provider.inspectGoogleProvider();
         } catch (cause) {
@@ -5039,7 +5046,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         return authSuccess(request, established, signed.refreshToken, context);
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/google/link`) {
-        if (!provider.configured || !googleActivated(env)) throw new NativeAuthError(AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE);
+        if (!provider.configured || !googleEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE);
         const body = await readJson(request);
         const input = credentials(body);
         const credential = googleCredential2(body);
@@ -5271,7 +5278,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
     }
   };
 }
-var __publicAuthTest = Object.freeze({ allowedOrigin, providerError, googleActivated, adminAuthorized, passkeyEndpointReady, passkeyPublished });
+var __publicAuthTest = Object.freeze({ allowedOrigin, providerError, googleEndpointReady, googlePublished, googleCanaryRequested, adminAuthorized, passkeyEndpointReady, passkeyPublished });
 
 // email-gateway/worker/email-coordinator.mjs
 var response = (body, status = 200) => new Response(JSON.stringify(body), {
