@@ -141,6 +141,11 @@ test('public Google route is publish-gated and never exposes Firebase credential
   assert.equal(disabled.status, 503);
   assert.equal((await disabled.json()).error.code, AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE);
 
+  const canary = await handler(request(`${AUTH_API_PREFIX}/google`, { idToken: TOKEN('google-id-canary') }), {
+    ...baseEnv, GOOGLE_AUTH_ACTIVATION: 'canary'
+  });
+  assert.equal(canary.status, 200);
+
   const enabled = await handler(request(`${AUTH_API_PREFIX}/google`, { idToken: TOKEN('google-id') }), {
     ...baseEnv, GOOGLE_AUTH_ACTIVATION: 'enabled'
   });
