@@ -86,7 +86,11 @@ HARD RULES:
 5. Prefer honest uncertainty over confident guessing: if unsure, say so and suggest checking an official source.
 6. Answer in simple natural Bengali by default. If the user writes English, answer in English. If the user writes Banglish (Bengali in Latin script), answer in friendly Bengali (Bangla script). Never sound robotic.
 7. When asked for a quiz, you may create practice questions with answers and explanations inline.
-8. During a mock exam (mock-running), you must NOT give answers, hints, explanations or solve questions. Politely explain that mock tests must be completed independently, and offer analysis after the exam.`;
+8. During a mock exam (mock-running), you must NOT give answers, hints, explanations or solve questions. Politely explain that mock tests must be completed independently, and offer analysis after the exam.
+9. For Telegram account verification, you may explain only the official flow: Admission Hub → Verify with Telegram → official bot → START → receive a six-digit code → enter it in the Admission Hub verification box.
+10. Never generate, guess, transform, repeat, request, collect, or validate an OTP. Never ask the student to paste an OTP into chat.
+11. Never declare Telegram or account verification successful. Only Admission Hub's authoritative backend response may do that.
+12. Telegram verification proves control of a Telegram account, not ownership of Gmail/email, and it never creates a separate Admission Hub identity.`;
   if (examMode === "mock-running") p += `
 
 EXAM INTEGRITY — ACTIVE (mock-running): answers, hints and explanations are REFUSED.`;
@@ -272,6 +276,32 @@ function safetyGate(intent, examMode) {
   }
   return { blocked: false };
 }
+function authVerificationGuidance(text) {
+  const input = String(text || "").trim();
+  const verificationTopic = /(telegram|টেলিগ্রাম|\botp\b|ওটিপি|one[ -]?time code|verification code|যাচাই(?:য়ের)? কোড)/i.test(input);
+  const possibleBareOtp = /^\D*\d{6}\D*$/.test(input);
+  if (!verificationTopic && !possibleBareOtp) return "";
+  return "Telegram যাচাই করতে Admission Hub-এ “Telegram দিয়ে যাচাই করুন” চাপুন, official bot খুলে START চাপুন, তারপর bot-এর পাঠানো কোডটি শুধু Admission Hub-এর verification box-এ লিখুন। আমি OTP তৈরি, অনুমান, দেখা, পুনরাবৃত্তি বা যাচাই করতে পারি না এবং verification সফলও ঘোষণা করতে পারি না—শুধু backend-এর ফলই চূড়ান্ত। Telegram যাচাই Gmail/ইমেইল মালিকানা প্রমাণ করে না।";
+}
+function guidanceResponse(text, stream) {
+  if (!stream) return jsonResp({ text, intent: INTENTS.GENERAL_CHAT, pv: SYSTEM_PROMPT_V, agent: AGENT_VERSION, authoritative: false });
+  const encoder5 = new TextEncoder();
+  return new Response(new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder5.encode(`data: ${JSON.stringify({ text })}
+
+`));
+      controller.enqueue(encoder5.encode(`event: done
+data: ${JSON.stringify({ intent: INTENTS.GENERAL_CHAT, pv: SYSTEM_PROMPT_V, agent: AGENT_VERSION, authoritative: false })}
+
+`));
+      controller.close();
+    }
+  }), {
+    status: 200,
+    headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache, no-transform", "Access-Control-Allow-Origin": "*" }
+  });
+}
 async function agentChat(request, env, uid, opts = {}) {
   const stream = opts && opts.stream !== false;
   const startedAt = Date.now();
@@ -289,6 +319,8 @@ async function agentChat(request, env, uid, opts = {}) {
   }
   if (n >= cap) return jsonResp({ error: "rate_limited", message: "আজকের AI-চ্যাট সীমা শেষ — কাল আবার চেষ্টা করো।", cap }, 429);
   await putKv(env.PUB_KV, rlKey, String(n + 1), 172800);
+  const verificationGuidance = authVerificationGuidance(v.messages[v.messages.length - 1].content);
+  if (verificationGuidance) return guidanceResponse(verificationGuidance, stream);
   const intentCls = classifyIntent(v.messages[v.messages.length - 1].content);
   const intent = intentCls.intent;
   const tier = intentCls.tier;
@@ -3092,6 +3124,9 @@ var AUTH_ERROR_CODES = Object.freeze({
   ACCOUNT_LINK_REQUIRED: "ACCOUNT_LINK_REQUIRED",
   ACCOUNT_CONFLICT: "ACCOUNT_CONFLICT",
   GOOGLE_UNAVAILABLE: "GOOGLE_UNAVAILABLE",
+  TELEGRAM_VERIFICATION_UNAVAILABLE: "TELEGRAM_VERIFICATION_UNAVAILABLE",
+  TELEGRAM_VERIFICATION_PENDING: "TELEGRAM_VERIFICATION_PENDING",
+  TELEGRAM_VERIFICATION_INVALID: "TELEGRAM_VERIFICATION_INVALID",
   PASSKEY_UNAVAILABLE: "PASSKEY_UNAVAILABLE",
   PASSKEY_INVALID: "PASSKEY_INVALID",
   PASSKEY_NOT_FOUND: "PASSKEY_NOT_FOUND",
@@ -3121,6 +3156,9 @@ var DEFAULTS2 = Object.freeze({
   [AUTH_ERROR_CODES.ACCOUNT_LINK_REQUIRED]: Object.freeze({ status: 409, message: "একই ইমেইলের আগের অ্যাকাউন্টে একবার পাসওয়ার্ড দিয়ে Google যুক্ত করুন।" }),
   [AUTH_ERROR_CODES.ACCOUNT_CONFLICT]: Object.freeze({ status: 409, message: "এই পরিচয়টি অন্য একটি অ্যাকাউন্টের সঙ্গে যুক্ত—নিরাপত্তার জন্য লগইন বন্ধ রাখা হয়েছে।" }),
   [AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE]: Object.freeze({ status: 503, message: "Google দিয়ে প্রবেশ এখন পাওয়া যাচ্ছে না—ইমেইল দিয়ে চেষ্টা করুন।" }),
+  [AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE]: Object.freeze({ status: 503, message: "Telegram যাচাই এখন পাওয়া যাচ্ছে না—ইমেইল যাচাই ব্যবহার করুন।" }),
+  [AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_PENDING]: Object.freeze({ status: 409, message: "Telegram-এ পরিচয় নিশ্চিত হওয়ার অপেক্ষা চলছে।" }),
+  [AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID]: Object.freeze({ status: 401, message: "Telegram যাচাইটি সঠিক নয় বা সময় শেষ হয়েছে।" }),
   [AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE]: Object.freeze({ status: 503, message: "এই ডিভাইসে Passkey এখন পাওয়া যাচ্ছে না—অন্য পদ্ধতি ব্যবহার করুন।" }),
   [AUTH_ERROR_CODES.PASSKEY_INVALID]: Object.freeze({ status: 401, message: "Passkey যাচাই হয়নি—আবার চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.PASSKEY_NOT_FOUND]: Object.freeze({ status: 404, message: "এই Passkey-এর সঙ্গে কোনো অ্যাকাউন্ট পাওয়া যায়নি।" }),
@@ -3648,6 +3686,7 @@ var SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
 var FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1e3;
 var PASSKEY_CHALLENGE_TTL_MS = 5 * 60 * 1e3;
 var PASSKEY_TICKET_TTL_MS = 60 * 1e3;
+var ACCOUNT_VERIFICATION_TICKET_TTL_MS = 15 * 60 * 1e3;
 var PASSKEY_RP_ID = "admissionhub.pages.dev";
 var PASSKEY_REGISTRATION_LIMITS = Object.freeze([
   Object.freeze({ scope: "passkey-register-user-hour", source: "email", limit: 6, windowMs: 60 * 60 * 1e3 }),
@@ -3658,6 +3697,12 @@ var PASSKEY_LOGIN_LIMITS = Object.freeze([
   Object.freeze({ scope: "passkey-login-ip-15m", source: "ip", limit: 60, windowMs: 15 * 60 * 1e3 }),
   Object.freeze({ scope: "passkey-login-device-15m", source: "device", limit: 30, windowMs: 15 * 60 * 1e3 }),
   Object.freeze({ scope: "passkey-login-global-minute", source: "global", limit: 180, windowMs: 60 * 1e3 })
+]);
+var ACCOUNT_VERIFICATION_LIMITS = Object.freeze([
+  Object.freeze({ scope: "telegram-account-verify-email-day", source: "email", limit: 5, windowMs: 24 * 60 * 60 * 1e3 }),
+  Object.freeze({ scope: "telegram-account-verify-ip-hour", source: "ip", limit: 20, windowMs: 60 * 60 * 1e3 }),
+  Object.freeze({ scope: "telegram-account-verify-device-hour", source: "device", limit: 10, windowMs: 60 * 60 * 1e3 }),
+  Object.freeze({ scope: "telegram-account-verify-global-minute", source: "global", limit: 120, windowMs: 60 * 1e3 })
 ]);
 var FIREBASE_OPERATION_LIMITS = Object.freeze({
   signup: Object.freeze([
@@ -3692,6 +3737,10 @@ var requiredRepositoryMethods = Object.freeze([
   "getExternalSession",
   "getSession",
   "revokeSession",
+  "beginFirebaseAccountVerification",
+  "getFirebaseAccountVerification",
+  "completeFirebaseAccountVerification",
+  "getFirebaseIdentity",
   "beginPasskeyRegistration",
   "getPasskeyRegistrationChallenge",
   "finishPasskeyRegistration",
@@ -3852,6 +3901,114 @@ var CloudflareNativeAuthEngine = class {
       now: Number(this.now())
     }));
     return Object.freeze({ expiresAt: result.expiresAt, user: publicUser(result.user) });
+  }
+  async beginFirebaseAccountVerification(input = {}, requestContext = {}) {
+    const refreshToken = String(input.refreshToken || "").trim();
+    if (refreshToken.length < 20 || refreshToken.length > 4096 || /[\r\n\u0000;]/.test(refreshToken)) {
+      failAuth(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    }
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    const now = Number(this.now());
+    const verificationTicket = randomToken(32, this.crypto);
+    const userIdCandidate = `usr_${randomToken(18, this.crypto)}`;
+    const [ticketRef, refreshCipher] = await Promise.all([
+      this.hmac.hex("session-ref-v1", verificationTicket),
+      this.vault.seal(refreshToken, `account-verification-refresh:${identity.subjectRef}`)
+    ]);
+    const prepared = errorFromRepository(await this.repository.beginFirebaseAccountVerification({
+      ticketRef,
+      userIdCandidate,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      emailMask: maskAuthEmail(identity.email),
+      refreshCipher,
+      ipRef: identity.refs.ipRef,
+      deviceRef: identity.refs.deviceRef,
+      limits: this.#limits(ACCOUNT_VERIFICATION_LIMITS, identity.refs),
+      now,
+      expiresAt: now + ACCOUNT_VERIFICATION_TICKET_TTL_MS
+    }));
+    return Object.freeze({
+      verificationTicket,
+      expiresAt: now + ACCOUNT_VERIFICATION_TICKET_TTL_MS,
+      user: publicUser(prepared.user)
+    });
+  }
+  async getFirebaseAccountVerification(verificationTicket, input = {}, requestContext = {}) {
+    const token = String(verificationTicket || "").trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    const context = normalizeContext(requestContext);
+    const [refs, ticketRef] = await Promise.all([
+      this.#references("account-verification@admissionhub.invalid", context),
+      this.hmac.hex("session-ref-v1", token)
+    ]);
+    const row = errorFromRepository(await this.repository.getFirebaseAccountVerification({
+      ticketRef,
+      deviceRef: refs.deviceRef,
+      now: Number(this.now())
+    }));
+    if (input?.email || input?.subject) {
+      const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+      if (identity.subjectRef !== row.subjectRef || identity.refs.emailRef !== row.emailRef) {
+        failAuth(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+      }
+    }
+    const refreshToken = await this.vault.open(row.refreshCipher, `account-verification-refresh:${row.subjectRef}`);
+    return Object.freeze({
+      refreshToken,
+      userId: row.userId,
+      subjectRef: row.subjectRef,
+      emailRef: row.emailRef,
+      sessionRef: ticketRef,
+      user: publicUser({
+        id: row.userId,
+        emailMask: row.emailMask,
+        status: row.status,
+        createdAt: row.createdAt
+      })
+    });
+  }
+  async completeFirebaseAccountVerification(input = {}, requestContext = {}) {
+    const token = String(input.verificationTicket || "").trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    const now = Number(this.now());
+    const sessionToken = randomToken(32, this.crypto);
+    const [ticketRef, sessionRef] = await Promise.all([
+      this.hmac.hex("session-ref-v1", token),
+      this.hmac.hex("session-ref-v1", sessionToken)
+    ]);
+    const completed = errorFromRepository(await this.repository.completeFirebaseAccountVerification({
+      ticketRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      sessionRef,
+      ipRef: identity.refs.ipRef,
+      deviceRef: identity.refs.deviceRef,
+      userAgent: identity.context.userAgent,
+      now,
+      sessionExpiresAt: now + SESSION_TTL_MS
+    }));
+    return Object.freeze({
+      sessionToken,
+      sessionExpiresAt: now + SESSION_TTL_MS,
+      user: publicUser(completed.user),
+      created: false
+    });
+  }
+  async getFirebaseIdentity(input = {}, requestContext = {}) {
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const result = errorFromRepository(await this.repository.getFirebaseIdentity({
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      now: Number(this.now())
+    }));
+    return Object.freeze({
+      user: publicUser(result.user),
+      userId: result.user.id,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef
+    });
   }
   async beginPasskeyRegistration(input = {}, requestContext = {}) {
     const token = String(input.sessionToken || "").trim();
@@ -4272,10 +4429,10 @@ var FirebaseEmailPasswordProvider = class {
       password,
       returnSecureToken: true
     });
-    if (!validToken(payload?.idToken) || !validSubject2(payload?.localId)) {
+    if (!validToken(payload?.idToken) || !validToken(payload?.refreshToken) || !validSubject2(payload?.localId)) {
       throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
     }
-    return Object.freeze({ idToken: payload.idToken, subject: payload.localId });
+    return Object.freeze({ idToken: payload.idToken, refreshToken: payload.refreshToken, subject: payload.localId });
   }
   async sendVerificationEmail(idToken, email) {
     if (!validToken(idToken)) throw new FirebaseRequestError("INVALID_ID_TOKEN");
@@ -4475,7 +4632,7 @@ var SLOT_DEFINITIONS = Object.freeze({
   "otp-b": Object.freeze({ channel: VERIFICATION_CHANNELS.OTP, verificationMode: VERIFICATION_MODES.LOCAL_CODE, priority: 20 }),
   "otp-c": Object.freeze({ channel: VERIFICATION_CHANNELS.OTP, verificationMode: VERIFICATION_MODES.LOCAL_CODE, priority: 30 }),
   whatsapp: Object.freeze({ channel: VERIFICATION_CHANNELS.WHATSAPP, verificationMode: VERIFICATION_MODES.LOCAL_CODE, priority: 40 }),
-  telegram: Object.freeze({ channel: VERIFICATION_CHANNELS.TELEGRAM, verificationMode: VERIFICATION_MODES.PROVIDER_EVIDENCE, priority: 50 })
+  telegram: Object.freeze({ channel: VERIFICATION_CHANNELS.TELEGRAM, verificationMode: VERIFICATION_MODES.LOCAL_CODE, priority: 50 })
 });
 var int = (value, fallback, min, max) => {
   const parsed = Number(value);
@@ -4588,6 +4745,7 @@ var AUTH_API_PREFIX = "/api/auth/v1";
 var AUTH_SESSION_COOKIE = "__Host-ah_session";
 var AUTH_FIREBASE_COOKIE = "__Host-ah_firebase";
 var AUTH_DEVICE_COOKIE = "__Host-ah_device";
+var AUTH_VERIFICATION_COOKIE = "__Host-ah_verification";
 var AUTHORITY_NAME = "admission-hub-global-auth-v1";
 var MAX_BODY_BYTES = 24 * 1024;
 var YEAR_SECONDS = 365 * 24 * 60 * 60;
@@ -4646,7 +4804,8 @@ var secureCookie = (name, token, maxAge) => `${name}=${encodeURIComponent(String
 var sessionCookie = (token, maxAge) => secureCookie(AUTH_SESSION_COOKIE, token, maxAge);
 var firebaseCookie = (token, maxAge) => secureCookie(AUTH_FIREBASE_COOKIE, token, maxAge);
 var deviceCookie = (token) => `${AUTH_DEVICE_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${YEAR_SECONDS}; HttpOnly; Secure; SameSite=Lax`;
-var clearAuthCookies = () => [sessionCookie("", 0), firebaseCookie("", 0)];
+var verificationCookie = (token, maxAge = 15 * 60) => secureCookie(AUTH_VERIFICATION_COOKIE, token, maxAge);
+var clearAuthCookies = () => [sessionCookie("", 0), firebaseCookie("", 0), verificationCookie("", 0)];
 async function readJson(request) {
   if (!String(request.headers.get("Content-Type") || "").toLowerCase().startsWith("application/json")) {
     throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
@@ -4824,7 +4983,19 @@ var assertProviderUser = (signed, user) => {
   if (signed.subject !== user.subject) throw new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
   if (user.disabled) throw new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_DISABLED);
 };
-var firebaseReadySession = async ({ provider, jar, env, context }) => {
+var telegramVerificationStatus = async ({ env, user, context, allowed }) => {
+  if (!allowed) return false;
+  try {
+    const result = await callAuthority(env, "/internal/verification/telegram/status", {
+      input: { email: user.email, subject: user.subject },
+      context
+    });
+    return result?.linked === true;
+  } catch {
+    return false;
+  }
+};
+var firebaseReadySession = async ({ provider, jar, env, context, allowTelegram = false }) => {
   const sessionToken = jar[AUTH_SESSION_COOKIE];
   const refreshToken = jar[AUTH_FIREBASE_COOKIE];
   if (!sessionToken || !refreshToken) throw new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
@@ -4841,12 +5012,13 @@ var firebaseReadySession = async ({ provider, jar, env, context }) => {
     throw providerError(cause, "lookup-session");
   }
   assertProviderUser(refreshed, user);
-  if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+  const telegramVerified = !user.emailVerified && await telegramVerificationStatus({ env, user, context, allowed: allowTelegram });
+  if (!user.emailVerified && !telegramVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
   const session = await callAuthority(env, "/internal/firebase/session/get", {
     sessionToken,
     input: { email: user.email, subject: user.subject }
   });
-  return Object.freeze({ sessionToken, refreshed, user, session });
+  return Object.freeze({ sessionToken, refreshed, user, session, telegramVerified });
 };
 var sessionCookies = (established, refreshToken, context) => {
   const maxAge = Math.max(1, Math.min(SESSION_SECONDS, Math.floor((Number(established.sessionExpiresAt || established.expiresAt) - Date.now()) / 1e3)));
@@ -4856,20 +5028,27 @@ var sessionCookies = (established, refreshToken, context) => {
   if (context.isNewDevice) values.push(deviceCookie(context.deviceId));
   return values;
 };
-var authSuccess = (request, established, refreshToken, context) => json3(request, 200, {
-  ok: true,
-  authenticated: true,
-  emailVerified: true,
-  created: Boolean(established.created),
-  user: established.user,
-  session: { expiresAt: established.sessionExpiresAt }
-}, { "Set-Cookie": sessionCookies(established, refreshToken, context) });
+var authSuccess = (request, established, refreshToken, context, verification = {}, extraCookies = []) => {
+  const emailVerified = verification.emailVerified !== false;
+  const telegramVerified = verification.telegramVerified === true;
+  return json3(request, 200, {
+    ok: true,
+    authenticated: true,
+    accountVerified: emailVerified || telegramVerified,
+    emailVerified,
+    telegramVerified,
+    created: Boolean(established.created),
+    user: established.user,
+    session: { expiresAt: established.sessionExpiresAt }
+  }, { "Set-Cookie": [...sessionCookies(established, refreshToken, context), ...extraCookies] });
+};
 var googleEndpointReady = (env) => ["canary", "enabled"].includes(String(env?.GOOGLE_AUTH_ACTIVATION || ""));
 var googlePublished = (env) => env?.GOOGLE_AUTH_ACTIVATION === "enabled";
 var googleCanaryRequested = (env, url) => env?.GOOGLE_AUTH_ACTIVATION === "canary" && url.searchParams.get("googleCanary") === "1";
 var verificationEndpointReady = (env) => ["canary", "enabled"].includes(String(env?.VERIFICATION_AUTH_ACTIVATION || ""));
 var verificationPublished = (env) => env?.VERIFICATION_AUTH_ACTIVATION === "enabled";
 var telegramCanaryRequested = (env, url) => env?.VERIFICATION_AUTH_ACTIVATION === "canary" && url.searchParams.get("telegramCanary") === "1";
+var telegramVerificationRequested = (env, url) => verificationPublished(env) || telegramCanaryRequested(env, url);
 var telegramActivationAuthorized = (request, env) => {
   const expected = String(env?.TELEGRAM_CANARY_ACTIVATION_SECRET || "");
   const supplied = String(request.headers.get("X-AH-Telegram-Activation") || "");
@@ -4999,6 +5178,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           }
         }
         const verificationRequested = verificationPublished(env) || telegramCanary;
+        let telegramAvailable = false;
         let backup = {
           available: false,
           availabilityCode: verificationRequested ? "STATUS_UNAVAILABLE" : verificationEndpointReady(env) ? "LIVE_E2E_PENDING" : "NOT_ACTIVATED",
@@ -5007,11 +5187,31 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         };
         if (available && verificationRequested) {
           try {
-            backup = await callAuthority(env, "/internal/verification/capabilities", {});
+            const capabilities = await callAuthority(env, "/internal/verification/capabilities", {});
+            telegramAvailable = capabilities?.telegramAvailable === true;
+            backup = {
+              available: capabilities?.available === true,
+              availabilityCode: String(capabilities?.availabilityCode || "STATUS_UNAVAILABLE"),
+              genericFlow: true,
+              providerNamesExposed: false,
+              contactInput: ["none", "optional", "required"].includes(capabilities?.contactInput) ? capabilities.contactInput : "none",
+              maxAttempts: Number(capabilities?.maxAttempts || 5),
+              expiresInSeconds: Number(capabilities?.expiresInSeconds || 300)
+            };
           } catch {
             backup = { available: false, availabilityCode: "STATUS_UNAVAILABLE", genericFlow: true, providerNamesExposed: false };
           }
         }
+        const telegramVerification = {
+          available: verificationRequested && telegramAvailable,
+          availabilityCode: verificationRequested ? String(backup?.availabilityCode || "STATUS_UNAVAILABLE") : verificationEndpointReady(env) ? "LIVE_E2E_PENDING" : "NOT_ACTIVATED",
+          optional: true,
+          codeLength: 6,
+          expiresInSeconds: Number(backup?.expiresInSeconds || 300),
+          maxAttempts: Number(backup?.maxAttempts || 5),
+          verifiesEmailOwnership: false,
+          canonicalIdentity: "firebase-uid"
+        };
         const passkeyAvailable = available && health.schema >= 3 && (passkeyPublished(env) || passkeyCanary);
         const body = {
           ok: true,
@@ -5023,7 +5223,9 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             availabilityCode: available ? "READY" : availability.code,
             providerStatus: availability.providerStatus,
             storage: health.storage,
-            emailVerifiedRequired: true,
+            accountVerificationRequired: true,
+            emailVerifiedRequired: !telegramVerification.available,
+            emailOwnershipProof: "firebase-email-verification-only",
             methods: {
               google,
               passkey: {
@@ -5033,6 +5235,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
                 neverMandatory: true
               },
               emailPassword: { available, availabilityCode: available ? "READY" : availability.code },
+              telegramVerification,
               backup
             },
             verificationEmail: {
@@ -5059,32 +5262,89 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         } catch (cause) {
           throw providerError(cause, "signup");
         }
+        const telegramRequested = telegramVerificationRequested(env, url);
+        let emailSent = false;
+        let emailFailure = null;
         try {
           await callAuthority(env, "/internal/firebase/rate", { input: { operation: "verification-send", email: prepared.email }, context });
-        } catch (cause) {
-          try {
-            await provider.deleteAccount(signed.idToken);
-          } catch {
-          }
-          throw cause;
-        }
-        try {
           await provider.sendVerificationEmail(signed.idToken, prepared.email);
+          emailSent = true;
         } catch (cause) {
-          throw providerError(cause, "verification");
+          emailFailure = cause instanceof NativeAuthError ? cause : providerError(cause, "verification");
+          if (!telegramRequested) {
+            try {
+              await provider.deleteAccount(signed.idToken);
+            } catch {
+            }
+            throw emailFailure;
+          }
         }
+        let telegram = null;
+        let verificationTicket = "";
+        let accountVerificationPrepared = false;
+        if (telegramRequested) {
+          try {
+            const temporaryRefreshMaterial = signed.refreshToken;
+            const ticket = await callAuthority(env, "/internal/firebase/account-verification/begin", {
+              input: {
+                email: prepared.email,
+                subject: signed.subject,
+                refreshToken: temporaryRefreshMaterial
+              },
+              context
+            });
+            verificationTicket = ticket.verificationTicket;
+            accountVerificationPrepared = true;
+            const started = await callAuthority(env, "/internal/verification/preauth/request", {
+              input: {
+                verificationTicket,
+                email: prepared.email,
+                subject: signed.subject
+              },
+              context
+            });
+            if (started?.interaction?.type === "telegram-link") {
+              telegram = {
+                available: true,
+                attemptId: started.attemptId,
+                expiresAt: started.expiresAt,
+                resendAfter: started.resendAfter,
+                attemptsAllowed: started.attemptsAllowed,
+                interaction: started.interaction,
+                verifiesEmailOwnership: false
+              };
+            }
+          } catch {
+            telegram = null;
+            verificationTicket = "";
+          }
+        }
+        if (!emailSent && !telegram) {
+          if (!accountVerificationPrepared) {
+            try {
+              await provider.deleteAccount(signed.idToken);
+            } catch {
+            }
+          }
+          throw emailFailure || new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
+        }
+        const signupCookies = [
+          ...context.isNewDevice ? [deviceCookie(context.deviceId)] : [],
+          ...telegram && verificationTicket ? [verificationCookie(verificationTicket)] : []
+        ];
         return json3(request, 202, {
           ok: true,
           accountCreated: true,
           authenticated: false,
           verification: {
-            sent: true,
+            sent: emailSent,
             emailMasked: prepared.emailMask,
             requiredBeforeLogin: true,
             dailyCapacity: 1e3,
-            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
+            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS,
+            ...telegram ? { telegram } : {}
           }
-        }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
+        }, signupCookies.length ? { "Set-Cookie": signupCookies } : {});
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/verification/resend`) {
         if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
@@ -5133,9 +5393,65 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           throw providerError(cause, "lookup");
         }
         assertProviderUser(signed, user);
-        if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+        const telegramRequested = telegramVerificationRequested(env, url);
+        const telegramVerified = !user.emailVerified && await telegramVerificationStatus({
+          env,
+          user,
+          context,
+          allowed: telegramRequested
+        });
+        if (!user.emailVerified && !telegramVerified && telegramRequested) {
+          try {
+            const temporaryRefreshMaterial = signed.refreshToken;
+            const ticket = await callAuthority(env, "/internal/firebase/account-verification/begin", {
+              input: {
+                email: user.email,
+                subject: user.subject,
+                refreshToken: temporaryRefreshMaterial
+              },
+              context
+            });
+            const started = await callAuthority(env, "/internal/verification/preauth/request", {
+              input: {
+                verificationTicket: ticket.verificationTicket,
+                email: user.email,
+                subject: user.subject
+              },
+              context
+            });
+            if (started?.interaction?.type === "telegram-link") {
+              return json3(request, 202, {
+                ok: true,
+                authenticated: false,
+                accountVerified: false,
+                verification: {
+                  emailMasked: prepared.emailMask,
+                  telegram: {
+                    available: true,
+                    attemptId: started.attemptId,
+                    expiresAt: started.expiresAt,
+                    resendAfter: started.resendAfter,
+                    attemptsAllowed: started.attemptsAllowed,
+                    interaction: started.interaction,
+                    verifiesEmailOwnership: false
+                  }
+                }
+              }, {
+                "Set-Cookie": [
+                  ...context.isNewDevice ? [deviceCookie(context.deviceId)] : [],
+                  verificationCookie(ticket.verificationTicket)
+                ]
+              });
+            }
+          } catch {
+          }
+        }
+        if (!user.emailVerified && !telegramVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
         const established = await callAuthority(env, "/internal/firebase/session/create", { input: { email: user.email, subject: user.subject }, context });
-        return authSuccess(request, established, signed.refreshToken, context);
+        return authSuccess(request, established, signed.refreshToken, context, {
+          emailVerified: user.emailVerified === true,
+          telegramVerified
+        });
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/google`) {
         if (!provider.configured || !googleEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE);
@@ -5206,7 +5522,13 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           throw providerError(cause, "lookup");
         }
         assertProviderUser(passwordSession, passwordUser);
-        if (!passwordUser.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+        const passwordTelegramVerified = !passwordUser.emailVerified && await telegramVerificationStatus({
+          env,
+          user: passwordUser,
+          context,
+          allowed: telegramVerificationRequested(env, url)
+        });
+        if (!passwordUser.emailVerified && !passwordTelegramVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
         let linked;
         let user;
         try {
@@ -5225,11 +5547,94 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           throw new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_CONFLICT);
         }
         const established = await callAuthority(env, "/internal/firebase/session/create", { input: { email: user.email, subject: user.subject }, context });
-        return authSuccess(request, established, linked.refreshToken, context);
+        return authSuccess(request, established, linked.refreshToken, context, {
+          emailVerified: user.emailVerified === true,
+          telegramVerified: user.emailVerified !== true && passwordTelegramVerified
+        });
+      }
+      if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/telegram/verification/pending`) {
+        if (!provider.configured || !telegramVerificationRequested(env, url)) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
+        }
+        const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
+        if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        const result = await callAuthority(env, "/internal/verification/preauth/pending", {
+          input: { verificationTicket },
+          context
+        });
+        return json3(request, 200, { ok: true, ...result }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/telegram/verification/resend`) {
+        if (!provider.configured || !telegramVerificationRequested(env, url)) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
+        }
+        const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
+        if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        await readJson(request);
+        const result = await callAuthority(env, "/internal/verification/preauth/request", {
+          input: { verificationTicket },
+          context
+        });
+        return json3(request, 202, { ok: true, ...result }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/telegram/verification/verify`) {
+        if (!provider.configured || !telegramVerificationRequested(env, url)) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
+        }
+        const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
+        if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        const body = await readJson(request);
+        const code = String(body.code || "").trim();
+        const attemptId = String(body.attemptId || "").trim();
+        if (!/^\d{6}$/.test(code) || !/^[A-Za-z0-9_-]{24,96}$/.test(attemptId)) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+        }
+        const material = await callAuthority(env, "/internal/firebase/account-verification/material", {
+          verificationTicket,
+          context
+        });
+        let refreshed;
+        let user;
+        try {
+          refreshed = await provider.refresh(material.refreshToken);
+        } catch (cause) {
+          throw providerError(cause, "refresh");
+        }
+        try {
+          user = await provider.lookup(refreshed.idToken);
+        } catch (cause) {
+          throw providerError(cause, "lookup-session");
+        }
+        assertProviderUser(refreshed, user);
+        const verified = await callAuthority(env, "/internal/verification/preauth/verify", {
+          input: {
+            verificationTicket,
+            email: user.email,
+            subject: user.subject,
+            attemptId,
+            code
+          },
+          context
+        });
+        if (verified?.verified !== true || verified?.telegramLinked !== true) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        }
+        const established = await callAuthority(env, "/internal/firebase/account-verification/complete", {
+          input: {
+            verificationTicket,
+            email: user.email,
+            subject: user.subject
+          },
+          context
+        });
+        return authSuccess(request, established, refreshed.refreshToken, context, {
+          emailVerified: user.emailVerified === true,
+          telegramVerified: true
+        }, [verificationCookie("", 0)]);
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/passkey/registration/begin`) {
         if (!provider.configured || !passkeyEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
-        const current = await firebaseReadySession({ provider, jar, env, context });
+        const current = await firebaseReadySession({ provider, jar, env, context, allowTelegram: telegramVerificationRequested(env, url) });
         const result = await callAuthority(env, "/internal/passkey/registration/begin", {
           input: {
             sessionToken: current.sessionToken,
@@ -5246,7 +5651,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/passkey/registration/finish`) {
         if (!provider.configured || !passkeyEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
         const body = await readJson(request);
-        const current = await firebaseReadySession({ provider, jar, env, context });
+        const current = await firebaseReadySession({ provider, jar, env, context, allowTelegram: telegramVerificationRequested(env, url) });
         const result = await callAuthority(env, "/internal/passkey/registration/finish", {
           input: {
             challengeId: body.challengeId,
@@ -5287,7 +5692,13 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           throw providerError(cause, "lookup-session");
         }
         assertProviderUser(refreshed, user);
-        if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+        const passkeyTelegramVerified = !user.emailVerified && await telegramVerificationStatus({
+          env,
+          user,
+          context,
+          allowed: telegramVerificationRequested(env, url)
+        });
+        if (!user.emailVerified && !passkeyTelegramVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
         const established = await callAuthority(env, "/internal/passkey/session/complete", {
           input: {
             loginTicket: assertion.loginTicket,
@@ -5297,11 +5708,14 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           },
           context
         });
-        return authSuccess(request, established, refreshed.refreshToken, context);
+        return authSuccess(request, established, refreshed.refreshToken, context, {
+          emailVerified: user.emailVerified === true,
+          telegramVerified: passkeyTelegramVerified
+        });
       }
       if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/passkey/status`) {
         if (!provider.configured || !passkeyEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
-        const current = await firebaseReadySession({ provider, jar, env, context });
+        const current = await firebaseReadySession({ provider, jar, env, context, allowTelegram: telegramVerificationRequested(env, url) });
         const result = await callAuthority(env, "/internal/passkey/status", {
           input: { sessionToken: current.sessionToken, email: current.user.email, subject: current.user.subject },
           context
@@ -5313,7 +5727,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/passkey/remove`) {
         if (!provider.configured || !passkeyEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
         const body = await readJson(request);
-        const current = await firebaseReadySession({ provider, jar, env, context });
+        const current = await firebaseReadySession({ provider, jar, env, context, allowTelegram: telegramVerificationRequested(env, url) });
         const result = await callAuthority(env, "/internal/passkey/remove", {
           input: {
             credentialId: body.credentialId,
@@ -5334,7 +5748,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         const body = await readJson(request);
         const contact = String(body.contact || "").trim();
         if (contact && !/^\+[1-9]\d{7,14}$/.test(contact)) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
-        const current = await firebaseReadySession({ provider, jar, env, context });
+        const current = await firebaseReadySession({ provider, jar, env, context, allowTelegram: telegramVerificationRequested(env, url) });
         const result = await callAuthority(env, "/internal/verification/request", {
           input: {
             sessionToken: current.sessionToken,
@@ -5355,7 +5769,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
         }
         const body = await readJson(request);
-        const current = await firebaseReadySession({ provider, jar, env, context });
+        const current = await firebaseReadySession({ provider, jar, env, context, allowTelegram: telegramVerificationRequested(env, url) });
         const result = await callAuthority(env, "/internal/verification/verify", {
           input: {
             sessionToken: current.sessionToken,
@@ -5385,9 +5799,16 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         return json3(request, 200, { ok: true, ...result });
       }
       if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/session`) {
-        const current = await firebaseReadySession({ provider, jar, env, context });
+        const current = await firebaseReadySession({ provider, jar, env, context, allowTelegram: telegramVerificationRequested(env, url) });
         const maxAge = Math.max(1, Math.min(SESSION_SECONDS, Math.floor((Number(current.session.expiresAt) - Date.now()) / 1e3)));
-        return json3(request, 200, { ok: true, authenticated: true, emailVerified: true, ...current.session }, {
+        return json3(request, 200, {
+          ok: true,
+          authenticated: true,
+          accountVerified: true,
+          emailVerified: current.user.emailVerified === true,
+          telegramVerified: current.telegramVerified === true,
+          ...current.session
+        }, {
           "Set-Cookie": [firebaseCookie(current.refreshed.refreshToken, maxAge), ...context.isNewDevice ? [deviceCookie(context.deviceId)] : []]
         });
       }
@@ -5661,6 +6082,22 @@ var SqliteAuthRepository = class {
       )`,
       `CREATE INDEX IF NOT EXISTS auth_sessions_user ON auth_sessions(user_id, created_at DESC)`,
       `CREATE INDEX IF NOT EXISTS auth_sessions_expiry ON auth_sessions(expires_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_account_verification_tickets (
+        ticket_ref TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        subject_ref TEXT NOT NULL,
+        email_ref TEXT NOT NULL,
+        refresh_cipher TEXT NOT NULL,
+        state TEXT NOT NULL CHECK(state IN ('active','consumed','expired','superseded')),
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        consumed_at INTEGER,
+        ip_ref TEXT NOT NULL,
+        device_ref TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_account_verification_ticket_expiry ON auth_account_verification_tickets(expires_at)`,
+      `CREATE INDEX IF NOT EXISTS auth_account_verification_ticket_user ON auth_account_verification_tickets(user_id,state,created_at DESC)`,
       `CREATE TABLE IF NOT EXISTS auth_rate_limits (
         scope TEXT NOT NULL,
         bucket_key TEXT NOT NULL,
@@ -5945,6 +6382,155 @@ var SqliteAuthRepository = class {
         user: { id: row.id, emailMask: row.emailMask, status: row.status, createdAt: Number(row.createdAt) }
       };
     });
+  }
+  async beginFirebaseAccountVerification(input) {
+    return this.#transaction(() => {
+      const denied = this.#consumeLimits(input.limits, input.now);
+      if (denied) return denied;
+      const identity = this.#one(
+        "SELECT user_id AS userId FROM auth_external_identities WHERE provider='firebase' AND subject_ref=?",
+        input.subjectRef
+      );
+      let user = identity ? this.#one(
+        "SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt FROM auth_users WHERE user_id=?",
+        identity.userId
+      ) : this.#one(
+        "SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt FROM auth_users WHERE email_ref=?",
+        input.emailRef
+      );
+      if (identity && !user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+      if (!identity && user) {
+        const existing = this.#one(
+          "SELECT subject_ref AS subjectRef FROM auth_external_identities WHERE provider='firebase' AND user_id=?",
+          user.id
+        );
+        if (existing && existing.subjectRef !== input.subjectRef) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      }
+      if (!user) {
+        this.sql.exec(
+          `INSERT OR IGNORE INTO auth_users(user_id,email_ref,email_mask,status,created_at,last_login_at)
+           VALUES(?,?,?,'active',?,?)`,
+          input.userIdCandidate,
+          input.emailRef,
+          input.emailMask,
+          input.now,
+          input.now
+        );
+        user = this.#one(
+          "SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt FROM auth_users WHERE email_ref=?",
+          input.emailRef
+        );
+      }
+      if (!user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+      if (user.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      if (user.emailRef !== input.emailRef) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      if (!identity) {
+        this.sql.exec(
+          `INSERT INTO auth_external_identities(provider,subject_ref,user_id,created_at,last_verified_at)
+           VALUES('firebase',?,?,?,?)`,
+          input.subjectRef,
+          user.id,
+          input.now,
+          input.now
+        );
+      }
+      this.sql.exec(
+        `UPDATE auth_account_verification_tickets
+         SET state='superseded',refresh_cipher=''
+         WHERE user_id=? AND state='active'`,
+        user.id
+      );
+      this.sql.exec(
+        `INSERT INTO auth_account_verification_tickets(
+          ticket_ref,user_id,subject_ref,email_ref,refresh_cipher,state,created_at,expires_at,
+          consumed_at,ip_ref,device_ref
+        ) VALUES(?,?,?,?,?,'active',?,?,NULL,?,?)`,
+        input.ticketRef,
+        user.id,
+        input.subjectRef,
+        input.emailRef,
+        input.refreshCipher,
+        input.now,
+        input.expiresAt,
+        input.ipRef,
+        input.deviceRef
+      );
+      this.#event("firebase-account-verification-started", input.subjectRef, user.id, input.now);
+      return { prepared: true, user };
+    });
+  }
+  async getFirebaseAccountVerification(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT t.user_id AS userId,t.subject_ref AS subjectRef,t.email_ref AS emailRef,
+          t.refresh_cipher AS refreshCipher,t.state,t.expires_at AS expiresAt,
+          u.email_mask AS emailMask,u.status,u.created_at AS createdAt
+         FROM auth_account_verification_tickets t
+         JOIN auth_users u ON u.user_id=t.user_id
+         WHERE t.ticket_ref=? AND t.device_ref=?`,
+        input.ticketRef,
+        input.deviceRef
+      );
+      if (!row || row.state !== "active") return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID };
+      if (Number(row.expiresAt) <= input.now) {
+        this.sql.exec("UPDATE auth_account_verification_tickets SET state='expired',refresh_cipher='' WHERE ticket_ref=?", input.ticketRef);
+        return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID };
+      }
+      if (row.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      return row;
+    });
+  }
+  async completeFirebaseAccountVerification(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT t.user_id AS userId,t.subject_ref AS subjectRef,t.email_ref AS emailRef,
+          t.state,t.expires_at AS expiresAt,u.email_mask AS emailMask,u.status,u.created_at AS createdAt
+         FROM auth_account_verification_tickets t JOIN auth_users u ON u.user_id=t.user_id
+         WHERE t.ticket_ref=? AND t.device_ref=?`,
+        input.ticketRef,
+        input.deviceRef
+      );
+      if (!row || row.state !== "active" || Number(row.expiresAt) <= input.now || row.subjectRef !== input.subjectRef || row.emailRef !== input.emailRef) {
+        return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID };
+      }
+      if (row.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      this.sql.exec(
+        "UPDATE auth_account_verification_tickets SET state='consumed',refresh_cipher='',consumed_at=? WHERE ticket_ref=? AND state='active'",
+        input.now,
+        input.ticketRef
+      );
+      this.sql.exec(
+        `INSERT INTO auth_sessions(
+          session_ref,user_id,created_at,expires_at,last_seen_at,revoked_at,ip_ref,device_ref,user_agent
+        ) VALUES(?,?,?,?,?,NULL,?,?,?)`,
+        input.sessionRef,
+        row.userId,
+        input.now,
+        input.sessionExpiresAt,
+        input.now,
+        input.ipRef,
+        input.deviceRef,
+        input.userAgent
+      );
+      this.sql.exec("UPDATE auth_users SET last_login_at=? WHERE user_id=?", input.now, row.userId);
+      this.#event("firebase-telegram-verification-session", input.subjectRef, row.userId, input.now);
+      return {
+        established: true,
+        user: { id: row.userId, emailRef: row.emailRef, emailMask: row.emailMask, status: row.status, createdAt: Number(row.createdAt) }
+      };
+    });
+  }
+  async getFirebaseIdentity(input) {
+    const row = this.#one(
+      `SELECT u.user_id AS id,u.email_ref AS emailRef,u.email_mask AS emailMask,u.status,u.created_at AS createdAt
+       FROM auth_external_identities x JOIN auth_users u ON u.user_id=x.user_id
+       WHERE x.provider='firebase' AND x.subject_ref=? AND u.email_ref=?`,
+      input.subjectRef,
+      input.emailRef
+    );
+    if (!row) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
+    if (row.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+    return { user: row };
   }
   async beginPasskeyRegistration(input) {
     return this.#transaction(() => {
@@ -6295,6 +6881,8 @@ var SqliteAuthRepository = class {
   }
   async cleanup(now) {
     return this.#transaction(() => {
+      this.sql.exec("UPDATE auth_account_verification_tickets SET state='expired',refresh_cipher='' WHERE state='active' AND expires_at<=?", now);
+      this.sql.exec("DELETE FROM auth_account_verification_tickets WHERE expires_at<?", now - DAY_MS);
       this.sql.exec("DELETE FROM auth_passkey_challenges WHERE expires_at<=?", now);
       this.sql.exec("DELETE FROM auth_passkey_tickets WHERE expires_at<=?", now);
       this.sql.exec("DELETE FROM auth_passkey_credentials WHERE status='revoked' AND revoked_at<?", now - EVENT_RETENTION_MS);
@@ -6308,11 +6896,13 @@ var SqliteAuthRepository = class {
   async nextExpiry(now) {
     const row = this.#one(
       `SELECT MIN(expiry) AS nextExpiry FROM (
-        SELECT MIN(expires_at) AS expiry FROM auth_passkey_challenges WHERE expires_at>?
+        SELECT MIN(expires_at) AS expiry FROM auth_account_verification_tickets WHERE expires_at>? AND state='active'
+        UNION ALL SELECT MIN(expires_at) FROM auth_passkey_challenges WHERE expires_at>?
         UNION ALL SELECT MIN(expires_at) FROM auth_passkey_tickets WHERE expires_at>?
         UNION ALL SELECT MIN(expires_at) FROM auth_sessions WHERE expires_at>? AND revoked_at IS NULL
         UNION ALL SELECT MIN(expires_at) FROM auth_rate_limits WHERE expires_at>?
       )`,
+      now,
       now,
       now,
       now,
@@ -6340,7 +6930,7 @@ var safeInteraction = (value) => {
     const url = new URL(String(value.url || ""));
     const token = url.searchParams.get("start") || "";
     if (url.protocol !== "https:" || url.hostname !== "t.me" || !/^\/(?=.{5,32}$)[A-Za-z][A-Za-z0-9_]*bot$/i.test(url.pathname) || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) return null;
-    return Object.freeze({ type: "telegram-link", url: url.href, proof: "webhook-required", identityKind: "telegram-account", phoneOwnership: false });
+    return Object.freeze({ type: "telegram-link", url: url.href, proof: "local-code-required", identityKind: "telegram-account", phoneOwnership: false });
   } catch {
     return null;
   }
@@ -6383,6 +6973,10 @@ var VerificationOrchestrator = class {
       "reserveChallenge",
       "markChallengeDelivery",
       "confirmProviderEvidence",
+      "claimTelegramDelivery",
+      "confirmTelegramDelivery",
+      "getPendingChallenge",
+      "isTelegramLinked",
       "failChallenge",
       "getChallenge",
       "verifyLocalChallenge",
@@ -6401,6 +6995,7 @@ var VerificationOrchestrator = class {
     if (!repository || required.some((method) => typeof repository[method] !== "function")) throw new TypeError("Verification repository is invalid.");
     this.repository = repository;
     this.hmac = new AuthHmac(hmacSecret, cryptoImpl);
+    this.vault = new AuthSecretVault(hmacSecret, cryptoImpl);
     this.activated = activated === true;
     const configured = verificationConfig(config);
     this.runtimeEnabled = configured.enabled;
@@ -6419,11 +7014,42 @@ var VerificationOrchestrator = class {
     }));
   }
   async #identity(input, requestContext) {
+    const purpose = PURPOSES.has(input?.purpose) ? input.purpose : "account-backup";
+    const context = contextOf(requestContext);
+    const trusted = input?.trustedIdentity;
+    if (trusted && typeof trusted === "object") {
+      const userId2 = String(trusted.userId || "").trim();
+      const sessionRef2 = String(trusted.sessionRef || "");
+      const subjectRef2 = String(trusted.subjectRef || "");
+      const emailRef2 = String(trusted.emailRef || "");
+      if (!validText(userId2, 3, 128) || ![sessionRef2, subjectRef2, emailRef2].every((value) => /^[a-f0-9]{64}$/.test(value))) {
+        failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+      }
+      const [ipRef2, deviceRef2, destinationRef2] = await Promise.all([
+        this.hmac.hex("network-ref-v1", context.ip),
+        this.hmac.hex("device-ref-v1", context.deviceId),
+        this.hmac.hex("verification-destination-v1", "telegram-account-verification")
+      ]);
+      return Object.freeze({
+        sessionToken: "",
+        subject: "",
+        userId: userId2,
+        email: "",
+        purpose,
+        destinations: Object.freeze({ otp: "", whatsapp: "", telegram: "user-initiated-link" }),
+        context,
+        sessionRef: sessionRef2,
+        subjectRef: subjectRef2,
+        emailRef: emailRef2,
+        ipRef: ipRef2,
+        deviceRef: deviceRef2,
+        destinationRef: destinationRef2
+      });
+    }
     const sessionToken = String(input?.sessionToken || "").trim();
     const subject = String(input?.subject || "").trim();
     const userId = String(input?.userId || "").trim();
     const email = normalizeAuthEmail(input?.email);
-    const purpose = PURPOSES.has(input?.purpose) ? input.purpose : "account-backup";
     if (!/^[A-Za-z0-9_-]{40,96}$/.test(sessionToken) || !validText(subject, 1, 256) || !validText(userId, 3, 128)) {
       failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
     }
@@ -6433,7 +7059,6 @@ var VerificationOrchestrator = class {
     const linkedTelegram = /^[A-Za-z0-9_-]{8,128}$/.test(String(linked.telegram || "")) ? String(linked.telegram) : "";
     const telegram = linkedTelegram || (input?.allowTelegramLink === true ? "user-initiated-link" : "");
     const destinations = Object.freeze({ otp: email, whatsapp, telegram });
-    const context = contextOf(requestContext);
     const [sessionRef, subjectRef, emailRef, ipRef, deviceRef, destinationRef] = await Promise.all([
       this.hmac.hex("session-ref-v1", sessionToken),
       this.hmac.hex("firebase-subject-v1", subject),
@@ -6515,9 +7140,15 @@ var VerificationOrchestrator = class {
     const attemptId = randomToken(24, this.crypto);
     const code = randomSixDigitOtp(this.crypto);
     const linkToken = randomToken(32, this.crypto);
-    const [codeMac, linkTokenMac] = await Promise.all([
+    const requiresRecoverableTelegramMaterial = this.config.providers.some((entry) => {
+      const provider = this.providers.get(entry.id);
+      return entry.enabled && provider?.id === "telegram" && provider?.verificationMode === VERIFICATION_MODES.LOCAL_CODE;
+    });
+    const [codeMac, linkTokenMac, codeCipher, linkCipher] = await Promise.all([
       this.hmac.hex("backup-verification-code-v1", `${attemptId}:${code}`),
-      this.hmac.hex("backup-verification-link-v1", linkToken)
+      this.hmac.hex("backup-verification-link-v1", linkToken),
+      requiresRecoverableTelegramMaterial ? this.vault.seal(`telegram-otp-v1:${code}`, `telegram-verification-code:${attemptId}`) : "",
+      requiresRecoverableTelegramMaterial ? this.vault.seal(linkToken, `telegram-verification-link:${attemptId}`) : ""
     ]);
     const policy = this.config.policy;
     errorFromRepository(await this.repository.reserveChallenge({
@@ -6531,7 +7162,9 @@ var VerificationOrchestrator = class {
       ipRef: identity.ipRef,
       purpose: identity.purpose,
       codeMac,
+      codeCipher,
       linkTokenMac,
+      linkCipher,
       maxAttempts: policy.maxAttempts,
       createdAt: now,
       expiresAt: now + policy.codeTtlSeconds * 1e3,
@@ -6568,6 +7201,8 @@ var VerificationOrchestrator = class {
             providerId: entry.id,
             channel: entry.channel,
             verificationMode: entry.verificationMode,
+            retainCodeCipher: entry.id === "telegram",
+            retainLinkCipher: entry.id === "telegram",
             latencyMs,
             now
           }));
@@ -6720,7 +7355,50 @@ var VerificationOrchestrator = class {
       }));
     }
     if (verified.userId !== identity.userId || verified.purpose !== identity.purpose) failAuth(AUTH_ERROR_CODES.ACCOUNT_CONFLICT);
-    return Object.freeze({ verified: true, purpose: verified.purpose, userId: identity.userId });
+    return Object.freeze({
+      verified: true,
+      purpose: verified.purpose,
+      userId: identity.userId,
+      ...verified.telegramLinked === true ? { telegramLinked: true, emailVerified: false } : {}
+    });
+  }
+  async pendingVerification(input = {}, requestContext = {}) {
+    const identity = await this.#identity(input, requestContext);
+    const selected = await this.repository.getPendingChallenge({
+      userId: identity.userId,
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      deviceRef: identity.deviceRef,
+      emailRef: identity.emailRef,
+      purpose: identity.purpose,
+      now: Number(this.now())
+    });
+    if (selected?.pending !== true || !selected.challenge) return Object.freeze({ pending: false });
+    const challenge = selected.challenge;
+    const codeSent = challenge.providerId === "telegram" ? challenge.providerConfirmed === true && !challenge.codeCipher : true;
+    let interaction = null;
+    if (challenge.providerId === "telegram" && !codeSent && challenge.linkCipher) {
+      const entry = this.config.providers.find((row) => row.id === "telegram" && row.enabled);
+      const provider = entry ? this.providers.get(entry.id) : null;
+      if (provider) {
+        const linkToken = await this.vault.open(challenge.linkCipher, `telegram-verification-link:${challenge.attemptId}`);
+        const result = await provider.sendVerification({ linkToken, attemptId: challenge.attemptId, purpose: identity.purpose });
+        interaction = safeInteraction(result?.interaction);
+      }
+    }
+    return Object.freeze({
+      pending: true,
+      attemptId: challenge.attemptId,
+      expiresAt: Number(challenge.expiresAt),
+      resendAt: Number(challenge.resendAt),
+      codeSent,
+      ...interaction ? { interaction } : {}
+    });
+  }
+  async isTelegramLinked(input = {}, requestContext = {}) {
+    const identity = await this.#identity(input, requestContext);
+    const result = await this.repository.isTelegramLinked({ userId: identity.userId, subjectRef: identity.subjectRef });
+    return Object.freeze({ linked: result?.linked === true });
   }
   async confirmTelegramWebhook(input = {}) {
     const linkToken = String(input.linkToken || "").trim();
@@ -6731,21 +7409,36 @@ var VerificationOrchestrator = class {
     }
     const entry = this.config.providers.find((row) => row.id === "telegram" && row.enabled);
     const provider = entry ? this.providers.get(entry.id) : null;
-    if (!this.config.enabled || !entry || !provider) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    if (!this.config.enabled || !entry || !provider || typeof provider.sendTelegramCode !== "function") {
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
     const status = await bounded(() => provider.getProviderStatus({ now: Number(this.now()) }), entry.timeoutMs);
     if (status?.configured !== true) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    const now = Number(this.now());
     const [linkTokenMac, externalIdentityRef] = await Promise.all([
       this.hmac.hex("backup-verification-link-v1", linkToken),
       this.hmac.hex("telegram-identity-v1", telegramUserId)
     ]);
-    errorFromRepository(await this.repository.confirmProviderEvidence({
+    const claimed = errorFromRepository(await this.repository.claimTelegramDelivery({
       linkTokenMac,
       externalIdentityRef,
-      providerId: "telegram",
-      channel: "telegram",
-      now: Number(this.now())
+      now
     }));
-    return Object.freeze({ accepted: true, identityKind: "telegram-account", phoneOwnership: false });
+    try {
+      const packedCode = await this.vault.open(claimed.codeCipher, `telegram-verification-code:${claimed.attemptId}`);
+      const code = /^telegram-otp-v1:(\d{6})$/.exec(packedCode)?.[1] || "";
+      if (!code) throw new NativeAuthError(AUTH_ERROR_CODES.STORAGE_UNAVAILABLE);
+      const delivered = await bounded(() => provider.sendTelegramCode({
+        chatId,
+        code,
+        expiresInSeconds: Math.max(1, Math.ceil((Number(claimed.expiresAt) - Number(this.now())) / 1e3))
+      }), entry.timeoutMs);
+      if (delivered?.accepted !== true) throw new VerificationProviderError("INVALID_PROVIDER_RESPONSE", VERIFICATION_FAILURE_CLASS.HARD);
+      errorFromRepository(await this.repository.confirmTelegramDelivery({ attemptId: claimed.attemptId, now: Number(this.now()) }));
+      return Object.freeze({ accepted: true, codeSent: true, identityKind: "telegram-account", phoneOwnership: false });
+    } catch {
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
   }
   async configureTelegramWebhook() {
     const entry = this.config.providers.find((row) => row.id === "telegram" && row.enabled);
@@ -6795,6 +7488,7 @@ var VerificationOrchestrator = class {
       const phoneMode = channels.has("whatsapp") ? channels.has("otp") || channels.has("telegram") ? "optional" : "required" : "none";
       return Object.freeze({
         available: rows.length > 0,
+        telegramAvailable: channels.has("telegram"),
         availabilityCode: rows.length ? "READY" : this.config.enabled ? "NO_HEALTHY_PROVIDER" : "NOT_ACTIVATED",
         genericFlow: true,
         providerNamesExposed: false,
@@ -7098,7 +7792,7 @@ var TelegramLinkVerificationProvider = class {
   constructor({ botUsername, botToken, webhookSecret, webhookSecretSource, webhookUrl, declaredDailyQuota, fetchImpl = globalThis.fetch, cryptoImpl = globalThis.crypto } = {}) {
     this.id = "telegram";
     this.channel = VERIFICATION_CHANNELS.TELEGRAM;
-    this.verificationMode = VERIFICATION_MODES.PROVIDER_EVIDENCE;
+    this.verificationMode = VERIFICATION_MODES.LOCAL_CODE;
     this.botUsername = validTelegramBotUsername(botUsername) ? String(botUsername) : "";
     this.botToken = validTelegramBotToken(botToken) ? String(botToken) : "";
     this.botId = this.botToken ? this.botToken.split(":", 1)[0] : "";
@@ -7238,8 +7932,39 @@ var TelegramLinkVerificationProvider = class {
     link.searchParams.set("start", input.linkToken);
     return { accepted: true, interaction: { type: "telegram-link", url: link.href } };
   }
-  async verifyCode(input = {}) {
-    return { verified: input.serverConfirmed === true, identityKind: "telegram-account", phoneOwnership: false };
+  async sendTelegramCode(input = {}) {
+    if (!this.configured) throw new VerificationProviderError("NOT_CONFIGURED", VERIFICATION_FAILURE_CLASS.HARD);
+    const chatId = String(input.chatId || "");
+    const code = String(input.code || "");
+    if (!/^[1-9]\d{0,19}$/.test(chatId) || !/^\d{6}$/.test(code)) {
+      throw new VerificationProviderError("INVALID_DESTINATION", VERIFICATION_FAILURE_CLASS.USER);
+    }
+    const minutes = Math.max(1, Math.min(10, Math.ceil(safeInteger(input.expiresInSeconds, 60, 600) / 60)));
+    const text = [
+      "🔐 Admission Hub Verification",
+      "আপনার verification code:",
+      code,
+      "এই code-টি Admission Hub app-এর verification box-এ দিন।",
+      `⏱️ Code-এর মেয়াদ ${minutes} মিনিট।`,
+      "কাউকে এই code বা আপনার password দেবেন না।"
+    ].join("\n");
+    const payload = await fetchJson(this.fetch, this.#base("sendMessage"), {
+      method: "POST",
+      headers: this.#headers(true),
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        protect_content: true,
+        disable_web_page_preview: true
+      })
+    });
+    if (payload?.ok !== true || !Number.isSafeInteger(Number(payload?.result?.message_id))) {
+      throw new VerificationProviderError("INVALID_PROVIDER_RESPONSE", VERIFICATION_FAILURE_CLASS.HARD);
+    }
+    return { accepted: true };
+  }
+  async verifyCode() {
+    throw new VerificationProviderError("LOCAL_VERIFICATION_ONLY", VERIFICATION_FAILURE_CLASS.USER);
   }
   async getProviderStatus() {
     return { status: this.configured ? "configured" : "disabled", configured: this.configured, identityKind: "telegram-account", phoneOwnership: false };
@@ -7295,7 +8020,9 @@ var SqliteVerificationRepository = class {
         ip_ref TEXT NOT NULL,
         purpose TEXT NOT NULL CHECK(purpose IN ('account-backup','sensitive-action')),
         code_mac TEXT NOT NULL,
+        code_cipher TEXT NOT NULL DEFAULT '',
         link_token_mac TEXT NOT NULL,
+        link_cipher TEXT NOT NULL DEFAULT '',
         provider_id TEXT,
         channel TEXT,
         verification_mode TEXT,
@@ -7316,6 +8043,18 @@ var SqliteVerificationRepository = class {
        ON auth_verification_challenges(user_id,purpose,created_at DESC)`,
       `CREATE INDEX IF NOT EXISTS auth_verification_expiry
        ON auth_verification_challenges(expires_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_telegram_identity_links (
+        user_id TEXT PRIMARY KEY,
+        subject_ref TEXT NOT NULL UNIQUE,
+        external_identity_ref TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL CHECK(status IN ('active','revoked')),
+        linked_at INTEGER NOT NULL,
+        last_verified_at INTEGER NOT NULL,
+        revoked_at INTEGER,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_telegram_identity_status
+       ON auth_telegram_identity_links(status,last_verified_at DESC)`,
       `CREATE TABLE IF NOT EXISTS auth_verification_daily_quota (
         provider_id TEXT NOT NULL,
         day_start INTEGER NOT NULL,
@@ -7366,14 +8105,16 @@ var SqliteVerificationRepository = class {
       Array.from(this.sql.exec("PRAGMA table_info(auth_verification_challenges)")).map((row) => String(row.name || ""))
     );
     const additiveColumns = [
+      ["code_cipher", "ALTER TABLE auth_verification_challenges ADD COLUMN code_cipher TEXT NOT NULL DEFAULT ''"],
       ["link_token_mac", "ALTER TABLE auth_verification_challenges ADD COLUMN link_token_mac TEXT NOT NULL DEFAULT ''"],
+      ["link_cipher", "ALTER TABLE auth_verification_challenges ADD COLUMN link_cipher TEXT NOT NULL DEFAULT ''"],
       ["provider_confirmed", "ALTER TABLE auth_verification_challenges ADD COLUMN provider_confirmed INTEGER NOT NULL DEFAULT 0"],
       ["external_identity_ref", "ALTER TABLE auth_verification_challenges ADD COLUMN external_identity_ref TEXT"]
     ];
     for (const [column, statement] of additiveColumns) {
       if (!challengeColumns.has(column)) this.sql.exec(statement);
     }
-    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','4') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
+    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','5') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
   }
   #rows(statement, ...bindings) {
     return Array.from(this.sql.exec(statement, ...bindings));
@@ -7451,8 +8192,9 @@ var SqliteVerificationRepository = class {
     const row = this.#one(
       `SELECT attempt_id AS attemptId,user_id AS userId,session_ref AS sessionRef,subject_ref AS subjectRef,
         email_ref AS emailRef,destination_ref AS destinationRef,device_ref AS deviceRef,ip_ref AS ipRef,
-        purpose,code_mac AS codeMac,link_token_mac AS linkTokenMac,provider_id AS providerId,channel,
-        verification_mode AS verificationMode,state,attempts,max_attempts AS maxAttempts,
+        purpose,code_mac AS codeMac,code_cipher AS codeCipher,link_token_mac AS linkTokenMac,
+        link_cipher AS linkCipher,provider_id AS providerId,channel,verification_mode AS verificationMode,
+        state,attempts,max_attempts AS maxAttempts,
         created_at AS createdAt,expires_at AS expiresAt,resend_at AS resendAt,sent_at AS sentAt,
         verified_at AS verifiedAt,lockout_until AS lockoutUntil,provider_confirmed AS providerConfirmed,
         external_identity_ref AS externalIdentityRef
@@ -7469,7 +8211,7 @@ var SqliteVerificationRepository = class {
     };
     if (row.state !== "sent") return { error: AUTH_ERROR_CODES.OTP_INVALID };
     if (Number(row.expiresAt) <= input.now) {
-      this.sql.exec("UPDATE auth_verification_challenges SET state='expired',code_mac='',link_token_mac='' WHERE attempt_id=?", input.attemptId);
+      this.sql.exec("UPDATE auth_verification_challenges SET state='expired',code_mac='',code_cipher='',link_token_mac='',link_cipher='' WHERE attempt_id=?", input.attemptId);
       return { error: AUTH_ERROR_CODES.OTP_EXPIRED };
     }
     return { challenge: row };
@@ -7504,9 +8246,9 @@ var SqliteVerificationRepository = class {
       this.sql.exec(
         `INSERT INTO auth_verification_challenges(
           attempt_id,user_id,session_ref,subject_ref,email_ref,destination_ref,device_ref,ip_ref,purpose,
-          code_mac,link_token_mac,provider_id,channel,verification_mode,state,attempts,max_attempts,
-          created_at,expires_at,resend_at,sent_at,verified_at,lockout_until
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,'pending',0,?,?,?,?,NULL,NULL,0)`,
+          code_mac,code_cipher,link_token_mac,link_cipher,provider_id,channel,verification_mode,state,
+          attempts,max_attempts,created_at,expires_at,resend_at,sent_at,verified_at,lockout_until
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,'pending',0,?,?,?,?,NULL,NULL,0)`,
         input.attemptId,
         input.userId,
         input.sessionRef,
@@ -7517,7 +8259,9 @@ var SqliteVerificationRepository = class {
         input.ipRef,
         input.purpose,
         input.codeMac,
+        input.codeCipher,
         input.linkTokenMac,
+        input.linkCipher,
         input.maxAttempts,
         input.createdAt,
         input.expiresAt,
@@ -7532,16 +8276,22 @@ var SqliteVerificationRepository = class {
       const row = this.#one("SELECT user_id AS userId,subject_ref AS subjectRef,purpose,state FROM auth_verification_challenges WHERE attempt_id=?", input.attemptId);
       if (!row || row.state !== "pending") return { error: AUTH_ERROR_CODES.OTP_INVALID };
       this.sql.exec(
-        `UPDATE auth_verification_challenges SET provider_id=?,channel=?,verification_mode=?,state='sent',sent_at=?
+        `UPDATE auth_verification_challenges
+         SET provider_id=?,channel=?,verification_mode=?,state='sent',sent_at=?,
+             code_cipher=CASE WHEN ? THEN code_cipher ELSE '' END,
+             link_cipher=CASE WHEN ? THEN link_cipher ELSE '' END
          WHERE attempt_id=? AND state='pending'`,
         input.providerId,
         input.channel,
         input.verificationMode,
         input.now,
+        input.retainCodeCipher ? 1 : 0,
+        input.retainLinkCipher ? 1 : 0,
         input.attemptId
       );
       this.sql.exec(
-        `UPDATE auth_verification_challenges SET state='superseded',code_mac='',link_token_mac=''
+        `UPDATE auth_verification_challenges
+         SET state='superseded',code_mac='',code_cipher='',link_token_mac='',link_cipher=''
          WHERE user_id=? AND purpose=? AND attempt_id<>? AND state IN ('pending','sent')`,
         row.userId,
         row.purpose,
@@ -7575,6 +8325,104 @@ var SqliteVerificationRepository = class {
       return { confirmed: true, attemptId: row.attemptId };
     });
   }
+  async claimTelegramDelivery(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT attempt_id AS attemptId,user_id AS userId,subject_ref AS subjectRef,
+          code_cipher AS codeCipher,expires_at AS expiresAt,provider_confirmed AS providerConfirmed,
+          external_identity_ref AS externalIdentityRef
+         FROM auth_verification_challenges
+         WHERE link_token_mac=? AND provider_id='telegram' AND channel='telegram'
+           AND verification_mode='local-code' AND state='sent'`,
+        input.linkTokenMac
+      );
+      if (!row || Number(row.expiresAt) <= input.now || !row.codeCipher) return { error: AUTH_ERROR_CODES.OTP_INVALID };
+      if (row.providerConfirmed && row.externalIdentityRef !== input.externalIdentityRef) {
+        return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      }
+      const externalOwner = this.#one(
+        "SELECT user_id AS userId,subject_ref AS subjectRef FROM auth_telegram_identity_links WHERE external_identity_ref=? AND status='active'",
+        input.externalIdentityRef
+      );
+      const userLink = this.#one(
+        "SELECT external_identity_ref AS externalIdentityRef,subject_ref AS subjectRef FROM auth_telegram_identity_links WHERE user_id=? AND status='active'",
+        row.userId
+      );
+      const claimedElsewhere = this.#one(
+        `SELECT user_id AS userId FROM auth_verification_challenges
+         WHERE external_identity_ref=? AND provider_id='telegram' AND state='sent'
+           AND provider_confirmed=1 AND attempt_id<>?`,
+        input.externalIdentityRef,
+        row.attemptId
+      );
+      if (externalOwner && (externalOwner.userId !== row.userId || externalOwner.subjectRef !== row.subjectRef) || userLink && (userLink.externalIdentityRef !== input.externalIdentityRef || userLink.subjectRef !== row.subjectRef) || claimedElsewhere && claimedElsewhere.userId !== row.userId) {
+        return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      }
+      this.sql.exec(
+        `UPDATE auth_verification_challenges
+         SET provider_confirmed=1,external_identity_ref=?
+         WHERE attempt_id=? AND state='sent' AND (provider_confirmed=0 OR external_identity_ref=?)`,
+        input.externalIdentityRef,
+        row.attemptId,
+        input.externalIdentityRef
+      );
+      this.#event({ ...row, providerId: "telegram", channel: "telegram", now: input.now, outcome: "provider_confirmed", reason: "private_same_user_start" });
+      return {
+        claimed: true,
+        attemptId: row.attemptId,
+        codeCipher: row.codeCipher,
+        expiresAt: Number(row.expiresAt),
+        userId: row.userId,
+        subjectRef: row.subjectRef
+      };
+    });
+  }
+  async confirmTelegramDelivery(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT user_id AS userId,subject_ref AS subjectRef FROM auth_verification_challenges
+         WHERE attempt_id=? AND provider_id='telegram' AND provider_confirmed=1 AND state='sent'`,
+        input.attemptId
+      );
+      if (!row) return { error: AUTH_ERROR_CODES.OTP_INVALID };
+      this.sql.exec("UPDATE auth_verification_challenges SET code_cipher='',link_token_mac='',link_cipher='' WHERE attempt_id=?", input.attemptId);
+      this.#event({ ...row, attemptId: input.attemptId, providerId: "telegram", channel: "telegram", now: input.now, outcome: "sent", reason: "telegram_code_accepted" });
+      return { delivered: true };
+    });
+  }
+  async getPendingChallenge(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT attempt_id AS attemptId,expires_at AS expiresAt,resend_at AS resendAt,
+          provider_id AS providerId,channel,verification_mode AS verificationMode,
+          provider_confirmed AS providerConfirmed,code_cipher AS codeCipher,link_cipher AS linkCipher,state
+         FROM auth_verification_challenges
+         WHERE user_id=? AND session_ref=? AND subject_ref=? AND email_ref=?
+           AND device_ref=? AND purpose=? AND state='sent'
+         ORDER BY created_at DESC LIMIT 1`,
+        input.userId,
+        input.sessionRef,
+        input.subjectRef,
+        input.emailRef,
+        input.deviceRef,
+        input.purpose
+      );
+      if (!row) return { pending: false };
+      if (Number(row.expiresAt) <= input.now) {
+        this.sql.exec("UPDATE auth_verification_challenges SET state='expired',code_mac='',code_cipher='',link_token_mac='',link_cipher='' WHERE attempt_id=?", row.attemptId);
+        return { pending: false };
+      }
+      return { pending: true, challenge: row };
+    });
+  }
+  async isTelegramLinked(input) {
+    const row = this.#one(
+      "SELECT status FROM auth_telegram_identity_links WHERE user_id=? AND subject_ref=?",
+      input.userId,
+      input.subjectRef
+    );
+    return { linked: row?.status === "active" };
+  }
   async failChallenge(input) {
     return this.#transaction(() => {
       const row = this.#one(
@@ -7582,7 +8430,7 @@ var SqliteVerificationRepository = class {
         input.attemptId
       );
       this.sql.exec(
-        "UPDATE auth_verification_challenges SET state='failed',code_mac='',link_token_mac='' WHERE attempt_id=? AND state IN ('pending','sent')",
+        "UPDATE auth_verification_challenges SET state='failed',code_mac='',code_cipher='',link_token_mac='',link_cipher='' WHERE attempt_id=? AND state IN ('pending','sent')",
         input.attemptId
       );
       this.#event({ ...row || {}, ...input, outcome: "failed" });
@@ -7601,7 +8449,7 @@ var SqliteVerificationRepository = class {
       if (attempts >= Number(row.maxAttempts)) {
         const lockoutUntil = input.now + input.lockoutMs;
         this.sql.exec(
-          "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',link_token_mac='',lockout_until=? WHERE attempt_id=?",
+          "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',code_cipher='',link_token_mac='',link_cipher='',lockout_until=? WHERE attempt_id=?",
           attempts,
           lockoutUntil,
           input.attemptId
@@ -7619,12 +8467,15 @@ var SqliteVerificationRepository = class {
       const selected = this.#challenge(input);
       if (selected.error) return selected;
       const row = selected.challenge;
+      if (row.providerId === "telegram" && (!row.providerConfirmed || !row.externalIdentityRef)) {
+        return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_PENDING };
+      }
       if (!constantTimeEqual(row.codeMac, input.candidateCodeMac)) {
         const attempts = Number(row.attempts || 0) + 1;
         if (attempts >= Number(row.maxAttempts)) {
           const lockoutUntil = input.now + input.lockoutMs;
           this.sql.exec(
-            "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',link_token_mac='',lockout_until=? WHERE attempt_id=?",
+            "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',code_cipher='',link_token_mac='',link_cipher='',lockout_until=? WHERE attempt_id=?",
             attempts,
             lockoutUntil,
             input.attemptId
@@ -7636,13 +8487,50 @@ var SqliteVerificationRepository = class {
         this.#event({ ...row, now: input.now, outcome: "rejected", reason: "user_code_mismatch" });
         return { error: AUTH_ERROR_CODES.OTP_INVALID, attemptsRemaining: Number(row.maxAttempts) - attempts };
       }
+      if (row.providerId === "telegram") {
+        const externalOwner = this.#one(
+          "SELECT user_id AS userId,subject_ref AS subjectRef FROM auth_telegram_identity_links WHERE external_identity_ref=? AND status='active'",
+          row.externalIdentityRef
+        );
+        const userLink = this.#one(
+          "SELECT external_identity_ref AS externalIdentityRef,subject_ref AS subjectRef FROM auth_telegram_identity_links WHERE user_id=? AND status='active'",
+          row.userId
+        );
+        if (externalOwner && (externalOwner.userId !== row.userId || externalOwner.subjectRef !== row.subjectRef) || userLink && (userLink.externalIdentityRef !== row.externalIdentityRef || userLink.subjectRef !== row.subjectRef)) {
+          return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+        }
+        if (userLink) {
+          this.sql.exec(
+            "UPDATE auth_telegram_identity_links SET last_verified_at=?,status='active',revoked_at=NULL WHERE user_id=?",
+            input.now,
+            row.userId
+          );
+        } else {
+          this.sql.exec(
+            `INSERT INTO auth_telegram_identity_links(
+              user_id,subject_ref,external_identity_ref,status,linked_at,last_verified_at,revoked_at
+            ) VALUES(?,?,?,'active',?,?,NULL)`,
+            row.userId,
+            row.subjectRef,
+            row.externalIdentityRef,
+            input.now,
+            input.now
+          );
+        }
+      }
       this.sql.exec(
-        "UPDATE auth_verification_challenges SET state='verified',code_mac='',link_token_mac='',verified_at=? WHERE attempt_id=? AND state='sent'",
+        "UPDATE auth_verification_challenges SET state='verified',code_mac='',code_cipher='',link_token_mac='',link_cipher='',verified_at=? WHERE attempt_id=? AND state='sent'",
         input.now,
         input.attemptId
       );
       this.#event({ ...row, now: input.now, outcome: "verified", reason: "accepted" });
-      return { verified: true, userId: row.userId, purpose: row.purpose };
+      return {
+        verified: true,
+        userId: row.userId,
+        purpose: row.purpose,
+        telegramLinked: row.providerId === "telegram",
+        emailVerified: false
+      };
     });
   }
   async completeRemoteChallenge(input) {
@@ -7651,7 +8539,7 @@ var SqliteVerificationRepository = class {
       if (selected.error) return selected;
       const row = selected.challenge;
       this.sql.exec(
-        "UPDATE auth_verification_challenges SET state='verified',code_mac='',link_token_mac='',verified_at=? WHERE attempt_id=? AND state='sent'",
+        "UPDATE auth_verification_challenges SET state='verified',code_mac='',code_cipher='',link_token_mac='',link_cipher='',verified_at=? WHERE attempt_id=? AND state='sent'",
         input.now,
         input.attemptId
       );
@@ -7905,6 +8793,25 @@ var AdmissionAuthAuthority = class {
     });
     return { ...input, userId: session.user.id };
   }
+  async #preverificationIdentity(input = {}, context = {}) {
+    const material = await this.engine.getFirebaseAccountVerification(
+      input.verificationTicket,
+      input.email && input.subject ? { email: input.email, subject: input.subject } : {},
+      context
+    );
+    return {
+      material,
+      verificationInput: {
+        purpose: "account-backup",
+        trustedIdentity: {
+          userId: material.userId,
+          sessionRef: material.sessionRef,
+          subjectRef: material.subjectRef,
+          emailRef: material.emailRef
+        }
+      }
+    };
+  }
   async fetch(request) {
     try {
       await this.ready;
@@ -7926,6 +8833,20 @@ var AdmissionAuthAuthority = class {
       }
       if (url.pathname === "/internal/firebase/session/get") {
         const result = await this.engine.getFirebaseSession(body.sessionToken, body.input);
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/firebase/account-verification/begin") {
+        const result = await this.engine.beginFirebaseAccountVerification(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/firebase/account-verification/material") {
+        const result = await this.engine.getFirebaseAccountVerification(body.verificationTicket, body.input || {}, body.context);
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/firebase/account-verification/complete") {
+        const result = await this.engine.completeFirebaseAccountVerification(body.input, body.context);
+        await this.#scheduleExpiry();
         return response2(200, { ok: true, result });
       }
       if (url.pathname === "/internal/passkey/registration/begin") {
@@ -7969,6 +8890,40 @@ var AdmissionAuthAuthority = class {
         const input = await this.#verificationIdentity(body.input);
         const result = await this.verification.requestVerification(input, body.context);
         await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/preauth/request") {
+        const prepared = await this.#preverificationIdentity(body.input, body.context);
+        const result = await this.verification.requestVerification(prepared.verificationInput, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/preauth/pending") {
+        const prepared = await this.#preverificationIdentity(body.input, body.context);
+        const result = await this.verification.pendingVerification(prepared.verificationInput, body.context);
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/preauth/verify") {
+        const prepared = await this.#preverificationIdentity(body.input, body.context);
+        const result = await this.verification.verify({
+          ...prepared.verificationInput,
+          attemptId: body.input.attemptId,
+          code: body.input.code
+        }, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/telegram/status") {
+        const identity = await this.engine.getFirebaseIdentity(body.input, body.context);
+        const result = await this.verification.isTelegramLinked({
+          purpose: "account-backup",
+          trustedIdentity: {
+            userId: identity.userId,
+            sessionRef: identity.subjectRef,
+            subjectRef: identity.subjectRef,
+            emailRef: identity.emailRef
+          }
+        }, body.context);
         return response2(200, { ok: true, result });
       }
       if (url.pathname === "/internal/verification/verify") {

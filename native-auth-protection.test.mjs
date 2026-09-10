@@ -74,6 +74,11 @@ test('SQLite authority stores HMAC references and never plaintext email, passwor
   assert.doesNotMatch(storage, /\bemail TEXT|password(?:_hash)? TEXT|plain(?:text)?_password|session_token/i);
   assert.match(storage, /transactionSync/);
   assert.match(storage, /auth_external_identities/);
+  const verificationStorage = read('auth-native/verification/sqlite-verification-repository.mjs');
+  assert.match(verificationStorage, /code_mac TEXT NOT NULL/);
+  assert.match(verificationStorage, /code_cipher TEXT NOT NULL DEFAULT ''/);
+  assert.match(verificationStorage, /external_identity_ref TEXT NOT NULL UNIQUE/);
+  assert.doesNotMatch(verificationStorage, /telegram_(?:user|chat)_id|plaintext_otp|\botp TEXT/i);
 });
 
 test('public API keeps Email/Password while adding Firebase-canonical Google and server-verified Passkeys', () => {
@@ -138,6 +143,11 @@ test('Telegram canary preparation is protected, value-blind, reversible, and kee
   assert.match(telegramCanaryWorkflow, /telegram\/canary\/activate/);
   assert.match(telegramCanaryWorkflow, /telegram\/canary\/deactivate/);
   assert.match(telegramCanaryWorkflow, /backup\?\.availabilityCode!=='LIVE_E2E_PENDING'/);
+  assert.match(telegramCanaryWorkflow, /telegramVerification/);
+  assert.match(telegramCanaryWorkflow, /codeLength!==6/);
+  assert.match(telegramCanaryWorkflow, /maxAttempts!==5/);
+  assert.match(telegramCanaryWorkflow, /verifiesEmailOwnership!==false/);
+  assert.match(telegramCanaryWorkflow, /canonicalIdentity!=='firebase-uid'/);
   assert.match(telegramCanaryWorkflow, /config\?telegramCanary=1/);
   assert.match(telegramCanaryWorkflow, /verify-google-browser-origin\.mjs/);
   assert.match(telegramCanaryWorkflow, /rollback "\$PREVIOUS_WORKER_VERSION"/);
@@ -162,14 +172,23 @@ test('backup adapters keep credentials server-side and WhatsApp uses only the of
   assert.match(verificationControlCenter, /id="admin-key"[^>]*autocomplete="off"/);
 });
 
-test('Telegram proof requires a secret webhook and private same-user chat instead of link opening', () => {
+test('Telegram OTP requires secret private-chat START, local code verification, and one canonical Firebase identity', () => {
   assert.match(handler, /X-Telegram-Bot-Api-Secret-Token/);
   assert.match(handler, /validTelegramWebhookSecret\(expected\)/);
   assert.match(handler, /message\?\.chat\?\.type !== 'private'/);
   assert.match(handler, /telegramUserId !== chatId/);
+  assert.match(handler, /account-verification\/complete/);
   assert.match(verificationOrchestrator, /linkTokenMac/);
+  assert.match(verificationOrchestrator, /telegram-identity-v1/);
+  assert.match(verificationOrchestrator, /telegram-otp-v1/);
+  assert.match(verificationOrchestrator, /sendTelegramCode/);
   assert.match(verificationOrchestrator, /phoneOwnership:\s*false/);
+  assert.match(verificationProviders, /protect_content:\s*true/);
+  assert.match(verificationProviders, /আপনার verification code/);
+  assert.match(client, /id="ah-telegram-code"/);
   assert.match(client, /খোলা সফল যাচাই নয়/);
+  assert.match(client, /Gmail\/ইমেইল মালিকানার প্রমাণ নয়/);
+  assert.doesNotMatch(client, /telegram-webhook-confirmed|server-confirmed/);
 });
 
 test('verification admin page is no-store, no-index, and never receives provider credentials', () => {

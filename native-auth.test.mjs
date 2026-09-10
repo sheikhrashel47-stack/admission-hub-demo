@@ -396,7 +396,7 @@ test('Telegram canary is exact-query isolated, generic, and cannot leak through 
     maxAttempts: 5,
     expiresInSeconds: 300
   };
-  const app = handlerSetup({ backupCapabilities: capabilities });
+  const app = handlerSetup({ backupCapabilities: { ...capabilities, telegramAvailable: true } });
   app.env.VERIFICATION_AUTH_ACTIVATION = 'canary';
 
   const ordinary = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), app.env, {});
@@ -408,7 +408,15 @@ test('Telegram canary is exact-query isolated, generic, and cannot leak through 
 
   const canary = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config?telegramCanary=1`), app.env, {});
   assert.equal(canary.status, 200);
-  assert.deepEqual((await canary.json()).auth.methods.backup, capabilities);
+  const canaryAuth = (await canary.json()).auth;
+  assert.deepEqual(canaryAuth.methods.backup, capabilities);
+  assert.equal(canaryAuth.methods.telegramVerification.available, true);
+  assert.equal(canaryAuth.methods.telegramVerification.codeLength, 6);
+  assert.equal(canaryAuth.methods.telegramVerification.verifiesEmailOwnership, false);
+  assert.equal(canaryAuth.methods.telegramVerification.canonicalIdentity, 'firebase-uid');
+  assert.equal(canaryAuth.accountVerificationRequired, true);
+  assert.equal(canaryAuth.emailVerifiedRequired, false);
+  assert.equal('telegramAvailable' in canaryAuth.methods.backup, false);
   assert.equal(app.authority.calls.filter(path => path === '/internal/verification/capabilities').length, 1);
 
   const ordinaryCached = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), app.env, {});

@@ -1,5 +1,6 @@
 import { AuthHmac, normalizeAuthEmail, randomSixDigitOtp, randomToken } from '../core/crypto.mjs';
 import { AUTH_ERROR_CODES, errorFromRepository, failAuth, NativeAuthError } from '../core/errors.mjs';
+import { AuthSecretVault } from '../core/secret-vault.mjs';
 import { verificationConfig } from './config.mjs';
 import {
   assertVerificationProvider,
@@ -26,7 +27,7 @@ const safeInteraction = value => {
     const url = new URL(String(value.url || ''));
     const token = url.searchParams.get('start') || '';
     if (url.protocol !== 'https:' || url.hostname !== 't.me' || !/^\/(?=.{5,32}$)[A-Za-z][A-Za-z0-9_]*bot$/i.test(url.pathname) || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) return null;
-    return Object.freeze({ type: 'telegram-link', url: url.href, proof: 'webhook-required', identityKind: 'telegram-account', phoneOwnership: false });
+    return Object.freeze({ type: 'telegram-link', url: url.href, proof: 'local-code-required', identityKind: 'telegram-account', phoneOwnership: false });
   } catch { return null; }
 };
 const ratio = quota => {
@@ -66,13 +67,16 @@ async function bounded(action, milliseconds) {
 export class VerificationOrchestrator {
   constructor({ repository, hmacSecret, config, providers = [], activated = false, now = Date.now, cryptoImpl = globalThis.crypto } = {}) {
     const required = [
-      'reserveChallenge', 'markChallengeDelivery', 'confirmProviderEvidence', 'failChallenge', 'getChallenge', 'verifyLocalChallenge',
-      'rejectChallengeAttempt', 'completeRemoteChallenge', 'dailyQuotaSnapshot', 'reserveDailyQuota',
-      'providerSnapshot', 'recordProviderResult', 'status', 'getRuntimeConfig', 'setRuntimeConfig', 'cleanup', 'nextExpiry'
+      'reserveChallenge', 'markChallengeDelivery', 'confirmProviderEvidence', 'claimTelegramDelivery',
+      'confirmTelegramDelivery', 'getPendingChallenge', 'isTelegramLinked', 'failChallenge', 'getChallenge',
+      'verifyLocalChallenge', 'rejectChallengeAttempt', 'completeRemoteChallenge',
+      'dailyQuotaSnapshot', 'reserveDailyQuota', 'providerSnapshot', 'recordProviderResult',
+      'status', 'getRuntimeConfig', 'setRuntimeConfig', 'cleanup', 'nextExpiry'
     ];
     if (!repository || required.some(method => typeof repository[method] !== 'function')) throw new TypeError('Verification repository is invalid.');
     this.repository = repository;
     this.hmac = new AuthHmac(hmacSecret, cryptoImpl);
+    this.vault = new AuthSecretVault(hmacSecret, cryptoImpl);
     this.activated = activated === true;
     const configured = verificationConfig(config);
     this.runtimeEnabled = configured.enabled;
@@ -92,11 +96,32 @@ export class VerificationOrchestrator {
   }
 
   async #identity(input, requestContext) {
+    const purpose = PURPOSES.has(input?.purpose) ? input.purpose : 'account-backup';
+    const context = contextOf(requestContext);
+    const trusted = input?.trustedIdentity;
+    if (trusted && typeof trusted === 'object') {
+      const userId = String(trusted.userId || '').trim();
+      const sessionRef = String(trusted.sessionRef || '');
+      const subjectRef = String(trusted.subjectRef || '');
+      const emailRef = String(trusted.emailRef || '');
+      if (!validText(userId, 3, 128) || ![sessionRef, subjectRef, emailRef].every(value => /^[a-f0-9]{64}$/.test(value))) {
+        failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+      }
+      const [ipRef, deviceRef, destinationRef] = await Promise.all([
+        this.hmac.hex('network-ref-v1', context.ip),
+        this.hmac.hex('device-ref-v1', context.deviceId),
+        this.hmac.hex('verification-destination-v1', 'telegram-account-verification')
+      ]);
+      return Object.freeze({
+        sessionToken: '', subject: '', userId, email: '', purpose,
+        destinations: Object.freeze({ otp: '', whatsapp: '', telegram: 'user-initiated-link' }),
+        context, sessionRef, subjectRef, emailRef, ipRef, deviceRef, destinationRef
+      });
+    }
     const sessionToken = String(input?.sessionToken || '').trim();
     const subject = String(input?.subject || '').trim();
     const userId = String(input?.userId || '').trim();
     const email = normalizeAuthEmail(input?.email);
-    const purpose = PURPOSES.has(input?.purpose) ? input.purpose : 'account-backup';
     if (!/^[A-Za-z0-9_-]{40,96}$/.test(sessionToken) || !validText(subject, 1, 256) || !validText(userId, 3, 128)) {
       failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
     }
@@ -106,7 +131,6 @@ export class VerificationOrchestrator {
     const linkedTelegram = /^[A-Za-z0-9_-]{8,128}$/.test(String(linked.telegram || '')) ? String(linked.telegram) : '';
     const telegram = linkedTelegram || (input?.allowTelegramLink === true ? 'user-initiated-link' : '');
     const destinations = Object.freeze({ otp: email, whatsapp, telegram });
-    const context = contextOf(requestContext);
     const [sessionRef, subjectRef, emailRef, ipRef, deviceRef, destinationRef] = await Promise.all([
       this.hmac.hex('session-ref-v1', sessionToken),
       this.hmac.hex('firebase-subject-v1', subject),
@@ -196,9 +220,15 @@ export class VerificationOrchestrator {
     const attemptId = randomToken(24, this.crypto);
     const code = randomSixDigitOtp(this.crypto);
     const linkToken = randomToken(32, this.crypto);
-    const [codeMac, linkTokenMac] = await Promise.all([
+    const requiresRecoverableTelegramMaterial = this.config.providers.some(entry => {
+      const provider = this.providers.get(entry.id);
+      return entry.enabled && provider?.id === 'telegram' && provider?.verificationMode === VERIFICATION_MODES.LOCAL_CODE;
+    });
+    const [codeMac, linkTokenMac, codeCipher, linkCipher] = await Promise.all([
       this.hmac.hex('backup-verification-code-v1', `${attemptId}:${code}`),
-      this.hmac.hex('backup-verification-link-v1', linkToken)
+      this.hmac.hex('backup-verification-link-v1', linkToken),
+      requiresRecoverableTelegramMaterial ? this.vault.seal(`telegram-otp-v1:${code}`, `telegram-verification-code:${attemptId}`) : '',
+      requiresRecoverableTelegramMaterial ? this.vault.seal(linkToken, `telegram-verification-link:${attemptId}`) : ''
     ]);
     const policy = this.config.policy;
     errorFromRepository(await this.repository.reserveChallenge({
@@ -212,7 +242,9 @@ export class VerificationOrchestrator {
       ipRef: identity.ipRef,
       purpose: identity.purpose,
       codeMac,
+      codeCipher,
       linkTokenMac,
+      linkCipher,
       maxAttempts: policy.maxAttempts,
       createdAt: now,
       expiresAt: now + (policy.codeTtlSeconds * 1000),
@@ -249,6 +281,8 @@ export class VerificationOrchestrator {
             providerId: entry.id,
             channel: entry.channel,
             verificationMode: entry.verificationMode,
+            retainCodeCipher: entry.id === 'telegram',
+            retainLinkCipher: entry.id === 'telegram',
             latencyMs,
             now
           }));
@@ -387,7 +421,54 @@ export class VerificationOrchestrator {
       }));
     }
     if (verified.userId !== identity.userId || verified.purpose !== identity.purpose) failAuth(AUTH_ERROR_CODES.ACCOUNT_CONFLICT);
-    return Object.freeze({ verified: true, purpose: verified.purpose, userId: identity.userId });
+    return Object.freeze({
+      verified: true,
+      purpose: verified.purpose,
+      userId: identity.userId,
+      ...(verified.telegramLinked === true ? { telegramLinked: true, emailVerified: false } : {})
+    });
+  }
+
+  async pendingVerification(input = {}, requestContext = {}) {
+    const identity = await this.#identity(input, requestContext);
+    const selected = await this.repository.getPendingChallenge({
+      userId: identity.userId,
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      deviceRef: identity.deviceRef,
+      emailRef: identity.emailRef,
+      purpose: identity.purpose,
+      now: Number(this.now())
+    });
+    if (selected?.pending !== true || !selected.challenge) return Object.freeze({ pending: false });
+    const challenge = selected.challenge;
+    const codeSent = challenge.providerId === 'telegram'
+      ? challenge.providerConfirmed === true && !challenge.codeCipher
+      : true;
+    let interaction = null;
+    if (challenge.providerId === 'telegram' && !codeSent && challenge.linkCipher) {
+      const entry = this.config.providers.find(row => row.id === 'telegram' && row.enabled);
+      const provider = entry ? this.providers.get(entry.id) : null;
+      if (provider) {
+        const linkToken = await this.vault.open(challenge.linkCipher, `telegram-verification-link:${challenge.attemptId}`);
+        const result = await provider.sendVerification({ linkToken, attemptId: challenge.attemptId, purpose: identity.purpose });
+        interaction = safeInteraction(result?.interaction);
+      }
+    }
+    return Object.freeze({
+      pending: true,
+      attemptId: challenge.attemptId,
+      expiresAt: Number(challenge.expiresAt),
+      resendAt: Number(challenge.resendAt),
+      codeSent,
+      ...(interaction ? { interaction } : {})
+    });
+  }
+
+  async isTelegramLinked(input = {}, requestContext = {}) {
+    const identity = await this.#identity(input, requestContext);
+    const result = await this.repository.isTelegramLinked({ userId: identity.userId, subjectRef: identity.subjectRef });
+    return Object.freeze({ linked: result?.linked === true });
   }
 
   async confirmTelegramWebhook(input = {}) {
@@ -399,21 +480,39 @@ export class VerificationOrchestrator {
     }
     const entry = this.config.providers.find(row => row.id === 'telegram' && row.enabled);
     const provider = entry ? this.providers.get(entry.id) : null;
-    if (!this.config.enabled || !entry || !provider) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    if (!this.config.enabled || !entry || !provider || typeof provider.sendTelegramCode !== 'function') {
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
     const status = await bounded(() => provider.getProviderStatus({ now: Number(this.now()) }), entry.timeoutMs);
     if (status?.configured !== true) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    const now = Number(this.now());
     const [linkTokenMac, externalIdentityRef] = await Promise.all([
       this.hmac.hex('backup-verification-link-v1', linkToken),
       this.hmac.hex('telegram-identity-v1', telegramUserId)
     ]);
-    errorFromRepository(await this.repository.confirmProviderEvidence({
+    const claimed = errorFromRepository(await this.repository.claimTelegramDelivery({
       linkTokenMac,
       externalIdentityRef,
-      providerId: 'telegram',
-      channel: 'telegram',
-      now: Number(this.now())
+      now
     }));
-    return Object.freeze({ accepted: true, identityKind: 'telegram-account', phoneOwnership: false });
+    try {
+      const packedCode = await this.vault.open(claimed.codeCipher, `telegram-verification-code:${claimed.attemptId}`);
+      const code = /^telegram-otp-v1:(\d{6})$/.exec(packedCode)?.[1] || '';
+      if (!code) throw new NativeAuthError(AUTH_ERROR_CODES.STORAGE_UNAVAILABLE);
+      const delivered = await bounded(() => provider.sendTelegramCode({
+        chatId,
+        code,
+        expiresInSeconds: Math.max(1, Math.ceil((Number(claimed.expiresAt) - Number(this.now())) / 1000))
+      }), entry.timeoutMs);
+      if (delivered?.accepted !== true) throw new VerificationProviderError('INVALID_PROVIDER_RESPONSE', VERIFICATION_FAILURE_CLASS.HARD);
+      errorFromRepository(await this.repository.confirmTelegramDelivery({ attemptId: claimed.attemptId, now: Number(this.now()) }));
+      return Object.freeze({ accepted: true, codeSent: true, identityKind: 'telegram-account', phoneOwnership: false });
+    } catch {
+      // Keep the encrypted, expiring code recoverable so Telegram can retry the same
+      // authenticated update after a transient Bot API failure. A later resend still
+      // supersedes this challenge atomically.
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
   }
 
   async configureTelegramWebhook() {
@@ -468,6 +567,7 @@ export class VerificationOrchestrator {
         : 'none';
       return Object.freeze({
         available: rows.length > 0,
+        telegramAvailable: channels.has('telegram'),
         availabilityCode: rows.length ? 'READY' : this.config.enabled ? 'NO_HEALTHY_PROVIDER' : 'NOT_ACTIVATED',
         genericFlow: true,
         providerNamesExposed: false,

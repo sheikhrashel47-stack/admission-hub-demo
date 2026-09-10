@@ -63,6 +63,26 @@ export class AdmissionAuthAuthority {
     return { ...input, userId: session.user.id };
   }
 
+  async #preverificationIdentity(input = {}, context = {}) {
+    const material = await this.engine.getFirebaseAccountVerification(
+      input.verificationTicket,
+      input.email && input.subject ? { email: input.email, subject: input.subject } : {},
+      context
+    );
+    return {
+      material,
+      verificationInput: {
+        purpose: 'account-backup',
+        trustedIdentity: {
+          userId: material.userId,
+          sessionRef: material.sessionRef,
+          subjectRef: material.subjectRef,
+          emailRef: material.emailRef
+        }
+      }
+    };
+  }
+
   async fetch(request) {
     try {
       await this.ready;
@@ -84,6 +104,20 @@ export class AdmissionAuthAuthority {
       }
       if (url.pathname === '/internal/firebase/session/get') {
         const result = await this.engine.getFirebaseSession(body.sessionToken, body.input);
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/firebase/account-verification/begin') {
+        const result = await this.engine.beginFirebaseAccountVerification(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/firebase/account-verification/material') {
+        const result = await this.engine.getFirebaseAccountVerification(body.verificationTicket, body.input || {}, body.context);
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/firebase/account-verification/complete') {
+        const result = await this.engine.completeFirebaseAccountVerification(body.input, body.context);
+        await this.#scheduleExpiry();
         return response(200, { ok: true, result });
       }
       if (url.pathname === '/internal/passkey/registration/begin') {
@@ -127,6 +161,40 @@ export class AdmissionAuthAuthority {
         const input = await this.#verificationIdentity(body.input);
         const result = await this.verification.requestVerification(input, body.context);
         await this.#scheduleExpiry();
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/verification/preauth/request') {
+        const prepared = await this.#preverificationIdentity(body.input, body.context);
+        const result = await this.verification.requestVerification(prepared.verificationInput, body.context);
+        await this.#scheduleExpiry();
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/verification/preauth/pending') {
+        const prepared = await this.#preverificationIdentity(body.input, body.context);
+        const result = await this.verification.pendingVerification(prepared.verificationInput, body.context);
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/verification/preauth/verify') {
+        const prepared = await this.#preverificationIdentity(body.input, body.context);
+        const result = await this.verification.verify({
+          ...prepared.verificationInput,
+          attemptId: body.input.attemptId,
+          code: body.input.code
+        }, body.context);
+        await this.#scheduleExpiry();
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/verification/telegram/status') {
+        const identity = await this.engine.getFirebaseIdentity(body.input, body.context);
+        const result = await this.verification.isTelegramLinked({
+          purpose: 'account-backup',
+          trustedIdentity: {
+            userId: identity.userId,
+            sessionRef: identity.subjectRef,
+            subjectRef: identity.subjectRef,
+            emailRef: identity.emailRef
+          }
+        }, body.context);
         return response(200, { ok: true, result });
       }
       if (url.pathname === '/internal/verification/verify') {

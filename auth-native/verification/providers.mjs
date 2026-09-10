@@ -215,7 +215,7 @@ export class TelegramLinkVerificationProvider {
   constructor({ botUsername, botToken, webhookSecret, webhookSecretSource, webhookUrl, declaredDailyQuota, fetchImpl = globalThis.fetch, cryptoImpl = globalThis.crypto } = {}) {
     this.id = 'telegram';
     this.channel = VERIFICATION_CHANNELS.TELEGRAM;
-    this.verificationMode = VERIFICATION_MODES.PROVIDER_EVIDENCE;
+    this.verificationMode = VERIFICATION_MODES.LOCAL_CODE;
     this.botUsername = validTelegramBotUsername(botUsername) ? String(botUsername) : '';
     this.botToken = validTelegramBotToken(botToken) ? String(botToken) : '';
     this.botId = this.botToken ? this.botToken.split(':', 1)[0] : '';
@@ -370,8 +370,40 @@ export class TelegramLinkVerificationProvider {
     return { accepted: true, interaction: { type: 'telegram-link', url: link.href } };
   }
 
-  async verifyCode(input = {}) {
-    return { verified: input.serverConfirmed === true, identityKind: 'telegram-account', phoneOwnership: false };
+  async sendTelegramCode(input = {}) {
+    if (!this.configured) throw new VerificationProviderError('NOT_CONFIGURED', VERIFICATION_FAILURE_CLASS.HARD);
+    const chatId = String(input.chatId || '');
+    const code = String(input.code || '');
+    if (!/^[1-9]\d{0,19}$/.test(chatId) || !/^\d{6}$/.test(code)) {
+      throw new VerificationProviderError('INVALID_DESTINATION', VERIFICATION_FAILURE_CLASS.USER);
+    }
+    const minutes = Math.max(1, Math.min(10, Math.ceil(safeInteger(input.expiresInSeconds, 60, 600) / 60)));
+    const text = [
+      '🔐 Admission Hub Verification',
+      'আপনার verification code:',
+      code,
+      'এই code-টি Admission Hub app-এর verification box-এ দিন।',
+      `⏱️ Code-এর মেয়াদ ${minutes} মিনিট।`,
+      'কাউকে এই code বা আপনার password দেবেন না।'
+    ].join('\n');
+    const payload = await fetchJson(this.fetch, this.#base('sendMessage'), {
+      method: 'POST',
+      headers: this.#headers(true),
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        protect_content: true,
+        disable_web_page_preview: true
+      })
+    });
+    if (payload?.ok !== true || !Number.isSafeInteger(Number(payload?.result?.message_id))) {
+      throw new VerificationProviderError('INVALID_PROVIDER_RESPONSE', VERIFICATION_FAILURE_CLASS.HARD);
+    }
+    return { accepted: true };
+  }
+
+  async verifyCode() {
+    throw new VerificationProviderError('LOCAL_VERIFICATION_ONLY', VERIFICATION_FAILURE_CLASS.USER);
   }
 
   async getProviderStatus() {

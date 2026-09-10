@@ -5,6 +5,8 @@
   const state = {
     session: null,
     verification: null,
+    telegram: null,
+    telegramTimer: null,
     backup: null,
     passkeys: [],
     busy: false,
@@ -15,6 +17,7 @@
     capabilities: {
       google: { available: false, clientId: '' },
       passkey: { available: false },
+      telegram: { available: false },
       backup: { available: false, contactInput: 'none' }
     },
     googleClientId: '',
@@ -82,14 +85,19 @@
           </div>
           <button class="ah-account-primary" type="submit">সাইনআপ করুন</button>
           <p class="ah-account-switch">আগে থেকেই অ্যাকাউন্ট আছে? <button class="ah-account-link" type="button" data-role="show-login">লগইন করুন</button></p>
-          <p class="ah-account-note">সাইনআপের পর Firebase ইমেইল যাচাইয়ের একটি নিরাপদ লিংক পাঠাবে। লিংকে ক্লিক করলেই যাচাই সম্পন্ন হবে।</p>
+          <p class="ah-account-note" data-role="signup-verification-note">সাইনআপের পর Firebase ইমেইল যাচাইয়ের একটি নিরাপদ লিংক পাঠাবে। লিংকে ক্লিক করলেই যাচাই সম্পন্ন হবে।</p>
         </form>
 
         <div class="ah-account-view" data-view="verify" hidden>
           <div class="ah-account-verify-badge" aria-hidden="true">✉</div>
-          <h3 class="ah-account-view-title">ইমেইল যাচাই করুন</h3>
-          <p class="ah-account-mask">Firebase থেকে ইমেইল যাচাইয়ের লিংক পাঠানো হয়েছে <strong data-role="mask">আপনার ইমেইলে</strong>। Inbox-এর সঙ্গে Spam/Promotions-ও দেখুন এবং লিংকে ক্লিক করুন।</p>
+          <h3 class="ah-account-view-title" data-role="verification-title">ইমেইল যাচাই করুন</h3>
+          <p class="ah-account-mask" data-role="verification-email-copy">Firebase থেকে ইমেইল যাচাইয়ের লিংক পাঠানো হয়েছে <strong data-role="mask">আপনার ইমেইলে</strong>। Inbox-এর সঙ্গে Spam/Promotions-ও দেখুন এবং লিংকে ক্লিক করুন।</p>
+          <p class="ah-account-mask" data-role="verification-telegram-copy" hidden>Verification email এখন পাঠানো যায়নি। নিচের নিরাপদ Telegram বিকল্প দিয়ে একই Firebase account যাচাই করুন।</p>
           <button class="ah-account-primary" type="button" data-role="verified-login">যাচাই করেছি—এখন লগইন</button>
+          <button class="ah-account-telegram" type="button" data-role="telegram-alternative" hidden>
+            <span class="ah-account-telegram-icon" aria-hidden="true">➤</span>
+            <span><strong>Telegram দিয়ে যাচাই করুন</strong><small>ইমেইল যাচাইয়ের ঐচ্ছিক বিকল্প</small></span>
+          </button>
           <details class="ah-account-resend">
             <summary>ইমেইলটি আবার পাঠাবেন?</summary>
             <form data-role="resend-form" novalidate>
@@ -107,6 +115,27 @@
           </details>
           <p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="verify-back">অন্য ইমেইলে সাইনআপ</button></p>
         </div>
+
+        <form class="ah-account-view ah-account-telegram-view" data-view="telegram" data-state="connecting" hidden novalidate>
+          <div class="ah-account-telegram-mark" aria-hidden="true">➤</div>
+          <h3 class="ah-account-view-title">Telegram দিয়ে যাচাই করুন</h3>
+          <p class="ah-account-mask">Official bot খুলে <strong>START</strong> চাপুন। Bot যে ৬ সংখ্যার কোড পাঠাবে, সেটি নিচে লিখুন।</p>
+          <ol class="ah-account-telegram-steps" aria-label="Telegram যাচাইয়ের ধাপ">
+            <li><span>১</span> Official Telegram bot খুলুন</li>
+            <li><span>২</span> START চাপুন ও কোড নিন</li>
+            <li><span>৩</span> Admission Hub-এ কোড লিখুন</li>
+          </ol>
+          <a class="ah-account-primary ah-account-external ah-account-telegram-open" data-role="telegram-link" target="_blank" rel="noopener noreferrer">Official Telegram Bot খুলুন</a>
+          <div class="ah-account-telegram-status" data-role="telegram-status" aria-live="polite">START চাপার অপেক্ষায়…</div>
+          <div class="ah-account-field">
+            <label class="ah-account-label" for="ah-telegram-code">Telegram-এর ৬ সংখ্যার কোড</label>
+            <input class="ah-account-input ah-account-otp" id="ah-telegram-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required>
+          </div>
+          <button class="ah-account-primary" type="submit" data-role="telegram-verify">কোড যাচাই করুন</button>
+          <button class="ah-account-secondary" type="button" data-role="telegram-resend">নতুন কোড নিন</button>
+          <p class="ah-account-note">শুধু Telegram খোলা সফল যাচাই নয়—START-এর পর পাওয়া কোড backend-এ মিলতে হবে। Telegram শুধু আপনার Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করে; এটি Gmail/ইমেইল মালিকানার প্রমাণ নয়। Bot কখনো password, API key বা secret চাইবে না।</p>
+          <p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="telegram-email-back">ইমেইল দিয়ে যাচাই করুন</button></p>
+        </form>
 
         <form class="ah-account-view" data-view="google-link" hidden novalidate>
           <div class="ah-account-verify-badge" aria-hidden="true">G</div>
@@ -142,7 +171,7 @@
           <p class="ah-account-mask" data-role="backup-instruction">নিরাপদ যাচাই কোডটি লিখুন।</p>
           <div class="ah-account-interaction" data-role="backup-interaction" hidden>
             <a class="ah-account-primary ah-account-external" data-role="backup-link" target="_blank" rel="noopener noreferrer">Telegram bot খুলুন</a>
-            <p>শুধু Telegram খোলা সফল যাচাই নয়। Bot নিশ্চিত করার পর নিচের বোতাম চাপুন। Telegram পরিচয় ফোন নম্বরের মালিকানার প্রমাণ নয়।</p>
+            <p>শুধু Telegram খোলা সফল যাচাই নয়। Bot-এ START চাপুন এবং Bot যে ৬ সংখ্যার কোড পাঠাবে, সেটিই নিচে লিখুন। Telegram পরিচয় Gmail/ইমেইল মালিকানার প্রমাণ নয়।</p>
           </div>
           <div class="ah-account-field" data-role="backup-code-field">
             <label class="ah-account-label" for="ah-backup-code">৬ সংখ্যার কোড</label>
@@ -155,10 +184,10 @@
         <div class="ah-account-view" data-view="signed" hidden>
           <div class="ah-account-secure">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6V10Zm6 4v2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <div><h3>যাচাইকৃত অ্যাকাউন্ট সক্রিয়</h3><p>Firebase নিশ্চিত করেছে যে আপনার একই অ্যাকাউন্টটি নিরাপদে সক্রিয় আছে।</p></div>
+            <div><h3>যাচাইকৃত অ্যাকাউন্ট সক্রিয়</h3><p data-role="account-verification-summary">Firebase নিশ্চিত করেছে যে আপনার একই অ্যাকাউন্টটি নিরাপদে সক্রিয় আছে।</p></div>
           </div>
           <div class="ah-account-identity">
-            <p class="ah-account-identity-label">যাচাইকৃত ইমেইল</p>
+            <p class="ah-account-identity-label" data-role="identity-label">Firebase অ্যাকাউন্ট</p>
             <p class="ah-account-identity-value" data-role="identity">—</p>
           </div>
           <section class="ah-account-security-tools" data-role="passkey-tools" hidden>
@@ -208,10 +237,81 @@
     updateResendCooldown();
   };
 
+  const clearTelegramTimer = () => {
+    if (state.telegramTimer) clearInterval(state.telegramTimer);
+    state.telegramTimer = null;
+  };
+  const telegramResendRemaining = () => Math.max(0, Math.ceil((Number(state.telegram?.resendUntil || 0) - Date.now()) / 1000));
+  const renderTelegramState = (mode = state.telegram?.mode || 'waiting') => {
+    const view = $('[data-view="telegram"]');
+    const status = $('[data-role="telegram-status"]');
+    const resend = $('[data-role="telegram-resend"]');
+    const verify = $('[data-role="telegram-verify"]');
+    if (!view || !status || !resend || !verify || !state.telegram) return;
+    const expired = Number(state.telegram.expiresAt || 0) > 0 && Date.now() >= Number(state.telegram.expiresAt);
+    const remaining = telegramResendRemaining();
+    const nextMode = expired && !['success', 'locked'].includes(mode) ? 'expired' : mode;
+    state.telegram.mode = nextMode;
+    view.dataset.state = nextMode;
+    const labels = {
+      connecting: 'নিরাপদ Telegram সংযোগ তৈরি হচ্ছে…',
+      waiting: state.telegram.codeSent
+        ? 'Telegram-এ কোড পাঠানো হয়েছে। সর্বশেষ ৬ সংখ্যার কোডটি লিখুন।'
+        : 'Bot-এ START চাপুন, তারপর পাওয়া কোডটি এখানে লিখুন।',
+      checking: 'কোডটি নিরাপদভাবে যাচাই হচ্ছে…',
+      wrong: 'কোডটি সঠিক নয়—Telegram-এর সর্বশেষ ৬ সংখ্যার কোড লিখুন।',
+      expired: 'এই কোডের সময় শেষ। নিচে “নতুন কোড নিন” চাপুন।',
+      locked: 'অনেকবার ভুল কোড দেওয়া হয়েছে। নিরাপত্তার জন্য সাময়িকভাবে বন্ধ আছে।',
+      conflict: 'এই Telegram accountটি অন্য Admission Hub account-এর সঙ্গে আগে থেকেই যুক্ত।',
+      unavailable: 'Telegram যাচাই এখন সাময়িকভাবে পাওয়া যাচ্ছে না। ইমেইল ব্যবহার করুন।',
+      success: 'Telegram account যাচাই সফল হয়েছে।'
+    };
+    status.textContent = labels[nextMode] || labels.waiting;
+    resend.disabled = state.busy || remaining > 0;
+    resend.textContent = remaining > 0
+      ? `নতুন কোড (${remaining.toLocaleString('bn-BD')} সেকেন্ড পর)`
+      : 'নতুন কোড নিন';
+    verify.disabled = state.busy || ['expired', 'locked', 'conflict', 'unavailable', 'success'].includes(nextMode);
+  };
+  const setTelegramChallenge = info => {
+    const hasLink = info?.interaction?.type === 'telegram-link' && Boolean(info?.interaction?.url);
+    if (!info?.attemptId || (!hasLink && info?.codeSent !== true)) return false;
+    clearTelegramTimer();
+    state.telegram = {
+      attemptId: info.attemptId,
+      interaction: hasLink ? info.interaction : null,
+      codeSent: info.codeSent === true,
+      expiresAt: Number(info.expiresAt || 0),
+      resendUntil: Number(info.resendAt || 0) > Date.now()
+        ? Number(info.resendAt)
+        : Date.now() + Math.max(0, Number(info.resendAfter || 0)) * 1000,
+      mode: 'waiting'
+    };
+    const link = $('[data-role="telegram-link"]');
+    link.hidden = !hasLink;
+    if (hasLink) link.href = info.interaction.url;
+    else link.removeAttribute('href');
+    link.dataset.label = 'Official Telegram Bot খুলুন';
+    link.textContent = link.dataset.label;
+    $('#ah-telegram-code').value = '';
+    renderTelegramState('waiting');
+    state.telegramTimer = setInterval(() => {
+      renderTelegramState();
+      if (state.telegram?.mode === 'expired' && telegramResendRemaining() === 0) clearTelegramTimer();
+    }, 1000);
+    return true;
+  };
+
+  const accountVerified = session => Boolean(
+    session?.authenticated && (session?.accountVerified === true || session?.emailVerified === true || session?.telegramVerified === true)
+  );
+
   const notify = () => {
     const detail = Object.freeze({
-      authenticated: Boolean(state.session?.authenticated && state.session?.emailVerified),
+      authenticated: accountVerified(state.session),
+      accountVerified: accountVerified(state.session),
       emailVerified: Boolean(state.session?.emailVerified),
+      telegramVerified: Boolean(state.session?.telegramVerified),
       user: state.session?.user || null
     });
     window.dispatchEvent(new CustomEvent('admissionhub:authchange', { detail }));
@@ -226,6 +326,7 @@
       button.innerHTML = state.busy && isActive ? '<span class="ah-account-spinner" aria-hidden="true"></span>অপেক্ষা করুন…' : button.dataset.label;
     });
     updateResendCooldown();
+    if (state.telegram) renderTelegramState();
   };
 
   const renderPasskeys = () => {
@@ -258,35 +359,50 @@
     if (name === 'login') setTimeout(() => $('#ah-login-email')?.focus(), 30);
     if (name === 'signup') setTimeout(() => $('#ah-signup-email')?.focus(), 30);
     if (name === 'verify') {
+      const emailSent = state.verification?.emailSent !== false;
       $('[data-role="mask"]').textContent = state.verification?.emailMasked || 'আপনার ইমেইলে';
+      $('[data-role="verification-title"]').textContent = emailSent ? 'ইমেইল যাচাই করুন' : 'অ্যাকাউন্ট যাচাই করুন';
+      $('[data-role="verification-email-copy"]').hidden = !emailSent;
+      $('[data-role="verification-telegram-copy"]').hidden = emailSent;
+      $('[data-role="verified-login"]').hidden = !emailSent;
       if (state.verification?.email) $('#ah-resend-email').value = state.verification.email;
+      $('[data-role="telegram-alternative"]').hidden = !(state.telegram && state.capabilities.telegram.available);
       updateResendCooldown();
+    }
+    if (name === 'telegram') {
+      renderTelegramState();
+      setTimeout(() => $('#ah-telegram-code')?.focus(), 80);
     }
     if (name === 'signed') {
       $('[data-role="identity"]').textContent = state.session?.user?.emailMasked || 'যাচাইকৃত অ্যাকাউন্ট';
+      const byTelegram = state.session?.telegramVerified === true && state.session?.emailVerified !== true;
+      $('[data-role="identity-label"]').textContent = byTelegram ? 'Firebase অ্যাকাউন্ট · Telegram যাচাইকৃত' : 'যাচাইকৃত ইমেইল';
+      $('[data-role="account-verification-summary"]').textContent = byTelegram
+        ? 'Telegram আপনার Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করেছে; Firebase UID একই আছে। ইমেইল মালিকানা দাবি করা হয়নি।'
+        : 'Firebase নিশ্চিত করেছে যে আপনার একই অ্যাকাউন্টটি নিরাপদে সক্রিয় আছে।';
       renderPasskeys();
     }
-    if (name === 'backup' && !state.backup?.interaction) setTimeout(() => $('#ah-backup-code')?.focus(), 30);
+    if (name === 'backup') setTimeout(() => $('#ah-backup-code')?.focus(), 80);
   };
 
   const configureBackupView = interaction => {
-    const remote = interaction?.type === 'telegram-link' && interaction?.proof === 'webhook-required';
+    const telegram = interaction?.type === 'telegram-link';
     const panel = $('[data-role="backup-interaction"]');
     const codeField = $('[data-role="backup-code-field"]');
     const code = $('#ah-backup-code');
     const instruction = $('[data-role="backup-instruction"]');
     const verify = $('[data-role="backup-verify"]');
-    panel.hidden = !remote;
-    codeField.hidden = remote;
-    code.required = !remote;
-    instruction.textContent = remote
-      ? 'নিরাপদ একবারের লিংক দিয়ে Telegram bot-এ পরিচয় নিশ্চিত করুন।'
+    panel.hidden = !telegram;
+    codeField.hidden = false;
+    code.required = true;
+    instruction.textContent = telegram
+      ? 'Official Telegram bot-এ START চাপুন, তারপর পাওয়া ৬ সংখ্যার কোড লিখুন।'
       : 'নিরাপদ যাচাই কোডটি লিখুন।';
-    const verifyLabel = remote ? 'Bot নিশ্চিত করেছে—যাচাই করুন' : 'যাচাই করুন';
+    const verifyLabel = telegram ? 'Telegram কোড যাচাই করুন' : 'যাচাই করুন';
     verify.textContent = verifyLabel;
     verify.dataset.label = verifyLabel;
     const link = $('[data-role="backup-link"]');
-    if (remote) link.href = interaction.url;
+    if (telegram) link.href = interaction.url;
     else link.removeAttribute('href');
   };
 
@@ -310,11 +426,20 @@
   };
 
   const api = async (path, options = {}) => {
+    let requestPath = path;
+    try {
+      const current = new URL(location.href);
+      if (current.searchParams.get('telegramCanary') === '1') {
+        const target = new URL(`${API}${path}`, current.origin);
+        if (!target.searchParams.has('telegramCanary')) target.searchParams.set('telegramCanary', '1');
+        requestPath = `${target.pathname.slice(API.length)}${target.search}`;
+      }
+    } catch (_) {}
     let response;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 18000);
     try {
-      response = await fetch(`${API}${path}`, {
+      response = await fetch(`${API}${requestPath}`, {
         method: options.method || 'GET',
         credentials: 'same-origin',
         signal: controller.signal,
@@ -338,7 +463,7 @@
   };
 
   const updateLauncher = () => {
-    const signed = Boolean(state.session?.authenticated && state.session?.emailVerified);
+    const signed = accountVerified(state.session);
     launcher.dataset.authenticated = String(signed);
     launcher.setAttribute('aria-label', signed ? 'যাচাইকৃত অ্যাকাউন্ট সক্রিয়' : 'অ্যাকাউন্ট খুলুন');
     const label = launcher.querySelector('.ah-account-launcher-label');
@@ -395,7 +520,9 @@
   const establishSession = (result, text) => {
     state.session = result;
     state.verification = null;
+    state.telegram = null;
     state.backup = null;
+    clearTelegramTimer();
     clearResendCooldown();
     updateLauncher();
     showView('signed');
@@ -558,6 +685,7 @@
       clientId: methods.google?.clientId || ''
     };
     state.capabilities.passkey = { available: methods.passkey?.available === true && passkeyBrowserReady() };
+    state.capabilities.telegram = { available: methods.telegramVerification?.available === true };
     state.capabilities.backup = {
       available: methods.backup?.available === true,
       contactInput: ['none', 'optional', 'required'].includes(methods.backup?.contactInput) ? methods.backup.contactInput : 'none'
@@ -570,13 +698,16 @@
     passkeyTools.hidden = !state.capabilities.passkey.available;
     backup.hidden = !state.capabilities.backup.available;
     preferred.hidden = !(state.capabilities.google.available || state.capabilities.passkey.available);
+    $('[data-role="signup-verification-note"]').textContent = state.capabilities.telegram.available
+      ? 'সাইনআপের পর ইমেইল লিংক অথবা official Telegram bot-এর OTP—যেকোনো একটি দিয়ে একই Firebase account যাচাই করতে পারবেন।'
+      : 'সাইনআপের পর Firebase ইমেইল যাচাইয়ের একটি নিরাপদ লিংক পাঠাবে। লিংকে ক্লিক করলেই যাচাই সম্পন্ন হবে।';
     if (state.capabilities.google.available) loadGoogle(state.capabilities.google.clientId);
   };
 
   const refreshSession = async () => {
     try {
       const current = await api('/session');
-      state.session = current?.authenticated && current?.emailVerified ? current : null;
+      state.session = accountVerified(current) ? current : null;
     } catch (error) { if ([401, 403].includes(error.status)) state.session = null; }
     updateLauncher();
     if (!overlay.hidden && state.session) showView('signed');
@@ -587,7 +718,8 @@
   const open = () => {
     overlay.hidden = false;
     document.documentElement.style.overflow = 'hidden';
-    if (state.session?.authenticated && state.session?.emailVerified) showView('signed');
+    if (accountVerified(state.session)) showView('signed');
+    else if (state.telegram) showView('telegram');
     else showView('login');
     if (state.available === false) message('Firebase account service এখনো চালু করা হয়নি।', 'info');
   };
@@ -604,6 +736,15 @@
     return false;
   };
 
+  const recoverPendingTelegram = async () => {
+    if (!state.capabilities.telegram.available || accountVerified(state.session)) return false;
+    try {
+      const result = await api('/telegram/verification/pending');
+      if (result?.pending && setTelegramChallenge(result)) return true;
+    } catch (_) {}
+    return false;
+  };
+
   const requestBackup = async (contact = '') => {
     if (state.busy || !state.session || !state.capabilities.backup.available) return;
     setBusy(true);
@@ -617,7 +758,7 @@
       $('#ah-backup-contact').value = '';
       configureBackupView(state.backup.interaction);
       showView('backup');
-      message(result.interaction ? 'একবারের নিরাপদ লিংক তৈরি হয়েছে। Bot নিশ্চিত না করা পর্যন্ত যাচাই সম্পন্ন হবে না।' : 'যাচাই কোড পাঠানো হয়েছে।', 'success');
+      message(result.interaction ? 'Official Telegram bot খুলে START চাপুন, তারপর পাওয়া ৬ সংখ্যার কোড লিখুন।' : 'যাচাই কোড পাঠানো হয়েছে।', 'success');
     } catch (error) { message(error.message, 'error'); }
     finally { setBusy(false); }
   };
@@ -657,10 +798,22 @@
       setBusy(true);
       try {
         const result = await api('/signup', { method: 'POST', body: { email, password } });
-        state.verification = { email, emailMasked: result.verification?.emailMasked || email, resendUntil: 0 };
+        state.verification = {
+          email,
+          emailMasked: result.verification?.emailMasked || email,
+          emailSent: result.verification?.sent !== false,
+          resendUntil: 0
+        };
+        clearTelegramTimer();
+        state.telegram = null;
+        const telegramReady = setTelegramChallenge(result.verification?.telegram);
         startResendCooldown(result.verification?.resendAfter || state.resendCooldownSeconds);
         showView('verify');
-        message('অ্যাকাউন্ট তৈরি হয়েছে। ইমেইলের যাচাইয়ের লিংকে ক্লিক করুন।', 'success');
+        message(telegramReady
+          ? (result.verification?.sent === false
+              ? 'অ্যাকাউন্ট তৈরি হয়েছে। ইমেইল এখন পাঠানো যায়নি—Telegram দিয়ে যাচাই করুন।'
+              : 'অ্যাকাউন্ট তৈরি হয়েছে। ইমেইল অথবা Telegram—যেকোনো একটি দিয়ে যাচাই করুন।')
+          : 'অ্যাকাউন্ট তৈরি হয়েছে। ইমেইলের যাচাইয়ের লিংকে ক্লিক করুন।', 'success');
       } catch (error) {
         if (error.code === 'EMAIL_ALREADY_IN_USE') {
           clearResendCooldown(); state.verification = null; prefillLogin(email); showView('login');
@@ -687,7 +840,15 @@
       setBusy(true);
       try {
         const result = await api('/login', { method: 'POST', body: { email, password } });
-        establishSession(result, 'যাচাইকৃত অ্যাকাউন্টে লগইন হয়েছে।');
+        if (result.authenticated === true) {
+          establishSession(result, 'যাচাইকৃত অ্যাকাউন্টে লগইন হয়েছে।');
+        } else if (setTelegramChallenge(result.verification?.telegram)) {
+          state.verification = { email, emailMasked: result.verification?.emailMasked || email, emailSent: true, resendUntil: 0 };
+          showView('verify');
+          message('এই Firebase অ্যাকাউন্টটি এখনো যাচাইকৃত নয়। ইমেইল অথবা Telegram দিয়ে যাচাই করুন।', 'info');
+        } else {
+          throw Object.assign(new Error('অ্যাকাউন্ট যাচাই সম্পন্ন হয়নি।'), { code: 'EMAIL_NOT_VERIFIED' });
+        }
       } catch (error) {
         if (error.code === 'EMAIL_NOT_VERIFIED') {
           clearResendCooldown(); state.verification = { email, emailMasked: email, resendUntil: 0 }; showView('verify');
@@ -716,8 +877,58 @@
       showView('login');
       message('যাচাই শেষ হলে ইমেইল ও পাসওয়ার্ড দিয়ে লগইন করুন।', 'success');
     });
+    $('[data-role="telegram-alternative"]').addEventListener('click', () => {
+      if (!state.telegram) return message('Telegram যাচাই এখন পাওয়া যাচ্ছে না—ইমেইল ব্যবহার করুন।', 'info');
+      showView('telegram');
+      renderTelegramState('waiting');
+    });
+    $('[data-role="telegram-email-back"]').addEventListener('click', () => {
+      showView('verify');
+      message('Firebase ইমেইল লিংক দিয়েও একই অ্যাকাউন্ট যাচাই করতে পারবেন।', 'info');
+    });
+    $('[data-view="telegram"]').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (state.busy || !state.telegram) return;
+      const code = $('#ah-telegram-code').value.trim();
+      if (!/^\d{6}$/.test(code)) return message('Telegram-এর ৬ সংখ্যার কোড লিখুন।', 'error');
+      setBusy(true);
+      renderTelegramState('checking');
+      try {
+        const result = await api('/telegram/verification/verify', {
+          method: 'POST',
+          body: { attemptId: state.telegram.attemptId, code }
+        });
+        renderTelegramState('success');
+        establishSession(result, 'Telegram account যাচাই সফল। একই Firebase UID-এ আপনার Admission Hub account সক্রিয় হয়েছে।');
+      } catch (error) {
+        $('#ah-telegram-code').value = '';
+        const mode = error.code === 'OTP_EXPIRED' ? 'expired'
+          : error.code === 'OTP_LOCKED' ? 'locked'
+            : error.code === 'TELEGRAM_VERIFICATION_PENDING' ? 'waiting'
+              : ['OTP_INVALID', 'INVALID_INPUT'].includes(error.code) ? 'wrong'
+                : error.code === 'ACCOUNT_CONFLICT' ? 'conflict' : 'unavailable';
+        renderTelegramState(mode);
+        message(error.message, 'error');
+      } finally { setBusy(false); }
+    });
+    $('[data-role="telegram-resend"]').addEventListener('click', async () => {
+      if (state.busy || !state.telegram) return;
+      const remaining = telegramResendRemaining();
+      if (remaining > 0) return message(`আরও ${remaining.toLocaleString('bn-BD')} সেকেন্ড পর নতুন কোড নিতে পারবেন।`, 'info');
+      setBusy(true);
+      renderTelegramState('connecting');
+      try {
+        const result = await api('/telegram/verification/resend', { method: 'POST', body: {} });
+        if (!setTelegramChallenge(result)) throw new Error('Telegram যাচাই এখন পাওয়া যাচ্ছে না।');
+        message('নতুন একবারের Telegram লিংক তৈরি হয়েছে। Bot খুলে START চাপুন।', 'success');
+      } catch (error) {
+        if (error.retryAfter > 0 && state.telegram) state.telegram.resendUntil = Date.now() + error.retryAfter * 1000;
+        renderTelegramState(error.code === 'OTP_LOCKED' ? 'locked' : 'unavailable');
+        message(error.message, 'error');
+      } finally { setBusy(false); }
+    });
     $('[data-role="verify-back"]').addEventListener('click', () => {
-      clearResendCooldown(); state.verification = null;
+      clearResendCooldown(); state.verification = null; state.telegram = null; clearTelegramTimer();
       $('#ah-resend-email').value = ''; $('#ah-resend-password').value = '';
       showView('signup');
     });
@@ -771,8 +982,7 @@
       event.preventDefault();
       if (state.busy || !state.backup) return;
       const code = $('#ah-backup-code').value.trim();
-      const remote = state.backup.interaction?.type === 'telegram-link';
-      if (!remote && !/^\d{6}$/.test(code)) return message('৬ সংখ্যার কোড লিখুন।', 'error');
+      if (!/^\d{6}$/.test(code)) return message('৬ সংখ্যার কোড লিখুন।', 'error');
       setBusy(true);
       try {
         await api(backupApiPath('/backup/verify'), {
@@ -780,7 +990,7 @@
           body: {
             attemptId: state.backup.attemptId,
             purpose: state.backup.purpose,
-            ...(remote ? { evidence: 'telegram-webhook-confirmed' } : { code })
+            code
           }
         });
         state.backup = null;
@@ -797,7 +1007,7 @@
       setBusy(true);
       try {
         await api('/session/logout', { method: 'POST', body: {} });
-        state.session = null; state.passkeys = []; state.backup = null;
+        state.session = null; state.passkeys = []; state.backup = null; state.telegram = null; clearTelegramTimer();
         updateLauncher(); showView('login'); message('নিরাপদভাবে লগ আউট হয়েছে।', 'success');
       } catch (error) { message(error.message, 'error'); }
       finally { setBusy(false); }
@@ -807,6 +1017,7 @@
       applyCapabilities(result?.auth || {});
       const cooldown = Number(result?.auth?.verificationEmail?.resendCooldownSeconds);
       if (Number.isFinite(cooldown) && cooldown >= 1 && cooldown <= 86400) state.resendCooldownSeconds = Math.ceil(cooldown);
+      recoverPendingTelegram();
     }).catch(() => { state.available = false; applyCapabilities({ available: false }); });
     refreshSession();
 
@@ -825,9 +1036,9 @@
     open,
     refresh: refreshSession,
     getSession: () => state.session,
-    isVerified: () => Boolean(state.session?.authenticated && state.session?.emailVerified),
+    isVerified: () => accountVerified(state.session),
     requireVerified() {
-      const allowed = Boolean(state.session?.authenticated && state.session?.emailVerified);
+      const allowed = accountVerified(state.session);
       if (!allowed) open();
       return allowed;
     }
