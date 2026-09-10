@@ -1,6 +1,6 @@
 # Telegram START → OTP account-verification canary
 
-Status: **protected canary implementation**. It must remain hidden from ordinary visitors until one real phone completes START → receives the bot code → submits the code in Admission Hub. Passing automated tests or webhook setup alone is not public live-E2E evidence.
+Status: **publicly deployed verification beta, protected by the same canary-grade controls**. The owner requested public visibility before the final phone test. It must not be called production-ready until one real phone completes START → receives the bot code → submits the code in Admission Hub.
 
 ## Canonical identity contract
 
@@ -14,7 +14,7 @@ Status: **protected canary implementation**. It must remain hidden from ordinary
 
 1. The student signs up with Email + Password, or reauthenticates an existing unverified Firebase account with its password.
 2. Admission Hub still attempts the normal Firebase verification email.
-3. On the exact protected canary URL, Admission Hub also offers **Telegram দিয়ে যাচাই করুন**.
+3. After Signup, Admission Hub sends nothing automatically and presents **Gmail/ইমেইল যাচাই** and **Telegram যাচাই** as explicit choices.
 4. The server creates an expiring, one-time deep link to the configured official bot.
 5. The student opens the bot and presses **START** in a private same-user chat.
 6. Telegram sends the webhook with its configured secret header.
@@ -25,9 +25,9 @@ Status: **protected canary implementation**. It must remain hidden from ordinary
 
 Opening Telegram or pressing START is not verification success by itself.
 
-## Public canary boundary
+## Public selector boundary
 
-The exact canary query is required while `VERIFICATION_AUTH_ACTIVATION=canary`:
+`VERIFICATION_AUTH_ACTIVATION=enabled` publishes the dedicated Email-or-Telegram selector on the ordinary app URL. The query below remains available only for protected generic-backup diagnostics:
 
 - `GET /api/auth/v1/config?telegramCanary=1`
 - `POST /api/auth/v1/signup?telegramCanary=1`
@@ -43,7 +43,7 @@ The Telegram webhook itself is server-to-server:
 - Accepts only a private chat where `message.from.id === message.chat.id`.
 - Accepts only a valid `/start <one-time-token>` update from a non-bot Telegram user.
 
-Ordinary `/config`, signup, and login remain unchanged during canary mode: public Google and Email/Password continue, Telegram stays hidden, and Passkey stays unpublished.
+Ordinary `/config`, signup, and unverified login now expose the dedicated Telegram verification choice. Public Google and Email/Password remain available. Generic backup and Passkey stay unpublished.
 
 ## OTP and abuse policy
 
@@ -83,7 +83,7 @@ Refresh/reopen recovery is bound to the same HttpOnly pre-verification ticket an
 - Bot API temporary failure: retain the same encrypted expiring challenge so Telegram can retry safely.
 - Wrong/expired/used/locked code: reject with bounded public errors; no session is created.
 - Identity conflict: reject the second Firebase-account link.
-- Email delivery failure: a working Telegram canary remains usable; if both channels are temporarily unavailable after canonical preparation, the matching Firebase subject is retained so password reauthentication can resume safely instead of leaving an orphaned local subject.
+- Email delivery starts only after the Email button is selected. A delivery failure leaves Telegram selectable; if both channels are temporarily unavailable after canonical preparation, the matching Firebase subject is retained so password reauthentication can resume safely instead of leaving an orphaned local subject.
 - Telegram outage never disables the existing Email/Password or public Google routes.
 
 ## AI boundary
@@ -102,8 +102,8 @@ Protected deployment is performed only by `.github/workflows/telegram-auth-canar
 4. validates bot identity and binds the secret webhook using a transient activation secret;
 5. reruns live Firebase Email/Password lifecycle evidence;
 6. deploys the same-origin UI;
-7. proves ordinary isolation and exact canary readiness;
+7. proves public selector readiness while keeping generic backup and Passkey isolated;
 8. rechecks the public Google browser origin;
 9. removes the transient activation secret and confirms the activation route is closed.
 
-Final publication is a separate decision after the physical phone E2E. Passkey remains hidden and is not Telegram rollout evidence.
+Final production-ready status still requires the physical phone E2E. Passkey remains hidden and is not Telegram rollout evidence.

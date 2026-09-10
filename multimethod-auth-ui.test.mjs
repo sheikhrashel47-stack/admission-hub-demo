@@ -246,6 +246,52 @@ test('signed user can enroll and remove an optional Passkey without changing Fir
   app.dom.window.close();
 });
 
+test('successful verification offers optional Passkey setup and Skip never blocks the account', async () => {
+  const clientId = '123456789012-exampleclientidentifier.apps.googleusercontent.com';
+  const registration = {
+    rawId: bytes(31, 32),
+    response: {
+      clientDataJSON: bytes(33, 34),
+      attestationObject: bytes(35, 36),
+      getTransports: () => ['internal']
+    }
+  };
+  const app = setup({
+    methods: { google: { available: true, clientId }, passkey: { available: true } },
+    passkeyCredentials: {
+      async get() { throw new Error('not used'); },
+      async create() { return registration; }
+    }
+  });
+  await waitFor(() => app.document.querySelector('[data-role="google-button"] button'));
+  app.document.querySelector('.ah-account-launcher').click();
+  app.googleCredential(`google-id-${'p'.repeat(32)}`);
+  await waitFor(() => app.document.querySelector('[data-view="security-setup"]').hidden === false);
+  assert.match(app.document.querySelector('[data-view="security-setup"]').textContent, /Passkey যোগ করুন/);
+  assert.match(app.document.querySelector('[data-role="setup-skip"]').textContent, /Skip/);
+  app.document.querySelector('[data-role="setup-passkey"]').click();
+  await waitFor(() => app.calls.some(call => call.path.endsWith('/passkey/registration/finish')));
+  await waitFor(() => app.document.querySelector('[data-view="signed"]').hidden === false);
+  assert.equal(app.window.AdmissionAccount.isVerified(), true);
+  app.dom.window.close();
+
+  const skipped = setup({
+    methods: { google: { available: true, clientId }, passkey: { available: true } },
+    passkeyCredentials: {
+      async get() { throw new Error('not used'); },
+      async create() { throw new Error('must not be called'); }
+    }
+  });
+  await waitFor(() => skipped.document.querySelector('[data-role="google-button"] button'));
+  skipped.document.querySelector('.ah-account-launcher').click();
+  skipped.googleCredential(`google-id-${'s'.repeat(32)}`);
+  await waitFor(() => skipped.document.querySelector('[data-view="security-setup"]').hidden === false);
+  skipped.document.querySelector('[data-role="setup-skip"]').click();
+  assert.equal(skipped.document.querySelector('[data-view="signed"]').hidden, false);
+  assert.equal(skipped.calls.some(call => call.path.endsWith('/passkey/registration/begin')), false);
+  skipped.dom.window.close();
+});
+
 test('generic backup UX is hidden when unavailable and contains no provider-specific branching', async () => {
   const disabled = setup({ signed: true });
   await waitFor(() => disabled.document.querySelector('[data-role="backup-start"]'));

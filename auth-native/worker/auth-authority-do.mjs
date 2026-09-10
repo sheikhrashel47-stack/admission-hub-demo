@@ -209,13 +209,13 @@ export class AdmissionAuthAuthority {
         return response(200, { ok: true, result });
       }
       if (url.pathname === '/internal/verification/telegram/activate') {
-        if (this.env.VERIFICATION_AUTH_ACTIVATION !== 'canary') throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        if (!['canary', 'enabled'].includes(this.env.VERIFICATION_AUTH_ACTIVATION)) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
         await this.verification.updateConfig(this.env.VERIFICATION_ORCHESTRATOR_CONFIG);
         const result = await this.verification.configureTelegramWebhook();
         return response(200, { ok: true, result });
       }
       if (url.pathname === '/internal/verification/telegram/deactivate') {
-        if (this.env.VERIFICATION_AUTH_ACTIVATION !== 'canary') throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        if (!['canary', 'enabled'].includes(this.env.VERIFICATION_AUTH_ACTIVATION)) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
         const result = await this.verification.removeTelegramWebhook();
         return response(200, { ok: true, result });
       }

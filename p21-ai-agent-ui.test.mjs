@@ -12,7 +12,7 @@ const AG = existsSync('ai-agent.js') ? readFileSync('ai-agent.js', 'utf8') : '';
 
 /* ── ১. রুট + স্ক্রিপ্ট ── */
 t('১. index.html-এ ai-রুট dispatch (renderAiAgentPage)', H.includes("if(p==='ai'){ if(window.renderAiAgentPage)"));
-t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (chatv1)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
+t('২. ai-agent-chat.js স্ক্রিপ্ট-ট্যাগ (chatv1)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 t('৩. ai-agent-chat.js ফাইল-বিদ্যমান + renderAiAgentPage-এক্সপোজ', existsSync('ai-agent-chat.js') && UI.includes('window.renderAiAgentPage = render'));
 t('৪. NAV_TABS-এ 🤖 AI ট্যাব', H.includes("{key:'ai', icon:'🤖', label:'AI'}"));
 t('৫. dashboard-v2: Command Center + All-Tools এ AI-এন্ট্রি', V2.includes("navigate(\\'ai\\')") && V2.includes("'AI', \"navigate('ai')\""));
@@ -23,7 +23,7 @@ t('৬. ক্লায়েন্ট-ফাইল/HTML-তে কোনো API
 t('৭. server-মডিউল ai-agent.js আছে + import-প্রতিচিহ্ন public-worker-এ', existsSync('ai-agent.js') && PW.includes("from './ai-agent.js'"));
 
 /* ── ৩. Gateway-রুট ── */
-t('৮. public-worker: /api/ai/chat + /api/ai/status + লিগ্যাসি /api/ai → agent', PW.includes("path === '/api/ai/chat'") && PW.includes("path === '/api/ai/status'") && PW.includes('agentChat(request, env, uid, { stream: false })'));
+t('৮. public-worker: /api/ai/chat + /api/ai/status + লিগ্যাসি /api/ai → account-aware agent', PW.includes("path === '/api/ai/chat'") && PW.includes("path === '/api/ai/status'") && PW.includes('persistMemory: identity.persistMemory'));
 t('৯. gk-agent-worker: agent-env পাস-থ্রু', readFileSync('gk-agent-worker.js','utf8').includes('GROQ_API_KEY: env.GROQ_API_KEY'));
 
 /* ── ৪. পুরনো AI-প্রোডাক্ট বিলুপ্ত-অটুট ── */
@@ -47,13 +47,13 @@ t('২৪. Menu: new/rename/search/export/clear/delete + confirm', UI.includes('
 t('২৫. Search-কথোপকথন overlay + feedback-sheet (৫ কারণ) + feedback-log', UI.includes('ai-searchbar') && UI.includes('aiFeedbackLog') && UI.includes('fb4') && UI.includes('ai-fb-opt'));
 t('২৬. Follow-up chips + লেখক-রিজেন + marker (⭐-save/share)', UI.includes('ai-followup') && UI.includes('__AiAgentRegen') && UI.includes('navigator.share'));
 t('২৭. Thinking-state (✦ Thinking + অবস্থা-টেক্সট) + streaming-caret', UI.includes('ai-think') && UI.includes('aiThinkStatus') && UI.includes('ai-cursor') && UI.includes('thinkingStatus'));
-t('২৮. anonymous-device access + error-state retry (no account CTA)', UI.includes("'X-AH-Guest': guestId()") && UI.includes("const key = 'ahAiGuestV1'") && UI.includes('__AiAgentRetry') && !/AHAuth|__AiAgentLogin|openLogin|ahPubToken/.test(UI));
+t('২৮. ephemeral guest + account-scoped chat access and error-state retry', UI.includes("'X-AH-Guest': guestId()") && UI.includes('scopedWrite(STORE') && UI.includes("window.addEventListener('admissionhub:authchange'") && !UI.includes("localStorage.setItem('ahAiGuestV1'") && UI.includes('__AiAgentRetry'));
 t('২৯. Mobile-first: safe-area + keyboard (visualViewport নয়, d-i n-এ padding) + reduced-motion', UI.includes('safe-area-inset') && UI.includes('prefers-reduced-motion'));
 t('৩০. ক্লায়েন্ট-কোডে SSE-পার্স (data:/event:) + AbortController', UI.includes("startsWith('data:')") && UI.includes("startsWith('event:')") && UI.includes('AbortController'));
 
 /* ── ৬. ভার্সন-অখণ্ডতা v208 ── */
-t('৩১. sw BUILD_ID v208-aiagent (index-marker + expectedSwVersion)', SW.includes("const BUILD_ID = 'v229-telegram-canary-20260910'") && H.includes('sw.js?v=v229-telegram-canary-20260910') && H.includes("const expectedSwVersion = 'v229-telegram-canary-20260910'"));
-t('৩২. sw APP_SHELL: anonymous AI chatv14 + dash2f7', SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && SW.includes('./dashboard-v2.js?v=dash2f7') && H.includes('dashboard-v2.js?v=dash2f7'));
+t('৩১. sw BUILD_ID v208-aiagent (index-marker + expectedSwVersion)', SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") && H.includes('sw.js?v=v231-account-identity-20260910') && H.includes("const expectedSwVersion = 'v231-account-identity-20260910'"));
+t('৩২. sw APP_SHELL: anonymous AI chatv14 + dash2f7', SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && SW.includes('./dashboard-v2.js?v=dash2f7') && H.includes('dashboard-v2.js?v=dash2f7'));
 
 
 /* ── ৭. মালিক-ফিডব্যাক v209 (chatv2): Enter-newline · sheet-nav-hide · premium-composer · typography ── */
@@ -61,14 +61,14 @@ t('৩৩. Enter = নতুন লাইন; Ctrl/⌘+Enter = পাঠান; 
 t('৩৪. Sheet-খোলায় nav-bar hide + body-scroll-lock + plus-rotate', UI.includes("document.querySelector('.bottomnav')") && UI.includes("(open || onAi) ? 'none' : ''") && UI.includes("document.body.style.overflow = open ? 'hidden' : ''") && UI.includes('plus-on'));
 t('৩৫. Premium composer: focus-ring + hint-row + বড় textarea (150px)', UI.includes('.ai-compose:focus-within') && UI.includes('Math.min(i.scrollHeight, 128)') && UI.includes('.ai-editor:empty::before') && !UI.includes('ai-compose-hint'));
 t('৩৬. টাইপোগ্রাফি-লিফট: 16.5px/1.85 body + 20px emerald heading + blockquote + antialiased', UI.includes('.ai-msg-body{font-size:16.5px;line-height:1.85') && UI.includes('font-size:20px') && UI.includes('.ai-msg-body blockquote') && UI.includes('-webkit-font-smoothing:antialiased') && UI.includes('.ai-editor') && UI.includes('contenteditable="true"') && !UI.includes('ai-compose-hint') && !UI.includes('aiCharCount') && !UI.includes('enterHint'));
-t('৩৭. chatv3 + v210 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('sw.js?v=v229-telegram-canary-20260910') && H.includes("const expectedSwVersion = 'v229-telegram-canary-20260910'") && SW.includes("const BUILD_ID = 'v229-telegram-canary-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
+t('৩৭. chatv3 + v210 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && H.includes('sw.js?v=v231-account-identity-20260910') && H.includes("const expectedSwVersion = 'v231-account-identity-20260910'") && SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 
 
 /* ── ৮. v211 (chatv4): ফুল-স্ক্রিন AI + Final Composer Workflow ── */
 t('৩৮. AI-পেজ ফুল-স্ক্রিন: nav-hide + back-button + নিজস্ব-scroll root', UI.includes("document.querySelector('.bottomnav')") && UI.includes("navBar.style.display = 'none'") && UI.includes('aiHomeBtn') && UI.includes('function backHome()') && UI.includes("window.navigate('dashboard')") && UI.includes('height:100vh;height:100dvh;min-height:100vh;min-height:100dvh'));
 t('৩৯. Composer workflow: 52px compact + 128px max + mic↔send swap + dirty/streaming', UI.includes('min-height:52px') && UI.includes('max-height:128px') && UI.includes(".ai-compose.dirty .ai-send{display:grid}") && UI.includes('.ai-compose.streaming .ai-send{display:grid}') && UI.includes("'Ask anything…'"));
 t('৪০. Keyboard-aware + ↓ Latest + char-count', UI.includes('--ai-kb') && UI.includes('visualViewport') && UI.includes('__aiKbUpd') && UI.includes('aiLatest') && UI.includes("latest.classList.toggle('show'") && !UI.includes('aiCharCount'));
-t('৪১. chatv4 + v211 অখণ্ডতা (index+sw)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('sw.js?v=v229-telegram-canary-20260910') && SW.includes("const BUILD_ID = 'v229-telegram-canary-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
+t('৪১. chatv4 + v211 অখণ্ডতা (index+sw)', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && H.includes('sw.js?v=v231-account-identity-20260910') && SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 
 
 /* ── ৯. v212 (chatv5): মালিক-ফিডব্যাক — no-hint/no-counter, contenteditable, theme-vars, long-cap ── */
@@ -77,7 +77,7 @@ t('৪৩. Theme-CSS-vars apply হয় (dark-mode-র সাদা-লেখ�
 t('৪৪. Dark-mode overrides: plus/mic/link/callout/th', UI.includes("[data-theme=dark] .ai-plus{background:rgba(47,191,143,.16)") && UI.includes('[data-theme=dark] .ai-msg-body a') && UI.includes('[data-theme=dark] .ai-callout.tip') && UI.includes('[data-theme=dark] .ai-msg-body th'));
 t('৪৫. বড়-টেক্সট গার্ড: 4000-অক্ষর ক্যাপ + msgTooLong toast + focus', UI.includes('q.length > 4000') && UI.includes('msgTooLong') && UI.includes('মেসেজ খুব বড়'));
 t('৪৬. Paste → plain-text-only + IME-safe Enter', UI.includes("getData('text/plain')") && UI.includes('e.isComposing'));
-t('৪৭. chatv5 + v212 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('sw.js?v=v229-telegram-canary-20260910') && SW.includes("const BUILD_ID = 'v229-telegram-canary-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
+t('৪৭. chatv5 + v212 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && H.includes('sw.js?v=v231-account-identity-20260910') && SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 
 
 /* ── ১০. v213 (chatv6): কিবোর্ড-নিরাপদ layout + inline thinking + iOS-accessory fix ── */
@@ -85,7 +85,7 @@ t('৪৮. Thinking কোনো কার্ড-নয়: inline .ai-think row
 t('৪৯. কিবোর্ড-নিরাপদ layout: relative-foot (fixed/sticky-নয়) + root --ai-kb padding + body-তে কোনো giant padding নেই', UI.includes('.ai-agent-foot{position:relative;flex:0 0 auto;flex-shrink:0;width:100%;z-index:50') && UI.includes('padding-bottom:var(--ai-kb,0px)') && UI.includes('.ai-agent-body{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden'));
 t('৫০. iOS ↑↓✓ দমন: single stable contenteditable (কোনো toggle নয়) + pointerdown pre-focus', !UI.includes("setAttribute('contenteditable'") && UI.includes("composeEl.addEventListener('pointerdown'") && UI.includes("inp.focus({ preventScroll: true })") && UI.includes('enterkeyhint="send"'));
 t('৫১. send()-এ payload-aware thinking signals (image/doc/search/quiz/mcq)', UI.includes('image: !!imgItem') && UI.includes('doc: !!docItem') && UI.includes('search: /খোঁজো|খোঁজ|search') && UI.includes('mcq: /mcq/i'));
-t('৫২. chatv6 + v213 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('sw.js?v=v229-telegram-canary-20260910') && SW.includes("const BUILD_ID = 'v229-telegram-canary-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
+t('৫২. chatv6 + v213 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && H.includes('sw.js?v=v231-account-identity-20260910') && SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 
 
 /* ── ১১. v214 (chatv7): মালিক-স্পেক — SVG icon action-row + dynamic chips ── */
@@ -93,14 +93,14 @@ t('৫৩. Consistent SVG icon-system (stroke: currentColor, 16px, একই-wei
 t('৫৪. Action-row: icon-only Copy/Like/Dislike/Share/Regenerate/More + __AiAgentShare + navigator.share', UI.includes('__AiAgentShare') && UI.includes('navigator.share') && UI.includes('ICONS.share') && UI.includes('ICONS.regen') && UI.includes('ICONS.more') && UI.includes('.ai-msg-bar .ab{'));
 t('৫৫. Suggested chips: compact premium (solid border, mint bg, pill, no shadow/dash)', UI.includes('.ai-followup button{display:inline-flex') && UI.includes('border-radius:999px') && UI.includes('rgba(15,107,79,.15)') && UI.includes('padding:5.5px') && !UI.includes('border:1px dashed rgba(15,107,79,.3)'));
 t('৫৬. Dynamic context-based suggestions (long/mcq/def/default branches + চিপ-click delegation)', UI.includes('const long = t.length > 750') && UI.includes('hasMcqList') && UI.includes('chzSimilarMcq') && UI.includes('chzShorten') && UI.includes('chzRevise') && UI.includes('__aiFollowupDeleg'));
-t('৫৭. chatv7 + v214 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('sw.js?v=v229-telegram-canary-20260910') && SW.includes("const BUILD_ID = 'v229-telegram-canary-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
+t('৫৭. chatv7 + v214 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && H.includes('sw.js?v=v231-account-identity-20260910') && SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 
 /* ── ১২. v215 (chatv8): মালিক-স্পেক — sessions v2 + drawer + final header + dynamic renderer ── */
 t('৫৮. Sessions v2 (multichat: mkSession + {v:2,list,cur} + switchChat + rename/delete/pin)', UI.includes('const mkSession =') && UI.includes('{ v: 2, list: sessions, cur: cur }') && UI.includes('function switchChat(i)') && UI.includes('s2.pin = s2.pin ? 0 : 1') && UI.includes('const curTitle = () =>'));
 t('৫৯. Sidebar drawer (drawerPanel: recents/pin/rename/delete + new/search/themes/home + ×)', UI.includes('function drawerPanel()') && UI.includes('ai-dr-list') && UI.includes('ai-drawerback') && UI.includes('data-rm=') && UI.includes('recentChats') && UI.includes('itemMenu'));
 t('৬০. Final header ☰ + title + ＋ (no search/⋯) + floating ↓ + unread badge', UI.includes('ai-ham') && UI.includes('aiNewBtn') && UI.includes('ai-plushead') && !UI.includes("id='aiSearchBtn'") && !UI.includes('id="aiSearchBtn"') && UI.includes('aiLatestCnt') && UI.includes('__aiMarkNew') && UI.includes("'--ai-comp-h'"));
 t('৬১. Dynamic AI presentation (stats/timeline/checklist/define-callout/table-wrap/orb-states/count-up)', UI.includes('ai-stats') && UI.includes('aiBarGrow') && UI.includes('ai-timeline') && UI.includes('ai-checklist') && UI.includes('ai-callout.define') && UI.includes('ai-twrap') && UI.includes('tq-search') && UI.includes('tq-analyze') && UI.includes('tq-create') && UI.includes('ai-stat .v'));
-t('৬২. chatv8 + v215 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('sw.js?v=v229-telegram-canary-20260910') && SW.includes("const BUILD_ID = 'v229-telegram-canary-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
+t('৬২. chatv8 + v215 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && H.includes('sw.js?v=v231-account-identity-20260910') && SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 
 
 /* ── ১৩. v216 (chatv9): CRITICAL — input root-fix + interactive quiz engine v2 ── */
@@ -108,7 +108,7 @@ t('৬৩. Input root-fix: contenteditable-toggle hack নাই + enterkeyhint/
 t('৬৪. Final header: icon-only home (aiHomeBtn SVG, no text) right-পাশে ＋', UI.includes('ai-homehead') && UI.includes('id="aiHomeBtn"') && UI.includes('backHome()') && UI.includes('.ai-homehead svg'));
 t('৬৫. Quiz engine v2: subject-bank + intent extraction + adaptive config + bank-first + __Qz2 state-machine', UI.includes('const QZ_SUBJECTS') && UI.includes('const QZ_BANK') && UI.includes('function qzParseIntent') && UI.includes('function qzBankQuestions') && UI.includes('window.__Qz2') && UI.includes('async function qzGenerate') && UI.includes("mode: 'quiz_gen'") && UI.includes('function qzFinalize'));
 t('৬৬. Interactive quiz UI: config/steps/play/confirm/result/review + analytics + AI insight + retry/weak/similar', UI.includes('.qz-cfg') && UI.includes('.qz-steps') && UI.includes('function qzPlayHtml') && UI.includes('function qzConfirmHtml') && UI.includes('function qzResultHtml') && UI.includes('function qzReviewHtml') && UI.includes('function qzInsightText') && UI.includes(".qz-ring") && UI.includes("act === 'weak'") && UI.includes("act === 'retry'") && UI.includes("act === 'similar'"));
-t('৬৭. chatv9 + v216 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('sw.js?v=v229-telegram-canary-20260910') && SW.includes("const BUILD_ID = 'v229-telegram-canary-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
+t('৬৭. chatv9 + v216 অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && H.includes('sw.js?v=v231-account-identity-20260910') && SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 
 /* ── 14. v217 (chatv10): INPUT BOX / CHAT SCROLL — FINAL FIX (viewport-lock architecture) ── */
 t('৬৮. App viewport lock: html/body/#app scroll নিষিদ্ধ (ai-chat-open) + 100vh/dvh fallback + root flex-column', UI.includes("document.documentElement.classList.add('ai-chat-open')") && UI.includes("root.classList.add('ai-chat-open')") && UI.includes('html.ai-chat-open,html.ai-chat-open body{height:100% !important;overflow:hidden !important') && UI.includes('html.ai-chat-open body{position:fixed !important') && UI.includes('#app.ai-chat-open{height:100vh !important;height:100dvh !important;min-height:100vh !important;min-height:100dvh !important;padding-bottom:0 !important;overflow:hidden !important}') && UI.includes('height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column'));
@@ -119,7 +119,7 @@ t('৭০. Keyboard zero-gap: ai-kb class toggle + hashchange unlock + backHome 
 t('৭১. Engine core: RB_TYPES whitelist + respParse + RB_RENDER registry + respRender fallback + no-raw-HTML', UI.includes('const RB_TYPES') && UI.includes('function respParse') && UI.includes('const RB_RENDER = {}') && UI.includes('function respRender') && UI.includes("if (!fn) return '<p>' + rbEsc(b.txt") && UI.includes('RB_TYPES') && UI.includes('RB_RENDER.code') && UI.includes('RB_RENDER.compare'));
 t('৭২. Data-driven blocks: stats/kpi/timeline/checklist/steps/flow/compare/code parse + render', UI.includes("t: 'stats'") && UI.includes("t: 'kpi'") && UI.includes("t: 'timeline'") && UI.includes("t: 'checklist'") && UI.includes("t: 'steps'") && UI.includes("t: 'flow'") && UI.includes("t: 'compare'") && UI.includes("t: 'code'"));
 t('৭৩. Context-aware actions (গেমারিক নয়): rbIntent + ctxActions lang-aware + copy/q types + fake-data নিষেধ', UI.includes('function rbIntent') && UI.includes('const RB_INTENT') && UI.includes('function ctxActions') && UI.includes("const EN = typeof lang !== 'undefined'") && UI.includes("data-act=\"ra\"") && UI.includes('copy:') && UI.includes('q:') && UI.includes('rbCompare') && UI.includes('hasRate'));
-t('৭৪. chatv14 guest + current shell অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('sw.js?v=v229-telegram-canary-20260910') && SW.includes("const BUILD_ID = 'v229-telegram-canary-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
+t('৭৪. chatv14 guest + current shell অখণ্ডতা', H.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && H.includes('sw.js?v=v231-account-identity-20260910') && SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") && SW.includes('./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 
 t('৭৫. Quiz v3: strict topic lock + validation pipeline (mismatch → reject → regenerate)', UI.includes('function qzEnforceLock') && UI.includes('function qzRfMatch') && UI.includes('function qzStartTick') && UI.includes('const okT = !locks.length || locks.includes(tn)') && UI.includes('qzLocalGen(c, bad)'));
 t('৭৬. Subtopic + multi-subject auto-detect + 10-pattern local-gen + round-robin bank distribution', UI.includes("al: ['ইংরেজি'") && UI.includes('subT: subHit.slice()') && UI.includes('const subHit = []') && UI.includes('const TPLS = [') && UI.includes('groups[gi % groups.length]'));

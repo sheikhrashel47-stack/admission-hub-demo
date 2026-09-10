@@ -1,5 +1,5 @@
 // Admission Hub — Public Product Worker (account system retired, v221)
-// Active routes: public content · anonymous-device AI · content admin.
+// Active routes: public content · Firebase-account/ephemeral-guest AI · content admin.
 // The former login/profile/onboarding/session/state APIs are intentionally absent.
 import { agentChat, agentStatus } from './ai-agent.js';
 
@@ -58,6 +58,32 @@ const readGuestHeader = request => {
   const value = String(request.headers.get('X-AH-Guest') || '').trim();
   return /^[A-Za-z0-9_-]{16,96}$/.test(value) ? value : '';
 };
+const readCookie = (request, name) => {
+  const header = String(request.headers.get('Cookie') || '');
+  for (const part of header.split(';')) {
+    const index = part.indexOf('=');
+    if (index < 1 || part.slice(0, index).trim() !== name) continue;
+    try { return decodeURIComponent(part.slice(index + 1).trim()); } catch (_) { return ''; }
+  }
+  return '';
+};
+async function authenticatedAiIdentity(request, env) {
+  const sessionToken = readCookie(request, '__Host-ah_session');
+  if (!/^[A-Za-z0-9_-]{32,160}$/.test(sessionToken) || !env?.AUTH_AUTHORITY) return null;
+  try {
+    const id = env.AUTH_AUTHORITY.idFromName('admission-hub-global-auth-v1');
+    const stub = env.AUTH_AUTHORITY.get(id);
+    const response = await stub.fetch('https://auth.internal/internal/session/get', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionToken })
+    });
+    const payload = await response.json().catch(() => null);
+    const userId = String(payload?.result?.user?.id || '');
+    if (!response.ok || payload?.ok !== true || !/^[A-Za-z0-9_-]{8,128}$/.test(userId)) return null;
+    return `account-${(await sha256(userId)).slice(0, 40)}`;
+  } catch (_) { return null; }
+}
 async function anonymousAiIdentity(request, env, countUsage = true) {
   const supplied = readGuestHeader(request);
   const userAgent = String(request.headers.get('User-Agent') || '').slice(0, 180);
@@ -75,7 +101,13 @@ async function anonymousAiIdentity(request, env, countUsage = true) {
     if (count >= cap) throw Object.assign(new Error('আজকের public AI সীমা শেষ — কাল আবার চেষ্টা করো।'), { status: 429 });
     try { await env.PUB_KV.put(key, String(count + 1), { expirationTtl: 172800 }); } catch (_) {}
   }
-  return `anon-${deviceHash.slice(0, 40)}`;
+  return `guest-${deviceHash.slice(0, 40)}`;
+}
+async function aiRequestIdentity(request, env, countUsage = true) {
+  const accountUid = await authenticatedAiIdentity(request, env);
+  if (accountUid) return { uid: accountUid, persistMemory: true, authenticated: true };
+  const uid = await anonymousAiIdentity(request, env, countUsage);
+  return { uid, persistMemory: false, authenticated: false };
 }
 
 export const publishGlobal = async (env, full) => {
@@ -151,7 +183,7 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     try {
-      if (path === '/api/health') return json({ ok: true, accountSystem: 'retired', legacyAccountSystem: 'retired', nativeAuth: 'cloudflare-native-v1', identity: 'anonymous-device', at: Date.now() });
+      if (path === '/api/health') return json({ ok: true, accountSystem: 'retired', legacyAccountSystem: 'retired', nativeAuth: 'cloudflare-native-v1', identity: 'firebase-account-or-ephemeral-guest', at: Date.now() });
       if (path === '/api/content/meta' && request.method === 'GET') {
         const raw = await env.PUB_KV.get('pubContentMeta');
         if (raw) return json(JSON.parse(raw));
@@ -165,16 +197,16 @@ export default {
       }
       if (path.startsWith('/api/admin/')) return admin(request, env, path);
       if (path === '/api/ai/status' && request.method === 'GET') {
-        const uid = await anonymousAiIdentity(request, env, false);
-        return agentStatus(request, env, uid);
+        const identity = await aiRequestIdentity(request, env, false);
+        return agentStatus(request, env, identity.uid);
       }
       if (path === '/api/ai/chat' && request.method === 'POST') {
-        const uid = await anonymousAiIdentity(request, env);
-        return await agentChat(request, env, uid);
+        const identity = await aiRequestIdentity(request, env);
+        return await agentChat(request, env, identity.uid, { persistMemory: identity.persistMemory });
       }
       if (path === '/api/ai' && request.method === 'POST') {
-        const uid = await anonymousAiIdentity(request, env);
-        return await agentChat(request, env, uid, { stream: false });
+        const identity = await aiRequestIdentity(request, env);
+        return await agentChat(request, env, identity.uid, { stream: false, persistMemory: identity.persistMemory });
       }
       return json({ error: 'not-found' }, 404);
     } catch (error) {

@@ -243,6 +243,14 @@ const telegramVerificationStatus = async ({ env, user, context, allowed }) => {
   } catch { return false; }
 };
 
+const telegramVerificationAvailable = async (env, allowed) => {
+  if (!allowed) return false;
+  try {
+    const result = await callAuthority(env, '/internal/verification/capabilities', {});
+    return result?.telegramAvailable === true;
+  } catch { return false; }
+};
+
 const firebaseReadySession = async ({ provider, jar, env, context, allowTelegram = false }) => {
   const sessionToken = jar[AUTH_SESSION_COOKIE];
   const refreshToken = jar[AUTH_FIREBASE_COOKIE];
@@ -353,7 +361,7 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         `${AUTH_API_PREFIX}/telegram/canary/deactivate`
       ].includes(url.pathname)) {
         if (url.hostname !== 'admission-gk.admissionhub.workers.dev'
-          || env?.VERIFICATION_AUTH_ACTIVATION !== 'canary'
+          || !['canary', 'enabled'].includes(env?.VERIFICATION_AUTH_ACTIVATION)
           || !telegramActivationAuthorized(request, env)) {
           return json(request, 403, { ok: false, error: { code: 'FORBIDDEN', message: 'অনুমতি নেই।' } });
         }
@@ -464,6 +472,13 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           canonicalIdentity: 'firebase-uid'
         };
         const passkeyAvailable = available && health.schema >= 3 && (passkeyPublished(env) || passkeyCanary);
+        const passkeyEnrollmentAvailable = available && health.schema >= 3 && passkeyEndpointReady(env);
+        const publicBackup = telegramCanary ? backup : {
+          available: false,
+          availabilityCode: 'LIVE_E2E_PENDING',
+          genericFlow: true,
+          providerNamesExposed: false
+        };
         const body = {
           ok: true,
           auth: {
@@ -481,13 +496,14 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
               google,
               passkey: {
                 available: passkeyAvailable,
+                enrollmentAvailable: passkeyEnrollmentAvailable,
                 availabilityCode: passkeyAvailable ? 'READY' : passkeyEndpointReady(env) ? 'LIVE_E2E_PENDING' : 'NOT_ACTIVATED',
                 requiresEnrollment: true,
                 neverMandatory: true
               },
               emailPassword: { available, availabilityCode: available ? 'READY' : availability.code },
               telegramVerification,
-              backup
+              backup: publicBackup
             },
             verificationEmail: {
               kind: 'address-verification',
@@ -510,23 +526,9 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         const prepared = await callAuthority(env, '/internal/firebase/rate', { input: { operation: 'signup', email: input.email }, context });
         let signed;
         try { signed = await provider.signUp(prepared.email, input.password); } catch (cause) { throw providerError(cause, 'signup'); }
+
         const telegramRequested = telegramVerificationRequested(env, url);
-        let emailSent = false;
-        let emailFailure = null;
-        try {
-          await callAuthority(env, '/internal/firebase/rate', { input: { operation: 'verification-send', email: prepared.email }, context });
-          await provider.sendVerificationEmail(signed.idToken, prepared.email);
-          emailSent = true;
-        } catch (cause) {
-          emailFailure = cause instanceof NativeAuthError ? cause : providerError(cause, 'verification');
-          if (!telegramRequested) {
-            try { await provider.deleteAccount(signed.idToken); } catch {}
-            throw emailFailure;
-          }
-        }
-        let telegram = null;
-        let verificationTicket = '';
-        let accountVerificationPrepared = false;
+        const telegramAvailable = await telegramVerificationAvailable(env, telegramRequested);
         if (telegramRequested) {
           try {
             const temporaryRefreshMaterial = signed.refreshToken;
@@ -538,59 +540,52 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
               },
               context
             });
-            verificationTicket = ticket.verificationTicket;
-            accountVerificationPrepared = true;
-            const started = await callAuthority(env, '/internal/verification/preauth/request', {
-              input: {
-                verificationTicket,
-                email: prepared.email,
-                subject: signed.subject
-              },
-              context
+            return json(request, 202, {
+              ok: true,
+              accountCreated: true,
+              authenticated: false,
+              verification: {
+                sent: false,
+                selectionRequired: true,
+                emailMasked: prepared.emailMask,
+                requiredBeforeLogin: true,
+                options: {
+                  email: { available: true, verifiesEmailOwnership: true },
+                  telegram: { available: telegramAvailable, verifiesEmailOwnership: false }
+                }
+              }
+            }, {
+              'Set-Cookie': [
+                ...(context.isNewDevice ? [deviceCookie(context.deviceId)] : []),
+                verificationCookie(ticket.verificationTicket)
+              ]
             });
-            if (started?.interaction?.type === 'telegram-link') {
-              telegram = {
-                available: true,
-                attemptId: started.attemptId,
-                expiresAt: started.expiresAt,
-                resendAfter: started.resendAfter,
-                attemptsAllowed: started.attemptsAllowed,
-                interaction: started.interaction,
-                verifiesEmailOwnership: false
-              };
-            }
           } catch {
-            telegram = null;
-            verificationTicket = '';
+            // Preserve the existing Firebase email path if secure selector setup is
+            // temporarily unavailable. No authenticated session is created.
           }
         }
-        if (!emailSent && !telegram) {
-          // If the canonical pre-verification identity was already prepared, keep
-          // the matching Firebase account so a later password reauthentication can
-          // safely resume Telegram. Deleting only Firebase here would strand an
-          // HMAC-linked subject and make the next signup conflict with itself.
-          if (!accountVerificationPrepared) {
-            try { await provider.deleteAccount(signed.idToken); } catch {}
-          }
-          throw emailFailure || new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
+
+        try {
+          await callAuthority(env, '/internal/firebase/rate', { input: { operation: 'verification-send', email: prepared.email }, context });
+          await provider.sendVerificationEmail(signed.idToken, prepared.email);
+        } catch (cause) {
+          try { await provider.deleteAccount(signed.idToken); } catch {}
+          throw cause instanceof NativeAuthError ? cause : providerError(cause, 'verification');
         }
-        const signupCookies = [
-          ...(context.isNewDevice ? [deviceCookie(context.deviceId)] : []),
-          ...(telegram && verificationTicket ? [verificationCookie(verificationTicket)] : [])
-        ];
         return json(request, 202, {
           ok: true,
           accountCreated: true,
           authenticated: false,
           verification: {
-            sent: emailSent,
+            sent: true,
+            selectionRequired: false,
             emailMasked: prepared.emailMask,
             requiredBeforeLogin: true,
             dailyCapacity: 1000,
-            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS,
-            ...(telegram ? { telegram } : {})
+            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
           }
-        }, signupCookies.length ? { 'Set-Cookie': signupCookies } : {});
+        }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
       }
 
       if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/verification/resend`) {
@@ -628,6 +623,7 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           context,
           allowed: telegramRequested
         });
+        const telegramAvailable = await telegramVerificationAvailable(env, telegramRequested);
         if (!user.emailVerified && !telegramVerified && telegramRequested) {
           try {
             const temporaryRefreshMaterial = signed.refreshToken;
@@ -639,38 +635,25 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
               },
               context
             });
-            const started = await callAuthority(env, '/internal/verification/preauth/request', {
-              input: {
-                verificationTicket: ticket.verificationTicket,
-                email: user.email,
-                subject: user.subject
-              },
-              context
-            });
-            if (started?.interaction?.type === 'telegram-link') {
-              return json(request, 202, {
-                ok: true,
-                authenticated: false,
-                accountVerified: false,
-                verification: {
-                  emailMasked: prepared.emailMask,
-                  telegram: {
-                    available: true,
-                    attemptId: started.attemptId,
-                    expiresAt: started.expiresAt,
-                    resendAfter: started.resendAfter,
-                    attemptsAllowed: started.attemptsAllowed,
-                    interaction: started.interaction,
-                    verifiesEmailOwnership: false
-                  }
+            return json(request, 202, {
+              ok: true,
+              authenticated: false,
+              accountVerified: false,
+              verification: {
+                sent: false,
+                selectionRequired: true,
+                emailMasked: prepared.emailMask,
+                options: {
+                  email: { available: true, verifiesEmailOwnership: true },
+                  telegram: { available: telegramAvailable, verifiesEmailOwnership: false }
                 }
-              }, {
-                'Set-Cookie': [
-                  ...(context.isNewDevice ? [deviceCookie(context.deviceId)] : []),
-                  verificationCookie(ticket.verificationTicket)
-                ]
-              });
-            }
+              }
+            }, {
+              'Set-Cookie': [
+                ...(context.isNewDevice ? [deviceCookie(context.deviceId)] : []),
+                verificationCookie(ticket.verificationTicket)
+              ]
+            });
           } catch {}
         }
         if (!user.emailVerified && !telegramVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
@@ -747,17 +730,76 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         });
       }
 
+      if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/account-verification/email/start`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
+        if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        await readJson(request);
+        const material = await callAuthority(env, '/internal/firebase/account-verification/material', {
+          verificationTicket,
+          context
+        });
+        let refreshed;
+        let user;
+        try { refreshed = await provider.refresh(material.refreshToken); } catch (cause) { throw providerError(cause, 'refresh'); }
+        try { user = await provider.lookup(refreshed.idToken); } catch (cause) { throw providerError(cause, 'lookup-session'); }
+        assertProviderUser(refreshed, user);
+        if (user.emailVerified) {
+          return json(request, 200, { ok: true, alreadyVerified: true, authenticated: false });
+        }
+        await callAuthority(env, '/internal/firebase/rate', { input: { operation: 'verification-send', email: user.email }, context });
+        try { await provider.sendVerificationEmail(refreshed.idToken, user.email); } catch (cause) { throw providerError(cause, 'verification'); }
+        return json(request, 202, {
+          ok: true,
+          authenticated: false,
+          verification: {
+            sent: true,
+            emailMasked: material.user?.emailMasked || 'আপনার ইমেইলে',
+            dailyCapacity: 1000,
+            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
+          }
+        }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
+      }
+
+      if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/telegram/verification/start`) {
+        if (!provider.configured || !telegramVerificationRequested(env, url)) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
+        }
+        const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
+        if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        await readJson(request);
+        const result = await callAuthority(env, '/internal/verification/preauth/request', {
+          input: { verificationTicket },
+          context
+        });
+        return json(request, 202, { ok: true, ...result }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
+      }
+
       if (request.method === 'GET' && url.pathname === `${AUTH_API_PREFIX}/telegram/verification/pending`) {
         if (!provider.configured || !telegramVerificationRequested(env, url)) {
           throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
         }
         const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
         if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
-        const result = await callAuthority(env, '/internal/verification/preauth/pending', {
-          input: { verificationTicket },
-          context
-        });
-        return json(request, 200, { ok: true, ...result }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
+        const [material, result] = await Promise.all([
+          callAuthority(env, '/internal/firebase/account-verification/material', { verificationTicket, context }),
+          callAuthority(env, '/internal/verification/preauth/pending', {
+            input: { verificationTicket },
+            context
+          })
+        ]);
+        return json(request, 200, {
+          ok: true,
+          ...result,
+          ...(!result?.pending ? {
+            selectionRequired: true,
+            emailMasked: material.user?.emailMasked || 'আপনার ইমেইলে',
+            options: {
+              email: { available: true, verifiesEmailOwnership: true },
+              telegram: { available: true, verifiesEmailOwnership: false }
+            }
+          } : {})
+        }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
       }
 
       if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/telegram/verification/resend`) {

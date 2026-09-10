@@ -685,35 +685,67 @@
   let attachments = [];
   let voiceState = null; /* {rec, timer, chunks, start} */
   const mkSession = (nm, arr) => ({ id: Date.now() + Math.random().toString(36).slice(2, 6), name: nm || '', msgs: (arr || []).slice(-MAX_MSGS), pin: 0, ts: Date.now() });
-  let sessions = [];
+  let sessions = [mkSession('', [])];
   let cur = 0;
   let aiUnread = 0;
   let aiPinned = true;
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORE) || '[]');
-    if (Array.isArray(raw)) sessions = [mkSession((() => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (_) { return ''; } })(), raw)];
-    else if (raw && raw.v === 2 && Array.isArray(raw.list) && raw.list.length) { sessions = raw.list; cur = Math.min(+raw.cur || 0, sessions.length - 1); }
-    else sessions = [mkSession('', [])];
-  } catch (_) { sessions = [mkSession('', [])]; }
-  msgs = sessions[cur].msgs;
-  let theme = (() => { try { const t = localStorage.getItem(THEME_KEY); return THEMES[t] ? t : 'light'; } catch (_) { return 'light'; } })();
+  let accountScope = '';
+  let theme = 'light';
+
+  const scopedKey = key => accountScope ? `${key}:account:${accountScope}` : '';
+  const scopedRead = key => {
+    if (!accountScope) return null;
+    try { return localStorage.getItem(scopedKey(key)); } catch (_) { return null; }
+  };
+  const scopedWrite = (key, value) => {
+    if (!accountScope) return false;
+    try { localStorage.setItem(scopedKey(key), String(value)); return true; } catch (_) { return false; }
+  };
+  const loadScopedAiState = () => {
+    sessions = [mkSession('', [])]; cur = 0;
+    if (accountScope) {
+      try {
+        const raw = JSON.parse(scopedRead(STORE) || '[]');
+        if (Array.isArray(raw) && raw.length) sessions = [mkSession(scopedRead(NAME_KEY) || '', raw)];
+        else if (raw && raw.v === 2 && Array.isArray(raw.list) && raw.list.length) {
+          sessions = raw.list; cur = Math.min(+raw.cur || 0, sessions.length - 1);
+        }
+      } catch (_) { sessions = [mkSession('', [])]; cur = 0; }
+    }
+    msgs = sessions[cur].msgs;
+    const savedTheme = scopedRead(THEME_KEY);
+    theme = THEMES[savedTheme] ? savedTheme : 'light';
+  };
+
+  // Remove the legacy shared-device chat keys once. They were not bound to a
+  // Firebase UID and must never leak into a newly signed-in account.
+  try { [STORE, NAME_KEY, THEME_KEY, NOTICE_KEY, FEED_KEY, 'ahAiGuestV1'].forEach(key => localStorage.removeItem(key)); } catch (_) {}
+
+  window.addEventListener('admissionhub:authchange', event => {
+    const detail = event?.detail || {};
+    const nextScope = detail.authenticated === true && /^[A-Za-z0-9_-]{8,128}$/.test(String(detail.user?.id || ''))
+      ? String(detail.user.id)
+      : '';
+    if (nextScope === accountScope) return;
+    if (accountScope) {
+      try { sessions[cur].msgs = msgs.slice(-MAX_MSGS); scopedWrite(STORE, JSON.stringify({ v: 2, list: sessions, cur })); } catch (_) {}
+    }
+    accountScope = nextScope;
+    guestMemo = '';
+    loadScopedAiState();
+    if (document.getElementById('aiRoot')) render();
+  });
 
   const esc = (s) => { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; };
   let guestMemo = '';
   const guestId = () => {
     if (guestMemo) return guestMemo;
-    const key = 'ahAiGuestV1';
-    try {
-      const saved = String(localStorage.getItem(key) || '').trim();
-      if (/^[A-Za-z0-9._:-]{16,128}$/.test(saved)) return (guestMemo = saved);
-    } catch (_) {}
     try { guestMemo = crypto.randomUUID(); }
     catch (_) {
       const bytes = new Uint8Array(18);
       try { crypto.getRandomValues(bytes); } catch (_) { for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256); }
       guestMemo = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
     }
-    try { localStorage.setItem(key, guestMemo); } catch (_) {}
     return guestMemo;
   };
   const localStats = () => {
@@ -727,7 +759,7 @@
       };
     } catch (_) { return null; }
   };
-  const save = () => { try { sessions[cur].msgs = msgs.slice(-MAX_MSGS); sessions[cur].ts = Date.now(); localStorage.setItem(STORE, JSON.stringify({ v: 2, list: sessions, cur: cur })); } catch (_) {} };
+  const save = () => { if (!accountScope) return; try { sessions[cur].msgs = msgs.slice(-MAX_MSGS); sessions[cur].ts = Date.now(); scopedWrite(STORE, JSON.stringify({ v: 2, list: sessions, cur: cur })); } catch (_) {} };
   const curTitle = () => (sessions[cur] && sessions[cur].name ? sessions[cur].name : T.title);
   const fmtDay = (ts) => { try { const d = new Date(ts), n = new Date(); return d.toDateString() === n.toDateString() ? fmtTime(ts) : d.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { day: 'numeric', month: 'short' }); } catch (_) { return ''; } };
   const fmtTime = (ts) => { try { return new Date(ts).toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', { hour: '2-digit', minute: '2-digit' }); } catch (_) { return ''; } };
@@ -1076,7 +1108,7 @@
     const s2 = sessions[i]; if (!s2) return;
     const act = prompt(T.itemAct + '\n1. ' + T.pinChat + '\n2. ' + T.menuRename + '\n3. ' + T.menuDelete + '\n4. ' + T.cancelBtn, '1');
     if (act === '1') { s2.pin = s2.pin ? 0 : 1; save(); }
-    else if (act === '2') { const nm = prompt(T.menuRename + ':', s2.name || ''); if (nm !== null) { s2.name = nm.trim(); if (i === cur) { try { localStorage.setItem(NAME_KEY, s2.name); } catch (_) {} } } save(); }
+    else if (act === '2') { const nm = prompt(T.menuRename + ':', s2.name || ''); if (nm !== null) { s2.name = nm.trim(); if (i === cur) { try { scopedWrite(NAME_KEY, s2.name); } catch (_) {} } } save(); }
     else if (act === '3') { if (!confirm(T.confirmDel)) return; const wasCur = i === cur; sessions.splice(i, 1); if (!sessions.length) sessions = [mkSession('', [])]; if (wasCur || cur >= sessions.length) { cur = Math.min(i, sessions.length - 1); msgs = sessions[cur].msgs; render(); return; } save(); }
     if (menuOpen) { closeMenu(); menuOpen = true; document.body.appendChild(drawerPanel()); }
   }
@@ -1088,7 +1120,7 @@
     for (const k of ['bg', 'card', 'ink', 'sub', 'primary', 'mint', 'line', 'user']) r.style.setProperty('--ai-' + k, t[k]);
     r.setAttribute('data-theme', effTheme());
   }
-  function setTheme(t) { theme = THEMES[t] ? t : 'light'; try { localStorage.setItem(THEME_KEY, theme); } catch (_) {} applyThemeVars(); renderChrome(); document.querySelectorAll('.ai-dr-themes button').forEach((b) => b.classList.toggle('on', b.getAttribute('data-theme') === theme)); }
+  function setTheme(t) { theme = THEMES[t] ? t : 'light'; try { scopedWrite(THEME_KEY, theme); } catch (_) {} applyThemeVars(); renderChrome(); document.querySelectorAll('.ai-dr-themes button').forEach((b) => b.classList.toggle('on', b.getAttribute('data-theme') === theme)); }
   try { (window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null).addEventListener && matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (theme === 'system') setTheme('system'); }); } catch (_) {}
   function closeMenu() { menuOpen = false; const m = document.querySelector('.ai-drawerback') || document.querySelector('.ai-menu'); if (m) m.remove(); }
   function setSheetUI(open) { attachOpen = open;
@@ -1226,11 +1258,11 @@
     save(); render(); toast(T.delDone);
   }
   function renameChat() {
-    const prev = (sessions[cur] && sessions[cur].name) || (() => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (_) { return ''; } })();
+    const prev = (sessions[cur] && sessions[cur].name) || (() => { try { return scopedRead(NAME_KEY) || ''; } catch (_) { return ''; } })();
     const name = prompt(T.menuRename + ':', prev || T.title);
     if (name === null) return;
     sessions[cur].name = name.trim(); sessions[cur].ts = Date.now();
-    try { localStorage.setItem(NAME_KEY, sessions[cur].name); } catch (_) {}
+    try { scopedWrite(NAME_KEY, sessions[cur].name); } catch (_) {}
     save();
     const b = document.getElementById('aiTitleTxt') || document.querySelector('.ai-agent-t b');
     if (b) b.textContent = sessions[cur].name || T.title;
@@ -1310,7 +1342,7 @@
   function emptyState() {
     return `<div class="ai-hero"><div class="ai-hero-txt"><b>✦ ${esc(T.heroTitle)}</b><p>${esc(T.heroBody)}</p><button class="ai-hero-cta" id="aiHeroCta">${esc(T.heroCta)} →</button></div>
       <div class="ai-hero-orb" aria-hidden="true"><i class="ring"></i><i class="ring2"></i><i class="p1"></i><i class="p2"></i><i class="p3"></i><span class="big"></span></div></div>
-      ${localStorage.getItem(NOTICE_KEY) ? '' : `<div class="ai-notice" id="aiNotice">🛡 <div><b>AI responses</b> can occasionally contain mistakes. Verify important admission information from official sources.</div><button class="x" id="aiNoticeX" aria-label="Dismiss">×</button></div>`}
+      ${scopedRead(NOTICE_KEY) ? '' : `<div class="ai-notice" id="aiNotice">🛡 <div><b>AI responses</b> can occasionally contain mistakes. Verify important admission information from official sources.</div><button class="x" id="aiNoticeX" aria-label="Dismiss">×</button></div>`}
       <div class="ai-try">${esc(T.tryAsking)}</div>
       <div class="ai-chips">${T.chips.map((c) => `<button class="ai-chip" data-q="${esc(c[2])}"><span class="ic">${c[0]}</span><b>${esc(c[1])}</b><span>${esc(c[0] + ' ' + (c[1]))}</span></button>`).join('')}</div>`;
   }
@@ -1441,7 +1473,7 @@
     const cta = document.getElementById('aiHeroCta');
     if (cta) cta.addEventListener('click', () => { input.focus(); });
     const nx = document.getElementById('aiNoticeX');
-    if (nx) nx.addEventListener('click', () => { try { localStorage.setItem(NOTICE_KEY, 'true'); } catch (_) {} const n = document.getElementById('aiNotice'); if (n) n.remove(); });
+    if (nx) nx.addEventListener('click', () => { try { scopedWrite(NOTICE_KEY, 'true'); } catch (_) {} const n = document.getElementById('aiNotice'); if (n) n.remove(); });
     document.querySelectorAll('.ai-chip').forEach((c) => c.addEventListener('click', () => send(c.getAttribute('data-q'))));
     if (!window.__aiFollowupDeleg) { window.__aiFollowupDeleg = true; document.addEventListener('click', (e) => { const b = e.target.closest('.ai-followup button'); if (b) send(b.getAttribute('data-q') || ''); }); }
   }
@@ -2228,9 +2260,9 @@
     back.querySelectorAll('.ai-fb-opt').forEach((b) => b.addEventListener('click', () => {
       const reason = b.textContent.trim();
       try {
-        const log = JSON.parse(localStorage.getItem(FEED_KEY) || '[]');
+        const log = JSON.parse(scopedRead(FEED_KEY) || '[]');
         log.push({ at: Date.now(), reason, snippet: String((msgs[feedbackTarget] || {}).text || '').slice(0, 200) });
-        localStorage.setItem(FEED_KEY, JSON.stringify(log.slice(-50)));
+        scopedWrite(FEED_KEY, JSON.stringify(log.slice(-50)));
       } catch (_) {}
       back.remove(); toast(T.liked);
     }));
