@@ -86,6 +86,16 @@ const safeDomain = value => {
 
 const headerDomain = value => safeDomain(String(value || '').match(/<([^>]+)>/)?.[1] || String(value || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+/i)?.[0] || '');
 
+export function liveAuthMethodsReady(methods = {}) {
+  const google = methods?.google;
+  return methods?.emailPassword?.available === true
+    && google?.available === true
+    && google?.availabilityCode === 'READY'
+    && /^[A-Za-z0-9._-]+\.apps\.googleusercontent\.com$/.test(String(google?.clientId || ''))
+    && methods?.passkey?.available === false
+    && methods?.backup?.available === false;
+}
+
 function mimeHeaders(source) {
   const head = String(source || '').split(/\r?\n\r?\n/, 1)[0];
   const unfolded = head.replace(/\r?\n[ \t]+/g, ' ');
@@ -298,8 +308,8 @@ export async function runLiveMailboxE2E({
       throw new LiveCheckError('config', 0, 'QUOTA_CONTRACT');
     }
     const methods = config.body?.auth?.methods;
-    if (methods?.emailPassword?.available !== true || methods?.google?.available !== false || methods?.passkey?.available !== false || methods?.backup?.available !== false) {
-      throw new LiveCheckError('config', 0, 'UNPUBLISHED_METHOD_EXPOSED');
+    if (!liveAuthMethodsReady(methods)) {
+      throw new LiveCheckError('config', 0, 'PUBLIC_METHOD_CONTRACT');
     }
 
     mailbox = await createMailbox();

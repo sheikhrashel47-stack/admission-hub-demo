@@ -10,7 +10,7 @@ import { FirebaseConfigError, validateFirebaseProjectConfig, verifyFirebaseConfi
 import { GoogleReadinessError, verifyGoogleReadiness } from './auth-native/operations/verify-google-readiness.mjs';
 import { classifyGoogleBrowserPage } from './auth-native/operations/verify-google-browser-origin.mjs';
 import { summarizeTelegramBindings } from './auth-native/operations/verify-telegram-bindings.mjs';
-import { auditVerificationMessage, verificationAction } from './auth-native/operations/live-mailbox-e2e.mjs';
+import { auditVerificationMessage, liveAuthMethodsReady, verificationAction } from './auth-native/operations/live-mailbox-e2e.mjs';
 import { summarizePlacementReport } from './auth-native/operations/live-placement-audit.mjs';
 import { FirebaseEmailPasswordProvider } from './auth-native/providers/firebase-auth.mjs';
 import { verifyFirebaseWorkerBinding } from './auth-native/operations/verify-worker-binding.mjs';
@@ -405,6 +405,23 @@ test('Telegram readiness inventory checks only required binding names and never 
   assert.equal(missing.ready, false);
   assert.equal(missing.botCredential, false);
   assert.equal('names' in missing, false);
+});
+
+test('live Firebase lifecycle guard requires public Google while Telegram canary and Passkey remain unpublished', () => {
+  const methods = {
+    emailPassword: { available: true },
+    google: {
+      available: true,
+      availabilityCode: 'READY',
+      clientId: '123456789012-live-guard.apps.googleusercontent.com'
+    },
+    passkey: { available: false },
+    backup: { available: false, availabilityCode: 'LIVE_E2E_PENDING' }
+  };
+  assert.equal(liveAuthMethodsReady(methods), true);
+  assert.equal(liveAuthMethodsReady({ ...methods, google: { available: false } }), false);
+  assert.equal(liveAuthMethodsReady({ ...methods, backup: { available: true } }), false);
+  assert.equal(liveAuthMethodsReady({ ...methods, passkey: { available: true } }), false);
 });
 
 test('live Firebase check extracts only a standard verify-email action', () => {
