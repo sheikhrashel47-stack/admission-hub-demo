@@ -4212,6 +4212,35 @@ var FirebaseEmailPasswordProvider = class {
     }
     return Object.freeze({ available: true, clientId });
   }
+  async inspectGoogleRedirectFlow(sessionId) {
+    if (!validToken(sessionId)) throw new FirebaseRequestError("INVALID_SESSION_ID");
+    const continueUri = "https://admissionhub.pages.dev/?googleAuthCallback=1";
+    const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:createAuthUri?key=${encodeURIComponent(this.apiKey)}`, {
+      providerId: "google.com",
+      continueUri,
+      sessionId,
+      authFlowType: "CODE_FLOW",
+      customParameter: { prompt: "select_account" }
+    });
+    let authUri;
+    let redirectUri;
+    try {
+      authUri = new URL(String(payload?.authUri || ""));
+      redirectUri = new URL(String(authUri.searchParams.get("redirect_uri") || ""));
+    } catch {
+      throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
+    }
+    const clientId = authUri.searchParams.get("client_id") || "";
+    const responseTypes = new Set(String(authUri.searchParams.get("response_type") || "").split(/\s+/).filter(Boolean));
+    const callbackKind = redirectUri.protocol === "https:" && redirectUri.hostname.endsWith(".firebaseapp.com") && redirectUri.pathname === "/__/auth/handler" ? "firebase-handler" : redirectUri.origin === new URL(continueUri).origin ? "pages-origin" : "other";
+    if (payload?.providerId !== "google.com" || payload?.sessionId !== sessionId || authUri.protocol !== "https:" || authUri.hostname !== "accounts.google.com" || !validGoogleClientId(clientId) || !responseTypes.has("code") || redirectUri.protocol !== "https:") throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
+    return Object.freeze({
+      available: true,
+      sessionBound: true,
+      responseMode: "code",
+      callbackKind
+    });
+  }
   async signUp(email, password) {
     const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:signUp?key=${encodeURIComponent(this.apiKey)}`, {
       email,

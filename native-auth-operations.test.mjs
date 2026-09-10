@@ -250,14 +250,22 @@ test('Google readiness audit accepts an enabled Firebase project config without 
     apiKey: 'firebase-test-api-key-123456789',
     fetchImpl: async (url, options) => {
       calls.push({ url: String(url), options });
+      if (options.method === 'GET') {
+        return response({
+          projectId: 'admission-hub-test',
+          authorizedDomains: ['admissionhub.pages.dev'],
+          idpConfig: [{
+            provider: 'google.com',
+            enabled: true,
+            clientId: '123456789012-readinessclient.apps.googleusercontent.com'
+          }]
+        });
+      }
+      const body = JSON.parse(options.body);
       return response({
-        projectId: 'admission-hub-test',
-        authorizedDomains: ['admissionhub.pages.dev'],
-        idpConfig: [{
-          provider: 'google.com',
-          enabled: true,
-          clientId: '123456789012-readinessclient.apps.googleusercontent.com'
-        }]
+        providerId: 'google.com',
+        sessionId: body.sessionId,
+        authUri: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=123456789012-readinessclient.apps.googleusercontent.com&response_type=code&redirect_uri=https%3A%2F%2Fadmission-hub-auth.firebaseapp.com%2F__%2Fauth%2Fhandler'
       });
     }
   });
@@ -265,11 +273,18 @@ test('Google readiness audit accepts an enabled Firebase project config without 
     ready: true,
     provider: 'google.com',
     clientIdValidated: true,
-    source: 'project-config'
+    source: 'project-config',
+    redirectSessionBound: true,
+    redirectResponseMode: 'code',
+    redirectCallbackKind: 'firebase-handler'
   });
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 2);
   assert.equal(calls[0].options.method, 'GET');
   assert.equal(calls[0].options.redirect, 'manual');
+  const redirectProbe = JSON.parse(calls[1].options.body);
+  assert.equal(redirectProbe.authFlowType, 'CODE_FLOW');
+  assert.match(redirectProbe.sessionId, /^readiness-/);
+  assert.equal(/id_token|access_token|password/i.test(calls[1].options.body), false);
 });
 
 test('Google readiness audit may validate Firebase createAuthUri but never signs in or creates an account', async () => {
@@ -278,9 +293,18 @@ test('Google readiness audit may validate Firebase createAuthUri but never signs
     apiKey: 'firebase-test-api-key-123456789',
     fetchImpl: async (url, options) => {
       const parsed = new URL(url);
-      paths.push({ path: parsed.pathname, method: options.method, body: String(options.body || '') });
+      const bodyText = String(options.body || '');
+      paths.push({ path: parsed.pathname, method: options.method, body: bodyText });
       if (parsed.pathname.endsWith('/projects')) {
         return response({ projectId: 'admission-hub-test', authorizedDomains: ['admissionhub.pages.dev'] });
+      }
+      const body = JSON.parse(bodyText);
+      if (body.authFlowType === 'CODE_FLOW') {
+        return response({
+          providerId: 'google.com',
+          sessionId: body.sessionId,
+          authUri: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=123456789012-readinessclient.apps.googleusercontent.com&response_type=code&redirect_uri=https%3A%2F%2Fadmission-hub-auth.firebaseapp.com%2F__%2Fauth%2Fhandler'
+        });
       }
       return response({
         providerId: 'google.com',
@@ -291,8 +315,12 @@ test('Google readiness audit may validate Firebase createAuthUri but never signs
   });
   assert.equal(result.ready, true);
   assert.equal(result.source, 'firebase-auth-uri');
+  assert.equal(result.redirectSessionBound, true);
+  assert.equal(result.redirectResponseMode, 'code');
+  assert.equal(result.redirectCallbackKind, 'firebase-handler');
   assert.deepEqual(paths.map(row => [row.path, row.method]), [
     ['/v1/projects', 'GET'],
+    ['/v1/accounts:createAuthUri', 'POST'],
     ['/v1/accounts:createAuthUri', 'POST']
   ]);
   assert.equal(paths.some(row => /signIn|signUp/.test(row.path)), false);
