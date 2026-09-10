@@ -3,6 +3,7 @@ import { constantTimeEqual, normalizeAuthEmail, randomToken } from '../core/cryp
 import { AUTH_ERROR_CODES, asNativeAuthError, NativeAuthError } from '../core/errors.mjs';
 import { FirebaseEmailPasswordProvider, FirebaseRequestError } from '../providers/firebase-auth.mjs';
 import { verificationConfig } from '../verification/config.mjs';
+import { resolveTelegramWebhookSecret, validTelegramWebhookSecret } from '../verification/telegram-security.mjs';
 
 export const AUTH_API_PREFIX = '/api/auth/v1';
 export const AUTH_SESSION_COOKIE = '__Host-ah_session';
@@ -268,7 +269,17 @@ const googleEndpointReady = env => ['canary', 'enabled'].includes(String(env?.GO
 const googlePublished = env => env?.GOOGLE_AUTH_ACTIVATION === 'enabled';
 const googleCanaryRequested = (env, url) =>
   env?.GOOGLE_AUTH_ACTIVATION === 'canary' && url.searchParams.get('googleCanary') === '1';
-const validWebhookSecret = value => /^[A-Za-z0-9_-]{20,256}$/.test(String(value || ''));
+const verificationEndpointReady = env => ['canary', 'enabled'].includes(String(env?.VERIFICATION_AUTH_ACTIVATION || ''));
+const verificationPublished = env => env?.VERIFICATION_AUTH_ACTIVATION === 'enabled';
+const telegramCanaryRequested = (env, url) =>
+  env?.VERIFICATION_AUTH_ACTIVATION === 'canary' && url.searchParams.get('telegramCanary') === '1';
+const telegramActivationAuthorized = (request, env) => {
+  const expected = String(env?.TELEGRAM_CANARY_ACTIVATION_SECRET || '');
+  const supplied = String(request.headers.get('X-AH-Telegram-Activation') || '');
+  return /^[A-Za-z0-9_-]{32,128}$/.test(expected)
+    && supplied.length === expected.length
+    && constantTimeEqual(supplied, expected);
+};
 const adminAuthorized = (request, env) => {
   const expected = String(env?.ADMIN_TOKEN || '');
   const supplied = String(request.headers.get('X-AH-Admin-Token') || '');
@@ -285,8 +296,12 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith(`${AUTH_API_PREFIX}/`) && url.pathname !== AUTH_API_PREFIX) return null;
     const origin = request.headers.get('Origin') || '';
-    const originOptional = request.method === 'GET'
-      || (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/telegram/webhook`);
+    const telegramOperation = request.method === 'POST' && [
+      `${AUTH_API_PREFIX}/telegram/webhook`,
+      `${AUTH_API_PREFIX}/telegram/canary/activate`,
+      `${AUTH_API_PREFIX}/telegram/canary/deactivate`
+    ].includes(url.pathname);
+    const originOptional = request.method === 'GET' || telegramOperation;
     if ((!origin && !originOptional) || (origin && !allowedOrigin(origin))) {
       return json(request, 403, { ok: false, error: { code: 'ORIGIN_FORBIDDEN', message: 'অনুমোদিত উৎস নয়।' } });
     }
@@ -312,10 +327,34 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
     const context = clientContext(request, jar[AUTH_DEVICE_COOKIE]);
 
     try {
+      if (request.method === 'POST' && [
+        `${AUTH_API_PREFIX}/telegram/canary/activate`,
+        `${AUTH_API_PREFIX}/telegram/canary/deactivate`
+      ].includes(url.pathname)) {
+        if (url.hostname !== 'admission-gk.admissionhub.workers.dev'
+          || env?.VERIFICATION_AUTH_ACTIVATION !== 'canary'
+          || !telegramActivationAuthorized(request, env)) {
+          return json(request, 403, { ok: false, error: { code: 'FORBIDDEN', message: 'অনুমতি নেই।' } });
+        }
+        await readJson(request);
+        const action = url.pathname.endsWith('/deactivate') ? 'deactivate' : 'activate';
+        const result = await callAuthority(env, `/internal/verification/telegram/${action}`, {});
+        return json(request, 200, {
+          ok: true,
+          ...(action === 'activate' ? {
+            ready: result?.ready === true,
+            identityReady: result?.identityReady === true,
+            webhookReady: result?.webhookReady === true,
+            endpointAccepted: result?.endpointAccepted === true,
+            webhookChanged: result?.webhookChanged === true
+          } : { removed: result?.removed === true })
+        });
+      }
+
       if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/telegram/webhook`) {
-        const expected = String(env?.TELEGRAM_AUTH_WEBHOOK_SECRET || '');
+        const expected = await resolveTelegramWebhookSecret(env);
         const supplied = String(request.headers.get('X-Telegram-Bot-Api-Secret-Token') || '');
-        if (!validWebhookSecret(expected) || supplied.length !== expected.length || !constantTimeEqual(supplied, expected)) {
+        if (!validTelegramWebhookSecret(expected) || supplied.length !== expected.length || !constantTimeEqual(supplied, expected)) {
           return json(request, 403, { ok: false, error: { code: 'FORBIDDEN', message: 'অনুমতি নেই।' } });
         }
         const payload = await readJson(request);
@@ -332,7 +371,8 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       if (request.method === 'GET' && url.pathname === `${AUTH_API_PREFIX}/config`) {
         const googleCanary = googleCanaryRequested(env, url);
         const passkeyCanary = passkeyCanaryRequested(env, url);
-        const cacheVariant = `${googleCanary ? 'google-canary' : 'public'}:${passkeyCanary ? 'passkey-canary' : 'public'}`;
+        const telegramCanary = telegramCanaryRequested(env, url);
+        const cacheVariant = `${googleCanary ? 'google-canary' : 'public'}:${passkeyCanary ? 'passkey-canary' : 'public'}:${telegramCanary ? 'telegram-canary' : 'public'}`;
         const cache = publicConfigCache.get(env);
         const cached = cache?.get(cacheVariant);
         if (cached && cached.expiresAt > Date.now()) return json(request, 200, cached.body);
@@ -367,8 +407,16 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             google = { available: false, availabilityCode: failure.code };
           }
         }
-        let backup = { available: false, availabilityCode: 'NOT_ACTIVATED', genericFlow: true, providerNamesExposed: false };
-        if (available) {
+        const verificationRequested = verificationPublished(env) || telegramCanary;
+        let backup = {
+          available: false,
+          availabilityCode: verificationRequested
+            ? 'STATUS_UNAVAILABLE'
+            : verificationEndpointReady(env) ? 'LIVE_E2E_PENDING' : 'NOT_ACTIVATED',
+          genericFlow: true,
+          providerNamesExposed: false
+        };
+        if (available && verificationRequested) {
           try { backup = await callAuthority(env, '/internal/verification/capabilities', {}); }
           catch { backup = { available: false, availabilityCode: 'STATUS_UNAVAILABLE', genericFlow: true, providerNamesExposed: false }; }
         }
@@ -626,7 +674,9 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       }
 
       if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/backup/request`) {
-        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        if (!provider.configured || !(verificationPublished(env) || telegramCanaryRequested(env, url))) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        }
         const body = await readJson(request);
         const contact = String(body.contact || '').trim();
         if (contact && !/^\+[1-9]\d{7,14}$/.test(contact)) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
@@ -648,7 +698,9 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       }
 
       if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/backup/verify`) {
-        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        if (!provider.configured || !(verificationPublished(env) || telegramCanaryRequested(env, url))) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        }
         const body = await readJson(request);
         const current = await firebaseReadySession({ provider, jar, env, context });
         const result = await callAuthority(env, '/internal/verification/verify', {
@@ -714,4 +766,17 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
   };
 }
 
-export const __publicAuthTest = Object.freeze({ allowedOrigin, providerError, googleEndpointReady, googlePublished, googleCanaryRequested, adminAuthorized, passkeyEndpointReady, passkeyPublished });
+export const __publicAuthTest = Object.freeze({
+  allowedOrigin,
+  providerError,
+  googleEndpointReady,
+  googlePublished,
+  googleCanaryRequested,
+  verificationEndpointReady,
+  verificationPublished,
+  telegramCanaryRequested,
+  telegramActivationAuthorized,
+  adminAuthorized,
+  passkeyEndpointReady,
+  passkeyPublished
+});

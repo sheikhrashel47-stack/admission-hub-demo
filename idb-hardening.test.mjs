@@ -22,7 +22,7 @@ test('boot-critical local scripts remain parser-ordered', /src="\.\/session-pers
 test('heavy app seed and result analysis remain deferred', /app-seed\.js[^>]*defer/.test(H) && /result-analysis-500\.js[^>]*defer/.test(H));
 test('retired identity/onboarding scripts are no longer boot-critical or loaded', !/premium-auth|onboarding\.js|curriculum-config|accounts\.google\.com/.test(H));
 
-test('service-worker build marker is synchronized', SW.includes("const BUILD_ID = 'v228-google-live-20260910'") && H.includes('sw.js?v=v228-google-live-20260910'));
+test('service-worker build marker is synchronized', SW.includes("const BUILD_ID = 'v229-telegram-canary-20260910'") && H.includes('sw.js?v=v229-telegram-canary-20260910'));
 test('data protection summarizes stores with count rather than full reads', DP.includes('tx.objectStore(name).count()'));
 test('Cloudflare Pages deploy remains automatic on main', WF.includes('branches: [main]') && WF.includes('pages deploy dist --project-name admissionhub'));
 

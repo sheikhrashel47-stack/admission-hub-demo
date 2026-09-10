@@ -25,7 +25,7 @@ const safeInteraction = value => {
   try {
     const url = new URL(String(value.url || ''));
     const token = url.searchParams.get('start') || '';
-    if (url.protocol !== 'https:' || url.hostname !== 't.me' || !/^\/[A-Za-z][A-Za-z0-9_]{4,31}bot$/i.test(url.pathname) || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) return null;
+    if (url.protocol !== 'https:' || url.hostname !== 't.me' || !/^\/(?=.{5,32}$)[A-Za-z][A-Za-z0-9_]*bot$/i.test(url.pathname) || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) return null;
     return Object.freeze({ type: 'telegram-link', url: url.href, proof: 'webhook-required', identityKind: 'telegram-account', phoneOwnership: false });
   } catch { return null; }
 };
@@ -414,6 +414,43 @@ export class VerificationOrchestrator {
       now: Number(this.now())
     }));
     return Object.freeze({ accepted: true, identityKind: 'telegram-account', phoneOwnership: false });
+  }
+
+  async configureTelegramWebhook() {
+    const entry = this.config.providers.find(row => row.id === 'telegram' && row.enabled);
+    const provider = entry ? this.providers.get(entry.id) : null;
+    if (!this.config.enabled || !entry || !provider || typeof provider.configureWebhook !== 'function') {
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
+    try {
+      const result = await bounded(() => provider.configureWebhook(), entry.timeoutMs);
+      if (result?.ready !== true || result?.identityReady !== true || result?.webhookReady !== true || result?.endpointAccepted !== true) {
+        throw new VerificationProviderError('WEBHOOK_NOT_READY', VERIFICATION_FAILURE_CLASS.HARD);
+      }
+      return Object.freeze({
+        ready: true,
+        identityReady: true,
+        webhookReady: true,
+        endpointAccepted: true,
+        webhookChanged: result.webhookChanged === true
+      });
+    } catch {
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
+  }
+
+  async removeTelegramWebhook() {
+    const entry = this.config.providers.find(row => row.id === 'telegram' && row.enabled);
+    const provider = entry ? this.providers.get(entry.id) : null;
+    if (!entry || !provider || typeof provider.removeConfiguredWebhook !== 'function') {
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
+    try {
+      const result = await bounded(() => provider.removeConfiguredWebhook(), entry.timeoutMs);
+      return Object.freeze({ removed: result?.removed === true });
+    } catch {
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
   }
 
   async capabilities() {

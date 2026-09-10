@@ -25,6 +25,9 @@ const boundaryWorkflow = read('.github/workflows/firebase-auth-boundary-deploy.y
 const googleReadinessWorkflow = read('.github/workflows/google-auth-readiness-audit.yml');
 const googleReadinessOperation = read('auth-native/operations/verify-google-readiness.mjs');
 const googleBrowserOriginOperation = read('auth-native/operations/verify-google-browser-origin.mjs');
+const telegramCanaryWorkflow = read('.github/workflows/telegram-auth-canary-activate.yml');
+const telegramBindingOperation = read('auth-native/operations/verify-telegram-bindings.mjs');
+const telegramSecurity = read('auth-native/verification/telegram-security.mjs');
 const serviceWorker = read('sw.js');
 const verificationProviders = read('auth-native/verification/providers.mjs');
 const verificationOrchestrator = read('auth-native/verification/orchestrator.mjs');
@@ -44,8 +47,10 @@ test('Firebase Auth authority, storage, provider, API, and client boundaries exi
     'auth-native/providers/firebase-auth.mjs', 'auth-native/storage/sqlite-auth-repository.mjs',
     'auth-native/verification/provider-contract.mjs', 'auth-native/verification/config.mjs',
     'auth-native/verification/orchestrator.mjs', 'auth-native/verification/providers.mjs',
-    'auth-native/verification/sqlite-verification-repository.mjs',
+    'auth-native/verification/sqlite-verification-repository.mjs', 'auth-native/verification/telegram-security.mjs',
+    'auth-native/operations/verify-telegram-bindings.mjs',
     'auth-native/worker/auth-authority-do.mjs', 'auth-native/worker/public-auth-handler.mjs',
+    '.github/workflows/telegram-auth-canary-activate.yml',
     'verification-control-center.html', 'native-auth.test.mjs', 'native-auth-protection.test.mjs'
   ];
   assert.deepEqual(required.filter(file => !existsSync(resolve(root, file))), []);
@@ -97,17 +102,20 @@ test('generic backup verification is centralized and bound to the current Fireba
   assert.doesNotMatch(client, /otp-a|otp-b|otp-c|mailjet|brevo|sendgrid/i);
 });
 
-test('Google publication is live only with protected browser-origin proof while Passkey and backup remain fail-closed', () => {
+test('Google remains public while Telegram alone is exact-query canary and Passkey stays unpublished', () => {
   assert.match(wrangler, /GOOGLE_AUTH_ACTIVATION = "enabled"/);
   assert.match(wrangler, /PASSKEY_AUTH_ACTIVATION = "canary"/);
-  assert.match(wrangler, /VERIFICATION_AUTH_ACTIVATION = "disabled"/);
-  assert.match(wrangler, /VERIFICATION_ORCHESTRATOR_CONFIG = '\{"enabled":false\}'/);
+  assert.match(wrangler, /VERIFICATION_AUTH_ACTIVATION = "canary"/);
+  assert.match(wrangler, /VERIFICATION_ORCHESTRATOR_CONFIG = '\{"enabled":true,"providers":\[\{"id":"telegram","enabled":true/);
+  assert.doesNotMatch(wrangler, /"id":"(?:otp-a|otp-b|otp-c|whatsapp)","enabled":true/);
   assert.match(handler, /googlePublished\(env\)/);
   assert.match(handler, /googleCanaryRequested\(env, url\)/);
   assert.match(handler, /passkeyPublished\(env\)/);
   assert.match(handler, /passkeyCanaryRequested\(env, url\)/);
-  assert.match(handler, /cacheVariant = `\$\{googleCanary \? 'google-canary' : 'public'\}:\$\{passkeyCanary \? 'passkey-canary' : 'public'\}`/);
-  assert.match(runtime, /env(?:\?\.|\.)VERIFICATION_AUTH_ACTIVATION === 'enabled'/);
+  assert.match(handler, /telegramCanaryRequested\(env, url\)/);
+  assert.match(handler, /verificationPublished\(env\)/);
+  assert.match(handler, /cacheVariant = `\$\{googleCanary \? 'google-canary' : 'public'\}:\$\{passkeyCanary \? 'passkey-canary' : 'public'\}:\$\{telegramCanary \? 'telegram-canary' : 'public'\}`/);
+  assert.match(runtime, /\['canary', 'enabled'\]\.includes\(String\(env\.VERIFICATION_AUTH_ACTIVATION/);
   assert.match(activationWorkflow, /g\?\.available!==true/);
   assert.match(activationWorkflow, /verify-google-browser-origin\.mjs/);
   assert.match(activationWorkflow, /methods\?\.passkey\?\.available!==false/);
@@ -115,6 +123,28 @@ test('Google publication is live only with protected browser-origin proof while 
   assert.match(googleBrowserOriginOperation, /origin_mismatch/);
   assert.match(googleBrowserOriginOperation, /credentialUsed:\s*false/);
   assert.doesNotMatch(googleBrowserOriginOperation, /console\.(?:log|error)|popup\.url\(\)\s*\)/);
+});
+
+test('Telegram canary preparation is protected, value-blind, reversible, and keeps ordinary visitors isolated', () => {
+  assert.match(telegramCanaryWorkflow, /inputs\.confirmation == 'PREPARE_TELEGRAM_CANARY'/);
+  assert.match(telegramCanaryWorkflow, /verify-telegram-bindings\.mjs/);
+  assert.match(telegramCanaryWorkflow, /TELEGRAM_CANARY_ACTIVATION_SECRET/);
+  assert.match(telegramCanaryWorkflow, /secret delete TELEGRAM_CANARY_ACTIVATION_SECRET/);
+  assert.match(telegramCanaryWorkflow, /telegram\/canary\/activate/);
+  assert.match(telegramCanaryWorkflow, /telegram\/canary\/deactivate/);
+  assert.match(telegramCanaryWorkflow, /backup\?\.availabilityCode!=='LIVE_E2E_PENDING'/);
+  assert.match(telegramCanaryWorkflow, /config\?telegramCanary=1/);
+  assert.match(telegramCanaryWorkflow, /verify-google-browser-origin\.mjs/);
+  assert.match(telegramCanaryWorkflow, /rollback "\$PREVIOUS_WORKER_VERSION"/);
+  assert.doesNotMatch(telegramCanaryWorkflow, /TELEGRAM_(?:AUTH_)?BOT_TOKEN:\s*\$\{\{|TG_BOT_TOKEN:\s*\$\{\{/);
+  assert.match(telegramBindingOperation, /valuesRead:\s*false/);
+  assert.match(telegramBindingOperation, /namesPrinted=false/);
+  assert.doesNotMatch(telegramBindingOperation, /process\.env\.(?:TG_BOT_TOKEN|AUTH_HMAC_SECRET|FIREBASE_WEB_API_KEY)/);
+  assert.match(telegramSecurity, /subtle\.sign\('HMAC'/);
+  assert.doesNotMatch(telegramSecurity, /console\.|TELEGRAM_AUTH_BOT_TOKEN|TG_BOT_TOKEN/);
+  assert.match(handler, /url\.hostname !== 'admission-gk\.admissionhub\.workers\.dev'/);
+  assert.match(handler, /telegramActivationAuthorized\(request, env\)/);
+  assert.match(handler, /resolveTelegramWebhookSecret\(env\)/);
 });
 
 test('backup adapters keep credentials server-side and WhatsApp uses only the official API', () => {
@@ -129,7 +159,7 @@ test('backup adapters keep credentials server-side and WhatsApp uses only the of
 
 test('Telegram proof requires a secret webhook and private same-user chat instead of link opening', () => {
   assert.match(handler, /X-Telegram-Bot-Api-Secret-Token/);
-  assert.match(handler, /validWebhookSecret\(expected\)/);
+  assert.match(handler, /validTelegramWebhookSecret\(expected\)/);
   assert.match(handler, /message\?\.chat\?\.type !== 'private'/);
   assert.match(handler, /telegramUserId !== chatId/);
   assert.match(verificationOrchestrator, /linkTokenMac/);

@@ -109,7 +109,8 @@ async function setup() {
   const handler = createNativeAuthHandler({ fetchImpl: firebaseFetch });
   const env = {
     AUTH_AUTHORITY: new AuthorityNamespace(engine, verification),
-    FIREBASE_WEB_API_KEY: 'firebase-public-backup-api-key-12345'
+    FIREBASE_WEB_API_KEY: 'firebase-public-backup-api-key-12345',
+    VERIFICATION_AUTH_ACTIVATION: 'enabled'
   };
   const cookie = `__Host-ah_session=${session.sessionToken}; __Host-ah_firebase=${REFRESH}; __Host-ah_device=${DEVICE}`;
   return { handler, env, cookie, provider, session, engine, advance: value => { now += value; } };
@@ -153,4 +154,23 @@ test('backup request fails closed when the Firebase session cookie is absent or 
   assert.equal(missing.status, 401);
   assert.equal((await missing.json()).error.code, AUTH_ERROR_CODES.SESSION_INVALID);
   assert.equal(app.provider.sends, 0);
+});
+
+test('Telegram backup canary endpoints require the exact query and remain bound to the Firebase session', async () => {
+  const app = await setup();
+  app.env.VERIFICATION_AUTH_ACTIVATION = 'canary';
+
+  const hidden = await app.handler(request(`${AUTH_API_PREFIX}/backup/request`, {
+    body: { purpose: 'account-backup' }, cookie: app.cookie
+  }), app.env);
+  assert.equal(hidden.status, 503);
+  assert.equal((await hidden.json()).error.code, AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+  assert.equal(app.provider.sends, 0);
+
+  const canary = await app.handler(request(`${AUTH_API_PREFIX}/backup/request?telegramCanary=1`, {
+    body: { purpose: 'account-backup' }, cookie: app.cookie
+  }), app.env);
+  assert.equal(canary.status, 202);
+  assert.equal((await canary.json()).accepted, true);
+  assert.equal(app.provider.sends, 1);
 });

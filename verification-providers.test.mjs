@@ -114,8 +114,8 @@ test('Telegram adapter creates a one-time bot link but requires server-confirmed
       getMeCalls += 1;
       assert.match(String(url), /^https:\/\/api\.telegram\.org\/bot/);
       return String(url).endsWith('/getWebhookInfo')
-        ? json({ ok: true, result: { url: 'https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/webhook' } })
-        : json({ ok: true, result: { username: 'AdmissionHubVerifyBot' } });
+        ? json({ ok: true, result: { url: 'https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/webhook', allowed_updates: ['message'] } })
+        : json({ ok: true, result: { id: 123456, is_bot: true, username: 'AdmissionHubVerifyBot' } });
     }
   });
   assert.equal((await provider.checkAvailability()).available, true);
@@ -128,4 +128,83 @@ test('Telegram adapter creates a one-time bot link but requires server-confirmed
   assert.equal(getMeCalls, 2);
   assert.deepEqual(await provider.verifyCode({ serverConfirmed: false }), { verified: false, identityKind: 'telegram-account', phoneOwnership: false });
   assert.deepEqual(await provider.verifyCode({ serverConfirmed: true }), { verified: true, identityKind: 'telegram-account', phoneOwnership: false });
+});
+
+test('Telegram canary derives a separate webhook secret, validates the token identity, and configures only an empty webhook slot', async () => {
+  const webhookUrl = 'https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/webhook';
+  const rootSecret = `root-auth-secret-${'r'.repeat(40)}`;
+  let activeWebhook = '';
+  let activationSecret = '';
+  const calls = [];
+  const provider = new TelegramLinkVerificationProvider({
+    botToken: `654321:${'z'.repeat(35)}`,
+    webhookSecretSource: rootSecret,
+    webhookUrl,
+    declaredDailyQuota: 172800,
+    fetchImpl: async (url, init = {}) => {
+      const target = String(url);
+      calls.push({ target, method: init.method || 'GET' });
+      if (target.endsWith('/getMe')) return json({ ok: true, result: { id: 654321, is_bot: true, username: 'AdmissionHubCanaryBot' } });
+      if (target.endsWith('/getWebhookInfo')) return json({ ok: true, result: { url: activeWebhook, allowed_updates: activeWebhook ? ['message'] : [] } });
+      if (target.endsWith('/setWebhook')) {
+        const body = JSON.parse(init.body);
+        assert.equal(body.url, webhookUrl);
+        assert.deepEqual(body.allowed_updates, ['message']);
+        assert.equal(body.drop_pending_updates, false);
+        assert.match(body.secret_token, /^[A-Za-z0-9_-]{20,256}$/);
+        assert.notEqual(body.secret_token, rootSecret);
+        activationSecret = body.secret_token;
+        activeWebhook = body.url;
+        return json({ ok: true, result: true });
+      }
+      if (target === webhookUrl) {
+        assert.equal(init.headers['X-Telegram-Bot-Api-Secret-Token'], activationSecret);
+        return json({ ok: true });
+      }
+      throw new Error('unexpected request');
+    }
+  });
+  const activated = await provider.configureWebhook();
+  assert.deepEqual(activated, {
+    ready: true,
+    identityReady: true,
+    webhookReady: true,
+    endpointAccepted: true,
+    webhookChanged: true
+  });
+  assert.deepEqual(await provider.checkAvailability(), { available: true, code: 'READY' });
+  const sent = await provider.sendVerification({ linkToken: 'D'.repeat(43) });
+  assert.equal(new URL(sent.interaction.url).hostname, 't.me');
+  assert.equal(calls.some(call => call.target.includes(rootSecret)), false);
+});
+
+test('Telegram canary refuses to overwrite another webhook integration', async () => {
+  let mutationCalls = 0;
+  const provider = new TelegramLinkVerificationProvider({
+    botToken: `777777:${'q'.repeat(35)}`,
+    webhookSecret: `safe-webhook-${'s'.repeat(32)}`,
+    webhookUrl: 'https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/webhook',
+    declaredDailyQuota: 10,
+    fetchImpl: async (url, init = {}) => {
+      if (String(url).endsWith('/getMe')) return json({ ok: true, result: { id: 777777, is_bot: true, username: 'AdmissionHubConflictBot' } });
+      if (String(url).endsWith('/getWebhookInfo')) return json({ ok: true, result: { url: 'https://another.example/webhook' } });
+      if (init.method === 'POST') mutationCalls += 1;
+      return json({ ok: true, result: true });
+    }
+  });
+  await assert.rejects(() => provider.configureWebhook(), error => error?.code === 'WEBHOOK_CONFLICT');
+  assert.equal(mutationCalls, 0);
+});
+
+test('Telegram Auth reuses the existing server-only bot binding without copying or exposing its value', async () => {
+  const providers = createConfiguredVerificationProviders({
+    TG_BOT_TOKEN: `888888:${'v'.repeat(35)}`,
+    AUTH_HMAC_SECRET: `auth-root-${'a'.repeat(48)}`,
+    TELEGRAM_AUTH_WEBHOOK_URL: 'https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/webhook',
+    TELEGRAM_AUTH_DAILY_QUOTA: '172800'
+  }, { fetchImpl: async () => json({ ok: false }, 503) });
+  const telegram = providers.find(provider => provider.id === 'telegram');
+  assert.equal((await telegram.getProviderStatus()).configured, true);
+  assert.equal((await telegram.getRemainingQuota()).source, 'internal-safety-cap');
+  assert.equal('TG_BOT_TOKEN' in telegram, false);
 });

@@ -42,7 +42,7 @@ export class AdmissionAuthAuthority {
         hmacSecret: env.AUTH_HMAC_SECRET,
         config: persistedVerificationConfig || env.VERIFICATION_ORCHESTRATOR_CONFIG,
         providers: createConfiguredVerificationProviders(env),
-        activated: env.VERIFICATION_AUTH_ACTIVATION === 'enabled'
+        activated: ['canary', 'enabled'].includes(String(env.VERIFICATION_AUTH_ACTIVATION || ''))
       });
     });
   }
@@ -138,6 +138,17 @@ export class AdmissionAuthAuthority {
       if (url.pathname === '/internal/verification/telegram/webhook') {
         const result = await this.verification.confirmTelegramWebhook(body.input);
         await this.#scheduleExpiry();
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/verification/telegram/activate') {
+        if (this.env.VERIFICATION_AUTH_ACTIVATION !== 'canary') throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        await this.verification.updateConfig(this.env.VERIFICATION_ORCHESTRATOR_CONFIG);
+        const result = await this.verification.configureTelegramWebhook();
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/verification/telegram/deactivate') {
+        if (this.env.VERIFICATION_AUTH_ACTIVATION !== 'canary') throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        const result = await this.verification.removeTelegramWebhook();
         return response(200, { ok: true, result });
       }
       if (url.pathname === '/internal/verification/admin/status') {

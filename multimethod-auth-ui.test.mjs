@@ -96,13 +96,13 @@ function setup({ methods = {}, signed = false, passkeyCredentials = null, backup
     if (path.endsWith('/passkey/registration/finish')) return reply(200, { registered: true, credentialCount: 1 });
     if (path.endsWith('/passkey/status')) return reply(200, { count: 1, credentials: [{ id: 'credential-ui', createdAt: Date.now(), synced: false }] });
     if (path.endsWith('/passkey/remove')) return reply(200, { removed: true, credentialCount: 0 });
-    if (path.endsWith('/backup/request')) return reply(202, {
+    if (path.includes('/backup/request')) return reply(202, {
       accepted: true,
       attemptId: 'backup-attempt-123456789012345',
       expiresAt: Date.now() + 300000,
       ...(backupInteraction ? { interaction: backupInteraction } : {})
     });
-    if (path.endsWith('/backup/verify')) return reply(200, { verified: true, purpose: 'account-backup', userId: 'usr-ui' });
+    if (path.includes('/backup/verify')) return reply(200, { verified: true, purpose: 'account-backup', userId: 'usr-ui' });
     return reply(404, { error: { message: 'not found' } });
   };
   dom.window.eval(script);
@@ -152,6 +152,33 @@ test('Passkey canary requests the explicit server-authorized config only from th
   });
   await waitFor(() => app.calls.some(call => call.path.endsWith('/config?passkeyCanary=1')));
   assert.equal(app.document.querySelector('[data-role="passkey-login"]').hidden, false);
+  assert.equal(app.window.localStorage.length, 0);
+  assert.equal(app.window.sessionStorage.length, 0);
+  app.dom.window.close();
+});
+
+test('Telegram canary forwards the exact opt-in query to config, request, and verification only', async () => {
+  const interaction = {
+    type: 'telegram-link',
+    url: `https://t.me/AdmissionHubCanaryBot?start=${'T'.repeat(43)}`,
+    proof: 'webhook-required',
+    identityKind: 'telegram-account',
+    phoneOwnership: false
+  };
+  const app = setup({
+    signed: true,
+    pageUrl: 'https://admissionhub.pages.dev/?telegramCanary=1',
+    methods: { backup: { available: true, genericFlow: true, contactInput: 'none' } },
+    backupInteraction: interaction
+  });
+  await waitFor(() => app.calls.some(call => call.path.endsWith('/config?telegramCanary=1')));
+  await waitFor(() => app.document.querySelector('[data-role="backup-start"]')?.hidden === false);
+  app.document.querySelector('.ah-account-launcher').click();
+  app.document.querySelector('[data-role="backup-start"]').click();
+  await waitFor(() => app.calls.some(call => call.path.endsWith('/backup/request?telegramCanary=1')));
+  await waitFor(() => app.document.querySelector('[data-view="backup"]').hidden === false);
+  app.document.querySelector('[data-view="backup"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(() => app.calls.some(call => call.path.endsWith('/backup/verify?telegramCanary=1')));
   assert.equal(app.window.localStorage.length, 0);
   assert.equal(app.window.sessionStorage.length, 0);
   app.dom.window.close();
