@@ -22,6 +22,8 @@ const pagesWorker = read('_worker.js');
 const pagesWorkflow = read('.github/workflows/cf-pages.yml');
 const activationWorkflow = read('.github/workflows/native-auth-activate.yml');
 const boundaryWorkflow = read('.github/workflows/firebase-auth-boundary-deploy.yml');
+const googleReadinessWorkflow = read('.github/workflows/google-auth-readiness-audit.yml');
+const googleReadinessOperation = read('auth-native/operations/verify-google-readiness.mjs');
 const serviceWorker = read('sw.js');
 const verificationProviders = read('auth-native/verification/providers.mjs');
 const verificationOrchestrator = read('auth-native/verification/orchestrator.mjs');
@@ -194,6 +196,17 @@ test('Worker bundle and Wrangler expose Firebase Auth with the distinct SQLite a
   assert.match(wrangler, /name = "AUTH_AUTHORITY"/);
   assert.match(wrangler, /new_sqlite_classes = \["AdmissionAuthAuthority"\]/);
   assert.match(wrangler, /FIREBASE_CONTINUE_URL = "https:\/\/admissionhub\.pages\.dev\//);
+});
+
+test('Google readiness audit is no-mutation and never prints Firebase key, client ID, or user credential', () => {
+  assert.match(googleReadinessWorkflow, /inputs\.confirmation == 'AUDIT_GOOGLE_AUTH'/);
+  assert.match(googleReadinessWorkflow, /secrets\.FIREBASE_WEB_API_KEY/);
+  assert.match(googleReadinessWorkflow, /verify-google-readiness\.mjs/);
+  assert.doesNotMatch(googleReadinessWorkflow, /wrangler[^\n]*(?:deploy|secret put)|firebase[^\n]*deploy/i);
+  assert.match(googleReadinessOperation, /inspectProject\(\)/);
+  assert.match(googleReadinessOperation, /inspectGoogleProvider\(\)/);
+  assert.match(googleReadinessOperation, /clientIdPrinted=false keyPrinted=false credentialPrinted=false/);
+  assert.doesNotMatch(googleReadinessOperation, /stdout\.write\([^\n]*\$\{(?:apiKey|key|result\.clientId|accessToken|idToken)\}/);
 });
 
 test('Firebase deployment recovery captures the active version and installs the secret after pinned deployment', () => {
