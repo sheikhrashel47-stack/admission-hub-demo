@@ -16,6 +16,7 @@ export class MemoryAuthRepository {
     this.passkeyChallenges = new Map();
     this.passkeyTickets = new Map();
     this.accountVerificationTickets = new Map();
+    this.profiles = new Map();
   }
 
   #consume(limits, now) {
@@ -214,6 +215,34 @@ export class MemoryAuthRepository {
     if (!user || user.emailRef !== input.emailRef) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
     if (user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
     return { user: copy(user) };
+  }
+
+  async savePendingProfile(input) {
+    const ticket = this.accountVerificationTickets.get(input.ticketRef);
+    if (!ticket || ticket.deviceRef !== input.deviceRef || ticket.state !== 'active' || ticket.expiresAt <= input.now) {
+      return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID };
+    }
+    const user = this.users.get(ticket.userId);
+    if (!user || user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+    const previous = this.profiles.get(user.id);
+    const profile = { ...copy(input.profile), createdAt: previous?.createdAt || input.now, updatedAt: input.now };
+    this.profiles.set(user.id, profile);
+    return { saved: true, profile: copy(profile) };
+  }
+
+  async saveProfile(input) {
+    const session = this.#canonicalSession(input);
+    if (session.error) return session;
+    const previous = this.profiles.get(session.user.id);
+    const profile = { ...copy(input.profile), createdAt: previous?.createdAt || input.now, updatedAt: input.now };
+    this.profiles.set(session.user.id, profile);
+    return { saved: true, profile: copy(profile) };
+  }
+
+  async getProfile(input) {
+    const session = this.#canonicalSession(input);
+    if (session.error) return session;
+    return { profile: copy(this.profiles.get(session.user.id) || null) };
   }
 
   async beginPasskeyRegistration(input) {
@@ -415,7 +444,7 @@ export class MemoryAuthRepository {
   }
 
   async ping() {
-    return { ok: true, storage: 'memory-test', schema: 3, users: this.users.size };
+    return { ok: true, storage: 'memory-test', schema: 4, users: this.users.size };
   }
 
   async cleanup(now) {
@@ -452,7 +481,8 @@ export class MemoryAuthRepository {
       passkeys: [...this.passkeys.values()],
       passkeyChallenges: [...this.passkeyChallenges.values()],
       passkeyTickets: [...this.passkeyTickets.values()],
-      accountVerificationTickets: [...this.accountVerificationTickets.values()]
+      accountVerificationTickets: [...this.accountVerificationTickets.values()],
+      profiles: [...this.profiles.entries()]
     });
   }
 }

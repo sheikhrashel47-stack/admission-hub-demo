@@ -259,7 +259,7 @@ async function appRequest(base, path, { method = 'GET', body, cookie = '' } = {}
     headers: {
       Origin: base,
       Accept: 'application/json',
-      'X-AH-Auth-UI': 'auth-selector-v4',
+      'X-AH-Auth-UI': 'auth-premium-v6',
       ...(body ? { 'Content-Type': 'application/json' } : {}),
       ...(cookie ? { Cookie: cookie } : {})
     },
@@ -300,10 +300,10 @@ export async function runLiveMailboxE2E({
     let config = null;
     for (let attempt = 0; attempt < 12; attempt += 1) {
       config = await appRequest(normalizedBase, '/api/auth/v1/config');
-      if (config.response.ok && config.body?.auth?.version === 'firebase-canonical-auth-v2' && config.body?.auth?.available === true) break;
+      if (config.response.ok && config.body?.auth?.version === 'firebase-canonical-auth-v3' && config.body?.auth?.available === true) break;
       await sleep(5000);
     }
-    if (!config?.response?.ok || config.body?.auth?.version !== 'firebase-canonical-auth-v2' || config.body?.auth?.mode !== 'firebase-canonical-multi-method' || config.body?.auth?.available !== true) {
+    if (!config?.response?.ok || config.body?.auth?.version !== 'firebase-canonical-auth-v3' || config.body?.auth?.mode !== 'firebase-canonical-multi-method' || config.body?.auth?.available !== true) {
       throw new LiveCheckError(
         'config',
         config?.body?.auth?.providerStatus || config?.response?.status || 0,

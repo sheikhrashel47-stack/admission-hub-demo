@@ -50,7 +50,7 @@ test('১১. protection snapshot runs as idle post-boot work',
 
 /* PWA lifecycle */
 test('১২. build/cache/AI asset versions are synchronized',
-  SW.includes("const BUILD_ID = 'v232-auth-ui-skew-20260911'") && H.includes("const expectedSwVersion = 'v232-auth-ui-skew-20260911'") && H.includes('sw.js?v=v232-auth-ui-skew-20260911') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
+  SW.includes("const BUILD_ID = 'v234-premium-onboarding-20260911'") && H.includes("const expectedSwVersion = 'v234-premium-onboarding-20260911'") && H.includes('sw.js?v=v234-premium-onboarding-20260911') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 test('১৩. service-worker activation never navigates or reloads open clients',
   !SW.includes('c.navigate(c.url)') && !SW.includes("self.clients.matchAll({ type: 'window', includeUncontrolled: true });\n      for"));
 test('১৪. installed PWA document is bounded network-first with fast offline fallback',

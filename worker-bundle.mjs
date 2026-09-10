@@ -1,6 +1,6 @@
 // ai-agent.js
 var AGENT_VERSION = "agent-f1";
-var SYSTEM_PROMPT_V = "sys-f1-1";
+var SYSTEM_PROMPT_V = "sys-f1-2-onboarding-safe";
 var INTENTS = {
   GENERAL_CHAT: "GENERAL_CHAT",
   ACADEMIC_EXPLAIN: "ACADEMIC_EXPLAIN",
@@ -56,6 +56,51 @@ function validateChatReq(body) {
   if (total > 2e4) return { ok: false, code: "context_too_long", message: "বার্তার মোট আকার খুব বড়।" };
   return { ok: true, messages: msgs };
 }
+var ONBOARDING_ACTIONS = /* @__PURE__ */ new Set([
+  "focus-name",
+  "focus-email",
+  "focus-dob",
+  "focus-school",
+  "focus-college",
+  "open-signup",
+  "open-login",
+  "explain-email",
+  "explain-telegram"
+]);
+var oneOf = (value, allowed, fallback) => allowed.includes(String(value || "")) ? String(value) : fallback;
+function onboardingSecretDetected(value) {
+  const text = String(value || "").trim();
+  if (!text) return false;
+  const passwordWord = "(?:password|passcode|পাসওয়ার্ড|পাসওয়াৰ্ড|পাসওয়ার্ড)";
+  if (/\b\d{6}\b/.test(text) || /eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}/.test(text) || /-----BEGIN [A-Z ]+PRIVATE KEY-----/.test(text)) return true;
+  if (new RegExp(`(?:my|amar|আমার)\\s*${passwordWord}\\s*(?:is|হলো|:)?\\s*\\S{4,}`, "i").test(text)) return true;
+  if (new RegExp(`${passwordWord}\\s*(?:is|হলো|:|=|-)\\s*\\S{4,}`, "i").test(text)) return true;
+  if (new RegExp(`${passwordWord}\\s+(?=\\S{6,})(?=\\S*[0-9])\\S+`, "i").test(text)) return true;
+  if (/(?:passcode|pin|otp|one[ -]?time code|ওটিপি)\D{0,8}\d{4,8}\b/i.test(text)) return true;
+  if (/(?:secret|api[ -]?key|token|গোপন)\s*(?:is|হলো|:|=)\s*\S{4,}/i.test(text)) return true;
+  return text.split(/\s+/).some((part) => part.length >= 8 && /[a-z]/.test(part) && /[A-Z]/.test(part) && /\d/.test(part) && /[^A-Za-z0-9]/.test(part));
+}
+function sanitizeOnboardingContext(value) {
+  if (!value || typeof value !== "object" || value.surface !== "premium-onboarding") return null;
+  const validity = value.validity && typeof value.validity === "object" ? value.validity : {};
+  const cleanInstitution = (text) => String(text || "").normalize("NFKC").replace(/[\r\n\u0000<>]/g, "").trim().slice(0, 80);
+  const institutionQuery = cleanInstitution(value.institutionQuery);
+  const institutionSuggestions = Array.isArray(value.institutionSuggestions) ? value.institutionSuggestions.slice(0, 3).map(cleanInstitution).filter(Boolean) : [];
+  return Object.freeze({
+    surface: "premium-onboarding",
+    view: oneOf(value.view, ["welcome", "login", "forgot", "signup", "verify", "telegram", "security-setup", "success", "signed"], "welcome"),
+    step: oneOf(value.step, ["none", "personal", "education", "security"], "none"),
+    field: oneOf(value.field, ["none", "name", "email", "school", "college", "date-of-birth", "sensitive-field"], "none"),
+    validity: Object.freeze({
+      personal: validity.personal === true,
+      education: validity.education === true,
+      verificationAuthoritative: validity.verificationAuthoritative === true
+    }),
+    institutionQuery,
+    institutionSuggestions: Object.freeze(institutionSuggestions),
+    allowedActions: Object.freeze(Array.isArray(value.allowedActions) ? value.allowedActions.filter((action) => ONBOARDING_ACTIONS.has(action)).slice(0, 12) : [])
+  });
+}
 function capStats(stats) {
   if (!stats || typeof stats !== "object") return null;
   const num = (v, min, max) => {
@@ -91,6 +136,19 @@ HARD RULES:
 10. Never generate, guess, transform, repeat, request, collect, or validate an OTP. Never ask the student to paste an OTP into chat.
 11. Never declare Telegram or account verification successful. Only Admission Hub's authoritative backend response may do that.
 12. Telegram verification proves control of a Telegram account, not ownership of Gmail/email, and it never creates a separate Admission Hub identity.`;
+  const onboarding = sanitizeOnboardingContext(opts.onboarding);
+  if (onboarding) p += `
+
+ONBOARDING ASSISTANT — STRICT MODE:
+- Help only with the visible Admission Hub welcome, signup, login, institution search, and verification journey.
+- The current structured context is ${JSON.stringify(onboarding)}.
+- Never ask for, repeat, infer, transform, store, or validate a password, confirm-password value, OTP, session value, key, secret, or credential.
+- Never claim signup, delivery, verification, Passkey creation, login, or profile saving succeeded. Only the application's confirmed state can show success.
+- Respond with student-friendly Bengali and never expose technical infrastructure words such as backend, API, provider, token, webhook, SMTP, quota, or database.
+- You return explanation text only. You cannot execute actions or emit JavaScript, selectors, commands, or tool calls. The interface alone may offer its predefined safe actions.
+- Never submit forms or trigger signup, delivery, verification, login, profile-save, or security actions. Any critical action requires the student's explicit confirmation in the interface and the application's confirmed result.
+- If field is sensitive-field, discuss only general safety and never ask what is typed there.
+- Institution suggestions are advisory and limited to the exact supplied names; if no match, explain the manual-name option.`;
   if (examMode === "mock-running") p += `
 
 EXAM INTEGRITY — ACTIVE (mock-running): answers, hints and explanations are REFUSED.`;
@@ -281,7 +339,7 @@ function authVerificationGuidance(text) {
   const verificationTopic = /(telegram|টেলিগ্রাম|\botp\b|ওটিপি|one[ -]?time code|verification code|যাচাই(?:য়ের)? কোড)/i.test(input);
   const possibleBareOtp = /^\D*\d{6}\D*$/.test(input);
   if (!verificationTopic && !possibleBareOtp) return "";
-  return "Telegram যাচাই করতে Admission Hub-এ “Telegram দিয়ে যাচাই করুন” চাপুন, official bot খুলে START চাপুন, তারপর bot-এর পাঠানো কোডটি শুধু Admission Hub-এর verification box-এ লিখুন। আমি OTP তৈরি, অনুমান, দেখা, পুনরাবৃত্তি বা যাচাই করতে পারি না এবং verification সফলও ঘোষণা করতে পারি না—শুধু backend-এর ফলই চূড়ান্ত। Telegram যাচাই Gmail/ইমেইল মালিকানা প্রমাণ করে না।";
+  return "Telegram যাচাই করতে Admission Hub-এ “Telegram দিয়ে যাচাই করুন” চাপুন, official bot খুলে START চাপুন, তারপর bot-এর পাঠানো কোডটি শুধু Admission Hub-এর verification box-এ লিখুন। আমি OTP তৈরি, অনুমান, দেখা, পুনরাবৃত্তি বা যাচাই করতে পারি না এবং verification সফলও ঘোষণা করতে পারি না—শুধু Admission Hub-এর নিশ্চিত ফলই চূড়ান্ত। Telegram যাচাই Gmail/ইমেইল মালিকানা প্রমাণ করে না।";
 }
 function guidanceResponse(text, stream) {
   if (!stream) return jsonResp({ text, intent: INTENTS.GENERAL_CHAT, pv: SYSTEM_PROMPT_V, agent: AGENT_VERSION, authoritative: false });
@@ -310,6 +368,10 @@ async function agentChat(request, env, uid, opts = {}) {
   const body = await request.json().catch(() => null);
   const v = validateChatReq(body);
   if (!v.ok) return jsonResp({ error: v.code, message: v.message }, 400);
+  const onboarding = sanitizeOnboardingContext(body?.context?.onboarding);
+  if (onboarding && v.messages.some((message) => message.role === "user" && onboardingSecretDetected(message.content))) {
+    return guidanceResponse("নিরাপত্তার জন্য Password, verification code বা গোপন তথ্য Assistant নেয় না। এমন কিছু লিখে থাকলে সেটি বদলে শুধু সাধারণ প্রশ্ন করো।", stream);
+  }
   const cap = Math.max(10, Math.min(500, Number(env && env.AGENT_DAILY_CAP || 80)));
   const rlKey = "airl:" + sendCtx.uid + ":" + dayKey();
   let n = 0;
@@ -347,7 +409,7 @@ async function agentChat(request, env, uid, opts = {}) {
     msgs = msgs.slice(-12);
   }
   msgs = msgs.slice(-24);
-  const systemPrompt = buildSystemPrompt({ stats, examMode, quiz: quizMode });
+  const systemPrompt = buildSystemPrompt({ stats, examMode, quiz: quizMode, onboarding });
   let summaryText = persistMemory ? await getKv(env.PUB_KV, "chatmemsum:" + sendCtx.uid) : "";
   const sys = summaryText ? systemPrompt + "\n\n" + String(summaryText) : systemPrompt;
   const hasImage = msgs.some((m) => m.image);
@@ -3725,7 +3787,7 @@ var AuthSecretVault = class {
 };
 
 // auth-native/core/auth-engine.mjs
-var AUTH_NATIVE_VERSION = "firebase-canonical-auth-v2";
+var AUTH_NATIVE_VERSION = "firebase-canonical-auth-v3";
 var SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
 var FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1e3;
 var PASSKEY_CHALLENGE_TTL_MS = 5 * 60 * 1e3;
@@ -3773,6 +3835,28 @@ var FIREBASE_OPERATION_LIMITS = Object.freeze({
     Object.freeze({ scope: "firebase-google-ip-15m", source: "ip", limit: 60, windowMs: 15 * 60 * 1e3 }),
     Object.freeze({ scope: "firebase-google-device-15m", source: "device", limit: 30, windowMs: 15 * 60 * 1e3 }),
     Object.freeze({ scope: "firebase-google-global-minute", source: "global", limit: 180, windowMs: 60 * 1e3 })
+  ]),
+  "password-reset": Object.freeze([
+    Object.freeze({ scope: "firebase-reset-email-hour", source: "email", limit: 3, windowMs: 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-reset-email-day", source: "email", limit: 8, windowMs: 24 * 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-reset-ip-hour", source: "ip", limit: 20, windowMs: 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-reset-device-hour", source: "device", limit: 10, windowMs: 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-reset-global-day", source: "global", limit: 1e3, windowMs: 24 * 60 * 60 * 1e3 })
+  ]),
+  "verification-status": Object.freeze([
+    Object.freeze({ scope: "firebase-verification-status-ip-15m", source: "ip", limit: 60, windowMs: 15 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-verification-status-device-15m", source: "device", limit: 30, windowMs: 15 * 60 * 1e3 })
+  ]),
+  "pending-profile-write": Object.freeze([
+    Object.freeze({ scope: "firebase-pending-profile-ip-hour", source: "ip", limit: 120, windowMs: 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-pending-profile-device-hour", source: "device", limit: 20, windowMs: 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-pending-profile-global-minute", source: "global", limit: 1e3, windowMs: 60 * 1e3 })
+  ]),
+  "profile-write": Object.freeze([
+    Object.freeze({ scope: "firebase-profile-email-day", source: "email", limit: 30, windowMs: 24 * 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-profile-device-day", source: "device", limit: 60, windowMs: 24 * 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-profile-ip-hour", source: "ip", limit: 300, windowMs: 60 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-profile-global-minute", source: "global", limit: 1e3, windowMs: 60 * 1e3 })
   ])
 });
 var requiredRepositoryMethods = Object.freeze([
@@ -3785,6 +3869,9 @@ var requiredRepositoryMethods = Object.freeze([
   "getFirebaseAccountVerification",
   "completeFirebaseAccountVerification",
   "getFirebaseIdentity",
+  "savePendingProfile",
+  "saveProfile",
+  "getProfile",
   "beginPasskeyRegistration",
   "getPasskeyRegistrationChallenge",
   "finishPasskeyRegistration",
@@ -3831,6 +3918,42 @@ var validSubject = (value) => {
   if (!subject || subject.length > 256 || /[\r\n\u0000]/.test(subject)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
   return subject;
 };
+var cleanProfileText = (value, max) => String(value || "").normalize("NFKC").trim().replace(/\s+/g, " ").slice(0, max + 1);
+var onboardingInstitution = (value, required = false) => {
+  if (!value && !required) return null;
+  if (!value || typeof value !== "object") failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  const id = cleanProfileText(value.id, 80);
+  const name = cleanProfileText(value.name, 120);
+  const district = cleanProfileText(value.district, 60);
+  if (!/^(?:manual|[a-z0-9][a-z0-9-]{1,79})$/.test(id) || name.length < 2 || name.length > 120 || /[\r\n\u0000<>]/.test(name) || district.length > 60 || /[\r\n\u0000<>]/.test(district)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  return Object.freeze({ id, name, district });
+};
+function normalizeOnboardingProfile(value = {}, now = Date.now()) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  const fullName = cleanProfileText(value.fullName, 80);
+  if (fullName.length < 2 || fullName.length > 80 || !/^[\p{L}\p{M} .'-]+$/u.test(fullName) || (fullName.match(/\p{L}/gu) || []).length < 2) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  const dob = String(value.dob || "");
+  const match = dob.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const today = new Date(Number(now));
+  let age = today.getUTCFullYear() - year;
+  const beforeBirthday = today.getUTCMonth() < month - 1 || today.getUTCMonth() === month - 1 && today.getUTCDate() < day;
+  if (beforeBirthday) age -= 1;
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day || age < 8 || age > 80) {
+    failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  }
+  return Object.freeze({
+    version: 1,
+    fullName,
+    dob,
+    school: onboardingInstitution(value.school, true),
+    higherInstitution: onboardingInstitution(value.higherInstitution, false)
+  });
+}
 var validChallengeId = (value) => {
   const challengeId = String(value || "").trim();
   if (!/^[A-Za-z0-9_-]{24,96}$/.test(challengeId)) failAuth(AUTH_ERROR_CODES.PASSKEY_INVALID);
@@ -4053,6 +4176,45 @@ var CloudflareNativeAuthEngine = class {
       subjectRef: identity.subjectRef,
       emailRef: identity.refs.emailRef
     });
+  }
+  async savePendingProfile(verificationTicket, input = {}, requestContext = {}) {
+    const token = String(verificationTicket || "").trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    const context = normalizeContext(requestContext);
+    const profile = normalizeOnboardingProfile(input, Number(this.now()));
+    const [refs, ticketRef] = await Promise.all([
+      this.#references("account-verification@admissionhub.invalid", context),
+      this.hmac.hex("session-ref-v1", token)
+    ]);
+    const result = errorFromRepository(await this.repository.savePendingProfile({
+      ticketRef,
+      deviceRef: refs.deviceRef,
+      profile,
+      now: Number(this.now())
+    }));
+    return Object.freeze({ saved: result.saved === true, profile: result.profile });
+  }
+  async saveProfile(input = {}, requestContext = {}) {
+    const profile = normalizeOnboardingProfile(input.profile, Number(this.now()));
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const result = errorFromRepository(await this.repository.saveProfile({
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      profile,
+      now: Number(this.now())
+    }));
+    return Object.freeze({ saved: result.saved === true, profile: result.profile });
+  }
+  async getProfile(input = {}, requestContext = {}) {
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const result = errorFromRepository(await this.repository.getProfile({
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      now: Number(this.now())
+    }));
+    return Object.freeze({ profile: result.profile || null });
   }
   async beginPasskeyRegistration(input = {}, requestContext = {}) {
     const token = String(input.sessionToken || "").trim();
@@ -4492,6 +4654,23 @@ var FirebaseEmailPasswordProvider = class {
     }
     return Object.freeze({ accepted: true });
   }
+  async sendPasswordResetEmail(email) {
+    const normalized = String(email || "").trim().toLowerCase();
+    if (!normalized || normalized.length > 254 || /[\r\n\u0000]/.test(normalized)) throw new FirebaseRequestError("INVALID_EMAIL");
+    const continueUrl = new URL(this.continueUrl);
+    continueUrl.searchParams.delete("firebaseVerified");
+    continueUrl.searchParams.set("passwordReset", "1");
+    const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:sendOobCode?key=${encodeURIComponent(this.apiKey)}`, {
+      requestType: "PASSWORD_RESET",
+      email: normalized,
+      continueUrl: continueUrl.href,
+      canHandleCodeInApp: false
+    });
+    if (typeof payload?.email !== "string" || payload.email.trim().toLowerCase() !== normalized) {
+      throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
+    }
+    return Object.freeze({ accepted: true });
+  }
   async deleteAccount(idToken) {
     if (!validToken(idToken)) throw new FirebaseRequestError("INVALID_ID_TOKEN");
     await this.#post(`${IDENTITY_TOOLKIT}/accounts:delete?key=${encodeURIComponent(this.apiKey)}`, { idToken });
@@ -4796,7 +4975,7 @@ var YEAR_SECONDS = 365 * 24 * 60 * 60;
 var SESSION_SECONDS = 30 * 24 * 60 * 60;
 var PASSWORD_MIN = 8;
 var PASSWORD_MAX = 128;
-var AUTH_UI_VERSION = "auth-selector-v4";
+var AUTH_UI_VERSION = "auth-premium-v6";
 var FIREBASE_VERIFICATION_RESEND_SECONDS = Math.floor(FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS / 1e3);
 var JSON_HEADERS = Object.freeze({
   "Content-Type": "application/json; charset=utf-8",
@@ -5279,6 +5458,13 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           ok: true,
           auth: {
             version: AUTH_NATIVE_VERSION,
+            uiContract: AUTH_UI_VERSION,
+            onboarding: {
+              version: "premium-onboarding-v1",
+              firstEntryRemembered: true,
+              guestAllowed: true,
+              profileVersion: 1
+            },
             mode: "firebase-canonical-multi-method",
             provider: "firebase",
             available,
@@ -5298,13 +5484,16 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
                 neverMandatory: true
               },
               emailPassword: { available, availabilityCode: available ? "READY" : availability.code },
+              passwordReset: { available, availabilityCode: available ? "READY" : availability.code },
+              profile: { available, version: 1, accountScoped: true, pendingTicketScoped: true },
               telegramVerification,
               backup: publicBackup
             },
             verificationEmail: {
               kind: "address-verification",
               dailyCapacity: 1e3,
-              resendCooldownSeconds: FIREBASE_VERIFICATION_RESEND_SECONDS
+              resendCooldownSeconds: FIREBASE_VERIFICATION_RESEND_SECONDS,
+              statusCheckAvailable: true
             },
             registeredAccountLimit: "unlimited",
             session: { transport: "secure-http-only-cookie", maxAge: SESSION_SECONDS }
@@ -5389,6 +5578,27 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             dailyCapacity: 1e3,
             resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
           }
+        }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/password-reset`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const body = await readJson(request);
+        const email = normalizeAuthEmail(body?.email);
+        const prepared = await callAuthority(env, "/internal/firebase/rate", {
+          input: { operation: "password-reset", email },
+          context
+        });
+        try {
+          await provider.sendPasswordResetEmail(prepared.email);
+        } catch (cause) {
+          const privateAccountResult = cause instanceof FirebaseRequestError && ["EMAIL_NOT_FOUND", "USER_DISABLED", "INVALID_EMAIL", "MISSING_EMAIL"].includes(cause.reason);
+          if (!privateAccountResult) throw providerError(cause, "password-reset");
+        }
+        return json3(request, 202, {
+          ok: true,
+          accepted: true,
+          deliveryDisclosed: false,
+          resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
         }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/verification/resend`) {
@@ -5630,6 +5840,50 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           }
         }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
       }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/account-verification/email/status`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
+        if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        await readJson(request);
+        await callAuthority(env, "/internal/firebase/rate", { input: { operation: "verification-status" }, context });
+        const material = await callAuthority(env, "/internal/firebase/account-verification/material", {
+          verificationTicket,
+          context
+        });
+        let refreshed;
+        let user;
+        try {
+          refreshed = await provider.refresh(material.refreshToken);
+        } catch (cause) {
+          throw providerError(cause, "refresh");
+        }
+        try {
+          user = await provider.lookup(refreshed.idToken);
+        } catch (cause) {
+          throw providerError(cause, "lookup-session");
+        }
+        assertProviderUser(refreshed, user);
+        if (user.emailVerified !== true) {
+          return json3(request, 200, {
+            ok: true,
+            authenticated: false,
+            emailVerified: false,
+            emailMasked: material.user?.emailMasked || "তোমার Email-এ"
+          }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
+        }
+        const established = await callAuthority(env, "/internal/firebase/account-verification/complete", {
+          input: {
+            verificationTicket,
+            email: user.email,
+            subject: user.subject
+          },
+          context
+        });
+        return authSuccess(request, established, refreshed.refreshToken, context, {
+          emailVerified: true,
+          telegramVerified: false
+        }, [verificationCookie("", 0)]);
+      }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/telegram/verification/start`) {
         if (!provider.configured || !telegramVerificationRequested(env, url)) {
           throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
@@ -5736,6 +5990,71 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           emailVerified: user.emailVerified === true,
           telegramVerified: true
         }, [verificationCookie("", 0)]);
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/profile/pending`) {
+        const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
+        if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        const profile = await readJson(request);
+        await callAuthority(env, "/internal/firebase/rate", { input: { operation: "pending-profile-write" }, context });
+        const result = await callAuthority(env, "/internal/profile/save-pending", {
+          verificationTicket,
+          input: profile,
+          context
+        });
+        return json3(
+          request,
+          200,
+          { ok: true, saved: result?.saved === true },
+          context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {}
+        );
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/profile`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const profile = await readJson(request);
+        const current = await firebaseReadySession({
+          provider,
+          jar,
+          env,
+          context,
+          allowTelegram: telegramVerificationRequested(env, url)
+        });
+        await callAuthority(env, "/internal/firebase/rate", {
+          input: { operation: "profile-write", email: current.user.email },
+          context
+        });
+        const result = await callAuthority(env, "/internal/profile/save", {
+          input: {
+            sessionToken: current.sessionToken,
+            email: current.user.email,
+            subject: current.user.subject,
+            profile
+          },
+          context
+        });
+        return json3(request, 200, { ok: true, saved: result?.saved === true, profile: result?.profile || null }, {
+          "Set-Cookie": sessionCookies(current.session, current.refreshed.refreshToken, context)
+        });
+      }
+      if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/profile`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const current = await firebaseReadySession({
+          provider,
+          jar,
+          env,
+          context,
+          allowTelegram: telegramVerificationRequested(env, url)
+        });
+        const result = await callAuthority(env, "/internal/profile/get", {
+          input: {
+            sessionToken: current.sessionToken,
+            email: current.user.email,
+            subject: current.user.subject
+          },
+          context
+        });
+        return json3(request, 200, { ok: true, profile: result?.profile || null }, {
+          "Set-Cookie": sessionCookies(current.session, current.refreshed.refreshToken, context)
+        });
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/passkey/registration/begin`) {
         if (!provider.configured || !passkeyEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
@@ -6159,6 +6478,22 @@ var SqliteAuthRepository = class {
         created_at INTEGER NOT NULL,
         last_login_at INTEGER NOT NULL
       )`,
+      `CREATE TABLE IF NOT EXISTS auth_profiles (
+        user_id TEXT PRIMARY KEY,
+        profile_version INTEGER NOT NULL,
+        full_name TEXT NOT NULL,
+        date_of_birth TEXT NOT NULL,
+        school_id TEXT NOT NULL,
+        school_name TEXT NOT NULL,
+        school_district TEXT NOT NULL,
+        higher_id TEXT,
+        higher_name TEXT,
+        higher_district TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_profiles_updated ON auth_profiles(updated_at DESC)`,
       `CREATE TABLE IF NOT EXISTS auth_external_identities (
         provider TEXT NOT NULL,
         subject_ref TEXT NOT NULL,
@@ -6279,7 +6614,7 @@ var SqliteAuthRepository = class {
       `CREATE INDEX IF NOT EXISTS auth_security_events_time ON auth_security_events(occurred_at DESC)`
     ];
     for (const statement of statements) this.sql.exec(statement);
-    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','3') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
+    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','4') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
   }
   #rows(statement, ...bindings) {
     return Array.from(this.sql.exec(statement, ...bindings));
@@ -6327,6 +6662,53 @@ var SqliteAuthRepository = class {
       userId || null,
       now
     );
+  }
+  #profileForUser(userId) {
+    const row = this.#one(
+      `SELECT profile_version AS version,full_name AS fullName,date_of_birth AS dob,
+        school_id AS schoolId,school_name AS schoolName,school_district AS schoolDistrict,
+        higher_id AS higherId,higher_name AS higherName,higher_district AS higherDistrict,
+        created_at AS createdAt,updated_at AS updatedAt
+       FROM auth_profiles WHERE user_id=?`,
+      userId
+    );
+    if (!row) return null;
+    return {
+      version: Number(row.version || 1),
+      fullName: row.fullName,
+      dob: row.dob,
+      school: { id: row.schoolId, name: row.schoolName, district: row.schoolDistrict || "" },
+      higherInstitution: row.higherId ? { id: row.higherId, name: row.higherName, district: row.higherDistrict || "" } : null,
+      createdAt: Number(row.createdAt),
+      updatedAt: Number(row.updatedAt)
+    };
+  }
+  #writeProfile(userId, profile, now) {
+    const higher = profile.higherInstitution || null;
+    this.sql.exec(
+      `INSERT INTO auth_profiles(
+        user_id,profile_version,full_name,date_of_birth,school_id,school_name,school_district,
+        higher_id,higher_name,higher_district,created_at,updated_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        profile_version=excluded.profile_version,full_name=excluded.full_name,date_of_birth=excluded.date_of_birth,
+        school_id=excluded.school_id,school_name=excluded.school_name,school_district=excluded.school_district,
+        higher_id=excluded.higher_id,higher_name=excluded.higher_name,higher_district=excluded.higher_district,
+        updated_at=excluded.updated_at`,
+      userId,
+      Number(profile.version || 1),
+      profile.fullName,
+      profile.dob,
+      profile.school.id,
+      profile.school.name,
+      profile.school.district || "",
+      higher?.id || null,
+      higher?.name || null,
+      higher?.district || null,
+      now,
+      now
+    );
+    return this.#profileForUser(userId);
   }
   #canonicalSession({ sessionRef, subjectRef, emailRef, now }) {
     const row = this.#one(
@@ -6636,6 +7018,36 @@ var SqliteAuthRepository = class {
     if (!row) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
     if (row.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
     return { user: row };
+  }
+  async savePendingProfile(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT t.user_id AS userId,t.state,t.expires_at AS expiresAt,u.status
+         FROM auth_account_verification_tickets t JOIN auth_users u ON u.user_id=t.user_id
+         WHERE t.ticket_ref=? AND t.device_ref=?`,
+        input.ticketRef,
+        input.deviceRef
+      );
+      if (!row || row.state !== "active" || Number(row.expiresAt) <= input.now) return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID };
+      if (row.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      const profile = this.#writeProfile(row.userId, input.profile, input.now);
+      this.#event("onboarding-profile-saved", null, row.userId, input.now);
+      return { saved: true, profile };
+    });
+  }
+  async saveProfile(input) {
+    return this.#transaction(() => {
+      const session = this.#canonicalSession(input);
+      if (session.error) return session;
+      const profile = this.#writeProfile(session.user.id, input.profile, input.now);
+      this.#event("account-profile-updated", input.subjectRef, session.user.id, input.now);
+      return { saved: true, profile };
+    });
+  }
+  async getProfile(input) {
+    const session = this.#canonicalSession(input);
+    if (session.error) return session;
+    return { profile: this.#profileForUser(session.user.id) };
   }
   async beginPasskeyRegistration(input) {
     return this.#transaction(() => {
@@ -8952,6 +9364,18 @@ var AdmissionAuthAuthority = class {
       if (url.pathname === "/internal/firebase/account-verification/complete") {
         const result = await this.engine.completeFirebaseAccountVerification(body.input, body.context);
         await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/profile/save-pending") {
+        const result = await this.engine.savePendingProfile(body.verificationTicket, body.input, body.context);
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/profile/save") {
+        const result = await this.engine.saveProfile(body.input, body.context);
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/profile/get") {
+        const result = await this.engine.getProfile(body.input, body.context);
         return response2(200, { ok: true, result });
       }
       if (url.pathname === "/internal/passkey/registration/begin") {

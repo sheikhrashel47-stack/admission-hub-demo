@@ -16,7 +16,7 @@
  * env/fetch পরীক্ষায় mock করা যায় (ai-agent-f1.test.mjs)।
  */
 export const AGENT_VERSION = 'agent-f1';
-export const SYSTEM_PROMPT_V = 'sys-f1-1';
+export const SYSTEM_PROMPT_V = 'sys-f1-2-onboarding-safe';
 
 export const INTENTS = {
   GENERAL_CHAT: 'GENERAL_CHAT',
@@ -80,6 +80,50 @@ export function validateChatReq(body) {
   return { ok: true, messages: msgs };
 }
 
+const ONBOARDING_ACTIONS = new Set([
+  'focus-name', 'focus-email', 'focus-dob', 'focus-school', 'focus-college',
+  'open-signup', 'open-login', 'explain-email', 'explain-telegram'
+]);
+const oneOf = (value, allowed, fallback) => allowed.includes(String(value || '')) ? String(value) : fallback;
+
+export function onboardingSecretDetected(value) {
+  const text = String(value || '').trim();
+  if (!text) return false;
+  const passwordWord = '(?:password|passcode|পাসওয়ার্ড|পাসওয়াৰ্ড|পাসওয়ার্ড)';
+  if (/\b\d{6}\b/.test(text) || /eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}/.test(text)
+    || /-----BEGIN [A-Z ]+PRIVATE KEY-----/.test(text)) return true;
+  if (new RegExp(`(?:my|amar|আমার)\\s*${passwordWord}\\s*(?:is|হলো|:)?\\s*\\S{4,}`, 'i').test(text)) return true;
+  if (new RegExp(`${passwordWord}\\s*(?:is|হলো|:|=|-)\\s*\\S{4,}`, 'i').test(text)) return true;
+  if (new RegExp(`${passwordWord}\\s+(?=\\S{6,})(?=\\S*[0-9])\\S+`, 'i').test(text)) return true;
+  if (/(?:passcode|pin|otp|one[ -]?time code|ওটিপি)\D{0,8}\d{4,8}\b/i.test(text)) return true;
+  if (/(?:secret|api[ -]?key|token|গোপন)\s*(?:is|হলো|:|=)\s*\S{4,}/i.test(text)) return true;
+  return text.split(/\s+/).some(part => part.length >= 8 && /[a-z]/.test(part) && /[A-Z]/.test(part) && /\d/.test(part) && /[^A-Za-z0-9]/.test(part));
+}
+
+export function sanitizeOnboardingContext(value) {
+  if (!value || typeof value !== 'object' || value.surface !== 'premium-onboarding') return null;
+  const validity = value.validity && typeof value.validity === 'object' ? value.validity : {};
+  const cleanInstitution = text => String(text || '').normalize('NFKC').replace(/[\r\n\u0000<>]/g, '').trim().slice(0, 80);
+  const institutionQuery = cleanInstitution(value.institutionQuery);
+  const institutionSuggestions = Array.isArray(value.institutionSuggestions)
+    ? value.institutionSuggestions.slice(0, 3).map(cleanInstitution).filter(Boolean) : [];
+  return Object.freeze({
+    surface: 'premium-onboarding',
+    view: oneOf(value.view, ['welcome','login','forgot','signup','verify','telegram','security-setup','success','signed'], 'welcome'),
+    step: oneOf(value.step, ['none','personal','education','security'], 'none'),
+    field: oneOf(value.field, ['none','name','email','school','college','date-of-birth','sensitive-field'], 'none'),
+    validity: Object.freeze({
+      personal: validity.personal === true,
+      education: validity.education === true,
+      verificationAuthoritative: validity.verificationAuthoritative === true
+    }),
+    institutionQuery,
+    institutionSuggestions: Object.freeze(institutionSuggestions),
+    allowedActions: Object.freeze(Array.isArray(value.allowedActions)
+      ? value.allowedActions.filter(action => ONBOARDING_ACTIONS.has(action)).slice(0, 12) : [])
+  });
+}
+
 /* ── User-Context stats sanitize (শুধু প্রদত্ত সংখ্যা; কখনো বানানো নয়) --- */
 export function capStats(stats) {
   if (!stats || typeof stats !== 'object') return null;
@@ -118,6 +162,17 @@ HARD RULES:
 10. Never generate, guess, transform, repeat, request, collect, or validate an OTP. Never ask the student to paste an OTP into chat.
 11. Never declare Telegram or account verification successful. Only Admission Hub's authoritative backend response may do that.
 12. Telegram verification proves control of a Telegram account, not ownership of Gmail/email, and it never creates a separate Admission Hub identity.`;
+  const onboarding = sanitizeOnboardingContext(opts.onboarding);
+  if (onboarding) p += `\n\nONBOARDING ASSISTANT — STRICT MODE:
+- Help only with the visible Admission Hub welcome, signup, login, institution search, and verification journey.
+- The current structured context is ${JSON.stringify(onboarding)}.
+- Never ask for, repeat, infer, transform, store, or validate a password, confirm-password value, OTP, session value, key, secret, or credential.
+- Never claim signup, delivery, verification, Passkey creation, login, or profile saving succeeded. Only the application's confirmed state can show success.
+- Respond with student-friendly Bengali and never expose technical infrastructure words such as backend, API, provider, token, webhook, SMTP, quota, or database.
+- You return explanation text only. You cannot execute actions or emit JavaScript, selectors, commands, or tool calls. The interface alone may offer its predefined safe actions.
+- Never submit forms or trigger signup, delivery, verification, login, profile-save, or security actions. Any critical action requires the student's explicit confirmation in the interface and the application's confirmed result.
+- If field is sensitive-field, discuss only general safety and never ask what is typed there.
+- Institution suggestions are advisory and limited to the exact supplied names; if no match, explain the manual-name option.`;
   if (examMode === 'mock-running') p += `\n\nEXAM INTEGRITY — ACTIVE (mock-running): answers, hints and explanations are REFUSED.`;
   if (opts.quiz) p += `\n\nQUIZ MODE — reply with ONLY a valid JSON object (no markdown fences, no text outside JSON):\n{"title":"<short topic title>","questions":[{"q":"<question>","options":["<A>","<B>","<C>","<D>"],"answer":0,"explanation":"<1-2 sentence Bangla explanation of the answer>"}]}\nRules: exactly 5 questions (or the count the user asked, 1-10); admission-level quality; answer is the 0-based index of the correct option; question/options/explanation in the user's language (Bangla unless the user wrote English); 4 options each.`;
   if (stats) {
@@ -302,7 +357,7 @@ export function authVerificationGuidance(text) {
   const verificationTopic = /(telegram|টেলিগ্রাম|\botp\b|ওটিপি|one[ -]?time code|verification code|যাচাই(?:য়ের)? কোড)/i.test(input);
   const possibleBareOtp = /^\D*\d{6}\D*$/.test(input);
   if (!verificationTopic && !possibleBareOtp) return '';
-  return 'Telegram যাচাই করতে Admission Hub-এ “Telegram দিয়ে যাচাই করুন” চাপুন, official bot খুলে START চাপুন, তারপর bot-এর পাঠানো কোডটি শুধু Admission Hub-এর verification box-এ লিখুন। আমি OTP তৈরি, অনুমান, দেখা, পুনরাবৃত্তি বা যাচাই করতে পারি না এবং verification সফলও ঘোষণা করতে পারি না—শুধু backend-এর ফলই চূড়ান্ত। Telegram যাচাই Gmail/ইমেইল মালিকানা প্রমাণ করে না।';
+  return 'Telegram যাচাই করতে Admission Hub-এ “Telegram দিয়ে যাচাই করুন” চাপুন, official bot খুলে START চাপুন, তারপর bot-এর পাঠানো কোডটি শুধু Admission Hub-এর verification box-এ লিখুন। আমি OTP তৈরি, অনুমান, দেখা, পুনরাবৃত্তি বা যাচাই করতে পারি না এবং verification সফলও ঘোষণা করতে পারি না—শুধু Admission Hub-এর নিশ্চিত ফলই চূড়ান্ত। Telegram যাচাই Gmail/ইমেইল মালিকানা প্রমাণ করে না।';
 }
 
 function guidanceResponse(text, stream) {
@@ -329,6 +384,10 @@ export async function agentChat(request, env, uid, opts = {}) {
   const body = await request.json().catch(() => null);
   const v = validateChatReq(body);
   if (!v.ok) return jsonResp({ error: v.code, message: v.message }, 400);
+  const onboarding = sanitizeOnboardingContext(body?.context?.onboarding);
+  if (onboarding && v.messages.some(message => message.role === 'user' && onboardingSecretDetected(message.content))) {
+    return guidanceResponse('নিরাপত্তার জন্য Password, verification code বা গোপন তথ্য Assistant নেয় না। এমন কিছু লিখে থাকলে সেটি বদলে শুধু সাধারণ প্রশ্ন করো।', stream);
+  }
 
   /* rate limit: প্রতি-user প্রতি-দিন cap (KV ১ রাইট/চ্যাট) */
   const cap = Math.max(10, Math.min(500, Number((env && env.AGENT_DAILY_CAP) || 80)));
@@ -367,7 +426,7 @@ export async function agentChat(request, env, uid, opts = {}) {
   }
   msgs = msgs.slice(-24);
 
-  const systemPrompt = buildSystemPrompt({ stats, examMode, quiz: quizMode });
+  const systemPrompt = buildSystemPrompt({ stats, examMode, quiz: quizMode, onboarding });
   let summaryText = persistMemory ? await getKv(env.PUB_KV, 'chatmemsum:' + sendCtx.uid) : '';
   const sys = summaryText ? systemPrompt + '\n\n' + String(summaryText) : systemPrompt;
 

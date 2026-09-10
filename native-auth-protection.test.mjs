@@ -118,9 +118,9 @@ test('Google and the explicit Email-or-Telegram selector are public while Passke
   assert.match(handler, /googleCanaryRequested\(env, url\)/);
   assert.match(handler, /passkeyPublished\(env\)/);
   assert.match(handler, /passkeyCanaryRequested\(env, url\)/);
-  assert.match(handler, /AUTH_UI_VERSION\s*=\s*'auth-selector-v4'/);
+  assert.match(handler, /AUTH_UI_VERSION\s*=\s*'auth-premium-v6'/);
   assert.match(handler, /CLIENT_UPDATE_REQUIRED/);
-  assert.match(client, /'X-AH-Auth-UI':\s*'auth-selector-v4'/);
+  assert.match(client, /'X-AH-Auth-UI':\s*'auth-premium-v6'/);
   assert.match(handler, /enrollmentAvailable:\s*passkeyEnrollmentAvailable/);
   assert.match(handler, /telegramCanaryRequested\(env, url\)/);
   assert.match(handler, /verificationPublished\(env\)/);
@@ -191,7 +191,7 @@ test('Telegram OTP requires secret private-chat START, local code verification, 
   assert.match(verificationProviders, /আপনার verification code/);
   assert.match(client, /id="ah-telegram-code"/);
   assert.match(client, /খোলা সফল যাচাই নয়/);
-  assert.match(client, /Gmail\/ইমেইল মালিকানার প্রমাণ নয়/);
+  assert.match(client, /Email মালিকানা নয়/);
   assert.doesNotMatch(client, /telegram-webhook-confirmed|server-confirmed/);
 });
 
@@ -232,7 +232,11 @@ test('credentials remain in server-managed HttpOnly cookies and are never return
   assert.match(handler, /AUTH_FIREBASE_COOKIE/);
   assert.match(handler, /AUTH_SESSION_COOKIE/);
   assert.doesNotMatch(handler, /sessionToken:\s*established\.sessionToken|refreshToken:\s*signed\.refreshToken/);
-  assert.doesNotMatch(client, /localStorage|sessionStorage|document\.cookie|Authorization\s*:\s*['"`]Bearer/i);
+  assert.doesNotMatch(client, /localStorage|sessionStorage|Authorization\s*:\s*['"`]Bearer/i);
+  assert.match(client, /ENTRY_COOKIE = 'ah_entry_v1'/);
+  assert.match(client, /PENDING_SIGNUP_COOKIE = 'ah_signup_pending_v1'/);
+  assert.equal((client.match(/document\.cookie\s*=/g) || []).length, 2);
+  assert.doesNotMatch(client, /document\.cookie\s*=.*(?:password|email|session|token|secret)/i);
   assert.match(client, /credentials:\s*'same-origin'/);
   assert.doesNotMatch(client, /firebase(?:Refresh|Id)?Token/i);
 });
@@ -271,6 +275,13 @@ test('Google readiness audit is no-mutation and never prints Firebase key, clien
   assert.match(googleReadinessOperation, /inspectGoogleProvider\(\)/);
   assert.match(googleReadinessOperation, /clientIdPrinted=false keyPrinted=false credentialPrinted=false/);
   assert.doesNotMatch(googleReadinessOperation, /stdout\.write\([^\n]*\$\{(?:apiKey|key|result\.clientId|accessToken|idToken)\}/);
+});
+
+test('protected public activation audits premium onboarding in a real browser before deployment verification', () => {
+  for (const workflow of [activationWorkflow, telegramCanaryWorkflow]) {
+    assert.match(workflow, /playwright-core install --with-deps chromium/);
+    assert.match(workflow, /npm run audit:premium-browser/);
+  }
 });
 
 test('Firebase deployment recovery captures the active version and installs the secret after pinned deployment', () => {
