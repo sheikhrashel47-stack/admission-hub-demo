@@ -7,6 +7,7 @@ import {
 } from './auth-native/operations/prepare-production-secrets.mjs';
 import { auditRecentMailjetDelivery } from './auth-native/operations/audit-mailjet-recent-delivery.mjs';
 import { FirebaseConfigError, validateFirebaseProjectConfig, verifyFirebaseConfig } from './auth-native/operations/verify-firebase-config.mjs';
+import { GoogleReadinessError, verifyGoogleReadiness } from './auth-native/operations/verify-google-readiness.mjs';
 import { auditVerificationMessage, verificationAction } from './auth-native/operations/live-mailbox-e2e.mjs';
 import { summarizePlacementReport } from './auth-native/operations/live-placement-audit.mjs';
 import { FirebaseEmailPasswordProvider } from './auth-native/providers/firebase-auth.mjs';
@@ -240,6 +241,73 @@ test('Firebase activation preflight rejects a project without the Pages authoriz
   assert.throws(
     () => validateFirebaseProjectConfig({ projectId: 'admission-hub-test', authorizedDomains: ['localhost'] }),
     error => error instanceof FirebaseConfigError && error.code === 'PAGES_DOMAIN_NOT_AUTHORIZED'
+  );
+});
+
+test('Google readiness audit accepts an enabled Firebase project config without printing or exchanging credentials', async () => {
+  const calls = [];
+  const result = await verifyGoogleReadiness({
+    apiKey: 'firebase-test-api-key-123456789',
+    fetchImpl: async (url, options) => {
+      calls.push({ url: String(url), options });
+      return response({
+        projectId: 'admission-hub-test',
+        authorizedDomains: ['admissionhub.pages.dev'],
+        idpConfig: [{
+          provider: 'google.com',
+          enabled: true,
+          clientId: '123456789012-readinessclient.apps.googleusercontent.com'
+        }]
+      });
+    }
+  });
+  assert.deepEqual(result, {
+    ready: true,
+    provider: 'google.com',
+    clientIdValidated: true,
+    source: 'project-config'
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].options.method, 'GET');
+  assert.equal(calls[0].options.redirect, 'manual');
+});
+
+test('Google readiness audit may validate Firebase createAuthUri but never signs in or creates an account', async () => {
+  const paths = [];
+  const result = await verifyGoogleReadiness({
+    apiKey: 'firebase-test-api-key-123456789',
+    fetchImpl: async (url, options) => {
+      const parsed = new URL(url);
+      paths.push({ path: parsed.pathname, method: options.method, body: String(options.body || '') });
+      if (parsed.pathname.endsWith('/projects')) {
+        return response({ projectId: 'admission-hub-test', authorizedDomains: ['admissionhub.pages.dev'] });
+      }
+      return response({
+        providerId: 'google.com',
+        sessionId: `provider-session-${'x'.repeat(32)}`,
+        authUri: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=123456789012-readinessclient.apps.googleusercontent.com'
+      });
+    }
+  });
+  assert.equal(result.ready, true);
+  assert.equal(result.source, 'firebase-auth-uri');
+  assert.deepEqual(paths.map(row => [row.path, row.method]), [
+    ['/v1/projects', 'GET'],
+    ['/v1/accounts:createAuthUri', 'POST']
+  ]);
+  assert.equal(paths.some(row => /signIn|signUp/.test(row.path)), false);
+  assert.equal(paths.some(row => /id_token|access_token|password/i.test(row.body)), false);
+});
+
+test('Google readiness audit rejects an untrusted OAuth authorization host with a bounded code', async () => {
+  await assert.rejects(
+    verifyGoogleReadiness({
+      apiKey: 'firebase-test-api-key-123456789',
+      fetchImpl: async url => String(url).includes('/projects')
+        ? response({ projectId: 'admission-hub-test', authorizedDomains: ['admissionhub.pages.dev'] })
+        : response({ providerId: 'google.com', sessionId: `provider-session-${'x'.repeat(32)}`, authUri: 'https://evil.example/oauth?client_id=123456789012-readinessclient.apps.googleusercontent.com' })
+    }),
+    error => error instanceof GoogleReadinessError && error.code === 'INVALID_PROVIDER_RESPONSE'
   );
 });
 
