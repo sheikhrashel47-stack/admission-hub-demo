@@ -28,6 +28,7 @@ const googleBrowserOriginOperation = read('auth-native/operations/verify-google-
 const telegramCanaryWorkflow = read('.github/workflows/telegram-auth-canary-activate.yml');
 const telegramBindingOperation = read('auth-native/operations/verify-telegram-bindings.mjs');
 const telegramSecurity = read('auth-native/verification/telegram-security.mjs');
+const liveMailboxOperation = read('auth-native/operations/live-mailbox-e2e.mjs');
 const serviceWorker = read('sw.js');
 const verificationProviders = read('auth-native/verification/providers.mjs');
 const verificationOrchestrator = read('auth-native/verification/orchestrator.mjs');
@@ -123,6 +124,10 @@ test('Google remains public while Telegram alone is exact-query canary and Passk
   assert.match(googleBrowserOriginOperation, /origin_mismatch/);
   assert.match(googleBrowserOriginOperation, /credentialUsed:\s*false/);
   assert.doesNotMatch(googleBrowserOriginOperation, /console\.(?:log|error)|popup\.url\(\)\s*\)/);
+  assert.match(liveMailboxOperation, /google\?\.available === true/);
+  assert.match(liveMailboxOperation, /google\?\.availabilityCode === 'READY'/);
+  assert.match(liveMailboxOperation, /methods\?\.backup\?\.available === false/);
+  assert.doesNotMatch(liveMailboxOperation, /methods\?\.google\?\.available !== false/);
 });
 
 test('Telegram canary preparation is protected, value-blind, reversible, and keeps ordinary visitors isolated', () => {
