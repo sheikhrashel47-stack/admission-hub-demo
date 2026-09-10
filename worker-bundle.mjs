@@ -5098,7 +5098,7 @@ var googlePublished = (env) => env?.GOOGLE_AUTH_ACTIVATION === "enabled";
 var googleCanaryRequested = (env, url) => env?.GOOGLE_AUTH_ACTIVATION === "canary" && url.searchParams.get("googleCanary") === "1";
 var verificationEndpointReady = (env) => ["canary", "enabled"].includes(String(env?.VERIFICATION_AUTH_ACTIVATION || ""));
 var verificationPublished = (env) => env?.VERIFICATION_AUTH_ACTIVATION === "enabled";
-var telegramCanaryRequested = (env, url) => env?.VERIFICATION_AUTH_ACTIVATION === "canary" && url.searchParams.get("telegramCanary") === "1";
+var telegramCanaryRequested = (env, url) => verificationEndpointReady(env) && url.searchParams.get("telegramCanary") === "1";
 var telegramVerificationRequested = (env, url) => verificationPublished(env) || telegramCanaryRequested(env, url);
 var telegramActivationAuthorized = (request, env) => {
   const expected = String(env?.TELEGRAM_CANARY_ACTIVATION_SECRET || "");
