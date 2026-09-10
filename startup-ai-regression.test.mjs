@@ -50,11 +50,14 @@ test('১১. protection snapshot runs as idle post-boot work',
 
 /* PWA lifecycle */
 test('১২. build/cache/AI asset versions are synchronized',
-  SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") && H.includes("const expectedSwVersion = 'v231-account-identity-20260910'") && H.includes('sw.js?v=v231-account-identity-20260910') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
+  SW.includes("const BUILD_ID = 'v232-auth-ui-skew-20260911'") && H.includes("const expectedSwVersion = 'v232-auth-ui-skew-20260911'") && H.includes('sw.js?v=v232-auth-ui-skew-20260911') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 test('১৩. service-worker activation never navigates or reloads open clients',
   !SW.includes('c.navigate(c.url)') && !SW.includes("self.clients.matchAll({ type: 'window', includeUncontrolled: true });\n      for"));
-test('১৪. installed PWA document is shell-first, not network-blocked',
-  SW.indexOf('if (isDocumentRequest(request)) {') < SW.indexOf('const staticAsset =') && SW.includes('const shell = await offlineFallback(request);') && SW.includes('if (shell && shell.ok) return shell;'));
+test('১৪. installed PWA document is bounded network-first with fast offline fallback',
+  SW.indexOf('if (isDocumentRequest(request)) {') < SW.indexOf('const staticAsset =') &&
+  SW.includes('const DOCUMENT_NETWORK_TIMEOUT_MS = 2500') &&
+  SW.includes("fetch(request, { cache: 'no-store', signal: controller.signal })") &&
+  SW.includes('return offlineFallback(request);'));
 test('১৫. precache is lean enough not to compete with iPhone boot', shellAssets > 0 && shellAssets <= 15 && !appShellBlock.includes('result-analysis-500.js') && !appShellBlock.includes("  '',"));
 test('১৬. PWA updates are in-place; active worker is never unregistered first', !H.includes('registration.unregister()'));
 

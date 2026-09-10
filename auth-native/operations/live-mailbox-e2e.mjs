@@ -259,6 +259,7 @@ async function appRequest(base, path, { method = 'GET', body, cookie = '' } = {}
     headers: {
       Origin: base,
       Accept: 'application/json',
+      'X-AH-Auth-UI': 'auth-selector-v4',
       ...(body ? { 'Content-Type': 'application/json' } : {}),
       ...(cookie ? { Cookie: cookie } : {})
     },

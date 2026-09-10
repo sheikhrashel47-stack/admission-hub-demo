@@ -45,7 +45,7 @@ function setup({ pending = { pending: false }, verifyPlan = [], verifyGate = nul
   dom.window.fetch = async (url, options = {}) => {
     const path = String(url);
     const body = options.body ? JSON.parse(options.body) : null;
-    calls.push({ path, method: options.method || 'GET', body });
+    calls.push({ path, method: options.method || 'GET', body, headers: options.headers || {} });
     if (path.includes('/config')) return reply(200, {
       auth: {
         available: true,
@@ -218,6 +218,8 @@ test('signup sends no verification message until the student chooses Email or Te
   app.document.querySelector('#ah-signup-confirm').value = 'StrongPassword!9';
   app.document.querySelector('[data-view="signup"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => app.document.querySelector('[data-role="verification-selection"]').hidden === false);
+  const signupCall = app.calls.find(call => call.path.includes('/signup'));
+  assert.equal(signupCall.headers['X-AH-Auth-UI'], 'auth-selector-v4');
   assert.equal(app.calls.some(call => call.path.includes('/account-verification/email/start')), false);
   assert.equal(app.calls.some(call => call.path.includes('/telegram/verification/start')), false);
   await waitFor(() => app.document.querySelector('[data-role="email-verification-start"]').disabled === false);

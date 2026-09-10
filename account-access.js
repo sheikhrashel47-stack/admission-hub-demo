@@ -468,7 +468,10 @@
         method: options.method || 'GET',
         credentials: 'same-origin',
         signal: controller.signal,
-        headers: options.body ? { 'Content-Type': 'application/json' } : {},
+        headers: {
+          'X-AH-Auth-UI': 'auth-selector-v4',
+          ...(options.body ? { 'Content-Type': 'application/json' } : {})
+        },
         ...(options.body ? { body: JSON.stringify(options.body) } : {})
       });
     } catch (error) {

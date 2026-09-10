@@ -3154,6 +3154,7 @@ var __emailWorkerTest = Object.freeze({ readBoundedBody });
 // auth-native/core/errors.mjs
 var AUTH_ERROR_CODES = Object.freeze({
   INVALID_INPUT: "INVALID_INPUT",
+  CLIENT_UPDATE_REQUIRED: "CLIENT_UPDATE_REQUIRED",
   NOT_CONFIGURED: "NOT_CONFIGURED",
   RATE_LIMITED: "RATE_LIMITED",
   RESEND_COOLDOWN: "RESEND_COOLDOWN",
@@ -3186,6 +3187,7 @@ var AUTH_ERROR_CODES = Object.freeze({
 });
 var DEFAULTS2 = Object.freeze({
   [AUTH_ERROR_CODES.INVALID_INPUT]: Object.freeze({ status: 400, message: "তথ্যটি সঠিকভাবে লিখুন।" }),
+  [AUTH_ERROR_CODES.CLIENT_UPDATE_REQUIRED]: Object.freeze({ status: 409, message: "Admission Hub-এর নতুন সংস্করণ চালু হয়েছে—পেজটি একবার রিফ্রেশ করে আবার চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.NOT_CONFIGURED]: Object.freeze({ status: 503, message: "অ্যাকাউন্ট সেবা এখনো প্রস্তুত নয়।" }),
   [AUTH_ERROR_CODES.RATE_LIMITED]: Object.freeze({ status: 429, message: "অনেকবার চেষ্টা হয়েছে—একটু পরে আবার চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.RESEND_COOLDOWN]: Object.freeze({ status: 429, message: "নতুন কোড পাঠাতে একটু অপেক্ষা করুন।" }),
@@ -4794,6 +4796,7 @@ var YEAR_SECONDS = 365 * 24 * 60 * 60;
 var SESSION_SECONDS = 30 * 24 * 60 * 60;
 var PASSWORD_MIN = 8;
 var PASSWORD_MAX = 128;
+var AUTH_UI_VERSION = "auth-selector-v4";
 var FIREBASE_VERIFICATION_RESEND_SECONDS = Math.floor(FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS / 1e3);
 var JSON_HEADERS = Object.freeze({
   "Content-Type": "application/json; charset=utf-8",
@@ -5100,6 +5103,7 @@ var verificationEndpointReady = (env) => ["canary", "enabled"].includes(String(e
 var verificationPublished = (env) => env?.VERIFICATION_AUTH_ACTIVATION === "enabled";
 var telegramCanaryRequested = (env, url) => verificationEndpointReady(env) && url.searchParams.get("telegramCanary") === "1";
 var telegramVerificationRequested = (env, url) => verificationPublished(env) || telegramCanaryRequested(env, url);
+var currentAuthUi = (request) => request.headers.get("X-AH-Auth-UI") === AUTH_UI_VERSION;
 var telegramActivationAuthorized = (request, env) => {
   const expected = String(env?.TELEGRAM_CANARY_ACTIVATION_SECRET || "");
   const supplied = String(request.headers.get("X-AH-Telegram-Activation") || "");
@@ -5135,7 +5139,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           ...JSON_HEADERS,
           ...corsHeaders(request),
           "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "content-type, x-ah-admin-token",
+          "Access-Control-Allow-Headers": "content-type, x-ah-admin-token, x-ah-auth-ui",
           "Access-Control-Max-Age": "600"
         }
       });
@@ -5313,6 +5317,10 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/signup`) {
         if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const telegramRequested = telegramVerificationRequested(env, url);
+        if (telegramRequested && !currentAuthUi(request)) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.CLIENT_UPDATE_REQUIRED);
+        }
         const input = credentials(await readJson(request));
         const prepared = await callAuthority(env, "/internal/firebase/rate", { input: { operation: "signup", email: input.email }, context });
         let signed;
@@ -5321,7 +5329,6 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         } catch (cause) {
           throw providerError(cause, "signup");
         }
-        const telegramRequested = telegramVerificationRequested(env, url);
         const telegramAvailable = await telegramVerificationAvailable(env, telegramRequested);
         if (telegramRequested) {
           try {
@@ -5355,6 +5362,9 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
               ]
             });
           } catch {
+            throw new NativeAuthError(AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE, {
+              message: "অ্যাকাউন্ট তৈরি হয়েছে, কিন্তু যাচাইয়ের পদ্ধতি এখন প্রস্তুত করা যাচ্ছে না—কিছু পাঠানো হয়নি। একটু পরে এই ইমেইল দিয়ে লগইন করুন।"
+            });
           }
         }
         try {
@@ -5435,6 +5445,9 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           context,
           allowed: telegramRequested
         });
+        if (!user.emailVerified && !telegramVerified && telegramRequested && !currentAuthUi(request)) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.CLIENT_UPDATE_REQUIRED);
+        }
         const telegramAvailable = await telegramVerificationAvailable(env, telegramRequested);
         if (!user.emailVerified && !telegramVerified && telegramRequested) {
           try {

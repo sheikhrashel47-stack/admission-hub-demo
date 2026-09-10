@@ -1,7 +1,8 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v231-account-identity-20260910';
+const BUILD_ID = 'v232-auth-ui-skew-20260911';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
+const DOCUMENT_NETWORK_TIMEOUT_MS = 2500;
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
 function markBuild(response) {
   if (!response || !response.ok) return response;
@@ -16,8 +17,8 @@ const APP_SHELL = [
   './dashboard-v2.css?v=dash2',
   './3d-loader.css?v=3d-v1',
   './session-persist.js?v=session-v1',
-  './account-access.css?v=20260910-auth-selector-v3',
-  './account-access.js?v=20260910-auth-selector-v3',
+  './account-access.css?v=20260911-auth-selector-v4',
+  './account-access.js?v=20260911-auth-selector-v4',
   './data-protection.js?v=dp-v3-fastboot',
   './dashboard-v2.js?v=dash2f7',
   './ai-agent-chat.js?v=agent-f1-ui-chatv15-identity',
@@ -127,18 +128,21 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith((async () => {
-    // Installed PWA launches are shell-first: a flaky network must never hold the
-    // document request (and therefore the whole UI) beyond the five-second target.
+    // Documents are bounded network-first. This prevents a healthy online browser
+    // from being trapped forever on an old Auth UI while retaining a fast offline
+    // shell fallback well inside the five-second startup budget.
     if (isDocumentRequest(request)) {
-      const shell = await offlineFallback(request);
-      if (shell && shell.ok) return shell;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), DOCUMENT_NETWORK_TIMEOUT_MS);
       try {
-        const response = await fetch(request, {cache: 'no-store'});
+        const response = await fetch(request, { cache: 'no-store', signal: controller.signal });
         const contentType = response.headers.get('content-type') || '';
-        if (!contentType.includes('text/html')) return Response.error();
-        return cacheNetworkResponse(request, response);
+        if (!response.ok || !contentType.includes('text/html')) throw new Error('DOCUMENT_UNAVAILABLE');
+        return await cacheNetworkResponse(request, response);
       } catch (_) {
-        return Response.error();
+        return offlineFallback(request);
+      } finally {
+        clearTimeout(timeout);
       }
     }
 
