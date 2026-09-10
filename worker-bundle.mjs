@@ -4149,7 +4149,7 @@ var FirebaseEmailPasswordProvider = class {
       response3 = await this.fetch(`${IDENTITY_TOOLKIT}/projects?key=${encodeURIComponent(this.apiKey)}`, {
         method: "GET",
         headers: { Accept: "application/json", "Cache-Control": "no-store" },
-        redirect: "error",
+        redirect: "manual",
         signal: AbortSignal.timeout(12e3)
       });
     } catch {
@@ -4180,7 +4180,7 @@ var FirebaseEmailPasswordProvider = class {
           "Cache-Control": "no-store"
         },
         body: form ? String(body) : JSON.stringify(body),
-        redirect: "error",
+        redirect: "manual",
         signal: AbortSignal.timeout(12e3)
       });
     } catch {
@@ -4296,7 +4296,7 @@ var FirebaseEmailPasswordProvider = class {
       response3 = await this.fetch(GOOGLE_USERINFO, {
         method: "GET",
         headers: { Accept: "application/json", Authorization: `Bearer ${accessToken}`, "Cache-Control": "no-store" },
-        redirect: "error",
+        redirect: "manual",
         signal: AbortSignal.timeout(12e3)
       });
     } catch {
@@ -6754,7 +6754,7 @@ function httpFailure(response3, _payload, { userStatuses = [400, 404, 422] } = {
 async function fetchJson(fetchImpl, url, init = {}) {
   let response3;
   try {
-    response3 = await fetchImpl(url, { ...init, redirect: "error", signal: init.signal || AbortSignal.timeout(12e3) });
+    response3 = await fetchImpl(url, { ...init, redirect: "manual", signal: init.signal || AbortSignal.timeout(12e3) });
   } catch {
     throw new VerificationProviderError("NETWORK_ERROR", VERIFICATION_FAILURE_CLASS.TEMPORARY);
   }

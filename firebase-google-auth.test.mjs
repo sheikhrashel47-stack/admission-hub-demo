@@ -104,6 +104,7 @@ test('Google readiness accepts only a validated Firebase Google client and Pages
   });
   assert.deepEqual(await provider.inspectGoogleProvider(), { available: true, clientId: CLIENT_ID });
   const sent = JSON.parse(calls[0].init.body);
+  assert.equal(calls[0].init.redirect, 'manual');
   assert.equal(sent.providerId, 'google.com');
   assert.equal(sent.continueUri, 'https://admissionhub.pages.dev');
   assert.deepEqual(sent.customParameter, { prompt: 'select_account' });
@@ -248,4 +249,5 @@ test('Google linking reauthenticates the existing Firebase account and preserves
   const sessionCall = authority.calls.find(call => call.path === '/internal/firebase/session/create');
   assert.equal(sessionCall.body.input.subject, existingSubject);
   assert.equal(sessionCall.body.input.email, 'google.user@example.com');
+  assert.equal(calls.every(call => call.init.redirect === 'manual'), true);
 });

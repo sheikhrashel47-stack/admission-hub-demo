@@ -70,7 +70,7 @@ export class FirebaseEmailPasswordProvider {
       response = await this.fetch(`${IDENTITY_TOOLKIT}/projects?key=${encodeURIComponent(this.apiKey)}`, {
         method: 'GET',
         headers: { Accept: 'application/json', 'Cache-Control': 'no-store' },
-        redirect: 'error',
+        redirect: 'manual',
         signal: AbortSignal.timeout(12_000)
       });
     } catch { throw new FirebaseRequestError('NETWORK_ERROR'); }
@@ -99,7 +99,7 @@ export class FirebaseEmailPasswordProvider {
           'Cache-Control': 'no-store'
         },
         body: form ? String(body) : JSON.stringify(body),
-        redirect: 'error',
+        redirect: 'manual',
         signal: AbortSignal.timeout(12_000)
       });
     } catch { throw new FirebaseRequestError('NETWORK_ERROR'); }
@@ -206,7 +206,7 @@ export class FirebaseEmailPasswordProvider {
       response = await this.fetch(GOOGLE_USERINFO, {
         method: 'GET',
         headers: { Accept: 'application/json', Authorization: `Bearer ${accessToken}`, 'Cache-Control': 'no-store' },
-        redirect: 'error',
+        redirect: 'manual',
         signal: AbortSignal.timeout(12_000)
       });
     } catch { throw new FirebaseRequestError('NETWORK_ERROR'); }
