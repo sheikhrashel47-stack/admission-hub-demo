@@ -451,6 +451,8 @@ test('approved Telegram publication exposes only the Email-or-Telegram selector 
   assert.equal(auth.methods.passkey.enrollmentAvailable, true);
   assert.equal(auth.methods.backup.available, false);
   assert.equal(auth.methods.backup.availabilityCode, 'LIVE_E2E_PENDING');
+  const diagnostic = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config?telegramCanary=1`), app.env, {});
+  assert.equal((await diagnostic.json()).auth.methods.backup.available, true);
 });
 
 test('approved Google activation publishes the provider on the ordinary config without publishing Passkey', async () => {

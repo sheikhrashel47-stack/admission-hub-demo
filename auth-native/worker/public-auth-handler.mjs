@@ -300,7 +300,7 @@ const googleCanaryRequested = (env, url) =>
 const verificationEndpointReady = env => ['canary', 'enabled'].includes(String(env?.VERIFICATION_AUTH_ACTIVATION || ''));
 const verificationPublished = env => env?.VERIFICATION_AUTH_ACTIVATION === 'enabled';
 const telegramCanaryRequested = (env, url) =>
-  env?.VERIFICATION_AUTH_ACTIVATION === 'canary' && url.searchParams.get('telegramCanary') === '1';
+  verificationEndpointReady(env) && url.searchParams.get('telegramCanary') === '1';
 const telegramVerificationRequested = (env, url) => verificationPublished(env) || telegramCanaryRequested(env, url);
 const telegramActivationAuthorized = (request, env) => {
   const expected = String(env?.TELEGRAM_CANARY_ACTIVATION_SECRET || '');
