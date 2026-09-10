@@ -188,10 +188,10 @@ export class FirebaseEmailPasswordProvider {
     const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:signUp?key=${encodeURIComponent(this.apiKey)}`, {
       email, password, returnSecureToken: true
     });
-    if (!validToken(payload?.idToken) || !validSubject(payload?.localId)) {
+    if (!validToken(payload?.idToken) || !validToken(payload?.refreshToken) || !validSubject(payload?.localId)) {
       throw new FirebaseRequestError('INVALID_PROVIDER_RESPONSE');
     }
-    return Object.freeze({ idToken: payload.idToken, subject: payload.localId });
+    return Object.freeze({ idToken: payload.idToken, refreshToken: payload.refreshToken, subject: payload.localId });
   }
 
   async sendVerificationEmail(idToken, email) {

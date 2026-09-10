@@ -26,7 +26,9 @@ export class SqliteVerificationRepository {
         ip_ref TEXT NOT NULL,
         purpose TEXT NOT NULL CHECK(purpose IN ('account-backup','sensitive-action')),
         code_mac TEXT NOT NULL,
+        code_cipher TEXT NOT NULL DEFAULT '',
         link_token_mac TEXT NOT NULL,
+        link_cipher TEXT NOT NULL DEFAULT '',
         provider_id TEXT,
         channel TEXT,
         verification_mode TEXT,
@@ -47,6 +49,18 @@ export class SqliteVerificationRepository {
        ON auth_verification_challenges(user_id,purpose,created_at DESC)`,
       `CREATE INDEX IF NOT EXISTS auth_verification_expiry
        ON auth_verification_challenges(expires_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_telegram_identity_links (
+        user_id TEXT PRIMARY KEY,
+        subject_ref TEXT NOT NULL UNIQUE,
+        external_identity_ref TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL CHECK(status IN ('active','revoked')),
+        linked_at INTEGER NOT NULL,
+        last_verified_at INTEGER NOT NULL,
+        revoked_at INTEGER,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_telegram_identity_status
+       ON auth_telegram_identity_links(status,last_verified_at DESC)`,
       `CREATE TABLE IF NOT EXISTS auth_verification_daily_quota (
         provider_id TEXT NOT NULL,
         day_start INTEGER NOT NULL,
@@ -97,14 +111,16 @@ export class SqliteVerificationRepository {
       Array.from(this.sql.exec('PRAGMA table_info(auth_verification_challenges)')).map(row => String(row.name || ''))
     );
     const additiveColumns = [
+      ['code_cipher', "ALTER TABLE auth_verification_challenges ADD COLUMN code_cipher TEXT NOT NULL DEFAULT ''"],
       ['link_token_mac', "ALTER TABLE auth_verification_challenges ADD COLUMN link_token_mac TEXT NOT NULL DEFAULT ''"],
+      ['link_cipher', "ALTER TABLE auth_verification_challenges ADD COLUMN link_cipher TEXT NOT NULL DEFAULT ''"],
       ['provider_confirmed', 'ALTER TABLE auth_verification_challenges ADD COLUMN provider_confirmed INTEGER NOT NULL DEFAULT 0'],
       ['external_identity_ref', 'ALTER TABLE auth_verification_challenges ADD COLUMN external_identity_ref TEXT']
     ];
     for (const [column, statement] of additiveColumns) {
       if (!challengeColumns.has(column)) this.sql.exec(statement);
     }
-    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','4') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
+    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','5') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
   }
 
   #rows(statement, ...bindings) { return Array.from(this.sql.exec(statement, ...bindings)); }
@@ -173,8 +189,9 @@ export class SqliteVerificationRepository {
     const row = this.#one(
       `SELECT attempt_id AS attemptId,user_id AS userId,session_ref AS sessionRef,subject_ref AS subjectRef,
         email_ref AS emailRef,destination_ref AS destinationRef,device_ref AS deviceRef,ip_ref AS ipRef,
-        purpose,code_mac AS codeMac,link_token_mac AS linkTokenMac,provider_id AS providerId,channel,
-        verification_mode AS verificationMode,state,attempts,max_attempts AS maxAttempts,
+        purpose,code_mac AS codeMac,code_cipher AS codeCipher,link_token_mac AS linkTokenMac,
+        link_cipher AS linkCipher,provider_id AS providerId,channel,verification_mode AS verificationMode,
+        state,attempts,max_attempts AS maxAttempts,
         created_at AS createdAt,expires_at AS expiresAt,resend_at AS resendAt,sent_at AS sentAt,
         verified_at AS verifiedAt,lockout_until AS lockoutUntil,provider_confirmed AS providerConfirmed,
         external_identity_ref AS externalIdentityRef
@@ -192,7 +209,7 @@ export class SqliteVerificationRepository {
     };
     if (row.state !== 'sent') return { error: AUTH_ERROR_CODES.OTP_INVALID };
     if (Number(row.expiresAt) <= input.now) {
-      this.sql.exec("UPDATE auth_verification_challenges SET state='expired',code_mac='',link_token_mac='' WHERE attempt_id=?", input.attemptId);
+      this.sql.exec("UPDATE auth_verification_challenges SET state='expired',code_mac='',code_cipher='',link_token_mac='',link_cipher='' WHERE attempt_id=?", input.attemptId);
       return { error: AUTH_ERROR_CODES.OTP_EXPIRED };
     }
     return { challenge: row };
@@ -225,12 +242,13 @@ export class SqliteVerificationRepository {
       this.sql.exec(
         `INSERT INTO auth_verification_challenges(
           attempt_id,user_id,session_ref,subject_ref,email_ref,destination_ref,device_ref,ip_ref,purpose,
-          code_mac,link_token_mac,provider_id,channel,verification_mode,state,attempts,max_attempts,
-          created_at,expires_at,resend_at,sent_at,verified_at,lockout_until
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,'pending',0,?,?,?,?,NULL,NULL,0)`,
+          code_mac,code_cipher,link_token_mac,link_cipher,provider_id,channel,verification_mode,state,
+          attempts,max_attempts,created_at,expires_at,resend_at,sent_at,verified_at,lockout_until
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,'pending',0,?,?,?,?,NULL,NULL,0)`,
         input.attemptId, input.userId, input.sessionRef, input.subjectRef, input.emailRef,
         input.destinationRef, input.deviceRef, input.ipRef, input.purpose, input.codeMac,
-        input.linkTokenMac, input.maxAttempts, input.createdAt, input.expiresAt, input.resendAt
+        input.codeCipher, input.linkTokenMac, input.linkCipher, input.maxAttempts,
+        input.createdAt, input.expiresAt, input.resendAt
       );
       this.#event({ ...input, outcome: 'prepared', reason: 'accepted' });
       return { reserved: true };
@@ -242,12 +260,17 @@ export class SqliteVerificationRepository {
       const row = this.#one("SELECT user_id AS userId,subject_ref AS subjectRef,purpose,state FROM auth_verification_challenges WHERE attempt_id=?", input.attemptId);
       if (!row || row.state !== 'pending') return { error: AUTH_ERROR_CODES.OTP_INVALID };
       this.sql.exec(
-        `UPDATE auth_verification_challenges SET provider_id=?,channel=?,verification_mode=?,state='sent',sent_at=?
+        `UPDATE auth_verification_challenges
+         SET provider_id=?,channel=?,verification_mode=?,state='sent',sent_at=?,
+             code_cipher=CASE WHEN ? THEN code_cipher ELSE '' END,
+             link_cipher=CASE WHEN ? THEN link_cipher ELSE '' END
          WHERE attempt_id=? AND state='pending'`,
-        input.providerId, input.channel, input.verificationMode, input.now, input.attemptId
+        input.providerId, input.channel, input.verificationMode, input.now,
+        input.retainCodeCipher ? 1 : 0, input.retainLinkCipher ? 1 : 0, input.attemptId
       );
       this.sql.exec(
-        `UPDATE auth_verification_challenges SET state='superseded',code_mac='',link_token_mac=''
+        `UPDATE auth_verification_challenges
+         SET state='superseded',code_mac='',code_cipher='',link_token_mac='',link_cipher=''
          WHERE user_id=? AND purpose=? AND attempt_id<>? AND state IN ('pending','sent')`,
         row.userId, row.purpose, input.attemptId
       );
@@ -276,6 +299,102 @@ export class SqliteVerificationRepository {
     });
   }
 
+  async claimTelegramDelivery(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT attempt_id AS attemptId,user_id AS userId,subject_ref AS subjectRef,
+          code_cipher AS codeCipher,expires_at AS expiresAt,provider_confirmed AS providerConfirmed,
+          external_identity_ref AS externalIdentityRef
+         FROM auth_verification_challenges
+         WHERE link_token_mac=? AND provider_id='telegram' AND channel='telegram'
+           AND verification_mode='local-code' AND state='sent'`,
+        input.linkTokenMac
+      );
+      if (!row || Number(row.expiresAt) <= input.now || !row.codeCipher) return { error: AUTH_ERROR_CODES.OTP_INVALID };
+      if (row.providerConfirmed && row.externalIdentityRef !== input.externalIdentityRef) {
+        return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      }
+      const externalOwner = this.#one(
+        "SELECT user_id AS userId,subject_ref AS subjectRef FROM auth_telegram_identity_links WHERE external_identity_ref=? AND status='active'",
+        input.externalIdentityRef
+      );
+      const userLink = this.#one(
+        "SELECT external_identity_ref AS externalIdentityRef,subject_ref AS subjectRef FROM auth_telegram_identity_links WHERE user_id=? AND status='active'",
+        row.userId
+      );
+      const claimedElsewhere = this.#one(
+        `SELECT user_id AS userId FROM auth_verification_challenges
+         WHERE external_identity_ref=? AND provider_id='telegram' AND state='sent'
+           AND provider_confirmed=1 AND attempt_id<>?`,
+        input.externalIdentityRef, row.attemptId
+      );
+      if ((externalOwner && (externalOwner.userId !== row.userId || externalOwner.subjectRef !== row.subjectRef))
+        || (userLink && (userLink.externalIdentityRef !== input.externalIdentityRef || userLink.subjectRef !== row.subjectRef))
+        || (claimedElsewhere && claimedElsewhere.userId !== row.userId)) {
+        return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      }
+      this.sql.exec(
+        `UPDATE auth_verification_challenges
+         SET provider_confirmed=1,external_identity_ref=?
+         WHERE attempt_id=? AND state='sent' AND (provider_confirmed=0 OR external_identity_ref=?)`,
+        input.externalIdentityRef, row.attemptId, input.externalIdentityRef
+      );
+      this.#event({ ...row, providerId: 'telegram', channel: 'telegram', now: input.now, outcome: 'provider_confirmed', reason: 'private_same_user_start' });
+      return {
+        claimed: true,
+        attemptId: row.attemptId,
+        codeCipher: row.codeCipher,
+        expiresAt: Number(row.expiresAt),
+        userId: row.userId,
+        subjectRef: row.subjectRef
+      };
+    });
+  }
+
+  async confirmTelegramDelivery(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT user_id AS userId,subject_ref AS subjectRef FROM auth_verification_challenges
+         WHERE attempt_id=? AND provider_id='telegram' AND provider_confirmed=1 AND state='sent'`,
+        input.attemptId
+      );
+      if (!row) return { error: AUTH_ERROR_CODES.OTP_INVALID };
+      this.sql.exec("UPDATE auth_verification_challenges SET code_cipher='',link_token_mac='',link_cipher='' WHERE attempt_id=?", input.attemptId);
+      this.#event({ ...row, attemptId: input.attemptId, providerId: 'telegram', channel: 'telegram', now: input.now, outcome: 'sent', reason: 'telegram_code_accepted' });
+      return { delivered: true };
+    });
+  }
+
+  async getPendingChallenge(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT attempt_id AS attemptId,expires_at AS expiresAt,resend_at AS resendAt,
+          provider_id AS providerId,channel,verification_mode AS verificationMode,
+          provider_confirmed AS providerConfirmed,code_cipher AS codeCipher,link_cipher AS linkCipher,state
+         FROM auth_verification_challenges
+         WHERE user_id=? AND session_ref=? AND subject_ref=? AND email_ref=?
+           AND device_ref=? AND purpose=? AND state='sent'
+         ORDER BY created_at DESC LIMIT 1`,
+        input.userId, input.sessionRef, input.subjectRef, input.emailRef,
+        input.deviceRef, input.purpose
+      );
+      if (!row) return { pending: false };
+      if (Number(row.expiresAt) <= input.now) {
+        this.sql.exec("UPDATE auth_verification_challenges SET state='expired',code_mac='',code_cipher='',link_token_mac='',link_cipher='' WHERE attempt_id=?", row.attemptId);
+        return { pending: false };
+      }
+      return { pending: true, challenge: row };
+    });
+  }
+
+  async isTelegramLinked(input) {
+    const row = this.#one(
+      "SELECT status FROM auth_telegram_identity_links WHERE user_id=? AND subject_ref=?",
+      input.userId, input.subjectRef
+    );
+    return { linked: row?.status === 'active' };
+  }
+
   async failChallenge(input) {
     return this.#transaction(() => {
       const row = this.#one(
@@ -283,7 +402,7 @@ export class SqliteVerificationRepository {
         input.attemptId
       );
       this.sql.exec(
-        "UPDATE auth_verification_challenges SET state='failed',code_mac='',link_token_mac='' WHERE attempt_id=? AND state IN ('pending','sent')",
+        "UPDATE auth_verification_challenges SET state='failed',code_mac='',code_cipher='',link_token_mac='',link_cipher='' WHERE attempt_id=? AND state IN ('pending','sent')",
         input.attemptId
       );
       this.#event({ ...(row || {}), ...input, outcome: 'failed' });
@@ -302,7 +421,7 @@ export class SqliteVerificationRepository {
       if (attempts >= Number(row.maxAttempts)) {
         const lockoutUntil = input.now + input.lockoutMs;
         this.sql.exec(
-          "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',link_token_mac='',lockout_until=? WHERE attempt_id=?",
+          "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',code_cipher='',link_token_mac='',link_cipher='',lockout_until=? WHERE attempt_id=?",
           attempts, lockoutUntil, input.attemptId
         );
         this.#event({ ...row, now: input.now, outcome: 'locked', reason: 'attempt_limit' });
@@ -319,12 +438,15 @@ export class SqliteVerificationRepository {
       const selected = this.#challenge(input);
       if (selected.error) return selected;
       const row = selected.challenge;
+      if (row.providerId === 'telegram' && (!row.providerConfirmed || !row.externalIdentityRef)) {
+        return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_PENDING };
+      }
       if (!constantTimeEqual(row.codeMac, input.candidateCodeMac)) {
         const attempts = Number(row.attempts || 0) + 1;
         if (attempts >= Number(row.maxAttempts)) {
           const lockoutUntil = input.now + input.lockoutMs;
           this.sql.exec(
-            "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',link_token_mac='',lockout_until=? WHERE attempt_id=?",
+            "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',code_cipher='',link_token_mac='',link_cipher='',lockout_until=? WHERE attempt_id=?",
             attempts, lockoutUntil, input.attemptId
           );
           this.#event({ ...row, now: input.now, outcome: 'locked', reason: 'attempt_limit' });
@@ -334,12 +456,45 @@ export class SqliteVerificationRepository {
         this.#event({ ...row, now: input.now, outcome: 'rejected', reason: 'user_code_mismatch' });
         return { error: AUTH_ERROR_CODES.OTP_INVALID, attemptsRemaining: Number(row.maxAttempts) - attempts };
       }
+      if (row.providerId === 'telegram') {
+        const externalOwner = this.#one(
+          "SELECT user_id AS userId,subject_ref AS subjectRef FROM auth_telegram_identity_links WHERE external_identity_ref=? AND status='active'",
+          row.externalIdentityRef
+        );
+        const userLink = this.#one(
+          "SELECT external_identity_ref AS externalIdentityRef,subject_ref AS subjectRef FROM auth_telegram_identity_links WHERE user_id=? AND status='active'",
+          row.userId
+        );
+        if ((externalOwner && (externalOwner.userId !== row.userId || externalOwner.subjectRef !== row.subjectRef))
+          || (userLink && (userLink.externalIdentityRef !== row.externalIdentityRef || userLink.subjectRef !== row.subjectRef))) {
+          return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+        }
+        if (userLink) {
+          this.sql.exec(
+            "UPDATE auth_telegram_identity_links SET last_verified_at=?,status='active',revoked_at=NULL WHERE user_id=?",
+            input.now, row.userId
+          );
+        } else {
+          this.sql.exec(
+            `INSERT INTO auth_telegram_identity_links(
+              user_id,subject_ref,external_identity_ref,status,linked_at,last_verified_at,revoked_at
+            ) VALUES(?,?,?,'active',?,?,NULL)`,
+            row.userId, row.subjectRef, row.externalIdentityRef, input.now, input.now
+          );
+        }
+      }
       this.sql.exec(
-        "UPDATE auth_verification_challenges SET state='verified',code_mac='',link_token_mac='',verified_at=? WHERE attempt_id=? AND state='sent'",
+        "UPDATE auth_verification_challenges SET state='verified',code_mac='',code_cipher='',link_token_mac='',link_cipher='',verified_at=? WHERE attempt_id=? AND state='sent'",
         input.now, input.attemptId
       );
       this.#event({ ...row, now: input.now, outcome: 'verified', reason: 'accepted' });
-      return { verified: true, userId: row.userId, purpose: row.purpose };
+      return {
+        verified: true,
+        userId: row.userId,
+        purpose: row.purpose,
+        telegramLinked: row.providerId === 'telegram',
+        emailVerified: false
+      };
     });
   }
 
@@ -349,7 +504,7 @@ export class SqliteVerificationRepository {
       if (selected.error) return selected;
       const row = selected.challenge;
       this.sql.exec(
-        "UPDATE auth_verification_challenges SET state='verified',code_mac='',link_token_mac='',verified_at=? WHERE attempt_id=? AND state='sent'",
+        "UPDATE auth_verification_challenges SET state='verified',code_mac='',code_cipher='',link_token_mac='',link_cipher='',verified_at=? WHERE attempt_id=? AND state='sent'",
         input.now, input.attemptId
       );
       this.#event({ ...row, now: input.now, outcome: 'verified', reason: 'provider_evidence' });

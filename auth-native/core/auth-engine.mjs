@@ -19,6 +19,7 @@ export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
 export const PASSKEY_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 export const PASSKEY_TICKET_TTL_MS = 60 * 1000;
+export const ACCOUNT_VERIFICATION_TICKET_TTL_MS = 15 * 60 * 1000;
 export const PASSKEY_RP_ID = 'admissionhub.pages.dev';
 
 const PASSKEY_REGISTRATION_LIMITS = Object.freeze([
@@ -31,6 +32,13 @@ const PASSKEY_LOGIN_LIMITS = Object.freeze([
   Object.freeze({ scope: 'passkey-login-ip-15m', source: 'ip', limit: 60, windowMs: 15 * 60 * 1000 }),
   Object.freeze({ scope: 'passkey-login-device-15m', source: 'device', limit: 30, windowMs: 15 * 60 * 1000 }),
   Object.freeze({ scope: 'passkey-login-global-minute', source: 'global', limit: 180, windowMs: 60 * 1000 })
+]);
+
+const ACCOUNT_VERIFICATION_LIMITS = Object.freeze([
+  Object.freeze({ scope: 'telegram-account-verify-email-day', source: 'email', limit: 5, windowMs: 24 * 60 * 60 * 1000 }),
+  Object.freeze({ scope: 'telegram-account-verify-ip-hour', source: 'ip', limit: 20, windowMs: 60 * 60 * 1000 }),
+  Object.freeze({ scope: 'telegram-account-verify-device-hour', source: 'device', limit: 10, windowMs: 60 * 60 * 1000 }),
+  Object.freeze({ scope: 'telegram-account-verify-global-minute', source: 'global', limit: 120, windowMs: 60 * 1000 })
 ]);
 
 const FIREBASE_OPERATION_LIMITS = Object.freeze({
@@ -64,6 +72,8 @@ const FIREBASE_OPERATION_LIMITS = Object.freeze({
 const requiredRepositoryMethods = Object.freeze([
   'consumeLimits', 'establishExternalSession',
   'getExternalSession', 'getSession', 'revokeSession',
+  'beginFirebaseAccountVerification', 'getFirebaseAccountVerification',
+  'completeFirebaseAccountVerification', 'getFirebaseIdentity',
   'beginPasskeyRegistration', 'getPasskeyRegistrationChallenge', 'finishPasskeyRegistration',
   'beginPasskeyAuthentication', 'getPasskeyAuthenticationMaterial', 'issuePasskeyTicket',
   'completePasskeySession', 'getPasskeyStatus', 'removePasskey',
@@ -227,6 +237,118 @@ export class CloudflareNativeAuthEngine {
       now: Number(this.now())
     }));
     return Object.freeze({ expiresAt: result.expiresAt, user: publicUser(result.user) });
+  }
+
+  async beginFirebaseAccountVerification(input = {}, requestContext = {}) {
+    const refreshToken = String(input.refreshToken || '').trim();
+    if (refreshToken.length < 20 || refreshToken.length > 4096 || /[\r\n\u0000;]/.test(refreshToken)) {
+      failAuth(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    }
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    const now = Number(this.now());
+    const verificationTicket = randomToken(32, this.crypto);
+    const userIdCandidate = `usr_${randomToken(18, this.crypto)}`;
+    const [ticketRef, refreshCipher] = await Promise.all([
+      this.hmac.hex('session-ref-v1', verificationTicket),
+      this.vault.seal(refreshToken, `account-verification-refresh:${identity.subjectRef}`)
+    ]);
+    const prepared = errorFromRepository(await this.repository.beginFirebaseAccountVerification({
+      ticketRef,
+      userIdCandidate,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      emailMask: maskAuthEmail(identity.email),
+      refreshCipher,
+      ipRef: identity.refs.ipRef,
+      deviceRef: identity.refs.deviceRef,
+      limits: this.#limits(ACCOUNT_VERIFICATION_LIMITS, identity.refs),
+      now,
+      expiresAt: now + ACCOUNT_VERIFICATION_TICKET_TTL_MS
+    }));
+    return Object.freeze({
+      verificationTicket,
+      expiresAt: now + ACCOUNT_VERIFICATION_TICKET_TTL_MS,
+      user: publicUser(prepared.user)
+    });
+  }
+
+  async getFirebaseAccountVerification(verificationTicket, input = {}, requestContext = {}) {
+    const token = String(verificationTicket || '').trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    const context = normalizeContext(requestContext);
+    const [refs, ticketRef] = await Promise.all([
+      this.#references('account-verification@admissionhub.invalid', context),
+      this.hmac.hex('session-ref-v1', token)
+    ]);
+    const row = errorFromRepository(await this.repository.getFirebaseAccountVerification({
+      ticketRef,
+      deviceRef: refs.deviceRef,
+      now: Number(this.now())
+    }));
+    if (input?.email || input?.subject) {
+      const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+      if (identity.subjectRef !== row.subjectRef || identity.refs.emailRef !== row.emailRef) {
+        failAuth(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+      }
+    }
+    const refreshToken = await this.vault.open(row.refreshCipher, `account-verification-refresh:${row.subjectRef}`);
+    return Object.freeze({
+      refreshToken,
+      userId: row.userId,
+      subjectRef: row.subjectRef,
+      emailRef: row.emailRef,
+      sessionRef: ticketRef,
+      user: publicUser({
+        id: row.userId,
+        emailMask: row.emailMask,
+        status: row.status,
+        createdAt: row.createdAt
+      })
+    });
+  }
+
+  async completeFirebaseAccountVerification(input = {}, requestContext = {}) {
+    const token = String(input.verificationTicket || '').trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    const now = Number(this.now());
+    const sessionToken = randomToken(32, this.crypto);
+    const [ticketRef, sessionRef] = await Promise.all([
+      this.hmac.hex('session-ref-v1', token),
+      this.hmac.hex('session-ref-v1', sessionToken)
+    ]);
+    const completed = errorFromRepository(await this.repository.completeFirebaseAccountVerification({
+      ticketRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      sessionRef,
+      ipRef: identity.refs.ipRef,
+      deviceRef: identity.refs.deviceRef,
+      userAgent: identity.context.userAgent,
+      now,
+      sessionExpiresAt: now + SESSION_TTL_MS
+    }));
+    return Object.freeze({
+      sessionToken,
+      sessionExpiresAt: now + SESSION_TTL_MS,
+      user: publicUser(completed.user),
+      created: false
+    });
+  }
+
+  async getFirebaseIdentity(input = {}, requestContext = {}) {
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const result = errorFromRepository(await this.repository.getFirebaseIdentity({
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      now: Number(this.now())
+    }));
+    return Object.freeze({
+      user: publicUser(result.user),
+      userId: result.user.id,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef
+    });
   }
 
   async beginPasskeyRegistration(input = {}, requestContext = {}) {

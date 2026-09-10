@@ -65,13 +65,14 @@ function setup({ methods = {}, signed = false, passkeyCredentials = null, backup
         methods: {
           google: { available: false, ...methods.google },
           passkey: { available: false, ...methods.passkey },
+          telegramVerification: { available: false, ...methods.telegramVerification },
           backup: { available: false, ...methods.backup },
           emailPassword: { available: true }
         },
         verificationEmail: { resendCooldownSeconds: 60 }
       }
     });
-    if (path.endsWith('/session') && (options.method || 'GET') === 'GET') {
+    if (path.includes('/session') && !path.includes('/session/') && (options.method || 'GET') === 'GET') {
       return signed
         ? reply(200, { authenticated: true, emailVerified: true, user: { id: 'usr-ui', emailMasked: 'u***@example.com' } })
         : reply(401, { error: { code: 'SESSION_INVALID', message: 'সেশন নেই।' } });
@@ -161,7 +162,7 @@ test('Telegram canary forwards the exact opt-in query to config, request, and ve
   const interaction = {
     type: 'telegram-link',
     url: `https://t.me/AdmissionHubCanaryBot?start=${'T'.repeat(43)}`,
-    proof: 'webhook-required',
+    proof: 'local-code-required',
     identityKind: 'telegram-account',
     phoneOwnership: false
   };
@@ -177,6 +178,7 @@ test('Telegram canary forwards the exact opt-in query to config, request, and ve
   app.document.querySelector('[data-role="backup-start"]').click();
   await waitFor(() => app.calls.some(call => call.path.endsWith('/backup/request?telegramCanary=1')));
   await waitFor(() => app.document.querySelector('[data-view="backup"]').hidden === false);
+  app.document.querySelector('#ah-backup-code').value = '654321';
   app.document.querySelector('[data-view="backup"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => app.calls.some(call => call.path.endsWith('/backup/verify?telegramCanary=1')));
   assert.equal(app.window.localStorage.length, 0);
@@ -282,12 +284,12 @@ test('generic backup accepts a server-requested phone input without exposing an 
   app.dom.window.close();
 });
 
-test('Telegram interaction states that opening a link is not proof and sends no link token back for verification', async () => {
+test('Telegram interaction requires the bot OTP and sends no link token back for verification', async () => {
   const linkToken = 'T'.repeat(43);
   const interaction = {
     type: 'telegram-link',
     url: `https://t.me/AdmissionHubVerifyBot?start=${linkToken}`,
-    proof: 'webhook-required',
+    proof: 'local-code-required',
     identityKind: 'telegram-account',
     phoneOwnership: false
   };
@@ -298,14 +300,15 @@ test('Telegram interaction states that opening a link is not proof and sends no 
   await waitFor(() => app.document.querySelector('[data-view="backup"]').hidden === false);
   assert.equal(app.document.querySelector('[data-role="backup-link"]').href, interaction.url);
   assert.match(app.document.querySelector('[data-role="backup-interaction"]').textContent, /খোলা সফল যাচাই নয়/);
-  assert.match(app.document.querySelector('[data-role="backup-interaction"]').textContent, /ফোন নম্বরের মালিকানার প্রমাণ নয়/);
+  assert.match(app.document.querySelector('[data-role="backup-interaction"]').textContent, /Gmail\/ইমেইল মালিকানার প্রমাণ নয়/);
+  app.document.querySelector('#ah-backup-code').value = '654321';
   app.document.querySelector('[data-view="backup"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => app.calls.some(call => call.path.endsWith('/backup/verify')));
   const body = app.calls.find(call => call.path.endsWith('/backup/verify')).body;
   assert.deepEqual(body, {
     attemptId: 'backup-attempt-123456789012345',
     purpose: 'account-backup',
-    evidence: 'telegram-webhook-confirmed'
+    code: '654321'
   });
   assert.equal(JSON.stringify(body).includes(linkToken), false);
   app.dom.window.close();

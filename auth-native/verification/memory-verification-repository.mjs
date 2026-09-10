@@ -13,6 +13,8 @@ export class MemoryVerificationRepository {
     this.providers = new Map();
     this.rates = new Map();
     this.events = [];
+    this.telegramLinks = new Map();
+    this.telegramLinksByExternal = new Map();
     this.runtimeConfig = null;
   }
 
@@ -92,12 +94,16 @@ export class MemoryVerificationRepository {
     row.verificationMode = input.verificationMode;
     row.state = 'sent';
     row.sentAt = input.now;
+    if (!input.retainCodeCipher) row.codeCipher = '';
+    if (!input.retainLinkCipher) row.linkCipher = '';
     for (const candidate of this.challenges.values()) {
       if (candidate.attemptId !== row.attemptId && candidate.userId === row.userId
         && candidate.purpose === row.purpose && ['pending', 'sent'].includes(candidate.state)) {
         candidate.state = 'superseded';
         candidate.codeMac = '';
+        candidate.codeCipher = '';
         candidate.linkTokenMac = '';
+        candidate.linkCipher = '';
       }
     }
     this.#event({ ...row, now: input.now, outcome: 'sent', reason: 'accepted', latencyMs: input.latencyMs });
@@ -120,12 +126,82 @@ export class MemoryVerificationRepository {
     return { confirmed: true, attemptId: row.attemptId };
   }
 
+  async claimTelegramDelivery(input) {
+    const row = [...this.challenges.values()].find(candidate =>
+      candidate.providerId === 'telegram' && candidate.channel === 'telegram'
+      && candidate.verificationMode === 'local-code' && candidate.state === 'sent'
+      && candidate.expiresAt > input.now
+      && constantTimeEqual(candidate.linkTokenMac, input.linkTokenMac)
+    );
+    if (!row || !row.codeCipher) return { error: AUTH_ERROR_CODES.OTP_INVALID };
+    if (row.providerConfirmed && row.externalIdentityRef !== input.externalIdentityRef) {
+      return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+    }
+    const externalOwner = this.telegramLinksByExternal.get(input.externalIdentityRef);
+    const userLink = this.telegramLinks.get(row.userId);
+    const claimedElsewhere = [...this.challenges.values()].find(candidate =>
+      candidate.attemptId !== row.attemptId && candidate.providerId === 'telegram'
+      && candidate.state === 'sent' && candidate.providerConfirmed
+      && candidate.externalIdentityRef === input.externalIdentityRef
+    );
+    if ((externalOwner && (externalOwner.userId !== row.userId || externalOwner.subjectRef !== row.subjectRef))
+      || (userLink && (userLink.externalIdentityRef !== input.externalIdentityRef || userLink.subjectRef !== row.subjectRef))
+      || (claimedElsewhere && claimedElsewhere.userId !== row.userId)) {
+      return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+    }
+    row.providerConfirmed = true;
+    row.externalIdentityRef = input.externalIdentityRef;
+    this.#event({ ...row, now: input.now, outcome: 'provider_confirmed', reason: 'private_same_user_start' });
+    return {
+      claimed: true,
+      attemptId: row.attemptId,
+      codeCipher: row.codeCipher,
+      expiresAt: row.expiresAt,
+      userId: row.userId,
+      subjectRef: row.subjectRef
+    };
+  }
+
+  async confirmTelegramDelivery(input) {
+    const row = this.challenges.get(input.attemptId);
+    if (!row || row.providerId !== 'telegram' || !row.providerConfirmed || row.state !== 'sent') {
+      return { error: AUTH_ERROR_CODES.OTP_INVALID };
+    }
+    row.codeCipher = '';
+    row.linkTokenMac = '';
+    row.linkCipher = '';
+    this.#event({ ...row, now: input.now, outcome: 'sent', reason: 'telegram_code_accepted' });
+    return { delivered: true };
+  }
+
+  async getPendingChallenge(input) {
+    const row = [...this.challenges.values()]
+      .filter(candidate => candidate.userId === input.userId && candidate.sessionRef === input.sessionRef
+        && candidate.subjectRef === input.subjectRef && candidate.emailRef === input.emailRef
+        && candidate.deviceRef === input.deviceRef && candidate.purpose === input.purpose
+        && candidate.state === 'sent')
+      .sort((left, right) => right.createdAt - left.createdAt)[0];
+    if (!row) return { pending: false };
+    if (row.expiresAt <= input.now) {
+      row.state = 'expired'; row.codeMac = ''; row.codeCipher = ''; row.linkTokenMac = ''; row.linkCipher = '';
+      return { pending: false };
+    }
+    return { pending: true, challenge: copy(row) };
+  }
+
+  async isTelegramLinked(input) {
+    const row = this.telegramLinks.get(input.userId);
+    return { linked: Boolean(row && row.status === 'active' && row.subjectRef === input.subjectRef) };
+  }
+
   async failChallenge(input) {
     const row = this.challenges.get(input.attemptId);
     if (row && ['pending', 'sent'].includes(row.state)) {
       row.state = 'failed';
       row.codeMac = '';
+      row.codeCipher = '';
       row.linkTokenMac = '';
+      row.linkCipher = '';
     }
     this.#event({ ...(row || {}), ...input, outcome: 'failed' });
     return { failed: true };
@@ -143,7 +219,9 @@ export class MemoryVerificationRepository {
     if (row.expiresAt <= input.now) {
       row.state = 'expired';
       row.codeMac = '';
+      row.codeCipher = '';
       row.linkTokenMac = '';
+      row.linkCipher = '';
       return { error: AUTH_ERROR_CODES.OTP_EXPIRED };
     }
     return { challenge: copy(row) };
@@ -157,7 +235,9 @@ export class MemoryVerificationRepository {
     if (row.attempts >= row.maxAttempts) {
       row.state = 'locked';
       row.codeMac = '';
+      row.codeCipher = '';
       row.linkTokenMac = '';
+      row.linkCipher = '';
       row.lockoutUntil = input.now + input.lockoutMs;
       this.#event({ ...row, now: input.now, outcome: 'locked', reason: 'attempt_limit' });
       return { error: AUTH_ERROR_CODES.OTP_LOCKED, retryAfter: Math.ceil(input.lockoutMs / 1000) };
@@ -170,15 +250,48 @@ export class MemoryVerificationRepository {
     const selected = await this.getChallenge(input);
     if (selected.error) return selected;
     const row = this.challenges.get(input.attemptId);
+    if (row.providerId === 'telegram' && (!row.providerConfirmed || !row.externalIdentityRef)) {
+      return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_PENDING };
+    }
     if (!constantTimeEqual(row.codeMac, input.candidateCodeMac)) {
       return this.rejectChallengeAttempt({ ...input, reason: 'user_code_mismatch' });
     }
+    if (row.providerId === 'telegram') {
+      const externalOwner = this.telegramLinksByExternal.get(row.externalIdentityRef);
+      const userLink = this.telegramLinks.get(row.userId);
+      if ((externalOwner && (externalOwner.userId !== row.userId || externalOwner.subjectRef !== row.subjectRef))
+        || (userLink && (userLink.externalIdentityRef !== row.externalIdentityRef || userLink.subjectRef !== row.subjectRef))) {
+        return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      }
+      const link = userLink || {
+        userId: row.userId,
+        subjectRef: row.subjectRef,
+        externalIdentityRef: row.externalIdentityRef,
+        status: 'active',
+        linkedAt: input.now,
+        lastVerifiedAt: input.now,
+        revokedAt: null
+      };
+      link.status = 'active';
+      link.lastVerifiedAt = input.now;
+      link.revokedAt = null;
+      this.telegramLinks.set(row.userId, link);
+      this.telegramLinksByExternal.set(row.externalIdentityRef, link);
+    }
     row.state = 'verified';
     row.codeMac = '';
+    row.codeCipher = '';
     row.linkTokenMac = '';
+    row.linkCipher = '';
     row.verifiedAt = input.now;
     this.#event({ ...row, now: input.now, outcome: 'verified', reason: 'accepted' });
-    return { verified: true, userId: row.userId, purpose: row.purpose };
+    return {
+      verified: true,
+      userId: row.userId,
+      purpose: row.purpose,
+      telegramLinked: row.providerId === 'telegram',
+      emailVerified: false
+    };
   }
 
   async completeRemoteChallenge(input) {
@@ -187,7 +300,9 @@ export class MemoryVerificationRepository {
     const row = this.challenges.get(input.attemptId);
     row.state = 'verified';
     row.codeMac = '';
+    row.codeCipher = '';
     row.linkTokenMac = '';
+    row.linkCipher = '';
     row.verifiedAt = input.now;
     this.#event({ ...row, now: input.now, outcome: 'verified', reason: 'provider_evidence' });
     return { verified: true, userId: row.userId, purpose: row.purpose };
@@ -298,6 +413,7 @@ export class MemoryVerificationRepository {
       providers: [...this.providers.values()],
       rates: [...this.rates.entries()],
       events: this.events,
+      telegramLinks: [...this.telegramLinks.values()],
       runtimeConfig: this.runtimeConfig
     });
   }

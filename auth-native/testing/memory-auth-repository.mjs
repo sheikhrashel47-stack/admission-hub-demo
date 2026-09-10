@@ -15,6 +15,7 @@ export class MemoryAuthRepository {
     this.passkeys = new Map();
     this.passkeyChallenges = new Map();
     this.passkeyTickets = new Map();
+    this.accountVerificationTickets = new Map();
   }
 
   #consume(limits, now) {
@@ -128,6 +129,91 @@ export class MemoryAuthRepository {
     if (user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
     if (now - session.lastSeenAt > 6 * 60 * 60 * 1000) session.lastSeenAt = now;
     return { expiresAt: session.expiresAt, user: copy(user) };
+  }
+
+  async beginFirebaseAccountVerification(input) {
+    const denied = this.#consume(input.limits, input.now);
+    if (denied) return denied;
+    const identity = this.externalIdentities.get(`firebase:${input.subjectRef}`);
+    let user = identity ? this.users.get(identity.userId) : this.usersByEmail.get(input.emailRef);
+    if (identity && !user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+    if (!identity && user) {
+      const existing = this.externalIdentities.get(`firebase:${input.subjectRef}`)
+        || [...this.externalIdentities.values()].find(row => row.provider === 'firebase' && row.userId === user.id);
+      if (existing && existing.subjectRef !== input.subjectRef) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+    }
+    if (!user) {
+      user = {
+        id: input.userIdCandidate,
+        emailRef: input.emailRef,
+        emailMask: input.emailMask,
+        status: 'active',
+        createdAt: input.now,
+        lastLoginAt: input.now
+      };
+      this.users.set(user.id, user);
+      this.usersByEmail.set(user.emailRef, user);
+    }
+    if (user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+    if (user.emailRef !== input.emailRef) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+    if (!identity) {
+      this.externalIdentities.set(`firebase:${input.subjectRef}`, {
+        provider: 'firebase', subjectRef: input.subjectRef, userId: user.id,
+        createdAt: input.now, lastVerifiedAt: input.now
+      });
+    }
+    for (const row of this.accountVerificationTickets.values()) {
+      if (row.userId === user.id && row.state === 'active') { row.state = 'superseded'; row.refreshCipher = ''; }
+    }
+    this.accountVerificationTickets.set(input.ticketRef, {
+      ticketRef: input.ticketRef,
+      userId: user.id,
+      subjectRef: input.subjectRef,
+      emailRef: input.emailRef,
+      refreshCipher: input.refreshCipher,
+      state: 'active',
+      createdAt: input.now,
+      expiresAt: input.expiresAt,
+      consumedAt: null,
+      ipRef: input.ipRef,
+      deviceRef: input.deviceRef
+    });
+    return { prepared: true, user: copy(user) };
+  }
+
+  async getFirebaseAccountVerification(input) {
+    const row = this.accountVerificationTickets.get(input.ticketRef);
+    if (!row || row.deviceRef !== input.deviceRef || row.state !== 'active') return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID };
+    if (row.expiresAt <= input.now) { row.state = 'expired'; row.refreshCipher = ''; return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID }; }
+    const user = this.users.get(row.userId);
+    if (!user || user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+    return { ...copy(row), emailMask: user.emailMask, status: user.status, createdAt: user.createdAt };
+  }
+
+  async completeFirebaseAccountVerification(input) {
+    const row = this.accountVerificationTickets.get(input.ticketRef);
+    if (!row || row.deviceRef !== input.deviceRef || row.state !== 'active' || row.expiresAt <= input.now
+      || row.subjectRef !== input.subjectRef || row.emailRef !== input.emailRef) {
+      return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID };
+    }
+    const user = this.users.get(row.userId);
+    if (!user || user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+    row.state = 'consumed'; row.refreshCipher = ''; row.consumedAt = input.now;
+    this.sessions.set(input.sessionRef, {
+      sessionRef: input.sessionRef, userId: user.id, createdAt: input.now,
+      expiresAt: input.sessionExpiresAt, lastSeenAt: input.now, revokedAt: null,
+      ipRef: input.ipRef, deviceRef: input.deviceRef, userAgent: input.userAgent
+    });
+    user.lastLoginAt = input.now;
+    return { established: true, user: copy(user) };
+  }
+
+  async getFirebaseIdentity(input) {
+    const identity = this.externalIdentities.get(`firebase:${input.subjectRef}`);
+    const user = identity ? this.users.get(identity.userId) : null;
+    if (!user || user.emailRef !== input.emailRef) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
+    if (user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+    return { user: copy(user) };
   }
 
   async beginPasskeyRegistration(input) {
@@ -333,6 +419,10 @@ export class MemoryAuthRepository {
   }
 
   async cleanup(now) {
+    for (const row of this.accountVerificationTickets.values()) {
+      if (row.state === 'active' && row.expiresAt <= now) { row.state = 'expired'; row.refreshCipher = ''; }
+    }
+    for (const [id, row] of this.accountVerificationTickets) if (row.expiresAt < now - (24 * 60 * 60 * 1000)) this.accountVerificationTickets.delete(id);
     for (const [id, row] of this.passkeyChallenges) if (row.expiresAt <= now) this.passkeyChallenges.delete(id);
     for (const [id, row] of this.passkeyTickets) if (row.expiresAt <= now) this.passkeyTickets.delete(id);
     for (const [id, row] of this.sessions) if (row.expiresAt <= now || row.revokedAt) this.sessions.delete(id);
@@ -342,6 +432,7 @@ export class MemoryAuthRepository {
 
   async nextExpiry(now) {
     const values = [
+      ...[...this.accountVerificationTickets.values()].filter(row => row.state === 'active' && row.expiresAt > now).map(row => row.expiresAt),
       ...[...this.passkeyChallenges.values()].filter(row => row.expiresAt > now).map(row => row.expiresAt),
       ...[...this.passkeyTickets.values()].filter(row => row.expiresAt > now).map(row => row.expiresAt),
       ...[...this.sessions.values()].filter(row => row.expiresAt > now && !row.revokedAt).map(row => row.expiresAt),
@@ -360,7 +451,8 @@ export class MemoryAuthRepository {
       passkeyHandles: [...this.passkeyHandles.entries()],
       passkeys: [...this.passkeys.values()],
       passkeyChallenges: [...this.passkeyChallenges.values()],
-      passkeyTickets: [...this.passkeyTickets.values()]
+      passkeyTickets: [...this.passkeyTickets.values()],
+      accountVerificationTickets: [...this.accountVerificationTickets.values()]
     });
   }
 }

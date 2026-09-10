@@ -36,6 +36,7 @@ class MockProvider {
     this.remaining = remaining;
     this.sends = [];
     this.verifies = [];
+    this.telegramCodes = [];
   }
 
   async checkAvailability() { return { available: true, code: 'READY' }; }
@@ -48,6 +49,13 @@ class MockProvider {
     if (next === 'temporary') throw new VerificationProviderError('TEMPORARY_DOWN', VERIFICATION_FAILURE_CLASS.TEMPORARY);
     if (next === 'retry-after') throw new VerificationProviderError('RATE_LIMITED', VERIFICATION_FAILURE_CLASS.TEMPORARY, { retryAfter: 60 });
     if (next === 'user') throw new VerificationProviderError('INVALID_DESTINATION', VERIFICATION_FAILURE_CLASS.USER);
+    if (this.id === 'telegram') {
+      return { accepted: true, interaction: { type: 'telegram-link', url: `https://t.me/AdmissionHubVerifyBot?start=${input.linkToken}` } };
+    }
+    return { accepted: true };
+  }
+  async sendTelegramCode(input) {
+    this.telegramCodes.push(input);
     return { accepted: true };
   }
   async verifyCode(input) {
@@ -348,7 +356,7 @@ test('low-quota awareness preserves depleted primary capacity when a healthy fal
   assert.equal(second.sends.length, 1);
 });
 
-test('official WhatsApp slot verifies a delivered code; Telegram uses remote identity evidence, not phone ownership', async t => {
+test('official WhatsApp and Telegram slots both use locally verified single-use codes', async t => {
   await t.test('whatsapp official-code flow', async () => {
     const provider = new MockProvider({ id: 'whatsapp', channel: VERIFICATION_CHANNELS.WHATSAPP, verificationMode: VERIFICATION_MODES.LOCAL_CODE });
     const app = setup({ providers: [provider] });
@@ -359,15 +367,15 @@ test('official WhatsApp slot verifies a delivered code; Telegram uses remote ide
     assert.equal(provider.verifies.length, 0);
   });
 
-  await t.test('telegram one-time-link evidence flow', async () => {
-    const provider = new MockProvider({ id: 'telegram', channel: VERIFICATION_CHANNELS.TELEGRAM, verificationMode: VERIFICATION_MODES.PROVIDER_EVIDENCE, verifyPlan: [true] });
+  await t.test('Telegram START sends an OTP that the app verifies locally', async () => {
+    const provider = new MockProvider({ id: 'telegram', channel: VERIFICATION_CHANNELS.TELEGRAM, verificationMode: VERIFICATION_MODES.LOCAL_CODE });
     const app = setup({ providers: [provider] });
-    const linkedDestinations = { telegram: 'linked_telegram_chat_ref' };
-    const requested = await app.orchestrator.requestVerification({ ...identity, linkedDestinations }, context);
+    const requested = await app.orchestrator.requestVerification({ ...identity, allowTelegramLink: true }, context);
+    assert.equal(requested.interaction.proof, 'local-code-required');
     assert.match(provider.sends[0].linkToken, /^[A-Za-z0-9_-]{40,96}$/);
     await expectCode(
-      () => app.orchestrator.verify({ ...identity, linkedDestinations, attemptId: requested.attemptId, evidence: 'pending-provider-evidence' }, context),
-      AUTH_ERROR_CODES.BACKUP_UNAVAILABLE
+      () => app.orchestrator.verify({ ...identity, allowTelegramLink: true, attemptId: requested.attemptId, code: provider.sends[0].code }, context),
+      AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_PENDING
     );
     assert.equal(app.repository.snapshot().challenges[0].attempts, 0);
     await app.orchestrator.confirmTelegramWebhook({
@@ -375,44 +383,51 @@ test('official WhatsApp slot verifies a delivered code; Telegram uses remote ide
       telegramUserId: '123456789',
       chatId: '123456789'
     });
-    assert.equal(JSON.stringify(app.repository.snapshot()).includes('123456789'), false);
-    assert.equal(JSON.stringify(app.repository.snapshot()).includes(provider.sends[0].linkToken), false);
+    assert.equal(provider.telegramCodes.length, 1);
+    assert.equal(provider.telegramCodes[0].code, provider.sends[0].code);
+    const serialized = JSON.stringify(app.repository.snapshot());
+    assert.equal(serialized.includes('123456789'), false);
+    assert.equal(serialized.includes(provider.sends[0].linkToken), false);
     await expectCode(() => app.orchestrator.confirmTelegramWebhook({
       linkToken: provider.sends[0].linkToken,
       telegramUserId: '123456789',
       chatId: '123456789'
     }), AUTH_ERROR_CODES.OTP_INVALID);
-    const verified = await app.orchestrator.verify({ ...identity, linkedDestinations, attemptId: requested.attemptId, evidence: 'signed-provider-evidence' }, context);
+    const verified = await app.orchestrator.verify({
+      ...identity, allowTelegramLink: true, attemptId: requested.attemptId, code: provider.telegramCodes[0].code
+    }, context);
     assert.equal(verified.verified, true);
-    assert.equal(provider.verifies.length, 1);
+    assert.equal(verified.telegramLinked, true);
+    assert.equal(verified.emailVerified, false);
+    assert.equal(provider.verifies.length, 0);
+    await expectCode(() => app.orchestrator.verify({
+      ...identity, allowTelegramLink: true, attemptId: requested.attemptId, code: provider.telegramCodes[0].code
+    }, context), AUTH_ERROR_CODES.OTP_USED);
   });
 });
 
-test('remote user-error evidence consumes only an attempt and never switches or resends', async () => {
+test('wrong Telegram OTP consumes only an attempt and never switches provider or resends', async () => {
   const telegram = new MockProvider({
-    id: 'telegram',
-    channel: VERIFICATION_CHANNELS.TELEGRAM,
-    verificationMode: VERIFICATION_MODES.PROVIDER_EVIDENCE,
-    verifyPlan: [false]
+    id: 'telegram', channel: VERIFICATION_CHANNELS.TELEGRAM, verificationMode: VERIFICATION_MODES.LOCAL_CODE
   });
   const whatsapp = new MockProvider({
-    id: 'whatsapp',
-    channel: VERIFICATION_CHANNELS.WHATSAPP,
-    verificationMode: VERIFICATION_MODES.LOCAL_CODE
+    id: 'whatsapp', channel: VERIFICATION_CHANNELS.WHATSAPP, verificationMode: VERIFICATION_MODES.LOCAL_CODE
   });
   const app = setup({ providers: [telegram, whatsapp] });
-  const linkedDestinations = { whatsapp: '+8801700000000', telegram: 'linked_telegram_chat_ref' };
-  const requested = await app.orchestrator.requestVerification({ ...identity, linkedDestinations }, context);
+  const linkedDestinations = { whatsapp: '+8801700000000' };
+  const requested = await app.orchestrator.requestVerification({ ...identity, linkedDestinations, allowTelegramLink: true }, context);
   await app.orchestrator.confirmTelegramWebhook({
     linkToken: telegram.sends[0].linkToken,
     telegramUserId: '987654321',
     chatId: '987654321'
   });
+  const wrong = telegram.telegramCodes[0].code === '999999' ? '000000' : '999999';
   await expectCode(
-    () => app.orchestrator.verify({ ...identity, linkedDestinations, attemptId: requested.attemptId, evidence: 'rejected-provider-evidence' }, context),
+    () => app.orchestrator.verify({ ...identity, linkedDestinations, allowTelegramLink: true, attemptId: requested.attemptId, code: wrong }, context),
     AUTH_ERROR_CODES.OTP_INVALID
   );
   assert.equal(telegram.sends.length, 1);
+  assert.equal(telegram.telegramCodes.length, 1);
   assert.equal(whatsapp.sends.length, 0);
 });
 
@@ -474,7 +489,7 @@ test('Telegram webhook setup is available only through the enabled Telegram slot
   const provider = new MockProvider({
     id: 'telegram',
     channel: VERIFICATION_CHANNELS.TELEGRAM,
-    verificationMode: VERIFICATION_MODES.PROVIDER_EVIDENCE
+    verificationMode: VERIFICATION_MODES.LOCAL_CODE
   });
   let configured = 0;
   let removed = 0;

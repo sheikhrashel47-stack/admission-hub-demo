@@ -113,7 +113,11 @@ HARD RULES:
 5. Prefer honest uncertainty over confident guessing: if unsure, say so and suggest checking an official source.
 6. Answer in simple natural Bengali by default. If the user writes English, answer in English. If the user writes Banglish (Bengali in Latin script), answer in friendly Bengali (Bangla script). Never sound robotic.
 7. When asked for a quiz, you may create practice questions with answers and explanations inline.
-8. During a mock exam (mock-running), you must NOT give answers, hints, explanations or solve questions. Politely explain that mock tests must be completed independently, and offer analysis after the exam.`;
+8. During a mock exam (mock-running), you must NOT give answers, hints, explanations or solve questions. Politely explain that mock tests must be completed independently, and offer analysis after the exam.
+9. For Telegram account verification, you may explain only the official flow: Admission Hub → Verify with Telegram → official bot → START → receive a six-digit code → enter it in the Admission Hub verification box.
+10. Never generate, guess, transform, repeat, request, collect, or validate an OTP. Never ask the student to paste an OTP into chat.
+11. Never declare Telegram or account verification successful. Only Admission Hub's authoritative backend response may do that.
+12. Telegram verification proves control of a Telegram account, not ownership of Gmail/email, and it never creates a separate Admission Hub identity.`;
   if (examMode === 'mock-running') p += `\n\nEXAM INTEGRITY — ACTIVE (mock-running): answers, hints and explanations are REFUSED.`;
   if (opts.quiz) p += `\n\nQUIZ MODE — reply with ONLY a valid JSON object (no markdown fences, no text outside JSON):\n{"title":"<short topic title>","questions":[{"q":"<question>","options":["<A>","<B>","<C>","<D>"],"answer":0,"explanation":"<1-2 sentence Bangla explanation of the answer>"}]}\nRules: exactly 5 questions (or the count the user asked, 1-10); admission-level quality; answer is the 0-based index of the correct option; question/options/explanation in the user's language (Bangla unless the user wrote English); 4 options each.`;
   if (stats) {
@@ -293,6 +297,29 @@ export function safetyGate(intent, examMode) {
   return { blocked: false };
 }
 
+export function authVerificationGuidance(text) {
+  const input = String(text || '').trim();
+  const verificationTopic = /(telegram|টেলিগ্রাম|\botp\b|ওটিপি|one[ -]?time code|verification code|যাচাই(?:য়ের)? কোড)/i.test(input);
+  const possibleBareOtp = /^\D*\d{6}\D*$/.test(input);
+  if (!verificationTopic && !possibleBareOtp) return '';
+  return 'Telegram যাচাই করতে Admission Hub-এ “Telegram দিয়ে যাচাই করুন” চাপুন, official bot খুলে START চাপুন, তারপর bot-এর পাঠানো কোডটি শুধু Admission Hub-এর verification box-এ লিখুন। আমি OTP তৈরি, অনুমান, দেখা, পুনরাবৃত্তি বা যাচাই করতে পারি না এবং verification সফলও ঘোষণা করতে পারি না—শুধু backend-এর ফলই চূড়ান্ত। Telegram যাচাই Gmail/ইমেইল মালিকানা প্রমাণ করে না।';
+}
+
+function guidanceResponse(text, stream) {
+  if (!stream) return jsonResp({ text, intent: INTENTS.GENERAL_CHAT, pv: SYSTEM_PROMPT_V, agent: AGENT_VERSION, authoritative: false });
+  const encoder = new TextEncoder();
+  return new Response(new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
+      controller.enqueue(encoder.encode(`event: done\ndata: ${JSON.stringify({ intent: INTENTS.GENERAL_CHAT, pv: SYSTEM_PROMPT_V, agent: AGENT_VERSION, authoritative: false })}\n\n`));
+      controller.close();
+    }
+  }), {
+    status: 200,
+    headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', 'Access-Control-Allow-Origin': '*' }
+  });
+}
+
 /* ── AI Gateway handler: POST /api/ai/chat (stream ফ্লো) ------------------ */
 export async function agentChat(request, env, uid, opts = {}) {
   const stream = opts && opts.stream !== false;
@@ -309,6 +336,9 @@ export async function agentChat(request, env, uid, opts = {}) {
   try { n = Number((await getKv(env.PUB_KV, rlKey)) || 0); } catch (_) { n = 0; }
   if (n >= cap) return jsonResp({ error: 'rate_limited', message: 'আজকের AI-চ্যাট সীমা শেষ — কাল আবার চেষ্টা করো।', cap }, 429);
   await putKv(env.PUB_KV, rlKey, String(n + 1), 172800);
+
+  const verificationGuidance = authVerificationGuidance(v.messages[v.messages.length - 1].content);
+  if (verificationGuidance) return guidanceResponse(verificationGuidance, stream);
 
   const intentCls = classifyIntent(v.messages[v.messages.length - 1].content);
   const intent = intentCls.intent;
@@ -483,6 +513,6 @@ function sseError(msg, status) {
 
 export const __test = {
   classifyIntent, validateChatReq, capStats, buildSystemPrompt, summarizeTo,
-  safetyGate, routerChain, geminiTextFromChunk, sseParse, ProviderError,
+  safetyGate, authVerificationGuidance, routerChain, geminiTextFromChunk, sseParse, ProviderError,
   INTENTS, TIER, GEMINI_MODELS, AGENT_VERSION, SYSTEM_PROMPT_V
 };

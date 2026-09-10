@@ -102,20 +102,26 @@ test('WhatsApp adapter calls only the official Graph API with an approved templa
   assert.equal(provider.verificationMode, 'local-code');
 });
 
-test('Telegram adapter creates a one-time bot link but requires server-confirmed webhook evidence', async () => {
+test('Telegram adapter creates a one-time bot link and sends a protected OTP only after START', async () => {
   let getMeCalls = 0;
+  let telegramMessage = null;
   const provider = new TelegramLinkVerificationProvider({
     botUsername: 'AdmissionHubVerifyBot',
     botToken: `123456:${'t'.repeat(35)}`,
     webhookSecret: `webhook-${'w'.repeat(32)}`,
     webhookUrl: 'https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/webhook',
     declaredDailyQuota: 100,
-    fetchImpl: async url => {
+    fetchImpl: async (url, init = {}) => {
       getMeCalls += 1;
       assert.match(String(url), /^https:\/\/api\.telegram\.org\/bot/);
-      return String(url).endsWith('/getWebhookInfo')
-        ? json({ ok: true, result: { url: 'https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/webhook', allowed_updates: ['message'] } })
-        : json({ ok: true, result: { id: 123456, is_bot: true, username: 'AdmissionHubVerifyBot' } });
+      if (String(url).endsWith('/getWebhookInfo')) {
+        return json({ ok: true, result: { url: 'https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/webhook', allowed_updates: ['message'] } });
+      }
+      if (String(url).endsWith('/sendMessage')) {
+        telegramMessage = JSON.parse(init.body);
+        return json({ ok: true, result: { message_id: 77 } });
+      }
+      return json({ ok: true, result: { id: 123456, is_bot: true, username: 'AdmissionHubVerifyBot' } });
     }
   });
   assert.equal((await provider.checkAvailability()).available, true);
@@ -126,8 +132,17 @@ test('Telegram adapter creates a one-time bot link but requires server-confirmed
   assert.equal(link.origin, 'https://t.me');
   assert.equal(link.searchParams.get('start'), linkToken);
   assert.equal(getMeCalls, 2);
-  assert.deepEqual(await provider.verifyCode({ serverConfirmed: false }), { verified: false, identityKind: 'telegram-account', phoneOwnership: false });
-  assert.deepEqual(await provider.verifyCode({ serverConfirmed: true }), { verified: true, identityKind: 'telegram-account', phoneOwnership: false });
+  assert.equal(provider.verificationMode, 'local-code');
+  assert.deepEqual(await provider.sendTelegramCode({ chatId: '123456789', code: '654321', expiresInSeconds: 300 }), { accepted: true });
+  assert.equal(getMeCalls, 3);
+  assert.equal(telegramMessage.chat_id, '123456789');
+  assert.equal(telegramMessage.protect_content, true);
+  assert.equal(telegramMessage.disable_web_page_preview, true);
+  assert.match(telegramMessage.text, /Admission Hub Verification/);
+  assert.match(telegramMessage.text, /654321/);
+  assert.match(telegramMessage.text, /5 মিনিট/);
+  assert.doesNotMatch(telegramMessage.text, /API key|secret|Gmail password/i);
+  await assert.rejects(() => provider.verifyCode({ code: '654321' }), error => error?.code === 'LOCAL_VERIFICATION_ONLY');
 });
 
 test('Telegram canary derives a separate webhook secret, validates the token identity, and configures only an empty webhook slot', async () => {

@@ -53,6 +53,22 @@ export class SqliteAuthRepository {
       )`,
       `CREATE INDEX IF NOT EXISTS auth_sessions_user ON auth_sessions(user_id, created_at DESC)`,
       `CREATE INDEX IF NOT EXISTS auth_sessions_expiry ON auth_sessions(expires_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_account_verification_tickets (
+        ticket_ref TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        subject_ref TEXT NOT NULL,
+        email_ref TEXT NOT NULL,
+        refresh_cipher TEXT NOT NULL,
+        state TEXT NOT NULL CHECK(state IN ('active','consumed','expired','superseded')),
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        consumed_at INTEGER,
+        ip_ref TEXT NOT NULL,
+        device_ref TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_account_verification_ticket_expiry ON auth_account_verification_tickets(expires_at)`,
+      `CREATE INDEX IF NOT EXISTS auth_account_verification_ticket_user ON auth_account_verification_tickets(user_id,state,created_at DESC)`,
       `CREATE TABLE IF NOT EXISTS auth_rate_limits (
         scope TEXT NOT NULL,
         bucket_key TEXT NOT NULL,
@@ -314,6 +330,136 @@ export class SqliteAuthRepository {
         user: { id: row.id, emailMask: row.emailMask, status: row.status, createdAt: Number(row.createdAt) }
       };
     });
+  }
+
+  async beginFirebaseAccountVerification(input) {
+    return this.#transaction(() => {
+      const denied = this.#consumeLimits(input.limits, input.now);
+      if (denied) return denied;
+      const identity = this.#one(
+        "SELECT user_id AS userId FROM auth_external_identities WHERE provider='firebase' AND subject_ref=?",
+        input.subjectRef
+      );
+      let user = identity ? this.#one(
+        'SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt FROM auth_users WHERE user_id=?',
+        identity.userId
+      ) : this.#one(
+        'SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt FROM auth_users WHERE email_ref=?',
+        input.emailRef
+      );
+      if (identity && !user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+      if (!identity && user) {
+        const existing = this.#one(
+          "SELECT subject_ref AS subjectRef FROM auth_external_identities WHERE provider='firebase' AND user_id=?",
+          user.id
+        );
+        if (existing && existing.subjectRef !== input.subjectRef) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      }
+      if (!user) {
+        this.sql.exec(
+          `INSERT OR IGNORE INTO auth_users(user_id,email_ref,email_mask,status,created_at,last_login_at)
+           VALUES(?,?,?,'active',?,?)`,
+          input.userIdCandidate, input.emailRef, input.emailMask, input.now, input.now
+        );
+        user = this.#one(
+          'SELECT user_id AS id,email_ref AS emailRef,email_mask AS emailMask,status,created_at AS createdAt FROM auth_users WHERE email_ref=?',
+          input.emailRef
+        );
+      }
+      if (!user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+      if (user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      if (user.emailRef !== input.emailRef) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      if (!identity) {
+        this.sql.exec(
+          `INSERT INTO auth_external_identities(provider,subject_ref,user_id,created_at,last_verified_at)
+           VALUES('firebase',?,?,?,?)`,
+          input.subjectRef, user.id, input.now, input.now
+        );
+      }
+      this.sql.exec(
+        `UPDATE auth_account_verification_tickets
+         SET state='superseded',refresh_cipher=''
+         WHERE user_id=? AND state='active'`,
+        user.id
+      );
+      this.sql.exec(
+        `INSERT INTO auth_account_verification_tickets(
+          ticket_ref,user_id,subject_ref,email_ref,refresh_cipher,state,created_at,expires_at,
+          consumed_at,ip_ref,device_ref
+        ) VALUES(?,?,?,?,?,'active',?,?,NULL,?,?)`,
+        input.ticketRef, user.id, input.subjectRef, input.emailRef, input.refreshCipher,
+        input.now, input.expiresAt, input.ipRef, input.deviceRef
+      );
+      this.#event('firebase-account-verification-started', input.subjectRef, user.id, input.now);
+      return { prepared: true, user };
+    });
+  }
+
+  async getFirebaseAccountVerification(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT t.user_id AS userId,t.subject_ref AS subjectRef,t.email_ref AS emailRef,
+          t.refresh_cipher AS refreshCipher,t.state,t.expires_at AS expiresAt,
+          u.email_mask AS emailMask,u.status,u.created_at AS createdAt
+         FROM auth_account_verification_tickets t
+         JOIN auth_users u ON u.user_id=t.user_id
+         WHERE t.ticket_ref=? AND t.device_ref=?`,
+        input.ticketRef, input.deviceRef
+      );
+      if (!row || row.state !== 'active') return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID };
+      if (Number(row.expiresAt) <= input.now) {
+        this.sql.exec("UPDATE auth_account_verification_tickets SET state='expired',refresh_cipher='' WHERE ticket_ref=?", input.ticketRef);
+        return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID };
+      }
+      if (row.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      return row;
+    });
+  }
+
+  async completeFirebaseAccountVerification(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT t.user_id AS userId,t.subject_ref AS subjectRef,t.email_ref AS emailRef,
+          t.state,t.expires_at AS expiresAt,u.email_mask AS emailMask,u.status,u.created_at AS createdAt
+         FROM auth_account_verification_tickets t JOIN auth_users u ON u.user_id=t.user_id
+         WHERE t.ticket_ref=? AND t.device_ref=?`,
+        input.ticketRef, input.deviceRef
+      );
+      if (!row || row.state !== 'active' || Number(row.expiresAt) <= input.now
+        || row.subjectRef !== input.subjectRef || row.emailRef !== input.emailRef) {
+        return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID };
+      }
+      if (row.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      this.sql.exec(
+        "UPDATE auth_account_verification_tickets SET state='consumed',refresh_cipher='',consumed_at=? WHERE ticket_ref=? AND state='active'",
+        input.now, input.ticketRef
+      );
+      this.sql.exec(
+        `INSERT INTO auth_sessions(
+          session_ref,user_id,created_at,expires_at,last_seen_at,revoked_at,ip_ref,device_ref,user_agent
+        ) VALUES(?,?,?,?,?,NULL,?,?,?)`,
+        input.sessionRef, row.userId, input.now, input.sessionExpiresAt, input.now,
+        input.ipRef, input.deviceRef, input.userAgent
+      );
+      this.sql.exec('UPDATE auth_users SET last_login_at=? WHERE user_id=?', input.now, row.userId);
+      this.#event('firebase-telegram-verification-session', input.subjectRef, row.userId, input.now);
+      return {
+        established: true,
+        user: { id: row.userId, emailRef: row.emailRef, emailMask: row.emailMask, status: row.status, createdAt: Number(row.createdAt) }
+      };
+    });
+  }
+
+  async getFirebaseIdentity(input) {
+    const row = this.#one(
+      `SELECT u.user_id AS id,u.email_ref AS emailRef,u.email_mask AS emailMask,u.status,u.created_at AS createdAt
+       FROM auth_external_identities x JOIN auth_users u ON u.user_id=x.user_id
+       WHERE x.provider='firebase' AND x.subject_ref=? AND u.email_ref=?`,
+      input.subjectRef, input.emailRef
+    );
+    if (!row) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
+    if (row.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+    return { user: row };
   }
 
   async beginPasskeyRegistration(input) {
@@ -623,6 +769,8 @@ export class SqliteAuthRepository {
 
   async cleanup(now) {
     return this.#transaction(() => {
+      this.sql.exec("UPDATE auth_account_verification_tickets SET state='expired',refresh_cipher='' WHERE state='active' AND expires_at<=?", now);
+      this.sql.exec('DELETE FROM auth_account_verification_tickets WHERE expires_at<?', now - DAY_MS);
       this.sql.exec('DELETE FROM auth_passkey_challenges WHERE expires_at<=?', now);
       this.sql.exec('DELETE FROM auth_passkey_tickets WHERE expires_at<=?', now);
       this.sql.exec("DELETE FROM auth_passkey_credentials WHERE status='revoked' AND revoked_at<?", now - EVENT_RETENTION_MS);
@@ -637,12 +785,13 @@ export class SqliteAuthRepository {
   async nextExpiry(now) {
     const row = this.#one(
       `SELECT MIN(expiry) AS nextExpiry FROM (
-        SELECT MIN(expires_at) AS expiry FROM auth_passkey_challenges WHERE expires_at>?
+        SELECT MIN(expires_at) AS expiry FROM auth_account_verification_tickets WHERE expires_at>? AND state='active'
+        UNION ALL SELECT MIN(expires_at) FROM auth_passkey_challenges WHERE expires_at>?
         UNION ALL SELECT MIN(expires_at) FROM auth_passkey_tickets WHERE expires_at>?
         UNION ALL SELECT MIN(expires_at) FROM auth_sessions WHERE expires_at>? AND revoked_at IS NULL
         UNION ALL SELECT MIN(expires_at) FROM auth_rate_limits WHERE expires_at>?
       )`,
-      now, now, now, now
+      now, now, now, now, now
     );
     const next = Number(row?.nextExpiry || 0);
     return next > now ? next : null;
