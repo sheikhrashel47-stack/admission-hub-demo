@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v230-telegram-otp-20260910';
+const BUILD_ID = 'v231-account-identity-20260910';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const isCurrentBuild = response => response && response.headers && response.headers.get(VERSION_HEADER) === BUILD_ID;
@@ -16,11 +16,11 @@ const APP_SHELL = [
   './dashboard-v2.css?v=dash2',
   './3d-loader.css?v=3d-v1',
   './session-persist.js?v=session-v1',
-  './account-access.css?v=20260910-telegram-otp-v2',
-  './account-access.js?v=20260910-telegram-otp-v2',
+  './account-access.css?v=20260910-auth-selector-v3',
+  './account-access.js?v=20260910-auth-selector-v3',
   './data-protection.js?v=dp-v3-fastboot',
   './dashboard-v2.js?v=dash2f7',
-  './ai-agent-chat.js?v=agent-f1-ui-chatv14-guest',
+  './ai-agent-chat.js?v=agent-f1-ui-chatv15-identity',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];

@@ -304,6 +304,7 @@ data: ${JSON.stringify({ intent: INTENTS.GENERAL_CHAT, pv: SYSTEM_PROMPT_V, agen
 }
 async function agentChat(request, env, uid, opts = {}) {
   const stream = opts && opts.stream !== false;
+  const persistMemory = opts?.persistMemory !== false;
   const startedAt = Date.now();
   const sendCtx = { uid: String(uid || ""), stream };
   const body = await request.json().catch(() => null);
@@ -329,23 +330,25 @@ async function agentChat(request, env, uid, opts = {}) {
   const stats = capStats(body.context && body.context.stats);
   const safety = safetyGate(intent, examMode);
   let mem = [];
-  try {
-    const rawMem = await getKv(env.PUB_KV, "chatmem:" + sendCtx.uid);
-    const parsedMem = JSON.parse(rawMem || "[]");
-    mem = Array.isArray(parsedMem) ? parsedMem : [];
-  } catch (_) {
-    mem = [];
+  if (persistMemory) {
+    try {
+      const rawMem = await getKv(env.PUB_KV, "chatmem:" + sendCtx.uid);
+      const parsedMem = JSON.parse(rawMem || "[]");
+      mem = Array.isArray(parsedMem) ? parsedMem : [];
+    } catch (_) {
+      mem = [];
+    }
   }
   let msgs = v.messages.slice();
   if (msgs.length < 3 && mem.length) msgs = mem.concat(msgs);
   if (msgs.length > 16) {
     const summary = summarizeTo(msgs);
-    await putKv(env.PUB_KV, "chatmemsum:" + sendCtx.uid, summary, 2592e3);
+    if (persistMemory) await putKv(env.PUB_KV, "chatmemsum:" + sendCtx.uid, summary);
     msgs = msgs.slice(-12);
   }
   msgs = msgs.slice(-24);
   const systemPrompt = buildSystemPrompt({ stats, examMode, quiz: quizMode });
-  let summaryText = await getKv(env.PUB_KV, "chatmemsum:" + sendCtx.uid);
+  let summaryText = persistMemory ? await getKv(env.PUB_KV, "chatmemsum:" + sendCtx.uid) : "";
   const sys = summaryText ? systemPrompt + "\n\n" + String(summaryText) : systemPrompt;
   const hasImage = msgs.some((m) => m.image);
   const partsOf = (m) => {
@@ -381,9 +384,10 @@ async function agentChat(request, env, uid, opts = {}) {
   }
   const failures = [];
   const finalize = async (model, provider, text) => {
+    if (!persistMemory) return;
     try {
       const next = msgs.concat([{ role: "user", content: v.messages[v.messages.length - 1].content }, { role: "assistant", content: text }]).slice(-24).map((x) => ({ role: x.role, content: x.content }));
-      await putKv(env.PUB_KV, "chatmem:" + sendCtx.uid, JSON.stringify(next), 2592e3);
+      await putKv(env.PUB_KV, "chatmem:" + sendCtx.uid, JSON.stringify(next));
     } catch (_) {
     }
   };
@@ -574,6 +578,38 @@ var readGuestHeader = (request) => {
   const value = String(request.headers.get("X-AH-Guest") || "").trim();
   return /^[A-Za-z0-9_-]{16,96}$/.test(value) ? value : "";
 };
+var readCookie = (request, name) => {
+  const header = String(request.headers.get("Cookie") || "");
+  for (const part of header.split(";")) {
+    const index = part.indexOf("=");
+    if (index < 1 || part.slice(0, index).trim() !== name) continue;
+    try {
+      return decodeURIComponent(part.slice(index + 1).trim());
+    } catch (_) {
+      return "";
+    }
+  }
+  return "";
+};
+async function authenticatedAiIdentity(request, env) {
+  const sessionToken = readCookie(request, "__Host-ah_session");
+  if (!/^[A-Za-z0-9_-]{32,160}$/.test(sessionToken) || !env?.AUTH_AUTHORITY) return null;
+  try {
+    const id = env.AUTH_AUTHORITY.idFromName("admission-hub-global-auth-v1");
+    const stub = env.AUTH_AUTHORITY.get(id);
+    const response3 = await stub.fetch("https://auth.internal/internal/session/get", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionToken })
+    });
+    const payload = await response3.json().catch(() => null);
+    const userId = String(payload?.result?.user?.id || "");
+    if (!response3.ok || payload?.ok !== true || !/^[A-Za-z0-9_-]{8,128}$/.test(userId)) return null;
+    return `account-${(await sha256(userId)).slice(0, 40)}`;
+  } catch (_) {
+    return null;
+  }
+}
 async function anonymousAiIdentity(request, env, countUsage = true) {
   const supplied = readGuestHeader(request);
   const userAgent = String(request.headers.get("User-Agent") || "").slice(0, 180);
@@ -594,7 +630,13 @@ async function anonymousAiIdentity(request, env, countUsage = true) {
     } catch (_) {
     }
   }
-  return `anon-${deviceHash.slice(0, 40)}`;
+  return `guest-${deviceHash.slice(0, 40)}`;
+}
+async function aiRequestIdentity(request, env, countUsage = true) {
+  const accountUid = await authenticatedAiIdentity(request, env);
+  if (accountUid) return { uid: accountUid, persistMemory: true, authenticated: true };
+  const uid = await anonymousAiIdentity(request, env, countUsage);
+  return { uid, persistMemory: false, authenticated: false };
 }
 var publishGlobal = async (env, full) => {
   if (!env || !env.PUB_KV) return { error: "no-pub-kv" };
@@ -668,7 +710,7 @@ var public_worker_default = {
     const url = new URL(request.url);
     const path = url.pathname;
     try {
-      if (path === "/api/health") return json({ ok: true, accountSystem: "retired", legacyAccountSystem: "retired", nativeAuth: "cloudflare-native-v1", identity: "anonymous-device", at: Date.now() });
+      if (path === "/api/health") return json({ ok: true, accountSystem: "retired", legacyAccountSystem: "retired", nativeAuth: "cloudflare-native-v1", identity: "firebase-account-or-ephemeral-guest", at: Date.now() });
       if (path === "/api/content/meta" && request.method === "GET") {
         const raw = await env.PUB_KV.get("pubContentMeta");
         if (raw) return json(JSON.parse(raw));
@@ -682,16 +724,16 @@ var public_worker_default = {
       }
       if (path.startsWith("/api/admin/")) return admin(request, env, path);
       if (path === "/api/ai/status" && request.method === "GET") {
-        const uid = await anonymousAiIdentity(request, env, false);
-        return agentStatus(request, env, uid);
+        const identity = await aiRequestIdentity(request, env, false);
+        return agentStatus(request, env, identity.uid);
       }
       if (path === "/api/ai/chat" && request.method === "POST") {
-        const uid = await anonymousAiIdentity(request, env);
-        return await agentChat(request, env, uid);
+        const identity = await aiRequestIdentity(request, env);
+        return await agentChat(request, env, identity.uid, { persistMemory: identity.persistMemory });
       }
       if (path === "/api/ai" && request.method === "POST") {
-        const uid = await anonymousAiIdentity(request, env);
-        return await agentChat(request, env, uid, { stream: false });
+        const identity = await aiRequestIdentity(request, env);
+        return await agentChat(request, env, identity.uid, { stream: false, persistMemory: identity.persistMemory });
       }
       return json({ error: "not-found" }, 404);
     } catch (error) {
@@ -3158,7 +3200,7 @@ var DEFAULTS2 = Object.freeze({
   [AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE]: Object.freeze({ status: 503, message: "Google দিয়ে প্রবেশ এখন পাওয়া যাচ্ছে না—ইমেইল দিয়ে চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE]: Object.freeze({ status: 503, message: "Telegram যাচাই এখন পাওয়া যাচ্ছে না—ইমেইল যাচাই ব্যবহার করুন।" }),
   [AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_PENDING]: Object.freeze({ status: 409, message: "Telegram-এ পরিচয় নিশ্চিত হওয়ার অপেক্ষা চলছে।" }),
-  [AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID]: Object.freeze({ status: 401, message: "Telegram যাচাইটি সঠিক নয় বা সময় শেষ হয়েছে।" }),
+  [AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID]: Object.freeze({ status: 401, message: "অ্যাকাউন্ট যাচাইয়ের session সঠিক নয় বা সময় শেষ হয়েছে—আবার লগইন অথবা সাইনআপ করুন।" }),
   [AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE]: Object.freeze({ status: 503, message: "এই ডিভাইসে Passkey এখন পাওয়া যাচ্ছে না—অন্য পদ্ধতি ব্যবহার করুন।" }),
   [AUTH_ERROR_CODES.PASSKEY_INVALID]: Object.freeze({ status: 401, message: "Passkey যাচাই হয়নি—আবার চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.PASSKEY_NOT_FOUND]: Object.freeze({ status: 404, message: "এই Passkey-এর সঙ্গে কোনো অ্যাকাউন্ট পাওয়া যায়নি।" }),
@@ -4995,6 +5037,15 @@ var telegramVerificationStatus = async ({ env, user, context, allowed }) => {
     return false;
   }
 };
+var telegramVerificationAvailable = async (env, allowed) => {
+  if (!allowed) return false;
+  try {
+    const result = await callAuthority(env, "/internal/verification/capabilities", {});
+    return result?.telegramAvailable === true;
+  } catch {
+    return false;
+  }
+};
 var firebaseReadySession = async ({ provider, jar, env, context, allowTelegram = false }) => {
   const sessionToken = jar[AUTH_SESSION_COOKIE];
   const refreshToken = jar[AUTH_FIREBASE_COOKIE];
@@ -5101,7 +5152,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         `${AUTH_API_PREFIX}/telegram/canary/activate`,
         `${AUTH_API_PREFIX}/telegram/canary/deactivate`
       ].includes(url.pathname)) {
-        if (url.hostname !== "admission-gk.admissionhub.workers.dev" || env?.VERIFICATION_AUTH_ACTIVATION !== "canary" || !telegramActivationAuthorized(request, env)) {
+        if (url.hostname !== "admission-gk.admissionhub.workers.dev" || !["canary", "enabled"].includes(env?.VERIFICATION_AUTH_ACTIVATION) || !telegramActivationAuthorized(request, env)) {
           return json3(request, 403, { ok: false, error: { code: "FORBIDDEN", message: "অনুমতি নেই।" } });
         }
         await readJson(request);
@@ -5213,6 +5264,13 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           canonicalIdentity: "firebase-uid"
         };
         const passkeyAvailable = available && health.schema >= 3 && (passkeyPublished(env) || passkeyCanary);
+        const passkeyEnrollmentAvailable = available && health.schema >= 3 && passkeyEndpointReady(env);
+        const publicBackup = telegramCanary ? backup : {
+          available: false,
+          availabilityCode: "LIVE_E2E_PENDING",
+          genericFlow: true,
+          providerNamesExposed: false
+        };
         const body = {
           ok: true,
           auth: {
@@ -5230,13 +5288,14 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
               google,
               passkey: {
                 available: passkeyAvailable,
+                enrollmentAvailable: passkeyEnrollmentAvailable,
                 availabilityCode: passkeyAvailable ? "READY" : passkeyEndpointReady(env) ? "LIVE_E2E_PENDING" : "NOT_ACTIVATED",
                 requiresEnrollment: true,
                 neverMandatory: true
               },
               emailPassword: { available, availabilityCode: available ? "READY" : availability.code },
               telegramVerification,
-              backup
+              backup: publicBackup
             },
             verificationEmail: {
               kind: "address-verification",
@@ -5263,25 +5322,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           throw providerError(cause, "signup");
         }
         const telegramRequested = telegramVerificationRequested(env, url);
-        let emailSent = false;
-        let emailFailure = null;
-        try {
-          await callAuthority(env, "/internal/firebase/rate", { input: { operation: "verification-send", email: prepared.email }, context });
-          await provider.sendVerificationEmail(signed.idToken, prepared.email);
-          emailSent = true;
-        } catch (cause) {
-          emailFailure = cause instanceof NativeAuthError ? cause : providerError(cause, "verification");
-          if (!telegramRequested) {
-            try {
-              await provider.deleteAccount(signed.idToken);
-            } catch {
-            }
-            throw emailFailure;
-          }
-        }
-        let telegram = null;
-        let verificationTicket = "";
-        let accountVerificationPrepared = false;
+        const telegramAvailable = await telegramVerificationAvailable(env, telegramRequested);
         if (telegramRequested) {
           try {
             const temporaryRefreshMaterial = signed.refreshToken;
@@ -5293,58 +5334,52 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
               },
               context
             });
-            verificationTicket = ticket.verificationTicket;
-            accountVerificationPrepared = true;
-            const started = await callAuthority(env, "/internal/verification/preauth/request", {
-              input: {
-                verificationTicket,
-                email: prepared.email,
-                subject: signed.subject
-              },
-              context
+            return json3(request, 202, {
+              ok: true,
+              accountCreated: true,
+              authenticated: false,
+              verification: {
+                sent: false,
+                selectionRequired: true,
+                emailMasked: prepared.emailMask,
+                requiredBeforeLogin: true,
+                options: {
+                  email: { available: true, verifiesEmailOwnership: true },
+                  telegram: { available: telegramAvailable, verifiesEmailOwnership: false }
+                }
+              }
+            }, {
+              "Set-Cookie": [
+                ...context.isNewDevice ? [deviceCookie(context.deviceId)] : [],
+                verificationCookie(ticket.verificationTicket)
+              ]
             });
-            if (started?.interaction?.type === "telegram-link") {
-              telegram = {
-                available: true,
-                attemptId: started.attemptId,
-                expiresAt: started.expiresAt,
-                resendAfter: started.resendAfter,
-                attemptsAllowed: started.attemptsAllowed,
-                interaction: started.interaction,
-                verifiesEmailOwnership: false
-              };
-            }
           } catch {
-            telegram = null;
-            verificationTicket = "";
           }
         }
-        if (!emailSent && !telegram) {
-          if (!accountVerificationPrepared) {
-            try {
-              await provider.deleteAccount(signed.idToken);
-            } catch {
-            }
+        try {
+          await callAuthority(env, "/internal/firebase/rate", { input: { operation: "verification-send", email: prepared.email }, context });
+          await provider.sendVerificationEmail(signed.idToken, prepared.email);
+        } catch (cause) {
+          try {
+            await provider.deleteAccount(signed.idToken);
+          } catch {
           }
-          throw emailFailure || new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
+          throw cause instanceof NativeAuthError ? cause : providerError(cause, "verification");
         }
-        const signupCookies = [
-          ...context.isNewDevice ? [deviceCookie(context.deviceId)] : [],
-          ...telegram && verificationTicket ? [verificationCookie(verificationTicket)] : []
-        ];
         return json3(request, 202, {
           ok: true,
           accountCreated: true,
           authenticated: false,
           verification: {
-            sent: emailSent,
+            sent: true,
+            selectionRequired: false,
             emailMasked: prepared.emailMask,
             requiredBeforeLogin: true,
             dailyCapacity: 1e3,
-            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS,
-            ...telegram ? { telegram } : {}
+            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
           }
-        }, signupCookies.length ? { "Set-Cookie": signupCookies } : {});
+        }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/verification/resend`) {
         if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
@@ -5400,6 +5435,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           context,
           allowed: telegramRequested
         });
+        const telegramAvailable = await telegramVerificationAvailable(env, telegramRequested);
         if (!user.emailVerified && !telegramVerified && telegramRequested) {
           try {
             const temporaryRefreshMaterial = signed.refreshToken;
@@ -5411,38 +5447,25 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
               },
               context
             });
-            const started = await callAuthority(env, "/internal/verification/preauth/request", {
-              input: {
-                verificationTicket: ticket.verificationTicket,
-                email: user.email,
-                subject: user.subject
-              },
-              context
-            });
-            if (started?.interaction?.type === "telegram-link") {
-              return json3(request, 202, {
-                ok: true,
-                authenticated: false,
-                accountVerified: false,
-                verification: {
-                  emailMasked: prepared.emailMask,
-                  telegram: {
-                    available: true,
-                    attemptId: started.attemptId,
-                    expiresAt: started.expiresAt,
-                    resendAfter: started.resendAfter,
-                    attemptsAllowed: started.attemptsAllowed,
-                    interaction: started.interaction,
-                    verifiesEmailOwnership: false
-                  }
+            return json3(request, 202, {
+              ok: true,
+              authenticated: false,
+              accountVerified: false,
+              verification: {
+                sent: false,
+                selectionRequired: true,
+                emailMasked: prepared.emailMask,
+                options: {
+                  email: { available: true, verifiesEmailOwnership: true },
+                  telegram: { available: telegramAvailable, verifiesEmailOwnership: false }
                 }
-              }, {
-                "Set-Cookie": [
-                  ...context.isNewDevice ? [deviceCookie(context.deviceId)] : [],
-                  verificationCookie(ticket.verificationTicket)
-                ]
-              });
-            }
+              }
+            }, {
+              "Set-Cookie": [
+                ...context.isNewDevice ? [deviceCookie(context.deviceId)] : [],
+                verificationCookie(ticket.verificationTicket)
+              ]
+            });
           } catch {
           }
         }
@@ -5552,17 +5575,86 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           telegramVerified: user.emailVerified !== true && passwordTelegramVerified
         });
       }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/account-verification/email/start`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
+        if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        await readJson(request);
+        const material = await callAuthority(env, "/internal/firebase/account-verification/material", {
+          verificationTicket,
+          context
+        });
+        let refreshed;
+        let user;
+        try {
+          refreshed = await provider.refresh(material.refreshToken);
+        } catch (cause) {
+          throw providerError(cause, "refresh");
+        }
+        try {
+          user = await provider.lookup(refreshed.idToken);
+        } catch (cause) {
+          throw providerError(cause, "lookup-session");
+        }
+        assertProviderUser(refreshed, user);
+        if (user.emailVerified) {
+          return json3(request, 200, { ok: true, alreadyVerified: true, authenticated: false });
+        }
+        await callAuthority(env, "/internal/firebase/rate", { input: { operation: "verification-send", email: user.email }, context });
+        try {
+          await provider.sendVerificationEmail(refreshed.idToken, user.email);
+        } catch (cause) {
+          throw providerError(cause, "verification");
+        }
+        return json3(request, 202, {
+          ok: true,
+          authenticated: false,
+          verification: {
+            sent: true,
+            emailMasked: material.user?.emailMasked || "আপনার ইমেইলে",
+            dailyCapacity: 1e3,
+            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
+          }
+        }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/telegram/verification/start`) {
+        if (!provider.configured || !telegramVerificationRequested(env, url)) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
+        }
+        const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
+        if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        await readJson(request);
+        const result = await callAuthority(env, "/internal/verification/preauth/request", {
+          input: { verificationTicket },
+          context
+        });
+        return json3(request, 202, { ok: true, ...result }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
+      }
       if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/telegram/verification/pending`) {
         if (!provider.configured || !telegramVerificationRequested(env, url)) {
           throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
         }
         const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
         if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
-        const result = await callAuthority(env, "/internal/verification/preauth/pending", {
-          input: { verificationTicket },
-          context
-        });
-        return json3(request, 200, { ok: true, ...result }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
+        const [material, result] = await Promise.all([
+          callAuthority(env, "/internal/firebase/account-verification/material", { verificationTicket, context }),
+          callAuthority(env, "/internal/verification/preauth/pending", {
+            input: { verificationTicket },
+            context
+          })
+        ]);
+        return json3(request, 200, {
+          ok: true,
+          ...result,
+          ...!result?.pending ? {
+            selectionRequired: true,
+            emailMasked: material.user?.emailMasked || "আপনার ইমেইলে",
+            options: {
+              email: { available: true, verifiesEmailOwnership: true },
+              telegram: { available: true, verifiesEmailOwnership: false }
+            }
+          } : {}
+        }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/telegram/verification/resend`) {
         if (!provider.configured || !telegramVerificationRequested(env, url)) {
@@ -8938,13 +9030,13 @@ var AdmissionAuthAuthority = class {
         return response2(200, { ok: true, result });
       }
       if (url.pathname === "/internal/verification/telegram/activate") {
-        if (this.env.VERIFICATION_AUTH_ACTIVATION !== "canary") throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        if (!["canary", "enabled"].includes(this.env.VERIFICATION_AUTH_ACTIVATION)) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
         await this.verification.updateConfig(this.env.VERIFICATION_ORCHESTRATOR_CONFIG);
         const result = await this.verification.configureTelegramWebhook();
         return response2(200, { ok: true, result });
       }
       if (url.pathname === "/internal/verification/telegram/deactivate") {
-        if (this.env.VERIFICATION_AUTH_ACTIVATION !== "canary") throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        if (!["canary", "enabled"].includes(this.env.VERIFICATION_AUTH_ACTIVATION)) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
         const result = await this.verification.removeTelegramWebhook();
         return response2(200, { ok: true, result });
       }
@@ -9447,6 +9539,7 @@ var gk_agent_worker_default = {
       if (url.pathname.startsWith("/pub/") || !gatedApi) {
         const envPub = {
           PUB_KV: env.PUB_KV,
+          AUTH_AUTHORITY: env.AUTH_AUTHORITY,
           OLD_KV: env.OLD_KV || env.GK_KV,
           ADMIN_TOKEN: env.ADMIN_TOKEN,
           GEMINI_KEYS: env.GEMINI_KEYS,

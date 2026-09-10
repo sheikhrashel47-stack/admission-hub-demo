@@ -323,6 +323,7 @@ function guidanceResponse(text, stream) {
 /* ── AI Gateway handler: POST /api/ai/chat (stream ফ্লো) ------------------ */
 export async function agentChat(request, env, uid, opts = {}) {
   const stream = opts && opts.stream !== false;
+  const persistMemory = opts?.persistMemory !== false;
   const startedAt = Date.now();
   const sendCtx = { uid: String(uid || ''), stream };
   const body = await request.json().catch(() => null);
@@ -350,22 +351,24 @@ export async function agentChat(request, env, uid, opts = {}) {
 
   /* conversation memory: পুরনো কনভো (KV) + সাম্প্রতিক message */
   let mem = [];
-  try {
-    const rawMem = await getKv(env.PUB_KV, 'chatmem:' + sendCtx.uid);
-    const parsedMem = JSON.parse(rawMem || '[]');
-    mem = Array.isArray(parsedMem) ? parsedMem : [];
-  } catch (_) { mem = []; }
+  if (persistMemory) {
+    try {
+      const rawMem = await getKv(env.PUB_KV, 'chatmem:' + sendCtx.uid);
+      const parsedMem = JSON.parse(rawMem || '[]');
+      mem = Array.isArray(parsedMem) ? parsedMem : [];
+    } catch (_) { mem = []; }
+  }
   let msgs = v.messages.slice();
   if (msgs.length < 3 && mem.length) msgs = mem.concat(msgs);
   if (msgs.length > 16) {
     const summary = summarizeTo(msgs);
-    await putKv(env.PUB_KV, 'chatmemsum:' + sendCtx.uid, summary, 2592000);
+    if (persistMemory) await putKv(env.PUB_KV, 'chatmemsum:' + sendCtx.uid, summary);
     msgs = msgs.slice(-12);
   }
   msgs = msgs.slice(-24);
 
   const systemPrompt = buildSystemPrompt({ stats, examMode, quiz: quizMode });
-  let summaryText = await getKv(env.PUB_KV, 'chatmemsum:' + sendCtx.uid);
+  let summaryText = persistMemory ? await getKv(env.PUB_KV, 'chatmemsum:' + sendCtx.uid) : '';
   const sys = summaryText ? systemPrompt + '\n\n' + String(summaryText) : systemPrompt;
 
   const hasImage = msgs.some(m => m.image);
@@ -402,10 +405,12 @@ export async function agentChat(request, env, uid, opts = {}) {
 
   const failures = [];
   const finalize = async (model, provider, text) => {
-    /* memory আপডেট (KV ২য় রাইট) + bad-key 401/402/429-এ ▪ */
+    /* Guest content is never persisted. Signed-in memory is keyed only by the
+       server-validated account identity and has no client-controlled UID. */
+    if (!persistMemory) return;
     try {
       const next = msgs.concat([{ role: 'user', content: v.messages[v.messages.length - 1].content }, { role: 'assistant', content: text }]).slice(-24).map(x => ({ role: x.role, content: x.content }));
-      await putKv(env.PUB_KV, 'chatmem:' + sendCtx.uid, JSON.stringify(next), 2592000);
+      await putKv(env.PUB_KV, 'chatmem:' + sendCtx.uid, JSON.stringify(next));
     } catch (_) {}
   };
 

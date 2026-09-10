@@ -572,7 +572,7 @@ textarea{min-height:96px}
 })();
 </script>
 <script src="./session-persist.js?v=session-v1"></script>
-<link rel="stylesheet" href="./account-access.css?v=20260910-telegram-otp-v2">
+<link rel="stylesheet" href="./account-access.css?v=20260910-auth-selector-v3">
 <!-- মালিক-নির্দেশ ২০২৬-০৯-০৮: সব AI সিস্টেম বাদ — AI gateway সরানো হয়েছে -->
 <style id="ah-boot-min">.ah-boot{width:100%;min-height:100dvh;display:grid;place-content:center;justify-items:center;gap:9px;color:#17221d;background:#f1faf6}.ah-boot-mark{display:grid;place-items:center;width:56px;height:56px;border-radius:17px;background:#0f6b4f;color:#fff;font-size:26px;box-shadow:0 12px 28px rgba(15,107,79,.30)}.ah-boot b{font-size:19px;font-weight:800;letter-spacing:.01em}.ah-boot i{font-style:normal;font-size:12px;color:#5e7168;animation:ahBootPulse 1.15s ease-in-out infinite}@keyframes ahBootPulse{0%,100%{opacity:.55}50%{opacity:1}}@media(prefers-reduced-motion:reduce){.ah-boot i{animation:none}}</style>
 </head>
@@ -681,6 +681,11 @@ const DB_NAME='admissionHubPublicDB', DB_VERSION=10;
 const STORES=['appMeta','subjects','topics','questions','deletedQuestions','exams','examResults','mistakes','vocabulary','vocabularyMaster','dailyStats','activityLogs','settings','notes','ADMISSION_PLANS','PLAN_DAYS','voiceCache','notifications','gkBank'];
 let DB=null;
 let STORAGE_MODE='indexeddb';
+let DATA_SCOPE='';
+const persistentDataScope=()=>/^[A-Za-z0-9_-]{8,128}$/.test(DATA_SCOPE);
+const scopedRecordId=id=>`${DATA_SCOPE}::${String(id)}`;
+const toScopedRecord=obj=>({...obj,id:scopedRecordId(obj.id),__ahOwner:DATA_SCOPE,__ahId:String(obj.id)});
+const fromScopedRecord=obj=>obj&&obj.__ahOwner===DATA_SCOPE?Object.fromEntries(Object.entries({...obj,id:obj.__ahId}).filter(([key])=>key!=='__ahOwner'&&key!=='__ahId')):null;
 // Serialize local database requests and retry short-lived transaction failures.
 // This prevents rapid mobile taps, resume flows, and cache refreshes from
 // racing a transaction that has just completed or been aborted.
@@ -796,15 +801,36 @@ function runDbRequest(store,mode,requestFactory,attempts=2){
   // reads made Promise.all effectively sequential on iPhone; writes stay ordered.
   return mode==='readonly' ? execute() : queueDb(execute);
 }
-function dbGetAll(store){if(!DB)return Promise.resolve([...(MEMORY_DB.get(store)?.values()||[])]);return runDbRequest(store,'readonly',objectStore=>objectStore.getAll());}
-function dbGet(store,id){if(!DB)return Promise.resolve(MEMORY_DB.get(store)?.get(id));return runDbRequest(store,'readonly',objectStore=>objectStore.get(id));}
+function dbGetAll(store){
+  if(!persistentDataScope()) return Promise.resolve([...(MEMORY_DB.get(store)?.values()||[])].map(row=>({...row})));
+  if(!DB)return Promise.resolve([]);
+  return runDbRequest(store,'readonly',objectStore=>objectStore.getAll()).then(rows=>(rows||[]).map(fromScopedRecord).filter(Boolean));
+}
+function dbGet(store,id){
+  if(!persistentDataScope()) return Promise.resolve(MEMORY_DB.get(store)?.get(id));
+  if(!DB)return Promise.resolve(undefined);
+  return runDbRequest(store,'readonly',objectStore=>objectStore.get(scopedRecordId(id))).then(fromScopedRecord);
+}
 function waitForBootStorage(work){
+  if(!persistentDataScope()) return null;
   const pending=window.__admissionBootPromise;
   if(!DB&&STORAGE_MODE==='indexeddb'&&!window.__admissionDataReady&&pending&&typeof pending.then==='function') return pending.then(work,work);
   return null;
 }
-function dbPut(store,obj){if(!obj||typeof obj!=='object')return Promise.resolve(obj);if(obj.id===undefined||obj.id===null||obj.id==='')obj.id='auto-'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);const deferred=waitForBootStorage(()=>dbPut(store,obj));if(deferred)return deferred;if(!DB){MEMORY_DB.get(store)?.set(obj.id,obj);return Promise.resolve(obj);}return runDbRequest(store,'readwrite',objectStore=>objectStore.put(obj)).then(()=>obj);}
-function dbDelRaw(store,id){const deferred=waitForBootStorage(()=>dbDelRaw(store,id));if(deferred)return deferred;if(!DB){MEMORY_DB.get(store)?.delete(id);return Promise.resolve(true);}return runDbRequest(store,'readwrite',objectStore=>objectStore.delete(id)).then(()=>true);}
+function dbPut(store,obj){
+  if(!obj||typeof obj!=='object')return Promise.resolve(obj);
+  if(obj.id===undefined||obj.id===null||obj.id==='')obj.id='auto-'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  if(!persistentDataScope()){MEMORY_DB.get(store)?.set(obj.id,{...obj});return Promise.resolve(obj);}
+  const deferred=waitForBootStorage(()=>dbPut(store,obj));if(deferred)return deferred;
+  if(!DB)return Promise.reject(new Error('Account storage is unavailable'));
+  return runDbRequest(store,'readwrite',objectStore=>objectStore.put(toScopedRecord(obj))).then(()=>obj);
+}
+function dbDelRaw(store,id){
+  if(!persistentDataScope()){MEMORY_DB.get(store)?.delete(id);return Promise.resolve(true);}
+  const deferred=waitForBootStorage(()=>dbDelRaw(store,id));if(deferred)return deferred;
+  if(!DB)return Promise.reject(new Error('Account storage is unavailable'));
+  return runDbRequest(store,'readwrite',objectStore=>objectStore.delete(scopedRecordId(id))).then(()=>true);
+}
 async function dbDel(store,id){
   if(store==='questions'){
     const question=await dbGet(store,id);
@@ -816,7 +842,12 @@ async function dbDel(store,id){
   return dbDelRaw(store,id);
 }
 function dbDelPermanent(store,id){return dbDelRaw(store,id);}
-function dbClear(store){const deferred=waitForBootStorage(()=>dbClear(store));if(deferred)return deferred;if(!DB){MEMORY_DB.get(store)?.clear();return Promise.resolve(true);}return runDbRequest(store,'readwrite',objectStore=>objectStore.clear()).then(()=>true);}
+async function dbClear(store){
+  if(!persistentDataScope()){MEMORY_DB.get(store)?.clear();return true;}
+  const rows=await dbGetAll(store);
+  for(const row of rows) await dbDelRaw(store,row.id);
+  return true;
+}
 async function dbPutMany(store,arr){for(const o of arr) await dbPut(store,o); return true;}
 
 /* ---------------- in-memory cache (mirrors DB, refreshed on write) ---------------- */
@@ -910,6 +941,22 @@ async function seedIfEmpty(){
   if(!settings) bootstrapWrites.push(dbPut('settings', defaultSettings()));
   if(bootstrapWrites.length) await Promise.all(bootstrapWrites);
 }
+
+let DATA_SCOPE_CHANGE=0;
+window.addEventListener('admissionhub:authchange',event=>{
+  const detail=event&&event.detail||{};
+  const next=detail.authenticated===true&&/^[A-Za-z0-9_-]{8,128}$/.test(String(detail.user&&detail.user.id||''))?String(detail.user.id):'';
+  if(next===DATA_SCOPE)return;
+  const change=++DATA_SCOPE_CHANGE;
+  DATA_SCOPE=next;
+  try{sessionStorage.removeItem('admissionHub:performance:activeExamBackup:v1');}catch(_){}
+  if(!next) MEMORY_DB.forEach(store=>store.clear());
+  Promise.resolve().then(seedIfEmpty).then(loadCache).then(()=>{
+    if(change!==DATA_SCOPE_CHANGE)return;
+    try{if(typeof ActiveExam!=='undefined')ActiveExam=null;}catch(_){}
+    try{if(typeof render==='function')render();}catch(_){}
+  }).catch(error=>console.warn('[Admission Hub] Account data scope switch failed safely.',error));
+});
 
 /* ---------------- activity / streak logging ---------------- */
 async function logActivity(kind, count){
@@ -4633,15 +4680,15 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
     // Do not reload on controllerchange: iOS standalone clients can enter a blank-screen reload loop.
     // The updated worker takes control now; the current document remains usable and the next launch uses the new shell.
     try{
-      const expectedSwVersion = 'v230-telegram-otp-20260910';
+      const expectedSwVersion = 'v231-account-identity-20260910';
       // register() on the same scope performs an in-place update. Never unregister
       // the active iOS worker first: that discards the instant offline shell.
-      const registration=await navigator.serviceWorker.register('./sw.js?v=v230-telegram-otp-20260910',{scope:'./',updateViaCache:'none'});
+      const registration=await navigator.serviceWorker.register('./sw.js?v=v231-account-identity-20260910',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // stale pre-retirement application shells can never be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v230-telegram-otp-20260910';
+        const cur = 'admission-hub-shell-v231-account-identity-20260910';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -4776,7 +4823,7 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
 </script>
 <!-- First-interaction modules execute before optional/heavy tools. -->
 <script defer src="./dashboard-v2.js?v=dash2f7"></script>
-<script defer src="./ai-agent-chat.js?v=agent-f1-ui-chatv14-guest"></script>
+<script defer src="./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity"></script>
 <script defer src="qbank-redesign.js?v=practice15"></script>
 <script defer src="urgent-fix.js?v=practice13"></script>
 <script defer src="phase12-ui.js?v=nav-resume-router-v8"></script>
@@ -5084,7 +5131,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script defer src="./android-runtime-fix.js?v=and-scroll-v1"></script>
 <script>window.AH_CLOUD_ROLE='public';</script>
 <script defer src="./cloud-content-sync.js?v=account-retired-v221"></script>
-<script defer src="./account-access.js?v=20260910-telegram-otp-v2"></script>
+<script defer src="./account-access.js?v=20260910-auth-selector-v3"></script>
 <script src="./app-seed.js?v=v189-empty" defer></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */

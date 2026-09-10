@@ -190,6 +190,8 @@ class AuthorityNamespace {
         }, body.context);
       } else if (path === '/internal/verification/telegram/webhook') {
         result = await this.verification.confirmTelegramWebhook(body.input);
+      } else if (path === '/internal/verification/capabilities') {
+        result = await this.verification.capabilities();
       } else if (path === '/internal/verification/telegram/status') {
         const identity = await this.engine.getFirebaseIdentity(body.input, body.context);
         result = await this.verification.isTelegramLinked({
@@ -311,32 +313,59 @@ async function fixture() {
   };
 }
 
-async function signup(client, email) {
+async function signupOnly(client, email) {
   return client.call('/signup', { method: 'POST', body: { email, password: 'StrongPassword!9' } });
+}
+
+async function startTelegram(client, created) {
+  const started = await client.call('/telegram/verification/start', { method: 'POST', body: {} });
+  created.body.verification.telegram = {
+    available: true,
+    attemptId: started.body.attemptId,
+    expiresAt: started.body.expiresAt,
+    resendAfter: started.body.resendAfter,
+    attemptsAllowed: started.body.attemptsAllowed,
+    interaction: started.body.interaction,
+    verifiesEmailOwnership: false
+  };
+  return created;
+}
+
+async function signup(client, email) {
+  const created = await signupOnly(client, email);
+  if (created.body.verification?.selectionRequired !== true) return created;
+  return startTelegram(client, created);
 }
 
 const linkTokenOf = result => new URL(result.body.verification.telegram.interaction.url).searchParams.get('start');
 
-test('signup exposes an optional Telegram START challenge only on the exact canary and keeps all credentials in HttpOnly cookies', async () => {
+test('signup waits for an explicit Email or Telegram choice and keeps all credentials in HttpOnly cookies', async () => {
   const app = await fixture();
   const ordinary = app.client({ device: `device-${'o'.repeat(28)}` });
-  const ordinaryResult = await signup({
+  const ordinaryResult = await signupOnly({
     call: (path, options) => ordinary.call(path, { ...options, canary: false })
   }, 'ordinary.telegram@example.com');
   assert.equal(ordinaryResult.response.status, 202);
-  assert.equal('telegram' in ordinaryResult.body.verification, false);
+  assert.equal(ordinaryResult.body.verification.sent, true);
+  assert.equal(ordinaryResult.body.verification.selectionRequired, false);
   assert.equal(ordinary.cookies.has(AUTH_VERIFICATION_COOKIE), false);
 
   const client = app.client();
-  const result = await signup(client, 'telegram.student@example.com');
+  const result = await signupOnly(client, 'telegram.student@example.com');
   assert.equal(result.response.status, 202);
   assert.equal(result.body.accountCreated, true);
   assert.equal(result.body.authenticated, false);
-  assert.equal(result.body.verification.sent, true);
-  assert.equal(result.body.verification.telegram.available, true);
-  assert.equal(result.body.verification.telegram.verifiesEmailOwnership, false);
-  assert.equal(result.body.verification.telegram.interaction.proof, 'local-code-required');
-  assert.match(result.body.verification.telegram.interaction.url, /^https:\/\/t\.me\/AdmissionHubVerifyBot\?start=/);
+  assert.equal(result.body.verification.sent, false);
+  assert.equal(result.body.verification.selectionRequired, true);
+  assert.equal(result.body.verification.options.email.available, true);
+  assert.equal(result.body.verification.options.telegram.available, true);
+  assert.equal(app.telegram.requests.length, 0);
+  assert.equal(app.firebase.verificationEmails, 1);
+
+  const started = await client.call('/telegram/verification/start', { method: 'POST', body: {} });
+  assert.equal(started.response.status, 202);
+  assert.equal(started.body.interaction.proof, 'local-code-required');
+  assert.match(started.body.interaction.url, /^https:\/\/t\.me\/AdmissionHubVerifyBot\?start=/);
   assert.equal(client.cookies.has(AUTH_VERIFICATION_COOKIE), true);
   assert.equal(client.cookies.has(AUTH_SESSION_COOKIE), false);
   assert.equal(client.cookies.has(AUTH_FIREBASE_COOKIE), false);
@@ -344,16 +373,20 @@ test('signup exposes an optional Telegram START challenge only on the exact cana
   assert.equal(serialized.includes('StrongPassword!9'), false);
   assert.equal(serialized.includes('firebase-refresh'), false);
   assert.equal(serialized.includes(client.cookies.get(AUTH_VERIFICATION_COOKIE)), false);
-  assert.equal(app.firebase.verificationEmails, 2);
 });
 
-test('Telegram remains a usable verification alternative when verification-email delivery is unavailable', async () => {
+test('Email is sent only after its button is selected and a delivery failure leaves Telegram usable', async () => {
   const app = await fixture();
   app.firebase.failVerificationEmails = true;
   const client = app.client();
-  const created = await signup(client, 'email.offline@example.com');
+  const created = await signupOnly(client, 'email.offline@example.com');
   assert.equal(created.response.status, 202);
   assert.equal(created.body.verification.sent, false);
+  assert.equal(app.firebase.verificationEmails, 0);
+  const emailStart = await client.call('/account-verification/email/start', { method: 'POST', body: {} });
+  assert.notEqual(emailStart.response.status, 202);
+  assert.equal(app.firebase.verificationEmails, 0);
+  await startTelegram(client, created);
   assert.equal(created.body.verification.telegram.available, true);
   await app.webhook({ linkToken: linkTokenOf(created), telegramUserId: '103456789' });
   const verified = await client.call('/telegram/verification/verify', {
@@ -365,24 +398,28 @@ test('Telegram remains a usable verification alternative when verification-email
   assert.equal(verified.body.emailVerified, false);
 });
 
-test('a temporary email-and-Telegram outage keeps the prepared Firebase subject recoverable instead of creating an orphan conflict', async () => {
+test('a temporary Email-and-Telegram outage keeps the prepared Firebase subject recoverable instead of creating an orphan conflict', async () => {
   const app = await fixture();
   app.firebase.failVerificationEmails = true;
   app.telegram.available = false;
   const client = app.client();
-  const unavailable = await signup(client, 'recoverable.outage@example.com');
-  assert.notEqual(unavailable.response.status, 202);
+  const prepared = await signupOnly(client, 'recoverable.outage@example.com');
+  assert.equal(prepared.response.status, 202);
+  assert.equal(prepared.body.verification.selectionRequired, true);
+  assert.equal(prepared.body.verification.options.telegram.available, false);
   assert.equal(app.firebase.users.has('recoverable.outage@example.com'), true);
   assert.equal(app.authRepository.snapshot().users.length, 1);
   assert.equal(client.cookies.has(AUTH_SESSION_COOKIE), false);
 
   app.telegram.available = true;
+  app.advance(30_001);
   const resumed = await client.call('/login', {
     method: 'POST',
     body: { email: 'recoverable.outage@example.com', password: 'StrongPassword!9' }
   });
   assert.equal(resumed.response.status, 202);
-  assert.equal(resumed.body.verification.telegram.available, true);
+  assert.equal(resumed.body.verification.selectionRequired, true);
+  assert.equal(resumed.body.verification.options.telegram.available, true);
   assert.equal(app.authRepository.snapshot().users.length, 1);
 });
 
@@ -404,8 +441,10 @@ test('an existing unverified Email/Password account can start the same Telegram 
   });
   assert.equal(login.response.status, 202);
   assert.equal(login.body.authenticated, false);
-  assert.equal(login.body.verification.telegram.available, true);
+  assert.equal(login.body.verification.selectionRequired, true);
+  assert.equal(login.body.verification.options.telegram.available, true);
   assert.equal(canary.cookies.has(AUTH_VERIFICATION_COOKIE), true);
+  await startTelegram(canary, login);
   const token = new URL(login.body.verification.telegram.interaction.url).searchParams.get('start');
   await app.webhook({ linkToken: token, telegramUserId: '113456789' });
   const verified = await canary.call('/telegram/verification/verify', {

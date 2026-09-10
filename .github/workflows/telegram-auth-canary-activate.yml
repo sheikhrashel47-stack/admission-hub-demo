@@ -1,10 +1,10 @@
-name: Prepare Telegram Verification Canary
+name: Publish Telegram OTP Verification
 
 on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: Type PREPARE_TELEGRAM_CANARY to deploy the START-to-OTP flow, bind the official bot webhook, and publish only the exact canary URL
+        description: Type PUBLISH_TELEGRAM_OTP to deploy the START-to-OTP flow, bind the official bot webhook, and publish the verified Email-or-Telegram selector
         required: true
         type: string
 
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   prepare-canary:
-    if: ${{ inputs.confirmation == 'PREPARE_TELEGRAM_CANARY' && github.ref == 'refs/heads/main' }}
+    if: ${{ inputs.confirmation == 'PUBLISH_TELEGRAM_OTP' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: email-gateway-production
@@ -56,7 +56,7 @@ jobs:
           rm -f "${RUNNER_TEMP}/worker-deployment.json"
           echo "PREVIOUS_WORKER_VERSION=${PREVIOUS_WORKER_VERSION}" >> "$GITHUB_ENV"
 
-      - name: Deploy Telegram-only verification canary
+      - name: Deploy public Telegram OTP verification
         id: worker-deploy
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
@@ -120,7 +120,7 @@ jobs:
           mkdir -p dist
           rsync -a --exclude='.git' --exclude='node_modules' --exclude='docs' --exclude='AGENT_RESUME' --exclude='ai-proxy' --exclude='auth' --exclude='auth-native' --exclude='email-gateway' --exclude='uploads' --exclude='.github' --exclude='gk-agent-worker.js' --exclude='public-worker.js' --exclude='ai-agent.js' --exclude='worker-bundle.mjs' --exclude='voice-worker.js' --exclude='notification-worker.js' --exclude='wrangler.toml' --exclude='package.json' --exclude='package-lock.json' --exclude='*.test.mjs' --exclude='*.md' ./ dist/
 
-      - name: Deploy same-origin canary UI
+      - name: Deploy same-origin public verification UI
         id: pages-deploy
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
@@ -128,14 +128,14 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name admissionhub --branch main
 
-      - name: Verify public isolation and exact Telegram canary readiness
+      - name: Verify public selector and protected generic-backup isolation
         run: |
           set -eu
           public_body="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/api/auth/v1/config')"
           canary_body="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/api/auth/v1/config?telegramCanary=1')"
-          node -e "const x=JSON.parse(process.argv[1]); const m=x?.auth?.methods; const t=m?.telegramVerification; if(x?.auth?.available!==true||x?.auth?.emailVerifiedRequired!==true||m?.emailPassword?.available!==true||m?.google?.available!==true||m?.google?.availabilityCode!=='READY'||m?.passkey?.available!==false||m?.backup?.available!==false||m?.backup?.availabilityCode!=='LIVE_E2E_PENDING'||m?.backup?.providerNamesExposed!==false||t?.available!==false) process.exit(1)" "$public_body"
+          node -e "const x=JSON.parse(process.argv[1]); const m=x?.auth?.methods; const t=m?.telegramVerification; if(x?.auth?.available!==true||x?.auth?.emailVerifiedRequired!==false||m?.emailPassword?.available!==true||m?.google?.available!==true||m?.google?.availabilityCode!=='READY'||m?.passkey?.available!==false||m?.passkey?.enrollmentAvailable!==true||m?.backup?.available!==false||m?.backup?.availabilityCode!=='LIVE_E2E_PENDING'||m?.backup?.providerNamesExposed!==false||t?.available!==true||t?.availabilityCode!=='READY'||t?.optional!==true||t?.codeLength!==6||t?.expiresInSeconds!==300||t?.maxAttempts!==5||t?.verifiesEmailOwnership!==false||t?.canonicalIdentity!=='firebase-uid') process.exit(1)" "$public_body"
           node -e "const x=JSON.parse(process.argv[1]); const a=x?.auth; const b=a?.methods?.backup; const t=a?.methods?.telegramVerification; if(a?.accountVerificationRequired!==true||a?.emailVerifiedRequired!==false||b?.available!==true||b?.availabilityCode!=='READY'||b?.genericFlow!==true||b?.providerNamesExposed!==false||b?.contactInput!=='none'||/telegram|bot|token|username|chat/i.test(JSON.stringify(b))||t?.available!==true||t?.availabilityCode!=='READY'||t?.optional!==true||t?.codeLength!==6||t?.expiresInSeconds!==300||t?.maxAttempts!==5||t?.verifiesEmailOwnership!==false||t?.canonicalIdentity!=='firebase-uid') process.exit(1)" "$canary_body"
-          echo 'Ordinary visitors retain Google and Email/Password with Telegram hidden; the exact Telegram START-to-OTP canary is READY without credentials or provider details.'
+          echo 'Public Email-or-Telegram selection is READY; generic backup and Passkey remain protected, and no credentials or provider details were exposed.'
 
       - name: Verify Google browser origin remains accepted
         run: node auth-native/operations/verify-google-browser-origin.mjs

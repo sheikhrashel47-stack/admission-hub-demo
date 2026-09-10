@@ -436,14 +436,15 @@ export default {
     if (emailResponse) return emailResponse;
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(request) });
 
-    // Public product API: content, anonymous-device AI and content admin only.
-    // The retired login/profile/onboarding/state implementation is not forwarded.
+    // Public product API: content, Firebase-session-aware or ephemeral-guest AI,
+    // and content admin only. Retired legacy identity routes are not forwarded.
     if (url.pathname.startsWith('/pub/') || url.pathname.startsWith('/api/')) {
       const gatedApi = url.pathname === '/api/ask' || url.pathname.startsWith('/api/ask/') || url.pathname === '/api/bank' || url.pathname.startsWith('/api/gk/') || url.pathname === '/api/cloud/publish';
       const u2p = new URL(request.url); u2p.pathname = url.pathname.replace(/^\/pub\//, '/api/');
       if (url.pathname.startsWith('/pub/') || !gatedApi) {
         const envPub = {
           PUB_KV: env.PUB_KV,
+          AUTH_AUTHORITY: env.AUTH_AUTHORITY,
           OLD_KV: env.OLD_KV || env.GK_KV,
           ADMIN_TOKEN: env.ADMIN_TOKEN,
           GEMINI_KEYS: env.GEMINI_KEYS,

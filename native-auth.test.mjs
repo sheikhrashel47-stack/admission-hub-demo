@@ -426,6 +426,33 @@ test('Telegram canary is exact-query isolated, generic, and cannot leak through 
   assert.equal(app.authority.calls.filter(path => path === '/internal/verification/capabilities').length, 1);
 });
 
+test('approved Telegram publication exposes only the Email-or-Telegram selector while generic backup stays protected', async () => {
+  const capabilities = {
+    available: true,
+    availabilityCode: 'READY',
+    genericFlow: true,
+    providerNamesExposed: false,
+    contactInput: 'none',
+    maxAttempts: 5,
+    expiresInSeconds: 300,
+    telegramAvailable: true
+  };
+  const app = handlerSetup({ backupCapabilities: capabilities });
+  app.env.VERIFICATION_AUTH_ACTIVATION = 'enabled';
+  app.env.PASSKEY_AUTH_ACTIVATION = 'canary';
+  const response = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), app.env, {});
+  assert.equal(response.status, 200);
+  const auth = (await response.json()).auth;
+  assert.equal(auth.methods.telegramVerification.available, true);
+  assert.equal(auth.methods.telegramVerification.availabilityCode, 'READY');
+  assert.equal(auth.methods.telegramVerification.verifiesEmailOwnership, false);
+  assert.equal(auth.emailVerifiedRequired, false);
+  assert.equal(auth.methods.passkey.available, false);
+  assert.equal(auth.methods.passkey.enrollmentAvailable, true);
+  assert.equal(auth.methods.backup.available, false);
+  assert.equal(auth.methods.backup.availabilityCode, 'LIVE_E2E_PENDING');
+});
+
 test('approved Google activation publishes the provider on the ordinary config without publishing Passkey', async () => {
   const app = handlerSetup();
   app.env.GOOGLE_AUTH_ACTIVATION = 'enabled';

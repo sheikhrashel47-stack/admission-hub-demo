@@ -108,16 +108,17 @@ test('generic backup verification is centralized and bound to the current Fireba
   assert.doesNotMatch(client, /otp-a|otp-b|otp-c|mailjet|brevo|sendgrid/i);
 });
 
-test('Google remains public while Telegram alone is exact-query canary and Passkey stays unpublished', () => {
+test('Google and the explicit Email-or-Telegram selector are public while Passkey and generic backup stay unpublished', () => {
   assert.match(wrangler, /GOOGLE_AUTH_ACTIVATION = "enabled"/);
   assert.match(wrangler, /PASSKEY_AUTH_ACTIVATION = "canary"/);
-  assert.match(wrangler, /VERIFICATION_AUTH_ACTIVATION = "canary"/);
+  assert.match(wrangler, /VERIFICATION_AUTH_ACTIVATION = "enabled"/);
   assert.match(wrangler, /VERIFICATION_ORCHESTRATOR_CONFIG = '\{"enabled":true,"providers":\[\{"id":"telegram","enabled":true/);
   assert.doesNotMatch(wrangler, /"id":"(?:otp-a|otp-b|otp-c|whatsapp)","enabled":true/);
   assert.match(handler, /googlePublished\(env\)/);
   assert.match(handler, /googleCanaryRequested\(env, url\)/);
   assert.match(handler, /passkeyPublished\(env\)/);
   assert.match(handler, /passkeyCanaryRequested\(env, url\)/);
+  assert.match(handler, /enrollmentAvailable:\s*passkeyEnrollmentAvailable/);
   assert.match(handler, /telegramCanaryRequested\(env, url\)/);
   assert.match(handler, /verificationPublished\(env\)/);
   assert.match(handler, /cacheVariant = `\$\{googleCanary \? 'google-canary' : 'public'\}:\$\{passkeyCanary \? 'passkey-canary' : 'public'\}:\$\{telegramCanary \? 'telegram-canary' : 'public'\}`/);
@@ -135,8 +136,8 @@ test('Google remains public while Telegram alone is exact-query canary and Passk
   assert.doesNotMatch(liveMailboxOperation, /methods\?\.google\?\.available !== false/);
 });
 
-test('Telegram canary preparation is protected, value-blind, reversible, and keeps ordinary visitors isolated', () => {
-  assert.match(telegramCanaryWorkflow, /inputs\.confirmation == 'PREPARE_TELEGRAM_CANARY'/);
+test('Telegram public publication is protected, value-blind, reversible, and keeps generic backup isolated', () => {
+  assert.match(telegramCanaryWorkflow, /inputs\.confirmation == 'PUBLISH_TELEGRAM_OTP'/);
   assert.match(telegramCanaryWorkflow, /verify-telegram-bindings\.mjs/);
   assert.match(telegramCanaryWorkflow, /TELEGRAM_CANARY_ACTIVATION_SECRET/);
   assert.match(telegramCanaryWorkflow, /secret delete TELEGRAM_CANARY_ACTIVATION_SECRET/);

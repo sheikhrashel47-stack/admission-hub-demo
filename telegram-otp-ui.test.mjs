@@ -73,33 +73,33 @@ function setup({ pending = { pending: false }, verifyPlan = [], verifyGate = nul
     }
     if (path.includes('/telegram/verification/pending')) return reply(200, currentPending);
     if (path.includes('/login')) {
-      const token = 'L'.repeat(42) + challengeSequence;
-      currentPending = {
-        pending: true,
-        attemptId: `telegram-ui-attempt-${challengeSequence}-123456789`,
-        expiresAt: Date.now() + 300_000,
-        resendAt: Date.now(),
-        codeSent: false,
-        interaction: interaction(token)
-      };
       return reply(202, {
         authenticated: false,
         accountVerified: false,
         verification: {
+          sent: false,
+          selectionRequired: true,
           emailMasked: 's***@example.com',
-          telegram: {
-            available: true,
-            attemptId: currentPending.attemptId,
-            expiresAt: currentPending.expiresAt,
-            resendAfter: 0,
-            attemptsAllowed: 5,
-            interaction: currentPending.interaction,
-            verifiesEmailOwnership: false
-          }
+          options: { email: { available: true }, telegram: { available: true, verifiesEmailOwnership: false } }
         }
       });
     }
     if (path.includes('/signup')) {
+      return reply(202, {
+        accountCreated: true,
+        authenticated: false,
+        verification: {
+          sent: false,
+          selectionRequired: true,
+          emailMasked: 's***@example.com',
+          options: { email: { available: true }, telegram: { available: true, verifiesEmailOwnership: false } }
+        }
+      });
+    }
+    if (path.includes('/account-verification/email/start')) {
+      return reply(202, { authenticated: false, verification: { sent: true, emailMasked: 's***@example.com', resendAfter: 60 } });
+    }
+    if (path.includes('/telegram/verification/start')) {
       const token = 'S'.repeat(42) + challengeSequence;
       currentPending = {
         pending: true,
@@ -110,22 +110,12 @@ function setup({ pending = { pending: false }, verifyPlan = [], verifyGate = nul
         interaction: interaction(token)
       };
       return reply(202, {
-        accountCreated: true,
-        authenticated: false,
-        verification: {
-          sent: true,
-          emailMasked: 's***@example.com',
-          resendAfter: 60,
-          telegram: {
-            available: true,
-            attemptId: currentPending.attemptId,
-            expiresAt: currentPending.expiresAt,
-            resendAfter: 0,
-            attemptsAllowed: 5,
-            interaction: currentPending.interaction,
-            verifiesEmailOwnership: false
-          }
-        }
+        accepted: true,
+        attemptId: currentPending.attemptId,
+        expiresAt: currentPending.expiresAt,
+        resendAfter: 0,
+        attemptsAllowed: 5,
+        interaction: currentPending.interaction
       });
     }
     if (path.includes('/telegram/verification/resend')) {
@@ -174,8 +164,12 @@ async function openSignupTelegram(app) {
   app.document.querySelector('#ah-signup-confirm').value = 'StrongPassword!9';
   app.document.querySelector('[data-view="signup"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => app.document.querySelector('[data-view="verify"]').hidden === false);
-  assert.equal(app.document.querySelector('[data-role="telegram-alternative"]').hidden, false);
-  app.document.querySelector('[data-role="telegram-alternative"]').click();
+  assert.equal(app.document.querySelector('[data-role="verification-selection"]').hidden, false);
+  assert.equal(app.calls.some(call => call.path.includes('/account-verification/email/start')), false);
+  assert.equal(app.calls.some(call => call.path.includes('/telegram/verification/start')), false);
+  assert.match(app.document.querySelector('[data-role="email-verification-start"]').textContent, /Gmail\/ইমেইল/);
+  app.document.querySelector('[data-role="telegram-verification-start"]').click();
+  await waitFor(() => app.calls.some(call => call.path.includes('/telegram/verification/start')));
   await waitFor(() => app.document.querySelector('[data-view="telegram"]').hidden === false);
 }
 
@@ -214,6 +208,28 @@ test('mobile-first signup presents Verify with Telegram, START link, OTP box, ch
   app.dom.window.close();
 });
 
+test('signup sends no verification message until the student chooses Email or Telegram', async () => {
+  const app = setup();
+  await waitFor(() => app.calls.some(call => call.path.includes('/config?telegramCanary=1')));
+  app.document.querySelector('.ah-account-launcher').click();
+  app.document.querySelector('[data-role="show-signup"]').click();
+  app.document.querySelector('#ah-signup-email').value = 'choice@example.com';
+  app.document.querySelector('#ah-signup-password').value = 'StrongPassword!9';
+  app.document.querySelector('#ah-signup-confirm').value = 'StrongPassword!9';
+  app.document.querySelector('[data-view="signup"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(() => app.document.querySelector('[data-role="verification-selection"]').hidden === false);
+  assert.equal(app.calls.some(call => call.path.includes('/account-verification/email/start')), false);
+  assert.equal(app.calls.some(call => call.path.includes('/telegram/verification/start')), false);
+  await waitFor(() => app.document.querySelector('[data-role="email-verification-start"]').disabled === false);
+  app.document.querySelector('[data-role="email-verification-start"]').click();
+  await waitFor(() => app.calls.some(call => call.path.includes('/account-verification/email/start')));
+  await waitFor(() => app.document.querySelector('[data-role="verification-email-panel"]').hidden === false);
+  assert.match(app.document.querySelector('[data-role="verification-title"]').textContent, /Gmail\/ইমেইল/);
+  assert.equal(app.calls.filter(call => call.path.includes('/account-verification/email/start')).length, 1);
+  assert.equal(app.calls.some(call => call.path.includes('/telegram/verification/start')), false);
+  app.dom.window.close();
+});
+
 test('existing unverified login offers the Telegram alternative without creating a frontend session', async () => {
   const app = setup();
   await waitFor(() => app.calls.some(call => call.path.includes('/config?telegramCanary=1')));
@@ -223,7 +239,9 @@ test('existing unverified login offers the Telegram alternative without creating
   app.document.querySelector('[data-view="login"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => app.document.querySelector('[data-view="verify"]').hidden === false);
   assert.equal(app.window.AdmissionAccount.getSession(), null);
-  assert.equal(app.document.querySelector('[data-role="telegram-alternative"]').hidden, false);
+  assert.equal(app.document.querySelector('[data-role="verification-selection"]').hidden, false);
+  assert.equal(app.document.querySelector('[data-role="telegram-verification-start"]').hidden, false);
+  assert.equal(app.calls.some(call => call.path.includes('/telegram/verification/start')), false);
   assert.equal(app.document.querySelector('#ah-login-password').value, '');
   app.dom.window.close();
 });

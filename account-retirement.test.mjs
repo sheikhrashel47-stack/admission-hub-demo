@@ -94,25 +94,26 @@ await test('Profile-only cosmetic tools are absent while the rest of Experience 
   !/Profile Avatars|profile-avatars/.test(STUDIO_SHELL) && !/Profile Identity Card|card-026/.test(STUDIO_CARDS) &&
   STUDIO_SHELL.includes('Card Styles') && STUDIO_CARDS.includes('MCQ Orbit Card'));
 
-await test('AI client uses stable anonymous-device identity without bearer/account dependency', 
-  UI.includes("'X-AH-Guest': guestId()") && UI.includes("const key = 'ahAiGuestV1'") &&
-  !/Authorization\s*:\s*['"`]Bearer/.test(UI) && !/\btoken\s*=|ahPubToken|AHAuth|login|profile/i.test(UI));
+await test('AI client uses ephemeral guests and Firebase-account-scoped local conversations',
+  UI.includes("'X-AH-Guest': guestId()") && UI.includes("localStorage.removeItem(key)") &&
+  UI.includes("window.addEventListener('admissionhub:authchange'") && UI.includes('scopedWrite(STORE') &&
+  !UI.includes("localStorage.setItem('ahAiGuestV1'") && !/Authorization\s*:\s*['"`]Bearer/.test(UI));
 await test('AI keeps local study-stat context', UI.includes('computeLifetimeStats()') && UI.includes('computeStreak()') && UI.includes('CACHE.mistakes'));
 await test('content hydration is public and account-independent',
   CLOUD.includes("apiFetch('/api/content/meta')") && CLOUD.includes("apiFetch('/api/content')") &&
   !/AHAuth|ahPubToken|authHeaders|Authorization/.test(CLOUD));
 
 await test('service-worker build and HTML registration are synchronized',
-  SW.includes("const BUILD_ID = 'v230-telegram-otp-20260910'") &&
-  H.includes("const expectedSwVersion = 'v230-telegram-otp-20260910'") &&
-  H.includes('sw.js?v=v230-telegram-otp-20260910') &&
-  H.includes('admission-hub-shell-v230-telegram-otp-20260910'));
+  SW.includes("const BUILD_ID = 'v231-account-identity-20260910'") &&
+  H.includes("const expectedSwVersion = 'v231-account-identity-20260910'") &&
+  H.includes('sw.js?v=v231-account-identity-20260910') &&
+  H.includes('admission-hub-shell-v231-account-identity-20260910'));
 await test('service-worker shell cannot cache retired assets', retiredMarkers.every(marker => !SW.includes(marker)));
 await test('multi-method account assets use the same cache-busting version in HTML and service worker',
-  ['account-access.css?v=20260910-telegram-otp-v2', 'account-access.js?v=20260910-telegram-otp-v2']
+  ['account-access.css?v=20260910-auth-selector-v3', 'account-access.js?v=20260910-auth-selector-v3']
     .every(asset => H.includes(asset) && SW.includes(asset)));
 await test('service-worker caches guest AI UI v14 and purges prior shells',
-  SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') &&
+  SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') &&
   H.includes("name.startsWith('admission-hub-shell-')") && SW.includes('.filter(key => key !== CACHE_NAME)'));
 
 const forbiddenWorkerRoutes = retiredRoutes.filter(route => !route.startsWith('/api/admin/'));
@@ -137,11 +138,11 @@ await test('runtime: retired static URLs return 410 instead of the SPA shell', a
   return assetReads === 0;
 });
 
-await test('runtime: health declares retired account identity model',  async () => {
+await test('runtime: health declares Firebase-account or ephemeral-guest AI identity',  async () => {
   const kv = new MemoryKV();
   const response = await publicWorker.fetch(new Request('https://worker/api/health'), { PUB_KV: kv });
   const data = await response.json();
-  return response.status === 200 && data.ok === true && data.accountSystem === 'retired' && data.identity === 'anonymous-device';
+  return response.status === 200 && data.ok === true && data.accountSystem === 'retired' && data.identity === 'firebase-account-or-ephemeral-guest';
 });
 
 await test('runtime: every retired endpoint resolves to 404 with no KV mutation', async () => {
@@ -197,7 +198,7 @@ await test('runtime: AI status is guest-accessible and does not consume usage', 
   return response.status === 200 && data.ok === true && data.streaming === true && kv.writes.length === 0;
 });
 
-await test('runtime: anonymous AI calls are device-isolated and never store raw guest IDs', async () => {
+await test('runtime: guest AI calls are ephemeral and never persist conversation content or raw guest IDs', async () => {
   const kv = new MemoryKV();
   const env = { PUB_KV: kv };
   for (const id of ['device-guest-00000001', 'device-guest-00000002']) {
@@ -209,8 +210,9 @@ await test('runtime: anonymous AI calls are device-isolated and never store raw 
     if (response.status !== 503) return false; // no model keys in this isolated test
   }
   const keys = [...kv.data.keys()];
-  return keys.filter(key => key.startsWith('airl:anon-')).length === 2 &&
+  return keys.filter(key => key.startsWith('airl:guest-')).length === 2 &&
     keys.filter(key => key.startsWith('aipub:')).length === 1 &&
+    !keys.some(key => key.startsWith('chatmem:') || key.startsWith('chatmemsum:')) &&
     !keys.some(key => key.includes('device-guest-'));
 });
 

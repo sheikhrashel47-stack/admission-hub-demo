@@ -1,6 +1,6 @@
 # Firebase-canonical multi-method Auth — production contract
 
-Status: Email/Password and Google are public production methods. Telegram START → OTP is implemented behind an exact protected canary and is not public until physical live-E2E. Passkey remains hidden pending separate physical testing.
+Status: Email/Password and Google are public production methods. The explicit Email-or-Telegram verification selector is publicly deployed at the owner’s request; Telegram START → OTP remains pending the final physical phone E2E before it is called production-ready. After successful verification, supported devices may enroll an optional Passkey or Skip; public Passkey login remains hidden pending its separate physical authentication test.
 
 ## Canonical identity and verification
 
@@ -17,7 +17,7 @@ Telegram is an optional account-verification alternative, not a login identity a
 - `telegramVerified=true`
 - `emailVerified=false` unless Firebase itself reports otherwise
 
-See `docs/TELEGRAM-OTP-CANARY.md` for the canary contract and rollout gate.
+See `docs/TELEGRAM-OTP-CANARY.md` for the protected deployment and physical-validation contract.
 
 ## Email + Password journey
 
@@ -25,7 +25,7 @@ See `docs/TELEGRAM-OTP-CANARY.md` for the canary contract and rollout gate.
 2. Firebase Authentication creates the account and returns its canonical subject/UID.
 3. Admission Hub asks Firebase to send a standard `VERIFY_EMAIL` address-verification email.
 4. The user may click Firebase's link, then log in with the same password.
-5. On the exact Telegram canary only, an unverified student may instead open the official bot, press START, receive a six-digit code, and submit it in Admission Hub.
+5. Signup sends nothing automatically when Telegram is available. The student explicitly chooses Firebase Email or Telegram; only that choice starts delivery. Telegram opens the official bot, requires START, sends a six-digit code, and accepts the code only in Admission Hub.
 6. No authenticated Admission Hub session is issued until one accepted verification path is authoritative.
 
 Email-link sign-in is not implemented. Firebase's link verifies the address; it does not sign the user in.
@@ -75,7 +75,7 @@ Only then does the SQLite authority issue or accept a session. Credentials trave
 - `__Host-ah_session` — random opaque Admission Hub session;
 - `__Host-ah_firebase` — server-only Firebase refresh credential;
 - `__Host-ah_device` — server-readable device binding;
-- `__Host-ah_verification` — expiring, device-bound pre-verification ticket used only by the Telegram alternative.
+- `__Host-ah_verification` — expiring, device-bound pre-verification ticket used by the explicit Email-or-Telegram choice before authentication.
 
 Invalid, disabled, expired, mismatched, or no-longer-verified state is denied. Session failures revoke the local session and clear Auth cookies.
 
@@ -102,4 +102,4 @@ The ordinary Telegram Bot API is used for the canary. No Telegram Gateway API, p
 
 Email/Password activation proves real disposable-mailbox delivery, Firebase address verification, verified login, session refresh, logout, and cleanup. Google publication separately proves Firebase provider configuration and accepted `https://admissionhub.pages.dev` browser origin.
 
-Telegram canary deployment additionally runs all production Auth tests, exact Worker bundle comparison, secret-name-only binding checks, bot identity and secret-webhook checks, ordinary visitor isolation, exact canary capability assertions, live Email/Password regression, and Google-origin regression. Automated evidence does not replace the final physical START → receive code → submit code test.
+Protected Telegram publication additionally runs all production Auth tests, exact Worker bundle comparison, secret-name-only binding checks, bot identity and secret-webhook checks, public selector and generic-backup isolation assertions, live Email/Password regression, and Google-origin regression. Automated evidence does not replace the final physical START → receive code → submit code test.

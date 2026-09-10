@@ -47,7 +47,7 @@ const DEFAULTS = Object.freeze({
   [AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE]: Object.freeze({ status: 503, message: 'Google দিয়ে প্রবেশ এখন পাওয়া যাচ্ছে না—ইমেইল দিয়ে চেষ্টা করুন।' }),
   [AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE]: Object.freeze({ status: 503, message: 'Telegram যাচাই এখন পাওয়া যাচ্ছে না—ইমেইল যাচাই ব্যবহার করুন।' }),
   [AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_PENDING]: Object.freeze({ status: 409, message: 'Telegram-এ পরিচয় নিশ্চিত হওয়ার অপেক্ষা চলছে।' }),
-  [AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID]: Object.freeze({ status: 401, message: 'Telegram যাচাইটি সঠিক নয় বা সময় শেষ হয়েছে।' }),
+  [AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID]: Object.freeze({ status: 401, message: 'অ্যাকাউন্ট যাচাইয়ের session সঠিক নয় বা সময় শেষ হয়েছে—আবার লগইন অথবা সাইনআপ করুন।' }),
   [AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE]: Object.freeze({ status: 503, message: 'এই ডিভাইসে Passkey এখন পাওয়া যাচ্ছে না—অন্য পদ্ধতি ব্যবহার করুন।' }),
   [AUTH_ERROR_CODES.PASSKEY_INVALID]: Object.freeze({ status: 401, message: 'Passkey যাচাই হয়নি—আবার চেষ্টা করুন।' }),
   [AUTH_ERROR_CODES.PASSKEY_NOT_FOUND]: Object.freeze({ status: 404, message: 'এই Passkey-এর সঙ্গে কোনো অ্যাকাউন্ট পাওয়া যায়নি।' }),
