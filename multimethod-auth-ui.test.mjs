@@ -22,9 +22,9 @@ async function waitFor(predicate, timeout = 1000) {
 const bytes = (...values) => Uint8Array.of(...values).buffer;
 const challenge = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
-function setup({ methods = {}, signed = false, passkeyCredentials = null, backupInteraction = null } = {}) {
+function setup({ methods = {}, signed = false, passkeyCredentials = null, backupInteraction = null, pageUrl = 'https://admissionhub.pages.dev/' } = {}) {
   const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', {
-    url: 'https://admissionhub.pages.dev/',
+    url: pageUrl,
     runScripts: 'dangerously',
     pretendToBeVisual: true
   });
@@ -59,7 +59,7 @@ function setup({ methods = {}, signed = false, passkeyCredentials = null, backup
     const path = String(url);
     const body = options.body ? JSON.parse(options.body) : null;
     calls.push({ path, method: options.method || 'GET', body });
-    if (path.endsWith('/config')) return reply(200, {
+    if (path.includes('/config')) return reply(200, {
       auth: {
         available: true,
         methods: {
@@ -122,6 +122,22 @@ test('Google is capability-gated, uses Firebase endpoint, and keeps tokens out o
   assert.deepEqual(call.body, { idToken });
   assert.equal(app.window.AdmissionAccount.isVerified(), true);
   assert.equal('localStorage' in call, false);
+  assert.equal(app.window.localStorage.length, 0);
+  assert.equal(app.window.sessionStorage.length, 0);
+  app.dom.window.close();
+});
+
+test('Passkey canary requests the explicit server-authorized config only from the opt-in URL', async () => {
+  const app = setup({
+    pageUrl: 'https://admissionhub.pages.dev/?passkeyCanary=1',
+    methods: { passkey: { available: true } },
+    passkeyCredentials: {
+      async get() { throw new Error('not used'); },
+      async create() { throw new Error('not used'); }
+    }
+  });
+  await waitFor(() => app.calls.some(call => call.path.endsWith('/config?passkeyCanary=1')));
+  assert.equal(app.document.querySelector('[data-role="passkey-login"]').hidden, false);
   assert.equal(app.window.localStorage.length, 0);
   assert.equal(app.window.sessionStorage.length, 0);
   app.dom.window.close();

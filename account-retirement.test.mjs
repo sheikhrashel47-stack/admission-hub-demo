@@ -103,13 +103,13 @@ await test('content hydration is public and account-independent',
   !/AHAuth|ahPubToken|authHeaders|Authorization/.test(CLOUD));
 
 await test('service-worker build and HTML registration are synchronized',
-  SW.includes("const BUILD_ID = 'v225-firebase-multimethod-20260910'") &&
-  H.includes("const expectedSwVersion = 'v225-firebase-multimethod-20260910'") &&
-  H.includes('sw.js?v=v225-firebase-multimethod-20260910') &&
-  H.includes('admission-hub-shell-v225-firebase-multimethod-20260910'));
+  SW.includes("const BUILD_ID = 'v226-passkey-canary-20260910'") &&
+  H.includes("const expectedSwVersion = 'v226-passkey-canary-20260910'") &&
+  H.includes('sw.js?v=v226-passkey-canary-20260910') &&
+  H.includes('admission-hub-shell-v226-passkey-canary-20260910'));
 await test('service-worker shell cannot cache retired assets', retiredMarkers.every(marker => !SW.includes(marker)));
 await test('multi-method account assets use the same cache-busting version in HTML and service worker',
-  ['account-access.css?v=20260910-firebase-multimethod-v1', 'account-access.js?v=20260910-firebase-multimethod-v1']
+  ['account-access.css?v=20260910-passkey-canary-v2', 'account-access.js?v=20260910-passkey-canary-v2']
     .every(asset => H.includes(asset) && SW.includes(asset)));
 await test('service-worker caches guest AI UI v14 and purges prior shells',
   SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') &&

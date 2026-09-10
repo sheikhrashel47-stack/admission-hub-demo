@@ -290,6 +290,11 @@
     else link.removeAttribute('href');
   };
 
+  const passkeyCanaryRequested = () => {
+    try { return new URL(location.href).searchParams.get('passkeyCanary') === '1'; }
+    catch (_) { return false; }
+  };
+
   const api = async (path, options = {}) => {
     let response;
     const controller = new AbortController();
@@ -784,7 +789,7 @@
       finally { setBusy(false); }
     });
 
-    api('/config').then(result => {
+    api(passkeyCanaryRequested() ? '/config?passkeyCanary=1' : '/config').then(result => {
       applyCapabilities(result?.auth || {});
       const cooldown = Number(result?.auth?.verificationEmail?.resendCooldownSeconds);
       if (Number.isFinite(cooldown) && cooldown >= 1 && cooldown <= 86400) state.resendCooldownSeconds = Math.ceil(cooldown);

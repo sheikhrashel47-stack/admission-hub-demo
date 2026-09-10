@@ -96,11 +96,13 @@ test('generic backup verification is centralized and bound to the current Fireba
 
 test('Google, Passkey, and backup publishing remain independently fail-closed in production', () => {
   assert.match(wrangler, /GOOGLE_AUTH_ACTIVATION = "disabled"/);
-  assert.match(wrangler, /PASSKEY_AUTH_ACTIVATION = "disabled"/);
+  assert.match(wrangler, /PASSKEY_AUTH_ACTIVATION = "canary"/);
   assert.match(wrangler, /VERIFICATION_AUTH_ACTIVATION = "disabled"/);
   assert.match(wrangler, /VERIFICATION_ORCHESTRATOR_CONFIG = '\{"enabled":false\}'/);
   assert.match(handler, /googleActivated\(env\)/);
   assert.match(handler, /passkeyPublished\(env\)/);
+  assert.match(handler, /passkeyCanaryRequested\(env, url\)/);
+  assert.match(handler, /cacheVariant = passkeyCanary \? 'passkey-canary' : 'public'/);
   assert.match(runtime, /env(?:\?\.|\.)VERIFICATION_AUTH_ACTIVATION === 'enabled'/);
   assert.match(activationWorkflow, /methods\?\.google\?\.available!==false/);
   assert.match(activationWorkflow, /methods\?\.passkey\?\.available!==false/);

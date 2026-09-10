@@ -6,7 +6,7 @@ workers_dev = true
 [vars]
 FIREBASE_CONTINUE_URL = "https://admissionhub.pages.dev/?firebaseVerified=1"
 GOOGLE_AUTH_ACTIVATION = "disabled"
-PASSKEY_AUTH_ACTIVATION = "disabled"
+PASSKEY_AUTH_ACTIVATION = "canary"
 VERIFICATION_AUTH_ACTIVATION = "disabled"
 VERIFICATION_ORCHESTRATOR_CONFIG = '{"enabled":false}'
 

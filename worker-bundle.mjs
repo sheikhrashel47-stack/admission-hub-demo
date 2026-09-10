@@ -4780,6 +4780,7 @@ var adminAuthorized = (request, env) => {
 };
 var passkeyEndpointReady = (env) => ["canary", "enabled"].includes(String(env?.PASSKEY_AUTH_ACTIVATION || ""));
 var passkeyPublished = (env) => env?.PASSKEY_AUTH_ACTIVATION === "enabled";
+var passkeyCanaryRequested = (env, url) => env?.PASSKEY_AUTH_ACTIVATION === "canary" && url.searchParams.get("passkeyCanary") === "1";
 function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
   const publicConfigCache = /* @__PURE__ */ new WeakMap();
   return async function handleNativeAuthRequest(request, env) {
@@ -4831,7 +4832,10 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         return json3(request, 200, { ok: true });
       }
       if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/config`) {
-        const cached = publicConfigCache.get(env);
+        const passkeyCanary = passkeyCanaryRequested(env, url);
+        const cacheVariant = passkeyCanary ? "passkey-canary" : "public";
+        const cache = publicConfigCache.get(env);
+        const cached = cache?.get(cacheVariant);
         if (cached && cached.expiresAt > Date.now()) return json3(request, 200, cached.body);
         const health = await callAuthority(env, "/internal/ping", null, "GET");
         let firebaseReady = false;
@@ -4868,7 +4872,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             backup = { available: false, availabilityCode: "STATUS_UNAVAILABLE", genericFlow: true, providerNamesExposed: false };
           }
         }
-        const passkeyAvailable = available && health.schema >= 3 && passkeyPublished(env);
+        const passkeyAvailable = available && health.schema >= 3 && (passkeyPublished(env) || passkeyCanary);
         const body = {
           ok: true,
           auth: {
@@ -4900,7 +4904,9 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             session: { transport: "secure-http-only-cookie", maxAge: SESSION_SECONDS }
           }
         };
-        publicConfigCache.set(env, { body, expiresAt: Date.now() + 3e4 });
+        const nextCache = cache || /* @__PURE__ */ new Map();
+        nextCache.set(cacheVariant, { body, expiresAt: Date.now() + 3e4 });
+        if (!cache) publicConfigCache.set(env, nextCache);
         return json3(request, 200, body);
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/signup`) {
