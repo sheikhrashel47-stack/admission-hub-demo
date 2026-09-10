@@ -103,13 +103,13 @@ await test('content hydration is public and account-independent',
   !/AHAuth|ahPubToken|authHeaders|Authorization/.test(CLOUD));
 
 await test('service-worker build and HTML registration are synchronized',
-  SW.includes("const BUILD_ID = 'v227-google-canary-20260910'") &&
-  H.includes("const expectedSwVersion = 'v227-google-canary-20260910'") &&
-  H.includes('sw.js?v=v227-google-canary-20260910') &&
-  H.includes('admission-hub-shell-v227-google-canary-20260910'));
+  SW.includes("const BUILD_ID = 'v228-google-live-20260910'") &&
+  H.includes("const expectedSwVersion = 'v228-google-live-20260910'") &&
+  H.includes('sw.js?v=v228-google-live-20260910') &&
+  H.includes('admission-hub-shell-v228-google-live-20260910'));
 await test('service-worker shell cannot cache retired assets', retiredMarkers.every(marker => !SW.includes(marker)));
 await test('multi-method account assets use the same cache-busting version in HTML and service worker',
-  ['account-access.css?v=20260910-google-canary-v3', 'account-access.js?v=20260910-google-canary-v3']
+  ['account-access.css?v=20260910-google-live-v4', 'account-access.js?v=20260910-google-live-v4']
     .every(asset => H.includes(asset) && SW.includes(asset)));
 await test('service-worker caches guest AI UI v14 and purges prior shells',
   SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') &&

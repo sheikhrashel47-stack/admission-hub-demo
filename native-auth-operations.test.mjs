@@ -8,6 +8,7 @@ import {
 import { auditRecentMailjetDelivery } from './auth-native/operations/audit-mailjet-recent-delivery.mjs';
 import { FirebaseConfigError, validateFirebaseProjectConfig, verifyFirebaseConfig } from './auth-native/operations/verify-firebase-config.mjs';
 import { GoogleReadinessError, verifyGoogleReadiness } from './auth-native/operations/verify-google-readiness.mjs';
+import { classifyGoogleBrowserPage } from './auth-native/operations/verify-google-browser-origin.mjs';
 import { auditVerificationMessage, verificationAction } from './auth-native/operations/live-mailbox-e2e.mjs';
 import { summarizePlacementReport } from './auth-native/operations/live-placement-audit.mjs';
 import { FirebaseEmailPasswordProvider } from './auth-native/providers/firebase-auth.mjs';
@@ -373,6 +374,20 @@ test('Google readiness audit rejects an untrusted OAuth authorization host with 
     }),
     error => error instanceof GoogleReadinessError && error.code === 'INVALID_PROVIDER_RESPONSE'
   );
+});
+
+test('Google browser-origin classifier accepts only a non-error Google challenge without retaining URLs or credentials', () => {
+  assert.deepEqual(classifyGoogleBrowserPage({
+    url: 'https://accounts.google.com/signin/v2/challenge',
+    text: 'Sign in with Google\nEmail or phone'
+  }), { ready: true, googlePage: true, mismatch: false, rejected: false });
+  assert.deepEqual(classifyGoogleBrowserPage({
+    url: 'https://accounts.google.com/signin/oauth/error',
+    text: 'Access blocked: Authorization Error\nError 400: origin_mismatch'
+  }), { ready: false, googlePage: true, mismatch: true, rejected: true });
+  assert.equal(classifyGoogleBrowserPage({
+    url: 'https://evil.example/signin', text: 'Sign in with Google'
+  }).ready, false);
 });
 
 test('live Firebase check extracts only a standard verify-email action', () => {
