@@ -379,12 +379,12 @@ async function agentChat(request, env, uid, opts = {}) {
     }
     return jsonResp({ error: "provider_failed", message: "AI একটু ব্যস্ত — কয়েক সেকেন্ড পরে আবার চেষ্টা করো।", detail: lastErr, retryable: true }, 502);
   }
-  const encoder3 = new TextEncoder();
+  const encoder5 = new TextEncoder();
   const streamOut = new ReadableStream({
     async start(controller) {
       const push = (s) => {
         try {
-          controller.enqueue(encoder3.encode(s));
+          controller.enqueue(encoder5.encode(s));
         } catch (_) {
         }
       };
@@ -1521,11 +1521,11 @@ function shouldApplyDeliveryTransition(current, next) {
 // email-gateway/storage/memory-store.mjs
 var copy = (value) => value == null ? value : structuredClone(value);
 var MemoryEmailStore = class {
-  constructor({ now = () => Date.now(), eventRetention = 500, consistency = "strong", fail: fail4 = null } = {}) {
+  constructor({ now = () => Date.now(), eventRetention = 500, consistency = "strong", fail: fail6 = null } = {}) {
     this.consistency = consistency;
     this.now = now;
     this.eventRetention = eventRetention;
-    this.fail = fail4;
+    this.fail = fail6;
     this.requests = /* @__PURE__ */ new Map();
     this.nonces = /* @__PURE__ */ new Map();
     this.rateCounters = /* @__PURE__ */ new Map();
@@ -3089,11 +3089,19 @@ var AUTH_ERROR_CODES = Object.freeze({
   OTP_USED: "OTP_USED",
   INVALID_CREDENTIALS: "INVALID_CREDENTIALS",
   EMAIL_ALREADY_IN_USE: "EMAIL_ALREADY_IN_USE",
+  ACCOUNT_LINK_REQUIRED: "ACCOUNT_LINK_REQUIRED",
+  ACCOUNT_CONFLICT: "ACCOUNT_CONFLICT",
+  GOOGLE_UNAVAILABLE: "GOOGLE_UNAVAILABLE",
+  PASSKEY_UNAVAILABLE: "PASSKEY_UNAVAILABLE",
+  PASSKEY_INVALID: "PASSKEY_INVALID",
+  PASSKEY_NOT_FOUND: "PASSKEY_NOT_FOUND",
+  PASSKEY_REGISTRATION_REQUIRED: "PASSKEY_REGISTRATION_REQUIRED",
   EMAIL_NOT_VERIFIED: "EMAIL_NOT_VERIFIED",
   WEAK_PASSWORD: "WEAK_PASSWORD",
   ACCOUNT_DISABLED: "ACCOUNT_DISABLED",
   SESSION_INVALID: "SESSION_INVALID",
   VERIFICATION_UNAVAILABLE: "VERIFICATION_UNAVAILABLE",
+  BACKUP_UNAVAILABLE: "BACKUP_UNAVAILABLE",
   AUTH_PROVIDER_UNAVAILABLE: "AUTH_PROVIDER_UNAVAILABLE",
   DELIVERY_UNAVAILABLE: "DELIVERY_UNAVAILABLE",
   STORAGE_UNAVAILABLE: "STORAGE_UNAVAILABLE",
@@ -3106,15 +3114,23 @@ var DEFAULTS2 = Object.freeze({
   [AUTH_ERROR_CODES.RESEND_COOLDOWN]: Object.freeze({ status: 429, message: "নতুন কোড পাঠাতে একটু অপেক্ষা করুন।" }),
   [AUTH_ERROR_CODES.OTP_INVALID]: Object.freeze({ status: 401, message: "কোডটি সঠিক নয়।" }),
   [AUTH_ERROR_CODES.OTP_EXPIRED]: Object.freeze({ status: 410, message: "কোডের সময় শেষ হয়েছে—নতুন কোড নিন।" }),
-  [AUTH_ERROR_CODES.OTP_LOCKED]: Object.freeze({ status: 429, message: "অনেকবার ভুল কোড দেওয়া হয়েছে—নতুন কোড নিন।" }),
+  [AUTH_ERROR_CODES.OTP_LOCKED]: Object.freeze({ status: 429, message: "অনেকবার ভুল কোড দেওয়া হয়েছে—অপেক্ষার সময় শেষ হলে নতুন কোড নিন।" }),
   [AUTH_ERROR_CODES.OTP_USED]: Object.freeze({ status: 409, message: "এই কোডটি ইতিমধ্যে ব্যবহার হয়েছে।" }),
   [AUTH_ERROR_CODES.INVALID_CREDENTIALS]: Object.freeze({ status: 401, message: "ইমেইল বা পাসওয়ার্ড সঠিক নয়।" }),
   [AUTH_ERROR_CODES.EMAIL_ALREADY_IN_USE]: Object.freeze({ status: 409, message: "এই ইমেইলে অ্যাকাউন্ট আছে—লগইন করুন।" }),
+  [AUTH_ERROR_CODES.ACCOUNT_LINK_REQUIRED]: Object.freeze({ status: 409, message: "একই ইমেইলের আগের অ্যাকাউন্টে একবার পাসওয়ার্ড দিয়ে Google যুক্ত করুন।" }),
+  [AUTH_ERROR_CODES.ACCOUNT_CONFLICT]: Object.freeze({ status: 409, message: "এই পরিচয়টি অন্য একটি অ্যাকাউন্টের সঙ্গে যুক্ত—নিরাপত্তার জন্য লগইন বন্ধ রাখা হয়েছে।" }),
+  [AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE]: Object.freeze({ status: 503, message: "Google দিয়ে প্রবেশ এখন পাওয়া যাচ্ছে না—ইমেইল দিয়ে চেষ্টা করুন।" }),
+  [AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE]: Object.freeze({ status: 503, message: "এই ডিভাইসে Passkey এখন পাওয়া যাচ্ছে না—অন্য পদ্ধতি ব্যবহার করুন।" }),
+  [AUTH_ERROR_CODES.PASSKEY_INVALID]: Object.freeze({ status: 401, message: "Passkey যাচাই হয়নি—আবার চেষ্টা করুন।" }),
+  [AUTH_ERROR_CODES.PASSKEY_NOT_FOUND]: Object.freeze({ status: 404, message: "এই Passkey-এর সঙ্গে কোনো অ্যাকাউন্ট পাওয়া যায়নি।" }),
+  [AUTH_ERROR_CODES.PASSKEY_REGISTRATION_REQUIRED]: Object.freeze({ status: 409, message: "আগে অ্যাকাউন্টে ঢুকে এই ডিভাইসে Passkey যোগ করুন।" }),
   [AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED]: Object.freeze({ status: 403, message: "ইমেইলে পাঠানো যাচাইয়ের লিংকে ক্লিক করে তারপর লগইন করুন।" }),
   [AUTH_ERROR_CODES.WEAK_PASSWORD]: Object.freeze({ status: 400, message: "কমপক্ষে ৮ অক্ষরের শক্তিশালী পাসওয়ার্ড দিন।" }),
   [AUTH_ERROR_CODES.ACCOUNT_DISABLED]: Object.freeze({ status: 403, message: "এই অ্যাকাউন্টটি এখন ব্যবহার করা যাচ্ছে না।" }),
   [AUTH_ERROR_CODES.SESSION_INVALID]: Object.freeze({ status: 401, message: "নিরাপদ সেশন পাওয়া যায়নি।" }),
   [AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE]: Object.freeze({ status: 503, message: "যাচাইয়ের ইমেইল এখন পাঠানো যাচ্ছে না—একটু পরে আবার চেষ্টা করুন।" }),
+  [AUTH_ERROR_CODES.BACKUP_UNAVAILABLE]: Object.freeze({ status: 503, message: "বিকল্প যাচাই এখন পাওয়া যাচ্ছে না—অন্য পদ্ধতি ব্যবহার করুন।" }),
   [AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE]: Object.freeze({ status: 503, message: "অ্যাকাউন্ট সেবা সাময়িকভাবে পাওয়া যাচ্ছে না—একটু পরে চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.DELIVERY_UNAVAILABLE]: Object.freeze({ status: 503, message: "ইমেইল এখন সাময়িকভাবে পাঠানো যাচ্ছে না—একটু পরে চেষ্টা করুন।" }),
   [AUTH_ERROR_CODES.STORAGE_UNAVAILABLE]: Object.freeze({ status: 503, message: "অ্যাকাউন্ট সেবা সাময়িকভাবে ব্যস্ত—একটু পরে চেষ্টা করুন।" }),
@@ -3232,25 +3248,416 @@ function coarseUserAgent(value) {
   return `${device} · ${browser}`;
 }
 
+// auth-native/core/webauthn.mjs
+var encoder3 = new TextEncoder();
+var decoder = new TextDecoder("utf-8", { fatal: true });
+var MAX_CLIENT_DATA_BYTES = 4096;
+var MAX_ATTESTATION_BYTES = 16 * 1024;
+var MAX_AUTHENTICATOR_BYTES = 4096;
+var MAX_CREDENTIAL_BYTES = 1024;
+var MAX_SIGNATURE_BYTES = 1024;
+var fail4 = (code = AUTH_ERROR_CODES.PASSKEY_INVALID) => {
+  throw new NativeAuthError(code);
+};
+function bytesToBase64Url3(value) {
+  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 32768) {
+    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(bytes.length, offset + 32768)));
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+function base64UrlToBytes(value, maximum = MAX_ATTESTATION_BYTES) {
+  const raw = String(value || "");
+  if (!raw || raw.length > Math.ceil(maximum * 4 / 3) + 4 || !/^[A-Za-z0-9_-]+$/.test(raw)) fail4();
+  const padding = raw.length % 4 ? "=".repeat(4 - raw.length % 4) : "";
+  let binary;
+  try {
+    binary = atob(raw.replace(/-/g, "+").replace(/_/g, "/") + padding);
+  } catch {
+    fail4();
+  }
+  if (binary.length > maximum) fail4();
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  if (bytesToBase64Url3(bytes) !== raw) fail4();
+  return bytes;
+}
+function timingSafeBytes(left, right) {
+  const a = left instanceof Uint8Array ? left : new Uint8Array(left);
+  const b = right instanceof Uint8Array ? right : new Uint8Array(right);
+  let difference = a.length ^ b.length;
+  const length = Math.max(a.length, b.length);
+  for (let index = 0; index < length; index += 1) difference |= (a[index % (a.length || 1)] || 0) ^ (b[index % (b.length || 1)] || 0);
+  return difference === 0;
+}
+function concatBytes(...values) {
+  const size = values.reduce((total, value) => total + value.length, 0);
+  const result = new Uint8Array(size);
+  let offset = 0;
+  for (const value of values) {
+    result.set(value, offset);
+    offset += value.length;
+  }
+  return result;
+}
+function readLength(bytes, state, additional) {
+  if (additional < 24) return additional;
+  const width = additional === 24 ? 1 : additional === 25 ? 2 : additional === 26 ? 4 : additional === 27 ? 8 : 0;
+  if (!width || state.offset + width > bytes.length) fail4();
+  let value = 0;
+  for (let index = 0; index < width; index += 1) value = value * 256 + bytes[state.offset++];
+  if (!Number.isSafeInteger(value) || value < 0) fail4();
+  return value;
+}
+function decodeCborValue(bytes, state, depth = 0) {
+  if (depth > 16 || state.offset >= bytes.length || state.items++ > 512) fail4();
+  const first = bytes[state.offset++];
+  const major = first >> 5;
+  const length = readLength(bytes, state, first & 31);
+  if (major === 0) return length;
+  if (major === 1) return -1 - length;
+  if (major === 2) {
+    if (state.offset + length > bytes.length) fail4();
+    const value = bytes.slice(state.offset, state.offset + length);
+    state.offset += length;
+    return value;
+  }
+  if (major === 3) {
+    if (state.offset + length > bytes.length) fail4();
+    let value;
+    try {
+      value = decoder.decode(bytes.slice(state.offset, state.offset + length));
+    } catch {
+      fail4();
+    }
+    state.offset += length;
+    return value;
+  }
+  if (major === 4) {
+    if (length > 128) fail4();
+    return Array.from({ length }, () => decodeCborValue(bytes, state, depth + 1));
+  }
+  if (major === 5) {
+    if (length > 128) fail4();
+    const value = /* @__PURE__ */ new Map();
+    for (let index = 0; index < length; index += 1) {
+      const key = decodeCborValue(bytes, state, depth + 1);
+      if (!["string", "number"].includes(typeof key) || value.has(key)) fail4();
+      value.set(key, decodeCborValue(bytes, state, depth + 1));
+    }
+    return value;
+  }
+  if (major === 6) return decodeCborValue(bytes, state, depth + 1);
+  if (major === 7) {
+    if (length === 20) return false;
+    if (length === 21) return true;
+    if (length === 22) return null;
+  }
+  fail4();
+}
+function decodeCbor(bytes, offset = 0) {
+  const value = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const state = { offset: Number(offset), items: 0 };
+  if (!Number.isInteger(state.offset) || state.offset < 0 || state.offset >= value.length) fail4();
+  const decoded = decodeCborValue(value, state);
+  return Object.freeze({ value: decoded, offset: state.offset });
+}
+async function sha2562(bytes, cryptoImpl = globalThis.crypto) {
+  if (!cryptoImpl?.subtle) fail4(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
+  return new Uint8Array(await cryptoImpl.subtle.digest("SHA-256", bytes));
+}
+function normalizeRpId(value) {
+  const rpId = String(value || "").toLowerCase();
+  if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(rpId)) fail4(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
+  return rpId;
+}
+function normalizeOrigins(origins) {
+  const values = Array.isArray(origins) ? origins : [origins];
+  const result = /* @__PURE__ */ new Set();
+  for (const value of values) {
+    try {
+      const url = new URL(String(value || ""));
+      if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash) fail4(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
+      result.add(url.origin);
+    } catch (error) {
+      if (error instanceof NativeAuthError) throw error;
+      fail4(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
+    }
+  }
+  if (!result.size) fail4(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
+  return result;
+}
+function readPasskeyClientChallenge(encoded, expectedType) {
+  const bytes = base64UrlToBytes(encoded, MAX_CLIENT_DATA_BYTES);
+  let data;
+  try {
+    data = JSON.parse(decoder.decode(bytes));
+  } catch {
+    fail4();
+  }
+  if (!data || typeof data !== "object" || data.type !== expectedType || typeof data.challenge !== "string") fail4();
+  base64UrlToBytes(data.challenge, 128);
+  return data.challenge;
+}
+function parseClientData(encoded, type, challenge, origins) {
+  const bytes = base64UrlToBytes(encoded, MAX_CLIENT_DATA_BYTES);
+  let data;
+  try {
+    data = JSON.parse(decoder.decode(bytes));
+  } catch {
+    fail4();
+  }
+  if (!data || typeof data !== "object" || data.type !== type || data.crossOrigin === true) fail4();
+  const expected = base64UrlToBytes(challenge, 128);
+  const supplied = base64UrlToBytes(data.challenge, 128);
+  if (!timingSafeBytes(expected, supplied)) fail4();
+  let origin;
+  try {
+    const suppliedOrigin = String(data.origin || "");
+    const parsedOrigin = new URL(suppliedOrigin);
+    if (parsedOrigin.protocol !== "https:" || parsedOrigin.username || parsedOrigin.password || parsedOrigin.pathname !== "/" || parsedOrigin.search || parsedOrigin.hash || suppliedOrigin !== parsedOrigin.origin) fail4();
+    origin = parsedOrigin.origin;
+  } catch (error) {
+    if (error instanceof NativeAuthError) throw error;
+    fail4();
+  }
+  if (!origins.has(origin)) fail4();
+  if (data.topOrigin) {
+    let topOrigin;
+    try {
+      const suppliedTopOrigin = String(data.topOrigin);
+      const parsedTopOrigin = new URL(suppliedTopOrigin);
+      if (parsedTopOrigin.protocol !== "https:" || parsedTopOrigin.username || parsedTopOrigin.password || parsedTopOrigin.pathname !== "/" || parsedTopOrigin.search || parsedTopOrigin.hash || suppliedTopOrigin !== parsedTopOrigin.origin) fail4();
+      topOrigin = parsedTopOrigin.origin;
+    } catch (error) {
+      if (error instanceof NativeAuthError) throw error;
+      fail4();
+    }
+    if (!origins.has(topOrigin)) fail4();
+  }
+  return Object.freeze({ bytes, data: Object.freeze({ type: data.type, origin }) });
+}
+async function parseAuthenticatorData(bytes, { rpId, registration, cryptoImpl }) {
+  if (!(bytes instanceof Uint8Array) || bytes.length < 37) fail4();
+  const expectedRpHash = await sha2562(encoder3.encode(rpId), cryptoImpl);
+  if (!timingSafeBytes(bytes.slice(0, 32), expectedRpHash)) fail4();
+  const flags = bytes[32];
+  const userPresent = Boolean(flags & 1);
+  const userVerified = Boolean(flags & 4);
+  const backupEligible = Boolean(flags & 8);
+  const backupState = Boolean(flags & 16);
+  const attested = Boolean(flags & 64);
+  const extensions = Boolean(flags & 128);
+  if (!userPresent || !userVerified || backupState && !backupEligible || registration !== attested) fail4();
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const counter = view.getUint32(33, false);
+  let offset = 37;
+  let credentialId = null;
+  let publicKeyJwk = null;
+  if (registration) {
+    if (bytes.length < offset + 18) fail4();
+    offset += 16;
+    const credentialLength = view.getUint16(offset, false);
+    offset += 2;
+    if (!credentialLength || credentialLength > MAX_CREDENTIAL_BYTES || offset + credentialLength >= bytes.length) fail4();
+    credentialId = bytes.slice(offset, offset + credentialLength);
+    offset += credentialLength;
+    const cose = decodeCbor(bytes, offset);
+    offset = cose.offset;
+    if (!(cose.value instanceof Map)) fail4();
+    const kty = cose.value.get(1);
+    const alg = cose.value.get(3);
+    const crv = cose.value.get(-1);
+    const x = cose.value.get(-2);
+    const y = cose.value.get(-3);
+    if (kty !== 2 || alg !== -7 || crv !== 1 || !(x instanceof Uint8Array) || !(y instanceof Uint8Array) || x.length !== 32 || y.length !== 32) fail4();
+    publicKeyJwk = Object.freeze({ kty: "EC", crv: "P-256", x: bytesToBase64Url3(x), y: bytesToBase64Url3(y), ext: true });
+  }
+  if (extensions) {
+    if (offset >= bytes.length) fail4();
+    const decoded = decodeCbor(bytes, offset);
+    offset = decoded.offset;
+    if (!(decoded.value instanceof Map)) fail4();
+  }
+  if (offset !== bytes.length) fail4();
+  return Object.freeze({ flags, counter, backupEligible, backupState, credentialId, publicKeyJwk });
+}
+function derIntegerTo32(bytes) {
+  let value = bytes;
+  while (value.length > 32 && value[0] === 0) value = value.slice(1);
+  if (!value.length || value.length > 32 || value[0] & 128) fail4();
+  const output = new Uint8Array(32);
+  output.set(value, 32 - value.length);
+  return output;
+}
+function derEcdsaToRaw(value) {
+  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+  if (bytes.length === 64) return bytes;
+  if (bytes.length < 8 || bytes[0] !== 48) fail4();
+  let offset = 1;
+  let sequenceLength = bytes[offset++];
+  if (sequenceLength & 128) {
+    const width = sequenceLength & 127;
+    if (width < 1 || width > 2 || offset + width > bytes.length) fail4();
+    sequenceLength = 0;
+    for (let index = 0; index < width; index += 1) sequenceLength = sequenceLength * 256 + bytes[offset++];
+  }
+  if (offset + sequenceLength !== bytes.length || bytes[offset++] !== 2) fail4();
+  const rLength = bytes[offset++];
+  if (!rLength || offset + rLength > bytes.length) fail4();
+  const r = derIntegerTo32(bytes.slice(offset, offset + rLength));
+  offset += rLength;
+  if (bytes[offset++] !== 2) fail4();
+  const sLength = bytes[offset++];
+  if (!sLength || offset + sLength !== bytes.length) fail4();
+  const s = derIntegerTo32(bytes.slice(offset, offset + sLength));
+  return concatBytes(r, s);
+}
+function normalizeTransportList(value) {
+  const allowed = /* @__PURE__ */ new Set(["ble", "cable", "hybrid", "internal", "nfc", "smart-card", "usb"]);
+  return Object.freeze((Array.isArray(value) ? value : []).map((item) => String(item || "")).filter((item) => allowed.has(item)).slice(0, 8));
+}
+async function verifyPasskeyRegistration({ response: response3, expectedChallenge, rpId, allowedOrigins, cryptoImpl = globalThis.crypto } = {}) {
+  const normalizedRpId = normalizeRpId(rpId);
+  const origins = normalizeOrigins(allowedOrigins);
+  const rawId = base64UrlToBytes(response3?.rawId, MAX_CREDENTIAL_BYTES);
+  const client = parseClientData(response3?.clientDataJSON, "webauthn.create", expectedChallenge, origins);
+  const attestationBytes = base64UrlToBytes(response3?.attestationObject, MAX_ATTESTATION_BYTES);
+  const decoded = decodeCbor(attestationBytes);
+  if (decoded.offset !== attestationBytes.length || !(decoded.value instanceof Map)) fail4();
+  const fmt = decoded.value.get("fmt");
+  const authData = decoded.value.get("authData");
+  const attStmt = decoded.value.get("attStmt");
+  if (fmt !== "none" || !(authData instanceof Uint8Array) || !(attStmt instanceof Map) || attStmt.size !== 0) fail4();
+  const parsed = await parseAuthenticatorData(authData, { rpId: normalizedRpId, registration: true, cryptoImpl });
+  if (!timingSafeBytes(rawId, parsed.credentialId)) fail4();
+  return Object.freeze({
+    credentialId: bytesToBase64Url3(rawId),
+    publicKeyJwk: parsed.publicKeyJwk,
+    counter: parsed.counter,
+    backupEligible: parsed.backupEligible,
+    backupState: parsed.backupState,
+    transports: normalizeTransportList(response3?.transports),
+    origin: client.data.origin
+  });
+}
+async function verifyPasskeyAuthentication({ response: response3, expectedChallenge, rpId, allowedOrigins, credential, cryptoImpl = globalThis.crypto } = {}) {
+  const normalizedRpId = normalizeRpId(rpId);
+  const origins = normalizeOrigins(allowedOrigins);
+  const rawId = base64UrlToBytes(response3?.rawId, MAX_CREDENTIAL_BYTES);
+  const expectedCredentialId = base64UrlToBytes(credential?.credentialId, MAX_CREDENTIAL_BYTES);
+  if (!timingSafeBytes(rawId, expectedCredentialId)) fail4(AUTH_ERROR_CODES.PASSKEY_NOT_FOUND);
+  const client = parseClientData(response3?.clientDataJSON, "webauthn.get", expectedChallenge, origins);
+  const authenticatorData = base64UrlToBytes(response3?.authenticatorData, MAX_AUTHENTICATOR_BYTES);
+  const parsed = await parseAuthenticatorData(authenticatorData, { rpId: normalizedRpId, registration: false, cryptoImpl });
+  const signature = derEcdsaToRaw(base64UrlToBytes(response3?.signature, MAX_SIGNATURE_BYTES));
+  if (response3?.userHandle) {
+    const supplied = base64UrlToBytes(response3.userHandle, 128);
+    const expected = base64UrlToBytes(credential?.userHandle, 128);
+    if (!timingSafeBytes(supplied, expected)) fail4();
+  }
+  let key;
+  try {
+    key = await cryptoImpl.subtle.importKey("jwk", credential?.publicKeyJwk, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+  } catch {
+    fail4();
+  }
+  const clientHash = await sha2562(client.bytes, cryptoImpl);
+  let verified = false;
+  try {
+    verified = await cryptoImpl.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, key, signature, concatBytes(authenticatorData, clientHash));
+  } catch {
+    fail4();
+  }
+  if (!verified) fail4();
+  const storedCounter = Math.max(0, Number(credential?.counter || 0));
+  if (storedCounter > 0 && parsed.counter > 0 && parsed.counter <= storedCounter) fail4();
+  return Object.freeze({
+    credentialId: bytesToBase64Url3(rawId),
+    counter: parsed.counter,
+    backupEligible: parsed.backupEligible,
+    backupState: parsed.backupState,
+    origin: client.data.origin
+  });
+}
+var PASSKEY_ALGORITHM = -7;
+
+// auth-native/core/secret-vault.mjs
+var encoder4 = new TextEncoder();
+var decoder2 = new TextDecoder("utf-8", { fatal: true });
+var fail5 = () => {
+  throw new NativeAuthError(AUTH_ERROR_CODES.STORAGE_UNAVAILABLE);
+};
+var AuthSecretVault = class {
+  constructor(secret, cryptoImpl = globalThis.crypto) {
+    const raw = String(secret || "");
+    if (raw.length < 32 || raw.length > 4096 || /[\r\n\u0000]/.test(raw) || !cryptoImpl?.subtle) fail5();
+    this.crypto = cryptoImpl;
+    this.key = cryptoImpl.subtle.digest("SHA-256", encoder4.encode(`admission-hub-auth-vault-v1\0${raw}`)).then((bytes) => cryptoImpl.subtle.importKey("raw", bytes, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]));
+  }
+  async seal(value, context) {
+    const plaintext = String(value || "");
+    const aad = String(context || "");
+    if (plaintext.length < 20 || plaintext.length > 4096 || !aad || aad.length > 512 || /[\r\n\u0000]/.test(aad)) fail5();
+    const nonce = new Uint8Array(12);
+    this.crypto.getRandomValues(nonce);
+    try {
+      const ciphertext = await this.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: nonce, additionalData: encoder4.encode(aad), tagLength: 128 },
+        await this.key,
+        encoder4.encode(plaintext)
+      );
+      return `v1.${bytesToBase64Url3(nonce)}.${bytesToBase64Url3(new Uint8Array(ciphertext))}`;
+    } catch {
+      fail5();
+    }
+  }
+  async open(value, context) {
+    const raw = String(value || "");
+    const aad = String(context || "");
+    const parts = raw.split(".");
+    if (parts.length !== 3 || parts[0] !== "v1" || !aad || aad.length > 512) fail5();
+    let nonce;
+    let ciphertext;
+    try {
+      nonce = base64UrlToBytes(parts[1], 12);
+      ciphertext = base64UrlToBytes(parts[2], 8192);
+    } catch {
+      fail5();
+    }
+    if (nonce.length !== 12 || ciphertext.length < 36) fail5();
+    try {
+      const plaintext = await this.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: nonce, additionalData: encoder4.encode(aad), tagLength: 128 },
+        await this.key,
+        ciphertext
+      );
+      const decoded = decoder2.decode(plaintext);
+      if (decoded.length < 20 || decoded.length > 4096 || /[\r\n\u0000]/.test(decoded)) fail5();
+      return decoded;
+    } catch {
+      fail5();
+    }
+  }
+};
+
 // auth-native/core/auth-engine.mjs
-var AUTH_NATIVE_VERSION = "firebase-email-password-v1";
-var OTP_TTL_MS = 10 * 60 * 1e3;
-var OTP_RESEND_COOLDOWN_MS = 60 * 1e3;
-var OTP_MAX_ATTEMPTS = 5;
+var AUTH_NATIVE_VERSION = "firebase-canonical-auth-v2";
 var SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
 var FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1e3;
-var PREPARE_LIMITS = Object.freeze([
-  Object.freeze({ scope: "otp-email-15m", source: "email", limit: 3, windowMs: 15 * 60 * 1e3 }),
-  Object.freeze({ scope: "otp-email-day", source: "email", limit: 8, windowMs: 24 * 60 * 60 * 1e3 }),
-  Object.freeze({ scope: "otp-ip-15m", source: "ip", limit: 20, windowMs: 15 * 60 * 1e3 }),
-  Object.freeze({ scope: "otp-ip-day", source: "ip", limit: 80, windowMs: 24 * 60 * 60 * 1e3 }),
-  Object.freeze({ scope: "otp-device-15m", source: "device", limit: 10, windowMs: 15 * 60 * 1e3 }),
-  Object.freeze({ scope: "otp-global-minute", source: "global", limit: 60, windowMs: 60 * 1e3 })
+var PASSKEY_CHALLENGE_TTL_MS = 5 * 60 * 1e3;
+var PASSKEY_TICKET_TTL_MS = 60 * 1e3;
+var PASSKEY_RP_ID = "admissionhub.pages.dev";
+var PASSKEY_REGISTRATION_LIMITS = Object.freeze([
+  Object.freeze({ scope: "passkey-register-user-hour", source: "email", limit: 6, windowMs: 60 * 60 * 1e3 }),
+  Object.freeze({ scope: "passkey-register-ip-hour", source: "ip", limit: 20, windowMs: 60 * 60 * 1e3 }),
+  Object.freeze({ scope: "passkey-register-device-hour", source: "device", limit: 12, windowMs: 60 * 60 * 1e3 })
 ]);
-var VERIFY_LIMITS = Object.freeze([
-  Object.freeze({ scope: "verify-email-15m", source: "email", limit: 20, windowMs: 15 * 60 * 1e3 }),
-  Object.freeze({ scope: "verify-ip-15m", source: "ip", limit: 40, windowMs: 15 * 60 * 1e3 }),
-  Object.freeze({ scope: "verify-device-15m", source: "device", limit: 30, windowMs: 15 * 60 * 1e3 })
+var PASSKEY_LOGIN_LIMITS = Object.freeze([
+  Object.freeze({ scope: "passkey-login-ip-15m", source: "ip", limit: 60, windowMs: 15 * 60 * 1e3 }),
+  Object.freeze({ scope: "passkey-login-device-15m", source: "device", limit: 30, windowMs: 15 * 60 * 1e3 }),
+  Object.freeze({ scope: "passkey-login-global-minute", source: "global", limit: 180, windowMs: 60 * 1e3 })
 ]);
 var FIREBASE_OPERATION_LIMITS = Object.freeze({
   signup: Object.freeze([
@@ -3272,17 +3679,28 @@ var FIREBASE_OPERATION_LIMITS = Object.freeze({
     Object.freeze({ scope: "firebase-login-email-15m", source: "email", limit: 12, windowMs: 15 * 60 * 1e3 }),
     Object.freeze({ scope: "firebase-login-ip-15m", source: "ip", limit: 60, windowMs: 15 * 60 * 1e3 }),
     Object.freeze({ scope: "firebase-login-device-15m", source: "device", limit: 30, windowMs: 15 * 60 * 1e3 })
+  ]),
+  google: Object.freeze([
+    Object.freeze({ scope: "firebase-google-ip-15m", source: "ip", limit: 60, windowMs: 15 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-google-device-15m", source: "device", limit: 30, windowMs: 15 * 60 * 1e3 }),
+    Object.freeze({ scope: "firebase-google-global-minute", source: "global", limit: 180, windowMs: 60 * 1e3 })
   ])
 });
 var requiredRepositoryMethods = Object.freeze([
-  "prepareChallenge",
-  "markDelivery",
-  "verifyChallenge",
   "consumeLimits",
   "establishExternalSession",
   "getExternalSession",
   "getSession",
   "revokeSession",
+  "beginPasskeyRegistration",
+  "getPasskeyRegistrationChallenge",
+  "finishPasskeyRegistration",
+  "beginPasskeyAuthentication",
+  "getPasskeyAuthenticationMaterial",
+  "issuePasskeyTicket",
+  "completePasskeySession",
+  "getPasskeyStatus",
+  "removePasskey",
   "ping",
   "cleanup",
   "nextExpiry"
@@ -3293,17 +3711,47 @@ var assertRepository = (repository) => {
   }
   return repository;
 };
+var trustedContextOrigin = (value) => {
+  try {
+    const url = new URL(String(value || ""));
+    if (url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)) return url.origin;
+    if (url.protocol !== "https:") return "";
+    if (url.hostname === PASSKEY_RP_ID || /^[a-z0-9-]+\.admissionhub\.pages\.dev$/i.test(url.hostname) || url.hostname === "admission-gk.admissionhub.workers.dev") return url.origin;
+  } catch {
+  }
+  return "";
+};
 var normalizeContext = (context) => Object.freeze({
   ip: String(context?.ip || "unknown").slice(0, 96),
   deviceId: String(context?.deviceId || "unknown").slice(0, 128),
-  userAgent: coarseUserAgent(context?.userAgent)
+  userAgent: coarseUserAgent(context?.userAgent),
+  origin: trustedContextOrigin(context?.origin)
 });
+var publicUser = (user) => Object.freeze({
+  id: user.id,
+  emailMasked: user.emailMask,
+  status: user.status,
+  createdAt: Number(user.createdAt)
+});
+var validSubject = (value) => {
+  const subject = String(value || "").trim();
+  if (!subject || subject.length > 256 || /[\r\n\u0000]/.test(subject)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  return subject;
+};
+var validChallengeId = (value) => {
+  const challengeId = String(value || "").trim();
+  if (!/^[A-Za-z0-9_-]{24,96}$/.test(challengeId)) failAuth(AUTH_ERROR_CODES.PASSKEY_INVALID);
+  return challengeId;
+};
 var CloudflareNativeAuthEngine = class {
-  constructor({ repository, hmacSecret, now = () => Date.now(), cryptoImpl = globalThis.crypto } = {}) {
+  constructor({ repository, hmacSecret, now = () => Date.now(), cryptoImpl = globalThis.crypto, passkeyRpId = PASSKEY_RP_ID, passkeyOrigins = [`https://${PASSKEY_RP_ID}`] } = {}) {
     this.repository = assertRepository(repository);
     this.hmac = new AuthHmac(hmacSecret, cryptoImpl);
+    this.vault = new AuthSecretVault(hmacSecret, cryptoImpl);
     this.now = now;
     this.crypto = cryptoImpl;
+    this.passkeyRpId = String(passkeyRpId || PASSKEY_RP_ID);
+    this.passkeyOrigins = Object.freeze([...new Set(passkeyOrigins.map((value) => new URL(value).origin))]);
   }
   async #references(email, context) {
     const values = await Promise.all([
@@ -3313,6 +3761,22 @@ var CloudflareNativeAuthEngine = class {
     ]);
     return Object.freeze({ emailRef: values[0], ipRef: values[1], deviceRef: values[2] });
   }
+  async #firebaseIdentity(input, requestContext, invalidCode = AUTH_ERROR_CODES.INVALID_INPUT) {
+    const email = normalizeAuthEmail(input?.email);
+    let subject;
+    try {
+      subject = validSubject(input?.subject);
+    } catch {
+      failAuth(invalidCode);
+    }
+    const context = normalizeContext(requestContext);
+    const refs = await this.#references(email, context);
+    const [subjectRef, sessionRef] = await Promise.all([
+      this.hmac.hex("firebase-subject-v1", subject),
+      input?.sessionToken ? this.hmac.hex("session-ref-v1", String(input.sessionToken)) : Promise.resolve("")
+    ]);
+    return Object.freeze({ email, subject, context, refs, subjectRef, sessionRef });
+  }
   #limits(definitions, refs) {
     return definitions.map((definition) => Object.freeze({
       scope: definition.scope,
@@ -3321,101 +3785,14 @@ var CloudflareNativeAuthEngine = class {
       windowMs: definition.windowMs
     }));
   }
-  async prepareOtp(input = {}, requestContext = {}) {
-    const email = normalizeAuthEmail(input.email);
-    const context = normalizeContext(requestContext);
-    const now = Number(this.now());
-    const challengeId = randomToken(24, this.crypto);
-    const code = randomSixDigitOtp(this.crypto);
-    const refs = await this.#references(email, context);
-    const codeMac = await this.hmac.hex("otp-code-v1", `${challengeId}:${code}`);
-    const record = Object.freeze({
-      challengeId,
-      emailRef: refs.emailRef,
-      emailMask: maskAuthEmail(email),
-      codeMac,
-      state: "active",
-      createdAt: now,
-      expiresAt: now + OTP_TTL_MS,
-      attempts: 0,
-      maxAttempts: OTP_MAX_ATTEMPTS,
-      ipRef: refs.ipRef,
-      deviceRef: refs.deviceRef,
-      deliveryState: "pending"
-    });
-    const prepared = errorFromRepository(await this.repository.prepareChallenge({
-      record,
-      limits: this.#limits(PREPARE_LIMITS, refs),
-      cooldownMs: OTP_RESEND_COOLDOWN_MS,
-      now
-    }));
-    return Object.freeze({
-      challengeId,
-      code,
-      email,
-      emailMask: record.emailMask,
-      expiresAt: record.expiresAt,
-      expiresIn: Math.floor(OTP_TTL_MS / 1e3),
-      resendAfter: Math.floor(OTP_RESEND_COOLDOWN_MS / 1e3),
-      preparedAt: prepared.preparedAt || now
-    });
-  }
-  async markDelivery(challengeId, { accepted, uncertain = false, provider = null } = {}) {
-    if (!/^[A-Za-z0-9_-]{24,64}$/.test(String(challengeId || ""))) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
-    const result = await this.repository.markDelivery({
-      challengeId: String(challengeId),
-      accepted: Boolean(accepted),
-      uncertain: Boolean(uncertain),
-      provider: provider ? String(provider).slice(0, 32) : null,
-      now: Number(this.now())
-    });
-    return errorFromRepository(result);
-  }
-  async verifyOtp(input = {}, requestContext = {}) {
-    const email = normalizeAuthEmail(input.email);
-    const challengeId = String(input.challengeId || "").trim();
-    const code = String(input.code || "").trim();
-    if (!/^[A-Za-z0-9_-]{24,64}$/.test(challengeId) || !/^\d{6}$/.test(code)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
-    const context = normalizeContext(requestContext);
-    const refs = await this.#references(email, context);
-    const now = Number(this.now());
-    const sessionToken = randomToken(32, this.crypto);
-    const userIdCandidate = `usr_${randomToken(18, this.crypto)}`;
-    const values = await Promise.all([
-      this.hmac.hex("otp-code-v1", `${challengeId}:${code}`),
-      this.hmac.hex("session-ref-v1", sessionToken)
-    ]);
-    const verified = errorFromRepository(await this.repository.verifyChallenge({
-      challengeId,
-      emailRef: refs.emailRef,
-      candidateCodeMac: values[0],
-      sessionRef: values[1],
-      sessionTokenShape: sessionToken.length,
-      userIdCandidate,
-      ipRef: refs.ipRef,
-      deviceRef: refs.deviceRef,
-      userAgent: context.userAgent,
-      limits: this.#limits(VERIFY_LIMITS, refs),
-      now,
-      sessionExpiresAt: now + SESSION_TTL_MS
-    }));
-    return Object.freeze({
-      sessionToken,
-      sessionExpiresAt: now + SESSION_TTL_MS,
-      user: Object.freeze({
-        id: verified.user.id,
-        emailMasked: verified.user.emailMask,
-        status: verified.user.status,
-        createdAt: verified.user.createdAt
-      }),
-      created: Boolean(verified.created)
-    });
+  #passkeyOrigins() {
+    return this.passkeyOrigins;
   }
   async consumeFirebaseOperation(input = {}, requestContext = {}) {
     const operation = String(input.operation || "");
     const definitions = FIREBASE_OPERATION_LIMITS[operation];
     if (!definitions) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
-    const email = normalizeAuthEmail(input.email);
+    const email = input.email ? normalizeAuthEmail(input.email) : "firebase-operation@admissionhub.invalid";
     const context = normalizeContext(requestContext);
     const refs = await this.#references(email, context);
     const now = Number(this.now());
@@ -3423,19 +3800,17 @@ var CloudflareNativeAuthEngine = class {
       limits: this.#limits(definitions, refs),
       now,
       eventType: `firebase-${operation}`,
-      subjectRef: refs.emailRef
+      subjectRef: input.email ? refs.emailRef : null
     }));
     return Object.freeze({
       accepted: true,
-      email,
-      emailMask: maskAuthEmail(email),
+      ...input.email ? { email, emailMask: maskAuthEmail(email) } : {},
       acceptedAt: now
     });
   }
   async establishFirebaseSession(input = {}, requestContext = {}) {
     const email = normalizeAuthEmail(input.email);
-    const subject = String(input.subject || "").trim();
-    if (!subject || subject.length > 256 || /[\r\n\u0000]/.test(subject)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+    const subject = validSubject(input.subject);
     const context = normalizeContext(requestContext);
     const refs = await this.#references(email, context);
     const now = Number(this.now());
@@ -3461,57 +3836,237 @@ var CloudflareNativeAuthEngine = class {
     return Object.freeze({
       sessionToken,
       sessionExpiresAt: now + SESSION_TTL_MS,
-      user: Object.freeze({
-        id: established.user.id,
-        emailMasked: established.user.emailMask,
-        status: established.user.status,
-        createdAt: established.user.createdAt
-      }),
+      user: publicUser(established.user),
       created: Boolean(established.created)
     });
   }
   async getFirebaseSession(sessionToken, input = {}) {
     const token = String(sessionToken || "").trim();
     if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
-    const email = normalizeAuthEmail(input.email);
-    const subject = String(input.subject || "").trim();
-    if (!subject || subject.length > 256 || /[\r\n\u0000]/.test(subject)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
-    const [sessionRef, emailRef, subjectRef] = await Promise.all([
-      this.hmac.hex("session-ref-v1", token),
-      this.hmac.hex("email-ref-v1", email),
-      this.hmac.hex("firebase-subject-v1", subject)
-    ]);
+    const identity = await this.#firebaseIdentity({ ...input, sessionToken: token }, {}, AUTH_ERROR_CODES.SESSION_INVALID);
     const result = errorFromRepository(await this.repository.getExternalSession({
-      sessionRef,
+      sessionRef: identity.sessionRef,
       provider: "firebase",
-      subjectRef,
-      emailRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
       now: Number(this.now())
     }));
+    return Object.freeze({ expiresAt: result.expiresAt, user: publicUser(result.user) });
+  }
+  async beginPasskeyRegistration(input = {}, requestContext = {}) {
+    const token = String(input.sessionToken || "").trim();
+    const refreshToken = String(input.refreshToken || "").trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token) || refreshToken.length < 20 || refreshToken.length > 4096 || /[\r\n\u0000;]/.test(refreshToken)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+    const identity = await this.#firebaseIdentity({ ...input, sessionToken: token }, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const now = Number(this.now());
+    const challengeId = randomToken(24, this.crypto);
+    const challenge = randomToken(32, this.crypto);
+    const challengeMac = await this.hmac.hex("passkey-challenge-v1", `${challengeId}:${challenge}`);
+    const refreshCipher = await this.vault.seal(refreshToken, `passkey-refresh:${identity.subjectRef}`);
+    const userHandleCandidate = randomToken(32, this.crypto);
+    const prepared = errorFromRepository(await this.repository.beginPasskeyRegistration({
+      challengeId,
+      challengeMac,
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      deviceRef: identity.refs.deviceRef,
+      ipRef: identity.refs.ipRef,
+      userHandleCandidate,
+      refreshCipher,
+      limits: this.#limits(PASSKEY_REGISTRATION_LIMITS, identity.refs),
+      now,
+      expiresAt: now + PASSKEY_CHALLENGE_TTL_MS
+    }));
     return Object.freeze({
-      expiresAt: result.expiresAt,
-      user: Object.freeze({
-        id: result.user.id,
-        emailMasked: result.user.emailMask,
-        status: result.user.status,
-        createdAt: result.user.createdAt
+      challengeId,
+      options: Object.freeze({
+        challenge,
+        rp: Object.freeze({ id: this.passkeyRpId, name: "Admission Hub" }),
+        user: Object.freeze({ id: prepared.userHandle, name: prepared.user.emailMask, displayName: "Admission Hub শিক্ষার্থী" }),
+        pubKeyCredParams: Object.freeze([{ type: "public-key", alg: PASSKEY_ALGORITHM }]),
+        timeout: 12e4,
+        attestation: "none",
+        authenticatorSelection: Object.freeze({ residentKey: "required", requireResidentKey: true, userVerification: "required" }),
+        excludeCredentials: Object.freeze((prepared.credentials || []).map((row) => Object.freeze({
+          type: "public-key",
+          id: row.credentialId,
+          transports: row.transports
+        })))
       })
     });
+  }
+  async finishPasskeyRegistration(input = {}, requestContext = {}) {
+    const challengeId = validChallengeId(input.challengeId);
+    const token = String(input.sessionToken || "").trim();
+    const refreshToken = String(input.refreshToken || "").trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token) || refreshToken.length < 20 || refreshToken.length > 4096 || /[\r\n\u0000;]/.test(refreshToken)) {
+      failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+    }
+    const identity = await this.#firebaseIdentity({ ...input, sessionToken: token }, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const suppliedChallenge = readPasskeyClientChallenge(input.response?.clientDataJSON, "webauthn.create");
+    const candidateChallengeMac = await this.hmac.hex("passkey-challenge-v1", `${challengeId}:${suppliedChallenge}`);
+    const challenge = errorFromRepository(await this.repository.getPasskeyRegistrationChallenge({
+      challengeId,
+      candidateChallengeMac,
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      deviceRef: identity.refs.deviceRef,
+      now: Number(this.now())
+    }));
+    const verified = await verifyPasskeyRegistration({
+      response: input.response,
+      expectedChallenge: suppliedChallenge,
+      rpId: this.passkeyRpId,
+      allowedOrigins: this.#passkeyOrigins(identity.context),
+      cryptoImpl: this.crypto
+    });
+    await this.vault.open(challenge.refreshCipher, `passkey-refresh:${challenge.subjectRef}`);
+    const refreshCipher = await this.vault.seal(refreshToken, `passkey-refresh:${challenge.subjectRef}`);
+    const stored = errorFromRepository(await this.repository.finishPasskeyRegistration({
+      challengeId,
+      candidateChallengeMac,
+      deviceRef: identity.refs.deviceRef,
+      credential: {
+        ...verified,
+        userHandle: challenge.userHandle,
+        refreshCipher
+      },
+      now: Number(this.now())
+    }));
+    return Object.freeze({ registered: true, credentialCount: stored.credentialCount, user: publicUser(stored.user) });
+  }
+  async beginPasskeyAuthentication(requestContext = {}) {
+    const context = normalizeContext(requestContext);
+    const refs = await this.#references("passkey-login@admissionhub.invalid", context);
+    const now = Number(this.now());
+    const challengeId = randomToken(24, this.crypto);
+    const challenge = randomToken(32, this.crypto);
+    const challengeMac = await this.hmac.hex("passkey-challenge-v1", `${challengeId}:${challenge}`);
+    errorFromRepository(await this.repository.beginPasskeyAuthentication({
+      challengeId,
+      challengeMac,
+      deviceRef: refs.deviceRef,
+      ipRef: refs.ipRef,
+      limits: this.#limits(PASSKEY_LOGIN_LIMITS, refs),
+      now,
+      expiresAt: now + PASSKEY_CHALLENGE_TTL_MS
+    }));
+    return Object.freeze({
+      challengeId,
+      options: Object.freeze({
+        challenge,
+        rpId: this.passkeyRpId,
+        timeout: 12e4,
+        userVerification: "required"
+      })
+    });
+  }
+  async finishPasskeyAuthentication(input = {}, requestContext = {}) {
+    const challengeId = validChallengeId(input.challengeId);
+    const credentialId = String(input.response?.rawId || "");
+    if (!/^[A-Za-z0-9_-]{16,1400}$/.test(credentialId)) failAuth(AUTH_ERROR_CODES.PASSKEY_INVALID);
+    const context = normalizeContext(requestContext);
+    const refs = await this.#references("passkey-login@admissionhub.invalid", context);
+    const suppliedChallenge = readPasskeyClientChallenge(input.response?.clientDataJSON, "webauthn.get");
+    const candidateChallengeMac = await this.hmac.hex("passkey-challenge-v1", `${challengeId}:${suppliedChallenge}`);
+    const material = errorFromRepository(await this.repository.getPasskeyAuthenticationMaterial({
+      challengeId,
+      candidateChallengeMac,
+      credentialId,
+      deviceRef: refs.deviceRef,
+      now: Number(this.now())
+    }));
+    const verified = await verifyPasskeyAuthentication({
+      response: input.response,
+      expectedChallenge: suppliedChallenge,
+      rpId: this.passkeyRpId,
+      allowedOrigins: this.#passkeyOrigins(context),
+      credential: material.credential,
+      cryptoImpl: this.crypto
+    });
+    const loginTicket = randomToken(32, this.crypto);
+    const ticketRef = await this.hmac.hex("passkey-ticket-v1", loginTicket);
+    const issued = errorFromRepository(await this.repository.issuePasskeyTicket({
+      challengeId,
+      candidateChallengeMac,
+      credentialId,
+      previousCounter: material.credential.counter,
+      nextCounter: verified.counter,
+      backupState: verified.backupState,
+      ticketRef,
+      deviceRef: refs.deviceRef,
+      now: Number(this.now()),
+      expiresAt: Number(this.now()) + PASSKEY_TICKET_TTL_MS
+    }));
+    const refreshToken = await this.vault.open(issued.refreshCipher, `passkey-refresh:${issued.subjectRef}`);
+    return Object.freeze({ loginTicket, refreshToken });
+  }
+  async completePasskeySession(input = {}, requestContext = {}) {
+    const loginTicket = String(input.loginTicket || "").trim();
+    const rotatedRefreshToken = String(input.refreshToken || "").trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(loginTicket) || rotatedRefreshToken.length < 20 || rotatedRefreshToken.length > 4096 || /[\r\n\u0000;]/.test(rotatedRefreshToken)) failAuth(AUTH_ERROR_CODES.PASSKEY_INVALID);
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.PASSKEY_INVALID);
+    const now = Number(this.now());
+    const sessionToken = randomToken(32, this.crypto);
+    const [ticketRef, sessionRef, refreshCipher] = await Promise.all([
+      this.hmac.hex("passkey-ticket-v1", loginTicket),
+      this.hmac.hex("session-ref-v1", sessionToken),
+      this.vault.seal(rotatedRefreshToken, `passkey-refresh:${identity.subjectRef}`)
+    ]);
+    const completed = errorFromRepository(await this.repository.completePasskeySession({
+      ticketRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      emailMask: maskAuthEmail(identity.email),
+      sessionRef,
+      refreshCipher,
+      ipRef: identity.refs.ipRef,
+      deviceRef: identity.refs.deviceRef,
+      userAgent: identity.context.userAgent,
+      now,
+      sessionExpiresAt: now + SESSION_TTL_MS
+    }));
+    return Object.freeze({
+      sessionToken,
+      sessionExpiresAt: now + SESSION_TTL_MS,
+      user: publicUser(completed.user),
+      created: false
+    });
+  }
+  async getPasskeyStatus(input = {}, requestContext = {}) {
+    const token = String(input.sessionToken || "").trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+    const identity = await this.#firebaseIdentity({ ...input, sessionToken: token }, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const result = errorFromRepository(await this.repository.getPasskeyStatus({
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      now: Number(this.now())
+    }));
+    return Object.freeze({ enabled: result.count > 0, count: result.count, credentials: Object.freeze(result.credentials) });
+  }
+  async removePasskey(input = {}, requestContext = {}) {
+    const token = String(input.sessionToken || "").trim();
+    const credentialId = String(input.credentialId || "");
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token) || !/^[A-Za-z0-9_-]{16,1400}$/.test(credentialId)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+    const identity = await this.#firebaseIdentity({ ...input, sessionToken: token }, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const result = errorFromRepository(await this.repository.removePasskey({
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      credentialId,
+      now: Number(this.now())
+    }));
+    return Object.freeze({ removed: true, credentialCount: result.credentialCount });
   }
   async getSession(sessionToken) {
     const token = String(sessionToken || "").trim();
     if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
     const sessionRef = await this.hmac.hex("session-ref-v1", token);
     const result = errorFromRepository(await this.repository.getSession({ sessionRef, now: Number(this.now()) }));
-    return Object.freeze({
-      expiresAt: result.expiresAt,
-      user: Object.freeze({
-        id: result.user.id,
-        emailMasked: result.user.emailMask,
-        status: result.user.status,
-        createdAt: result.user.createdAt
-      })
-    });
+    return Object.freeze({ expiresAt: result.expiresAt, user: publicUser(result.user) });
   }
   async revokeSession(sessionToken) {
     const token = String(sessionToken || "").trim();
@@ -3534,19 +4089,21 @@ var CloudflareNativeAuthEngine = class {
 // auth-native/providers/firebase-auth.mjs
 var IDENTITY_TOOLKIT = "https://identitytoolkit.googleapis.com/v1";
 var SECURE_TOKEN = "https://securetoken.googleapis.com/v1/token";
+var GOOGLE_USERINFO = "https://www.googleapis.com/oauth2/v3/userinfo";
 var DEFAULT_CONTINUE_URL = "https://admissionhub.pages.dev/?firebaseVerified=1";
 var FirebaseRequestError = class extends Error {
-  constructor(reason = "FIREBASE_UNAVAILABLE", status = 0) {
-    super(reason);
+  constructor(reason2 = "FIREBASE_UNAVAILABLE", status = 0) {
+    super(reason2);
     this.name = "FirebaseRequestError";
-    this.reason = String(reason || "FIREBASE_UNAVAILABLE").slice(0, 80);
+    this.reason = String(reason2 || "FIREBASE_UNAVAILABLE").slice(0, 80);
     this.status = Number(status || 0);
   }
 };
 var errorReason = (payload) => String(payload?.error?.message || "FIREBASE_UNAVAILABLE").split(/\s*:\s*/, 1)[0].trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 80) || "FIREBASE_UNAVAILABLE";
 var validApiKey = (value) => /^[A-Za-z0-9_-]{20,128}$/.test(String(value || ""));
 var validToken = (value) => typeof value === "string" && value.length >= 20 && value.length <= 4096 && !/[\r\n\u0000;]/.test(value);
-var validSubject = (value) => typeof value === "string" && value.length >= 1 && value.length <= 256 && !/[\r\n\u0000]/.test(value);
+var validSubject2 = (value) => typeof value === "string" && value.length >= 1 && value.length <= 256 && !/[\r\n\u0000]/.test(value);
+var validGoogleClientId = (value) => /^\d{6,}-[A-Za-z0-9_-]{8,}\.apps\.googleusercontent\.com$/.test(String(value || ""));
 function safeContinueUrl(value) {
   try {
     const url = new URL(String(value || DEFAULT_CONTINUE_URL));
@@ -3555,6 +4112,26 @@ function safeContinueUrl(value) {
   } catch {
     return DEFAULT_CONTINUE_URL;
   }
+}
+function googleIdpFromProject(payload) {
+  const entries = Array.isArray(payload?.idpConfig) ? payload.idpConfig : [];
+  const row = entries.find((item) => {
+    const provider = String(item?.provider || item?.providerId || "").toLowerCase();
+    return provider === "google" || provider === "google.com";
+  });
+  const clientId = String(row?.clientId || "");
+  return Object.freeze({
+    enabled: row?.enabled === true,
+    clientId: validGoogleClientId(clientId) ? clientId : ""
+  });
+}
+function googleCredential(input = {}) {
+  const idToken = String(input.idToken || "").trim();
+  const accessToken = String(input.accessToken || "").trim();
+  if (Boolean(idToken) === Boolean(accessToken)) throw new FirebaseRequestError("INVALID_IDP_RESPONSE");
+  const value = idToken || accessToken;
+  if (!validToken(value)) throw new FirebaseRequestError("INVALID_IDP_RESPONSE");
+  return Object.freeze({ kind: idToken ? "id_token" : "access_token", value });
 }
 var FirebaseEmailPasswordProvider = class {
   constructor({ apiKey, continueUrl, fetchImpl = globalThis.fetch } = {}) {
@@ -3572,6 +4149,7 @@ var FirebaseEmailPasswordProvider = class {
       response3 = await this.fetch(`${IDENTITY_TOOLKIT}/projects?key=${encodeURIComponent(this.apiKey)}`, {
         method: "GET",
         headers: { Accept: "application/json", "Cache-Control": "no-store" },
+        redirect: "error",
         signal: AbortSignal.timeout(12e3)
       });
     } catch {
@@ -3586,7 +4164,8 @@ var FirebaseEmailPasswordProvider = class {
     const authorizedDomains = Array.isArray(payload?.authorizedDomains) ? payload.authorizedDomains.map((value) => String(value).toLowerCase()) : [];
     return Object.freeze({
       projectIdentified: typeof payload?.projectId === "string" && payload.projectId.length > 3,
-      continueDomainAuthorized: authorizedDomains.includes(new URL(this.continueUrl).hostname)
+      continueDomainAuthorized: authorizedDomains.includes(new URL(this.continueUrl).hostname),
+      google: googleIdpFromProject(payload)
     });
   }
   async #post(url, body, { form = false } = {}) {
@@ -3601,6 +4180,7 @@ var FirebaseEmailPasswordProvider = class {
           "Cache-Control": "no-store"
         },
         body: form ? String(body) : JSON.stringify(body),
+        redirect: "error",
         signal: AbortSignal.timeout(12e3)
       });
     } catch {
@@ -3614,13 +4194,31 @@ var FirebaseEmailPasswordProvider = class {
     if (!response3.ok) throw new FirebaseRequestError(errorReason(payload), response3.status);
     return payload;
   }
+  async inspectGoogleProvider() {
+    const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:createAuthUri?key=${encodeURIComponent(this.apiKey)}`, {
+      providerId: "google.com",
+      continueUri: new URL(this.continueUrl).origin,
+      customParameter: { prompt: "select_account" }
+    });
+    let authUri;
+    try {
+      authUri = new URL(String(payload?.authUri || ""));
+    } catch {
+      throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
+    }
+    const clientId = authUri.searchParams.get("client_id") || "";
+    if (payload?.providerId !== "google.com" || !validToken(String(payload?.sessionId || "")) || authUri.protocol !== "https:" || authUri.hostname !== "accounts.google.com" || !validGoogleClientId(clientId)) {
+      throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
+    }
+    return Object.freeze({ available: true, clientId });
+  }
   async signUp(email, password) {
     const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:signUp?key=${encodeURIComponent(this.apiKey)}`, {
       email,
       password,
       returnSecureToken: true
     });
-    if (!validToken(payload?.idToken) || !validSubject(payload?.localId)) {
+    if (!validToken(payload?.idToken) || !validSubject2(payload?.localId)) {
       throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
     }
     return Object.freeze({ idToken: payload.idToken, subject: payload.localId });
@@ -3650,7 +4248,7 @@ var FirebaseEmailPasswordProvider = class {
       password,
       returnSecureToken: true
     });
-    if (!validToken(payload?.idToken) || !validToken(payload?.refreshToken) || !validSubject(payload?.localId)) {
+    if (!validToken(payload?.idToken) || !validToken(payload?.refreshToken) || !validSubject2(payload?.localId)) {
       throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
     }
     return Object.freeze({
@@ -3660,25 +4258,83 @@ var FirebaseEmailPasswordProvider = class {
       expiresIn: Math.max(60, Number(payload.expiresIn || 3600))
     });
   }
+  async #googleSignIn(input, firebaseIdToken = "") {
+    const credential = googleCredential(input);
+    if (firebaseIdToken && !validToken(firebaseIdToken)) throw new FirebaseRequestError("INVALID_ID_TOKEN");
+    const postBody = new URLSearchParams({ [credential.kind]: credential.value, providerId: "google.com" });
+    const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:signInWithIdp?key=${encodeURIComponent(this.apiKey)}`, {
+      requestUri: new URL(this.continueUrl).origin,
+      postBody: postBody.toString(),
+      returnIdpCredential: true,
+      returnSecureToken: true,
+      autoCreate: !firebaseIdToken,
+      ...firebaseIdToken ? { idToken: firebaseIdToken } : {}
+    });
+    if (!validToken(payload?.idToken) || !validToken(payload?.refreshToken) || !validSubject2(payload?.localId) || typeof payload?.email !== "string" || payload?.emailVerified !== true) {
+      throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
+    }
+    return Object.freeze({
+      idToken: payload.idToken,
+      refreshToken: payload.refreshToken,
+      subject: payload.localId,
+      email: payload.email,
+      emailVerified: true,
+      isNewUser: payload.isNewUser === true,
+      expiresIn: Math.max(60, Number(payload.expiresIn || 3600))
+    });
+  }
+  signInWithGoogle(input) {
+    return this.#googleSignIn(input);
+  }
+  linkGoogle(firebaseIdToken, input) {
+    return this.#googleSignIn(input, firebaseIdToken);
+  }
+  async googleIdentity(accessToken) {
+    if (!validToken(accessToken)) throw new FirebaseRequestError("INVALID_IDP_RESPONSE");
+    let response3;
+    try {
+      response3 = await this.fetch(GOOGLE_USERINFO, {
+        method: "GET",
+        headers: { Accept: "application/json", Authorization: `Bearer ${accessToken}`, "Cache-Control": "no-store" },
+        redirect: "error",
+        signal: AbortSignal.timeout(12e3)
+      });
+    } catch {
+      throw new FirebaseRequestError("NETWORK_ERROR");
+    }
+    let payload = {};
+    try {
+      payload = await response3.json();
+    } catch {
+    }
+    if (!response3.ok) throw new FirebaseRequestError("INVALID_IDP_RESPONSE", response3.status);
+    if (!validSubject2(payload?.sub) || typeof payload?.email !== "string" || payload?.email_verified !== true) {
+      throw new FirebaseRequestError("INVALID_IDP_RESPONSE");
+    }
+    return Object.freeze({ subject: payload.sub, email: payload.email, emailVerified: true });
+  }
   async lookup(idToken) {
     if (!validToken(idToken)) throw new FirebaseRequestError("INVALID_ID_TOKEN");
     const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:lookup?key=${encodeURIComponent(this.apiKey)}`, { idToken });
     const user = Array.isArray(payload?.users) ? payload.users[0] : null;
-    if (!user || !validSubject(user.localId) || typeof user.email !== "string") {
+    if (!user || !validSubject2(user.localId) || typeof user.email !== "string") {
       throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
     }
+    const providerRows = Array.isArray(user.providerUserInfo) ? user.providerUserInfo : [];
     return Object.freeze({
       subject: user.localId,
       email: user.email,
       emailVerified: user.emailVerified === true,
-      disabled: user.disabled === true
+      disabled: user.disabled === true,
+      providers: Object.freeze(providerRows.map((row) => String(row?.providerId || "")).filter(Boolean)),
+      googleSubjects: Object.freeze(providerRows.filter((row) => row?.providerId === "google.com" && validSubject2(row?.rawId)).map((row) => String(row.rawId)))
     });
   }
   async refresh(refreshToken) {
     if (!validToken(refreshToken)) throw new FirebaseRequestError("INVALID_REFRESH_TOKEN");
     const body = new URLSearchParams({ grant_type: "refresh_token", refresh_token: refreshToken });
     const payload = await this.#post(`${SECURE_TOKEN}?key=${encodeURIComponent(this.apiKey)}`, body, { form: true });
-    if (!validToken(payload?.id_token) || !validToken(payload?.refresh_token) || !validSubject(payload?.user_id)) {
+    if (!validToken(payload?.id_token) || !validToken(payload?.refresh_token) || !validSubject2(payload?.user_id)) {
       throw new FirebaseRequestError("INVALID_PROVIDER_RESPONSE");
     }
     return Object.freeze({
@@ -3689,6 +4345,150 @@ var FirebaseEmailPasswordProvider = class {
     });
   }
 };
+var __firebaseProviderTest = Object.freeze({ validGoogleClientId, googleIdpFromProject });
+
+// auth-native/verification/provider-contract.mjs
+var VERIFICATION_CHANNELS = Object.freeze({
+  OTP: "otp",
+  WHATSAPP: "whatsapp",
+  TELEGRAM: "telegram"
+});
+var VERIFICATION_FAILURE_CLASS = Object.freeze({
+  HARD: "hard-provider-failure",
+  TEMPORARY: "temporary-provider-failure",
+  USER: "user-error"
+});
+var VERIFICATION_MODES = Object.freeze({
+  LOCAL_CODE: "local-code",
+  PROVIDER_EVIDENCE: "provider-evidence"
+});
+var CHANNEL_VALUES = new Set(Object.values(VERIFICATION_CHANNELS));
+var FAILURE_VALUES = new Set(Object.values(VERIFICATION_FAILURE_CLASS));
+var MODE_VALUES = new Set(Object.values(VERIFICATION_MODES));
+var REQUIRED_METHODS = Object.freeze([
+  "sendVerification",
+  "checkAvailability",
+  "getRemainingQuota",
+  "verifyCode",
+  "getProviderStatus"
+]);
+var VerificationProviderError = class extends Error {
+  constructor(code, failureClass = VERIFICATION_FAILURE_CLASS.TEMPORARY, options = {}) {
+    super(String(code || "PROVIDER_FAILURE").replace(/[^A-Z0-9_-]/gi, "_").slice(0, 64));
+    this.name = "VerificationProviderError";
+    this.code = this.message.toUpperCase();
+    this.failureClass = FAILURE_VALUES.has(failureClass) ? failureClass : VERIFICATION_FAILURE_CLASS.TEMPORARY;
+    this.retryAfter = Math.max(0, Math.ceil(Number(options.retryAfter || 0)));
+  }
+};
+function assertVerificationProvider(provider) {
+  if (!provider || !/^[a-z0-9][a-z0-9-]{1,31}$/.test(String(provider.id || ""))) throw new TypeError("Verification provider id is invalid.");
+  if (!CHANNEL_VALUES.has(provider.channel)) throw new TypeError("Verification provider channel is invalid.");
+  if (!MODE_VALUES.has(provider.verificationMode)) throw new TypeError("Verification provider mode is invalid.");
+  for (const method of REQUIRED_METHODS) {
+    if (typeof provider[method] !== "function") throw new TypeError(`Verification provider method is missing: ${method}`);
+  }
+  return provider;
+}
+var DisabledVerificationProvider = class {
+  constructor({ id, channel, verificationMode = VERIFICATION_MODES.LOCAL_CODE } = {}) {
+    this.id = String(id || "disabled");
+    this.channel = channel;
+    this.verificationMode = verificationMode;
+    assertVerificationProvider(this);
+  }
+  async checkAvailability() {
+    return Object.freeze({ available: false, code: "NOT_CONFIGURED" });
+  }
+  async getRemainingQuota() {
+    return Object.freeze({ remaining: 0, limit: 0, resetAt: 0, source: "disabled" });
+  }
+  async getProviderStatus() {
+    return Object.freeze({ status: "disabled", configured: false });
+  }
+  async sendVerification() {
+    throw new VerificationProviderError("NOT_CONFIGURED", VERIFICATION_FAILURE_CLASS.HARD);
+  }
+  async verifyCode() {
+    throw new VerificationProviderError("NOT_CONFIGURED", VERIFICATION_FAILURE_CLASS.HARD);
+  }
+};
+var __verificationProviderTest = Object.freeze({ CHANNEL_VALUES, FAILURE_VALUES, MODE_VALUES, REQUIRED_METHODS });
+
+// auth-native/verification/config.mjs
+var SLOT_DEFINITIONS = Object.freeze({
+  "otp-a": Object.freeze({ channel: VERIFICATION_CHANNELS.OTP, verificationMode: VERIFICATION_MODES.LOCAL_CODE, priority: 10 }),
+  "otp-b": Object.freeze({ channel: VERIFICATION_CHANNELS.OTP, verificationMode: VERIFICATION_MODES.LOCAL_CODE, priority: 20 }),
+  "otp-c": Object.freeze({ channel: VERIFICATION_CHANNELS.OTP, verificationMode: VERIFICATION_MODES.LOCAL_CODE, priority: 30 }),
+  whatsapp: Object.freeze({ channel: VERIFICATION_CHANNELS.WHATSAPP, verificationMode: VERIFICATION_MODES.LOCAL_CODE, priority: 40 }),
+  telegram: Object.freeze({ channel: VERIFICATION_CHANNELS.TELEGRAM, verificationMode: VERIFICATION_MODES.PROVIDER_EVIDENCE, priority: 50 })
+});
+var int = (value, fallback, min, max) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= min && parsed <= max ? parsed : fallback;
+};
+var ratio = (value, fallback) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : fallback;
+};
+var bool = (value) => value === true;
+var cleanReason = (value) => String(value || "").replace(/[^A-Za-z0-9 _.-]/g, "").slice(0, 80);
+var DEFAULT_POLICY = Object.freeze({
+  codeTtlSeconds: 300,
+  maxAttempts: 5,
+  resendCooldownSeconds: 60,
+  lockoutSeconds: 900,
+  maxProviderRetries: 1,
+  circuitFailureThreshold: 3,
+  circuitCooldownSeconds: 300,
+  lowQuotaRatio: 0.15
+});
+function safeJson(raw) {
+  if (!raw) return {};
+  const text = String(raw);
+  if (text.length > 16384) return {};
+  try {
+    const parsed = JSON.parse(text);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+function verificationConfig(raw) {
+  const input = typeof raw === "string" ? safeJson(raw) : raw && typeof raw === "object" ? raw : {};
+  const policyInput = input.policy && typeof input.policy === "object" ? input.policy : {};
+  const policy = Object.freeze({
+    codeTtlSeconds: int(policyInput.codeTtlSeconds, DEFAULT_POLICY.codeTtlSeconds, 60, 600),
+    maxAttempts: int(policyInput.maxAttempts, DEFAULT_POLICY.maxAttempts, 1, 5),
+    resendCooldownSeconds: int(policyInput.resendCooldownSeconds, DEFAULT_POLICY.resendCooldownSeconds, 30, 600),
+    lockoutSeconds: int(policyInput.lockoutSeconds, DEFAULT_POLICY.lockoutSeconds, 60, 86400),
+    maxProviderRetries: int(policyInput.maxProviderRetries, DEFAULT_POLICY.maxProviderRetries, 0, 2),
+    circuitFailureThreshold: int(policyInput.circuitFailureThreshold, DEFAULT_POLICY.circuitFailureThreshold, 1, 10),
+    circuitCooldownSeconds: int(policyInput.circuitCooldownSeconds, DEFAULT_POLICY.circuitCooldownSeconds, 30, 3600),
+    lowQuotaRatio: ratio(policyInput.lowQuotaRatio, DEFAULT_POLICY.lowQuotaRatio)
+  });
+  const supplied = Array.isArray(input.providers) ? input.providers : [];
+  const byId = new Map(supplied.map((row) => [String(row?.id || ""), row]));
+  const providers = Object.entries(SLOT_DEFINITIONS).map(([id, slot]) => {
+    const row = byId.get(id) || {};
+    return Object.freeze({
+      id,
+      channel: slot.channel,
+      verificationMode: slot.verificationMode,
+      enabled: bool(row.enabled),
+      priority: int(row.priority, slot.priority, 1, 1e4),
+      dailyQuota: int(row.dailyQuota, 0, 0, 1e7),
+      timeoutMs: int(row.timeoutMs, 8e3, 1e3, 2e4),
+      label: cleanReason(row.label) || id.toUpperCase()
+    });
+  }).sort((left, right) => left.priority - right.priority || left.id.localeCompare(right.id));
+  return Object.freeze({
+    enabled: bool(input.enabled),
+    policy,
+    providers: Object.freeze(providers)
+  });
+}
+var __verificationConfigTest = Object.freeze({ SLOT_DEFINITIONS, DEFAULT_POLICY, safeJson });
 
 // auth-native/worker/public-auth-handler.mjs
 var AUTH_API_PREFIX = "/api/auth/v1";
@@ -3696,7 +4496,7 @@ var AUTH_SESSION_COOKIE = "__Host-ah_session";
 var AUTH_FIREBASE_COOKIE = "__Host-ah_firebase";
 var AUTH_DEVICE_COOKIE = "__Host-ah_device";
 var AUTHORITY_NAME = "admission-hub-global-auth-v1";
-var MAX_BODY_BYTES = 4096;
+var MAX_BODY_BYTES = 24 * 1024;
 var YEAR_SECONDS = 365 * 24 * 60 * 60;
 var SESSION_SECONDS = 30 * 24 * 60 * 60;
 var PASSWORD_MIN = 8;
@@ -3712,7 +4512,7 @@ var JSON_HEADERS = Object.freeze({
   Vary: "Origin"
 });
 var allowedOrigin = (origin) => {
-  if (!origin) return true;
+  if (!origin) return false;
   try {
     const url = new URL(origin);
     if (url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)) return true;
@@ -3761,7 +4561,7 @@ async function readJson(request) {
   const declared = Number(request.headers.get("Content-Length") || 0);
   if (declared > MAX_BODY_BYTES || !request.body) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
   const reader = request.body.getReader();
-  const decoder = new TextDecoder();
+  const decoder3 = new TextDecoder();
   let raw = "";
   let size = 0;
   while (true) {
@@ -3772,9 +4572,9 @@ async function readJson(request) {
       await reader.cancel();
       throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
     }
-    raw += decoder.decode(value, { stream: true });
+    raw += decoder3.decode(value, { stream: true });
   }
-  raw += decoder.decode();
+  raw += decoder3.decode();
   if (!raw) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
   try {
     return JSON.parse(raw);
@@ -3788,7 +4588,8 @@ var clientContext = (request, existingDeviceId = "") => {
     deviceId,
     isNewDevice: deviceId !== existingDeviceId,
     ip: String(request.headers.get("CF-Connecting-IP") || "unknown").slice(0, 96),
-    userAgent: String(request.headers.get("User-Agent") || "").slice(0, 300)
+    userAgent: String(request.headers.get("User-Agent") || "").slice(0, 300),
+    origin: String(request.headers.get("Origin") || new URL(request.url).origin).slice(0, 256)
   });
 };
 var credentials = (body) => {
@@ -3798,6 +4599,25 @@ var credentials = (body) => {
     throw new NativeAuthError(password && password.length < PASSWORD_MIN ? AUTH_ERROR_CODES.WEAK_PASSWORD : AUTH_ERROR_CODES.INVALID_INPUT);
   }
   return Object.freeze({ email, password });
+};
+var telegramWebhookInput = (body) => {
+  const message = body?.message;
+  const telegramUserId = String(message?.from?.id || "");
+  const chatId = String(message?.chat?.id || "");
+  const text = String(message?.text || "");
+  const match = text.match(/^\/start(?:@[A-Za-z0-9_]{5,32})? ([A-Za-z0-9_-]{32,64})$/);
+  if (!Number.isSafeInteger(body?.update_id) || message?.chat?.type !== "private" || message?.from?.is_bot === true || telegramUserId !== chatId || !/^[1-9]\d{0,19}$/.test(telegramUserId) || !match) {
+    throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  }
+  return Object.freeze({ linkToken: match[1], telegramUserId, chatId });
+};
+var googleCredential2 = (body) => {
+  const accessToken = String(body?.accessToken || "").trim();
+  const idToken = String(body?.idToken || "").trim();
+  if (Boolean(accessToken) === Boolean(idToken)) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  const value = accessToken || idToken;
+  if (value.length < 20 || value.length > 4096 || /[\r\n\u0000;]/.test(value)) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  return Object.freeze(accessToken ? { accessToken } : { idToken });
 };
 async function callAuthority(env, path, body, method = "POST") {
   if (!env?.AUTH_AUTHORITY || typeof env.AUTH_AUTHORITY.idFromName !== "function") {
@@ -3830,20 +4650,20 @@ async function callAuthority(env, path, body, method = "POST") {
 }
 function providerAvailabilityFailure(cause) {
   if (!(cause instanceof FirebaseRequestError)) return Object.freeze({ code: "PROVIDER_CHECK_FAILED", providerStatus: 0 });
-  const reason = String(cause.reason || "");
+  const reason2 = String(cause.reason || "");
   const providerStatus = Number.isInteger(cause.status) && cause.status >= 100 && cause.status <= 599 ? cause.status : 0;
-  if (reason === "NETWORK_ERROR") return Object.freeze({ code: "PROVIDER_NETWORK_ERROR", providerStatus });
-  if (/REFERER|REFERRER/.test(reason)) return Object.freeze({ code: "API_KEY_REFERRER_RESTRICTED", providerStatus });
-  if (/ACCESS_NOT_CONFIGURED|SERVICE_DISABLED|API_NOT_ACTIVATED/.test(reason)) {
-    return Object.freeze({ code: "IDENTITY_TOOLKIT_DISABLED", providerStatus });
-  }
-  if (/API_KEY/.test(reason)) return Object.freeze({ code: "API_KEY_REJECTED", providerStatus });
-  if (reason === "PROJECT_NOT_FOUND") return Object.freeze({ code: "PROJECT_NOT_FOUND", providerStatus });
+  if (reason2 === "NETWORK_ERROR") return Object.freeze({ code: "PROVIDER_NETWORK_ERROR", providerStatus });
+  if (/REFERER|REFERRER/.test(reason2)) return Object.freeze({ code: "API_KEY_REFERRER_RESTRICTED", providerStatus });
+  if (/ACCESS_NOT_CONFIGURED|SERVICE_DISABLED|API_NOT_ACTIVATED/.test(reason2)) return Object.freeze({ code: "IDENTITY_TOOLKIT_DISABLED", providerStatus });
+  if (/API_KEY/.test(reason2)) return Object.freeze({ code: "API_KEY_REJECTED", providerStatus });
+  if (reason2 === "PROJECT_NOT_FOUND") return Object.freeze({ code: "PROJECT_NOT_FOUND", providerStatus });
+  if (reason2 === "OPERATION_NOT_ALLOWED") return Object.freeze({ code: "PROVIDER_DISABLED", providerStatus });
   return Object.freeze({ code: providerStatus ? `PROVIDER_HTTP_${providerStatus}` : "PROVIDER_CHECK_FAILED", providerStatus });
 }
 var PROVIDER_DIAGNOSTIC_REASONS = /* @__PURE__ */ new Set([
   "NETWORK_ERROR",
   "INVALID_PROVIDER_RESPONSE",
+  "INVALID_IDP_RESPONSE",
   "NOT_CONFIGURED",
   "API_KEY_INVALID",
   "PROJECT_NOT_FOUND",
@@ -3867,6 +4687,7 @@ var PROVIDER_DIAGNOSTIC_REASONS = /* @__PURE__ */ new Set([
   "TOKEN_EXPIRED",
   "INVALID_ID_TOKEN",
   "USER_NOT_FOUND",
+  "FEDERATED_USER_ID_ALREADY_LINKED",
   "MISSING_RECAPTCHA_TOKEN",
   "INVALID_RECAPTCHA_TOKEN",
   "CAPTCHA_CHECK_FAILED",
@@ -3875,8 +4696,8 @@ var PROVIDER_DIAGNOSTIC_REASONS = /* @__PURE__ */ new Set([
 function providerDiagnostic(cause, stage) {
   const operation = String(stage || "auth").toUpperCase().replace(/[^A-Z0-9_]/g, "_").slice(0, 24) || "AUTH";
   if (!(cause instanceof FirebaseRequestError)) return `${operation}_UNEXPECTED`;
-  const reason = PROVIDER_DIAGNOSTIC_REASONS.has(cause.reason) ? cause.reason : cause.status >= 100 && cause.status <= 599 ? `HTTP_${cause.status}` : "UNKNOWN";
-  return `${operation}_${reason}`;
+  const reason2 = PROVIDER_DIAGNOSTIC_REASONS.has(cause.reason) ? cause.reason : cause.status >= 100 && cause.status <= 599 ? `HTTP_${cause.status}` : "UNKNOWN";
+  return `${operation}_${reason2}`;
 }
 function providerError(cause, stage = "auth") {
   const tagged = (error) => {
@@ -3884,37 +4705,89 @@ function providerError(cause, stage = "auth") {
     return error;
   };
   if (!(cause instanceof FirebaseRequestError)) return tagged(new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE));
-  const reason = cause.reason;
-  if (reason === "NOT_CONFIGURED" || ["API_KEY_INVALID", "PROJECT_NOT_FOUND", "OPERATION_NOT_ALLOWED"].includes(reason)) {
-    return tagged(new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED));
+  const reason2 = cause.reason;
+  if (reason2 === "NOT_CONFIGURED" || ["API_KEY_INVALID", "PROJECT_NOT_FOUND", "OPERATION_NOT_ALLOWED"].includes(reason2)) {
+    return tagged(new NativeAuthError(stage.startsWith("google") ? AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE : AUTH_ERROR_CODES.NOT_CONFIGURED));
   }
-  if (["INVALID_EMAIL", "MISSING_EMAIL", "MISSING_PASSWORD"].includes(reason)) return tagged(new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT));
-  if (reason === "EMAIL_EXISTS") return tagged(new NativeAuthError(AUTH_ERROR_CODES.EMAIL_ALREADY_IN_USE));
-  if (reason === "WEAK_PASSWORD") return tagged(new NativeAuthError(AUTH_ERROR_CODES.WEAK_PASSWORD));
-  if (["INVALID_LOGIN_CREDENTIALS", "EMAIL_NOT_FOUND", "INVALID_PASSWORD"].includes(reason)) {
-    return tagged(new NativeAuthError(AUTH_ERROR_CODES.INVALID_CREDENTIALS));
-  }
-  if (reason === "USER_DISABLED") return tagged(new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_DISABLED));
-  if (["TOO_MANY_ATTEMPTS_TRY_LATER", "TOO_MANY_ATTEMPTS", "IP_BLOCKED"].includes(reason)) {
+  if (["INVALID_EMAIL", "MISSING_EMAIL", "MISSING_PASSWORD", "INVALID_IDP_RESPONSE"].includes(reason2)) return tagged(new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT));
+  if (reason2 === "EMAIL_EXISTS" && stage.startsWith("google")) return tagged(new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_LINK_REQUIRED));
+  if (reason2 === "EMAIL_EXISTS") return tagged(new NativeAuthError(AUTH_ERROR_CODES.EMAIL_ALREADY_IN_USE));
+  if (reason2 === "FEDERATED_USER_ID_ALREADY_LINKED") return tagged(new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_CONFLICT));
+  if (reason2 === "WEAK_PASSWORD") return tagged(new NativeAuthError(AUTH_ERROR_CODES.WEAK_PASSWORD));
+  if (["INVALID_LOGIN_CREDENTIALS", "EMAIL_NOT_FOUND", "INVALID_PASSWORD"].includes(reason2)) return tagged(new NativeAuthError(AUTH_ERROR_CODES.INVALID_CREDENTIALS));
+  if (reason2 === "USER_DISABLED") return tagged(new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_DISABLED));
+  if (["TOO_MANY_ATTEMPTS_TRY_LATER", "TOO_MANY_ATTEMPTS", "IP_BLOCKED"].includes(reason2)) {
     return tagged(new NativeAuthError(AUTH_ERROR_CODES.RATE_LIMITED, { retryAfter: 60 }));
   }
-  if (stage === "verification" && ["QUOTA_EXCEEDED", "INVALID_CONTINUE_URI", "UNAUTHORIZED_DOMAIN", "NETWORK_ERROR", "INVALID_PROVIDER_RESPONSE"].includes(reason)) {
+  if (stage === "verification" && ["QUOTA_EXCEEDED", "INVALID_CONTINUE_URI", "UNAUTHORIZED_DOMAIN", "NETWORK_ERROR", "INVALID_PROVIDER_RESPONSE"].includes(reason2)) {
     return tagged(new NativeAuthError(AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE));
   }
-  if (["refresh", "lookup-session"].includes(stage) && ["INVALID_REFRESH_TOKEN", "TOKEN_EXPIRED", "INVALID_ID_TOKEN", "USER_NOT_FOUND"].includes(reason)) {
+  if (["refresh", "lookup-session", "passkey-refresh"].includes(stage) && ["INVALID_REFRESH_TOKEN", "TOKEN_EXPIRED", "INVALID_ID_TOKEN", "USER_NOT_FOUND"].includes(reason2)) {
     return tagged(new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID));
   }
-  return tagged(new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE));
+  return tagged(new NativeAuthError(stage.startsWith("google") ? AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE : AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE));
 }
 var assertProviderUser = (signed, user) => {
   if (signed.subject !== user.subject) throw new NativeAuthError(AUTH_ERROR_CODES.AUTH_PROVIDER_UNAVAILABLE);
   if (user.disabled) throw new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_DISABLED);
 };
+var firebaseReadySession = async ({ provider, jar, env, context }) => {
+  const sessionToken = jar[AUTH_SESSION_COOKIE];
+  const refreshToken = jar[AUTH_FIREBASE_COOKIE];
+  if (!sessionToken || !refreshToken) throw new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
+  let refreshed;
+  let user;
+  try {
+    refreshed = await provider.refresh(refreshToken);
+  } catch (cause) {
+    throw providerError(cause, "refresh");
+  }
+  try {
+    user = await provider.lookup(refreshed.idToken);
+  } catch (cause) {
+    throw providerError(cause, "lookup-session");
+  }
+  assertProviderUser(refreshed, user);
+  if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+  const session = await callAuthority(env, "/internal/firebase/session/get", {
+    sessionToken,
+    input: { email: user.email, subject: user.subject }
+  });
+  return Object.freeze({ sessionToken, refreshed, user, session });
+};
+var sessionCookies = (established, refreshToken, context) => {
+  const maxAge = Math.max(1, Math.min(SESSION_SECONDS, Math.floor((Number(established.sessionExpiresAt || established.expiresAt) - Date.now()) / 1e3)));
+  const values = [];
+  if (established.sessionToken) values.push(sessionCookie(established.sessionToken, maxAge));
+  values.push(firebaseCookie(refreshToken, maxAge));
+  if (context.isNewDevice) values.push(deviceCookie(context.deviceId));
+  return values;
+};
+var authSuccess = (request, established, refreshToken, context) => json3(request, 200, {
+  ok: true,
+  authenticated: true,
+  emailVerified: true,
+  created: Boolean(established.created),
+  user: established.user,
+  session: { expiresAt: established.sessionExpiresAt }
+}, { "Set-Cookie": sessionCookies(established, refreshToken, context) });
+var googleActivated = (env) => env?.GOOGLE_AUTH_ACTIVATION === "enabled";
+var validWebhookSecret = (value) => /^[A-Za-z0-9_-]{20,256}$/.test(String(value || ""));
+var adminAuthorized = (request, env) => {
+  const expected = String(env?.ADMIN_TOKEN || "");
+  const supplied = String(request.headers.get("X-AH-Admin-Token") || "");
+  return expected.length >= 20 && supplied.length === expected.length && constantTimeEqual(supplied, expected);
+};
+var passkeyEndpointReady = (env) => ["canary", "enabled"].includes(String(env?.PASSKEY_AUTH_ACTIVATION || ""));
+var passkeyPublished = (env) => env?.PASSKEY_AUTH_ACTIVATION === "enabled";
 function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
+  const publicConfigCache = /* @__PURE__ */ new WeakMap();
   return async function handleNativeAuthRequest(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith(`${AUTH_API_PREFIX}/`) && url.pathname !== AUTH_API_PREFIX) return null;
-    if (!allowedOrigin(request.headers.get("Origin") || "")) {
+    const origin = request.headers.get("Origin") || "";
+    const originOptional = request.method === "GET" || request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/telegram/webhook`;
+    if (!origin && !originOptional || origin && !allowedOrigin(origin)) {
       return json3(request, 403, { ok: false, error: { code: "ORIGIN_FORBIDDEN", message: "অনুমোদিত উৎস নয়।" } });
     }
     if (request.method === "OPTIONS") {
@@ -3924,7 +4797,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           ...JSON_HEADERS,
           ...corsHeaders(request),
           "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "content-type",
+          "Access-Control-Allow-Headers": "content-type, x-ah-admin-token",
           "Access-Control-Max-Age": "600"
         }
       });
@@ -3937,19 +4810,39 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
     const jar = cookies(request);
     const context = clientContext(request, jar[AUTH_DEVICE_COOKIE]);
     try {
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/telegram/webhook`) {
+        const expected = String(env?.TELEGRAM_AUTH_WEBHOOK_SECRET || "");
+        const supplied = String(request.headers.get("X-Telegram-Bot-Api-Secret-Token") || "");
+        if (!validWebhookSecret(expected) || supplied.length !== expected.length || !constantTimeEqual(supplied, expected)) {
+          return json3(request, 403, { ok: false, error: { code: "FORBIDDEN", message: "অনুমতি নেই।" } });
+        }
+        const payload = await readJson(request);
+        let input;
+        try {
+          input = telegramWebhookInput(payload);
+        } catch {
+          return json3(request, 200, { ok: true });
+        }
+        try {
+          await callAuthority(env, "/internal/verification/telegram/webhook", { input });
+        } catch (cause) {
+          if (cause?.code !== AUTH_ERROR_CODES.OTP_INVALID) throw cause;
+        }
+        return json3(request, 200, { ok: true });
+      }
       if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/config`) {
+        const cached = publicConfigCache.get(env);
+        if (cached && cached.expiresAt > Date.now()) return json3(request, 200, cached.body);
         const health = await callAuthority(env, "/internal/ping", null, "GET");
         let firebaseReady = false;
-        let availability = Object.freeze({
-          code: provider.configured ? "PROJECT_CHECK_FAILED" : "CREDENTIAL_MISSING",
-          providerStatus: 0
-        });
+        let project = null;
+        let availability = Object.freeze({ code: provider.configured ? "PROJECT_CHECK_FAILED" : "CREDENTIAL_MISSING", providerStatus: 0 });
         if (provider.configured) {
           try {
-            const inspected = await provider.inspectProject();
-            firebaseReady = inspected.projectIdentified && inspected.continueDomainAuthorized;
+            project = await provider.inspectProject();
+            firebaseReady = project.projectIdentified && project.continueDomainAuthorized;
             availability = Object.freeze({
-              code: !inspected.projectIdentified ? "PROJECT_NOT_IDENTIFIED" : !inspected.continueDomainAuthorized ? "PAGES_DOMAIN_NOT_AUTHORIZED" : "READY",
+              code: !project.projectIdentified ? "PROJECT_NOT_IDENTIFIED" : !project.continueDomainAuthorized ? "PAGES_DOMAIN_NOT_AUTHORIZED" : "READY",
               providerStatus: 0
             });
           } catch (cause) {
@@ -3957,17 +4850,47 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           }
         }
         const available = firebaseReady && health.ok === true;
-        return json3(request, 200, {
+        let google = { available: false, availabilityCode: googleActivated(env) ? "PROVIDER_CHECK_FAILED" : "LIVE_E2E_NOT_APPROVED" };
+        if (available && googleActivated(env)) {
+          try {
+            const discovered = project?.google?.enabled && project.google.clientId ? { available: true, clientId: project.google.clientId } : await provider.inspectGoogleProvider();
+            google = { available: discovered.available === true, availabilityCode: "READY", clientId: discovered.clientId };
+          } catch (cause) {
+            const failure = providerAvailabilityFailure(cause);
+            google = { available: false, availabilityCode: failure.code };
+          }
+        }
+        let backup = { available: false, availabilityCode: "NOT_ACTIVATED", genericFlow: true, providerNamesExposed: false };
+        if (available) {
+          try {
+            backup = await callAuthority(env, "/internal/verification/capabilities", {});
+          } catch {
+            backup = { available: false, availabilityCode: "STATUS_UNAVAILABLE", genericFlow: true, providerNamesExposed: false };
+          }
+        }
+        const passkeyAvailable = available && health.schema >= 3 && passkeyPublished(env);
+        const body = {
           ok: true,
           auth: {
             version: AUTH_NATIVE_VERSION,
-            mode: "email-password-with-email-verification",
+            mode: "firebase-canonical-multi-method",
             provider: "firebase",
             available,
             availabilityCode: available ? "READY" : availability.code,
             providerStatus: availability.providerStatus,
             storage: health.storage,
             emailVerifiedRequired: true,
+            methods: {
+              google,
+              passkey: {
+                available: passkeyAvailable,
+                availabilityCode: passkeyAvailable ? "READY" : passkeyEndpointReady(env) ? "LIVE_E2E_PENDING" : "NOT_ACTIVATED",
+                requiresEnrollment: true,
+                neverMandatory: true
+              },
+              emailPassword: { available, availabilityCode: available ? "READY" : availability.code },
+              backup
+            },
             verificationEmail: {
               kind: "address-verification",
               dailyCapacity: 1e3,
@@ -3976,15 +4899,14 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             registeredAccountLimit: "unlimited",
             session: { transport: "secure-http-only-cookie", maxAge: SESSION_SECONDS }
           }
-        });
+        };
+        publicConfigCache.set(env, { body, expiresAt: Date.now() + 3e4 });
+        return json3(request, 200, body);
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/signup`) {
         if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
         const input = credentials(await readJson(request));
-        const prepared = await callAuthority(env, "/internal/firebase/rate", {
-          input: { operation: "signup", email: input.email },
-          context
-        });
+        const prepared = await callAuthority(env, "/internal/firebase/rate", { input: { operation: "signup", email: input.email }, context });
         let signed;
         try {
           signed = await provider.signUp(prepared.email, input.password);
@@ -3992,10 +4914,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           throw providerError(cause, "signup");
         }
         try {
-          await callAuthority(env, "/internal/firebase/rate", {
-            input: { operation: "verification-send", email: prepared.email },
-            context
-          });
+          await callAuthority(env, "/internal/firebase/rate", { input: { operation: "verification-send", email: prepared.email }, context });
         } catch (cause) {
           try {
             await provider.deleteAccount(signed.idToken);
@@ -4024,10 +4943,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/verification/resend`) {
         if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
         const input = credentials(await readJson(request));
-        const prepared = await callAuthority(env, "/internal/firebase/rate", {
-          input: { operation: "verification-resend", email: input.email },
-          context
-        });
+        const prepared = await callAuthority(env, "/internal/firebase/rate", { input: { operation: "verification-resend", email: input.email }, context });
         let signed;
         let user;
         try {
@@ -4041,13 +4957,8 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           throw providerError(cause, "lookup");
         }
         assertProviderUser(signed, user);
-        if (user.emailVerified) {
-          return json3(request, 200, { ok: true, alreadyVerified: true, authenticated: false });
-        }
-        await callAuthority(env, "/internal/firebase/rate", {
-          input: { operation: "verification-send", email: user.email },
-          context
-        });
+        if (user.emailVerified) return json3(request, 200, { ok: true, alreadyVerified: true, authenticated: false });
+        await callAuthority(env, "/internal/firebase/rate", { input: { operation: "verification-send", email: user.email }, context });
         try {
           await provider.sendVerificationEmail(signed.idToken, user.email);
         } catch (cause) {
@@ -4056,21 +4967,13 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         return json3(request, 202, {
           ok: true,
           authenticated: false,
-          verification: {
-            sent: true,
-            emailMasked: prepared.emailMask,
-            dailyCapacity: 1e3,
-            resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
-          }
+          verification: { sent: true, emailMasked: prepared.emailMask, dailyCapacity: 1e3, resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS }
         }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/login`) {
         if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
         const input = credentials(await readJson(request));
-        const prepared = await callAuthority(env, "/internal/firebase/rate", {
-          input: { operation: "login", email: input.email },
-          context
-        });
+        const prepared = await callAuthority(env, "/internal/firebase/rate", { input: { operation: "login", email: input.email }, context });
         let signed;
         let user;
         try {
@@ -4085,32 +4988,152 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         }
         assertProviderUser(signed, user);
         if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
-        const established = await callAuthority(env, "/internal/firebase/session/create", {
-          input: { email: user.email, subject: user.subject },
+        const established = await callAuthority(env, "/internal/firebase/session/create", { input: { email: user.email, subject: user.subject }, context });
+        return authSuccess(request, established, signed.refreshToken, context);
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/google`) {
+        if (!provider.configured || !googleActivated(env)) throw new NativeAuthError(AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE);
+        try {
+          await provider.inspectGoogleProvider();
+        } catch (cause) {
+          throw providerError(cause, "google-config");
+        }
+        const credential = googleCredential2(await readJson(request));
+        await callAuthority(env, "/internal/firebase/rate", { input: { operation: "google" }, context });
+        let signed;
+        let user;
+        try {
+          signed = await provider.signInWithGoogle(credential);
+        } catch (cause) {
+          throw providerError(cause, "google-signin");
+        }
+        try {
+          user = await provider.lookup(signed.idToken);
+        } catch (cause) {
+          throw providerError(cause, "google-lookup");
+        }
+        assertProviderUser(signed, user);
+        if (!user.providers.includes("google.com")) throw new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_CONFLICT);
+        if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+        let established;
+        try {
+          established = await callAuthority(env, "/internal/firebase/session/create", { input: { email: user.email, subject: user.subject }, context });
+        } catch (cause) {
+          if (cause?.code === AUTH_ERROR_CODES.ACCOUNT_CONFLICT && signed.isNewUser) {
+            let deleted = false;
+            try {
+              deleted = (await provider.deleteAccount(signed.idToken))?.deleted === true;
+            } catch {
+            }
+            if (!deleted) throw new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_CONFLICT);
+            throw new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_LINK_REQUIRED);
+          }
+          throw cause;
+        }
+        return authSuccess(request, established, signed.refreshToken, context);
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/google/link`) {
+        if (!provider.configured || !googleActivated(env)) throw new NativeAuthError(AUTH_ERROR_CODES.GOOGLE_UNAVAILABLE);
+        const body = await readJson(request);
+        const input = credentials(body);
+        const credential = googleCredential2(body);
+        if (!credential.accessToken) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+        const email = normalizeAuthEmail(input.email);
+        let googleIdentity;
+        try {
+          googleIdentity = await provider.googleIdentity(credential.accessToken);
+        } catch (cause) {
+          throw providerError(cause, "google-identity");
+        }
+        if (normalizeAuthEmail(googleIdentity.email) !== email) throw new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_CONFLICT);
+        const prepared = await callAuthority(env, "/internal/firebase/rate", { input: { operation: "login", email }, context });
+        let passwordSession;
+        let passwordUser;
+        try {
+          passwordSession = await provider.signIn(prepared.email, input.password);
+        } catch (cause) {
+          throw providerError(cause, "signin");
+        }
+        try {
+          passwordUser = await provider.lookup(passwordSession.idToken);
+        } catch (cause) {
+          throw providerError(cause, "lookup");
+        }
+        assertProviderUser(passwordSession, passwordUser);
+        if (!passwordUser.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
+        let linked;
+        let user;
+        try {
+          linked = await provider.linkGoogle(passwordSession.idToken, credential);
+        } catch (cause) {
+          throw providerError(cause, "google-link");
+        }
+        if (linked.subject !== passwordSession.subject) throw new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_CONFLICT);
+        try {
+          user = await provider.lookup(linked.idToken);
+        } catch (cause) {
+          throw providerError(cause, "google-lookup");
+        }
+        assertProviderUser(linked, user);
+        if (!user.providers.includes("google.com") || !user.googleSubjects.includes(googleIdentity.subject)) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.ACCOUNT_CONFLICT);
+        }
+        const established = await callAuthority(env, "/internal/firebase/session/create", { input: { email: user.email, subject: user.subject }, context });
+        return authSuccess(request, established, linked.refreshToken, context);
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/passkey/registration/begin`) {
+        if (!provider.configured || !passkeyEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
+        const current = await firebaseReadySession({ provider, jar, env, context });
+        const result = await callAuthority(env, "/internal/passkey/registration/begin", {
+          input: {
+            sessionToken: current.sessionToken,
+            refreshToken: current.refreshed.refreshToken,
+            email: current.user.email,
+            subject: current.user.subject
+          },
           context
         });
-        const maxAge = Math.max(1, Math.min(SESSION_SECONDS, Math.floor((Number(established.sessionExpiresAt) - Date.now()) / 1e3)));
-        const setCookies = [sessionCookie(established.sessionToken, maxAge), firebaseCookie(signed.refreshToken, maxAge)];
-        if (context.isNewDevice) setCookies.push(deviceCookie(context.deviceId));
-        return json3(request, 200, {
-          ok: true,
-          authenticated: true,
-          emailVerified: true,
-          created: established.created,
-          user: established.user,
-          session: { expiresAt: established.sessionExpiresAt }
-        }, { "Set-Cookie": setCookies });
+        return json3(request, 200, { ok: true, ...result }, {
+          "Set-Cookie": sessionCookies(current.session, current.refreshed.refreshToken, context)
+        });
       }
-      if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/session`) {
-        const sessionToken = jar[AUTH_SESSION_COOKIE];
-        const refreshToken = jar[AUTH_FIREBASE_COOKIE];
-        if (!sessionToken || !refreshToken) throw new NativeAuthError(AUTH_ERROR_CODES.SESSION_INVALID);
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/passkey/registration/finish`) {
+        if (!provider.configured || !passkeyEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
+        const body = await readJson(request);
+        const current = await firebaseReadySession({ provider, jar, env, context });
+        const result = await callAuthority(env, "/internal/passkey/registration/finish", {
+          input: {
+            challengeId: body.challengeId,
+            response: body.response,
+            sessionToken: current.sessionToken,
+            refreshToken: current.refreshed.refreshToken,
+            email: current.user.email,
+            subject: current.user.subject
+          },
+          context
+        });
+        return json3(request, 200, { ok: true, ...result }, {
+          "Set-Cookie": sessionCookies(current.session, current.refreshed.refreshToken, context)
+        });
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/passkey/authentication/begin`) {
+        if (!provider.configured || !passkeyEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
+        const result = await callAuthority(env, "/internal/passkey/authentication/begin", { context });
+        return json3(request, 200, { ok: true, ...result }, context.isNewDevice ? { "Set-Cookie": deviceCookie(context.deviceId) } : {});
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/passkey/authentication/finish`) {
+        if (!provider.configured || !passkeyEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
+        const body = await readJson(request);
+        const assertion = await callAuthority(env, "/internal/passkey/authentication/finish", {
+          input: { challengeId: body.challengeId, response: body.response },
+          context
+        });
         let refreshed;
         let user;
         try {
-          refreshed = await provider.refresh(refreshToken);
+          refreshed = await provider.refresh(assertion.refreshToken);
         } catch (cause) {
-          throw providerError(cause, "refresh");
+          throw providerError(cause, "passkey-refresh");
         }
         try {
           user = await provider.lookup(refreshed.idToken);
@@ -4119,17 +5142,104 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         }
         assertProviderUser(refreshed, user);
         if (!user.emailVerified) throw new NativeAuthError(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
-        const session = await callAuthority(env, "/internal/firebase/session/get", {
-          sessionToken,
-          input: { email: user.email, subject: user.subject }
+        const established = await callAuthority(env, "/internal/passkey/session/complete", {
+          input: {
+            loginTicket: assertion.loginTicket,
+            refreshToken: refreshed.refreshToken,
+            email: user.email,
+            subject: user.subject
+          },
+          context
         });
-        const maxAge = Math.max(1, Math.min(SESSION_SECONDS, Math.floor((Number(session.expiresAt) - Date.now()) / 1e3)));
-        return json3(request, 200, {
-          ok: true,
-          authenticated: true,
-          emailVerified: true,
-          ...session
-        }, { "Set-Cookie": firebaseCookie(refreshed.refreshToken, maxAge) });
+        return authSuccess(request, established, refreshed.refreshToken, context);
+      }
+      if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/passkey/status`) {
+        if (!provider.configured || !passkeyEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
+        const current = await firebaseReadySession({ provider, jar, env, context });
+        const result = await callAuthority(env, "/internal/passkey/status", {
+          input: { sessionToken: current.sessionToken, email: current.user.email, subject: current.user.subject },
+          context
+        });
+        return json3(request, 200, { ok: true, ...result }, {
+          "Set-Cookie": sessionCookies(current.session, current.refreshed.refreshToken, context)
+        });
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/passkey/remove`) {
+        if (!provider.configured || !passkeyEndpointReady(env)) throw new NativeAuthError(AUTH_ERROR_CODES.PASSKEY_UNAVAILABLE);
+        const body = await readJson(request);
+        const current = await firebaseReadySession({ provider, jar, env, context });
+        const result = await callAuthority(env, "/internal/passkey/remove", {
+          input: {
+            credentialId: body.credentialId,
+            sessionToken: current.sessionToken,
+            email: current.user.email,
+            subject: current.user.subject
+          },
+          context
+        });
+        return json3(request, 200, { ok: true, ...result }, {
+          "Set-Cookie": sessionCookies(current.session, current.refreshed.refreshToken, context)
+        });
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/backup/request`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        const body = await readJson(request);
+        const contact = String(body.contact || "").trim();
+        if (contact && !/^\+[1-9]\d{7,14}$/.test(contact)) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+        const current = await firebaseReadySession({ provider, jar, env, context });
+        const result = await callAuthority(env, "/internal/verification/request", {
+          input: {
+            sessionToken: current.sessionToken,
+            email: current.user.email,
+            subject: current.user.subject,
+            purpose: body.purpose === "sensitive-action" ? "sensitive-action" : "account-backup",
+            contact,
+            allowTelegramLink: true
+          },
+          context
+        });
+        return json3(request, 202, { ok: true, ...result }, {
+          "Set-Cookie": sessionCookies(current.session, current.refreshed.refreshToken, context)
+        });
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/backup/verify`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        const body = await readJson(request);
+        const current = await firebaseReadySession({ provider, jar, env, context });
+        const result = await callAuthority(env, "/internal/verification/verify", {
+          input: {
+            sessionToken: current.sessionToken,
+            email: current.user.email,
+            subject: current.user.subject,
+            purpose: body.purpose === "sensitive-action" ? "sensitive-action" : "account-backup",
+            attemptId: body.attemptId,
+            code: body.code,
+            evidence: body.evidence
+          },
+          context
+        });
+        return json3(request, 200, { ok: true, ...result }, {
+          "Set-Cookie": sessionCookies(current.session, current.refreshed.refreshToken, context)
+        });
+      }
+      if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/admin/verification/status`) {
+        if (!adminAuthorized(request, env)) return json3(request, 403, { ok: false, error: { code: "FORBIDDEN", message: "অনুমতি নেই।" } });
+        const result = await callAuthority(env, "/internal/verification/admin/status", {});
+        return json3(request, 200, { ok: true, ...result });
+      }
+      if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/admin/verification/config`) {
+        if (!adminAuthorized(request, env)) return json3(request, 403, { ok: false, error: { code: "FORBIDDEN", message: "অনুমতি নেই।" } });
+        const body = await readJson(request);
+        const result = await callAuthority(env, "/internal/verification/admin/config", { config: verificationConfig(body.config) });
+        publicConfigCache.delete(env);
+        return json3(request, 200, { ok: true, ...result });
+      }
+      if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/session`) {
+        const current = await firebaseReadySession({ provider, jar, env, context });
+        const maxAge = Math.max(1, Math.min(SESSION_SECONDS, Math.floor((Number(current.session.expiresAt) - Date.now()) / 1e3)));
+        return json3(request, 200, { ok: true, authenticated: true, emailVerified: true, ...current.session }, {
+          "Set-Cookie": [firebaseCookie(current.refreshed.refreshToken, maxAge), ...context.isNewDevice ? [deviceCookie(context.deviceId)] : []]
+        });
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/session/logout`) {
         const sessionToken = jar[AUTH_SESSION_COOKIE];
@@ -4139,7 +5249,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       return json3(request, 404, { ok: false, error: { code: "NOT_FOUND", message: "Endpoint পাওয়া যায়নি।" } });
     } catch (cause) {
       const error = asNativeAuthError(cause);
-      const clearSession = [AUTH_ERROR_CODES.SESSION_INVALID, AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED, AUTH_ERROR_CODES.ACCOUNT_DISABLED].includes(error.code) && url.pathname === `${AUTH_API_PREFIX}/session`;
+      const clearSession = Boolean(jar[AUTH_SESSION_COOKIE]) && [AUTH_ERROR_CODES.SESSION_INVALID, AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED, AUTH_ERROR_CODES.ACCOUNT_DISABLED].includes(error.code);
       if (clearSession && jar[AUTH_SESSION_COOKIE]) {
         try {
           await callAuthority(env, "/internal/session/revoke", { sessionToken: jar[AUTH_SESSION_COOKIE] });
@@ -4155,6 +5265,7 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
     }
   };
 }
+var __publicAuthTest = Object.freeze({ allowedOrigin, providerError, googleActivated, adminAuthorized, passkeyEndpointReady, passkeyPublished });
 
 // email-gateway/worker/email-coordinator.mjs
 var response = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -4370,25 +5481,9 @@ var SqliteAuthRepository = class {
         FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
       )`,
       `CREATE INDEX IF NOT EXISTS auth_external_user ON auth_external_identities(user_id)`,
-      `CREATE TABLE IF NOT EXISTS auth_challenges (
-        challenge_id TEXT PRIMARY KEY,
-        email_ref TEXT NOT NULL,
-        email_mask TEXT NOT NULL,
-        code_mac TEXT NOT NULL,
-        state TEXT NOT NULL CHECK(state IN ('active','consumed','expired','locked','superseded','failed')),
-        delivery_state TEXT NOT NULL CHECK(delivery_state IN ('pending','accepted','uncertain','failed')),
-        provider TEXT,
-        created_at INTEGER NOT NULL,
-        expires_at INTEGER NOT NULL,
-        attempts INTEGER NOT NULL DEFAULT 0,
-        max_attempts INTEGER NOT NULL,
-        consumed_at INTEGER,
-        ip_ref TEXT NOT NULL,
-        device_ref TEXT NOT NULL,
-        delivery_updated_at INTEGER
-      )`,
-      `CREATE INDEX IF NOT EXISTS auth_challenges_email_created ON auth_challenges(email_ref, created_at DESC)`,
-      `CREATE INDEX IF NOT EXISTS auth_challenges_expiry ON auth_challenges(expires_at)`,
+      // Standalone OTP identity was retired; backup challenges live only in the
+      // Firebase-session-bound verification repository.
+      `DROP TABLE IF EXISTS auth_challenges`,
       `CREATE TABLE IF NOT EXISTS auth_sessions (
         session_ref TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -4413,6 +5508,62 @@ var SqliteAuthRepository = class {
         PRIMARY KEY(scope, bucket_key, window_start)
       )`,
       `CREATE INDEX IF NOT EXISTS auth_rate_expiry ON auth_rate_limits(expires_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_passkey_user_handles (
+        user_id TEXT PRIMARY KEY,
+        user_handle TEXT NOT NULL UNIQUE,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS auth_passkey_credentials (
+        credential_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        subject_ref TEXT NOT NULL,
+        user_handle TEXT NOT NULL,
+        public_key_jwk TEXT NOT NULL,
+        sign_count INTEGER NOT NULL DEFAULT 0,
+        transports TEXT NOT NULL,
+        backup_eligible INTEGER NOT NULL DEFAULT 0,
+        backup_state INTEGER NOT NULL DEFAULT 0,
+        refresh_cipher TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('active','revoked')),
+        created_at INTEGER NOT NULL,
+        last_used_at INTEGER,
+        revoked_at INTEGER,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_passkey_user ON auth_passkey_credentials(user_id,status,created_at DESC)`,
+      `CREATE TABLE IF NOT EXISTS auth_passkey_challenges (
+        challenge_id TEXT PRIMARY KEY,
+        challenge_mac TEXT NOT NULL,
+        kind TEXT NOT NULL CHECK(kind IN ('registration','authentication')),
+        user_id TEXT,
+        subject_ref TEXT,
+        user_handle TEXT,
+        refresh_cipher TEXT,
+        state TEXT NOT NULL CHECK(state IN ('active','consumed','expired','superseded')),
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        consumed_at INTEGER,
+        ip_ref TEXT NOT NULL,
+        device_ref TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_passkey_challenge_expiry ON auth_passkey_challenges(expires_at)`,
+      `CREATE INDEX IF NOT EXISTS auth_passkey_challenge_device ON auth_passkey_challenges(device_ref,kind,created_at DESC)`,
+      `CREATE TABLE IF NOT EXISTS auth_passkey_tickets (
+        ticket_ref TEXT PRIMARY KEY,
+        credential_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        subject_ref TEXT NOT NULL,
+        device_ref TEXT NOT NULL,
+        state TEXT NOT NULL CHECK(state IN ('active','consumed','expired')),
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        consumed_at INTEGER,
+        FOREIGN KEY(credential_id) REFERENCES auth_passkey_credentials(credential_id),
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_passkey_ticket_expiry ON auth_passkey_tickets(expires_at)`,
       `CREATE TABLE IF NOT EXISTS auth_security_events (
         event_id INTEGER PRIMARY KEY AUTOINCREMENT,
         event_type TEXT NOT NULL,
@@ -4423,7 +5574,7 @@ var SqliteAuthRepository = class {
       `CREATE INDEX IF NOT EXISTS auth_security_events_time ON auth_security_events(occurred_at DESC)`
     ];
     for (const statement of statements) this.sql.exec(statement);
-    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','2') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
+    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','3') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
   }
   #rows(statement, ...bindings) {
     return Array.from(this.sql.exec(statement, ...bindings));
@@ -4472,154 +5623,40 @@ var SqliteAuthRepository = class {
       now
     );
   }
-  async prepareChallenge({ record, limits, cooldownMs, now }) {
-    return this.#transaction(() => {
-      const denied = this.#consumeLimits(limits, now);
-      if (denied) return denied;
-      const latest = this.#one(
-        `SELECT created_at AS createdAt FROM auth_challenges
-         WHERE email_ref=? AND state='active' ORDER BY created_at DESC LIMIT 1`,
-        record.emailRef
-      );
-      if (latest && now - Number(latest.createdAt) < cooldownMs) {
-        return {
-          error: AUTH_ERROR_CODES.RESEND_COOLDOWN,
-          retryAfter: Math.max(1, Math.ceil((cooldownMs - (now - Number(latest.createdAt))) / 1e3))
-        };
-      }
-      this.sql.exec("UPDATE auth_challenges SET state='superseded',code_mac='' WHERE email_ref=? AND state='active'", record.emailRef);
-      this.sql.exec(
-        `INSERT INTO auth_challenges(
-          challenge_id,email_ref,email_mask,code_mac,state,delivery_state,created_at,expires_at,
-          attempts,max_attempts,ip_ref,device_ref
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
-        record.challengeId,
-        record.emailRef,
-        record.emailMask,
-        record.codeMac,
-        record.state,
-        record.deliveryState,
-        record.createdAt,
-        record.expiresAt,
-        record.attempts,
-        record.maxAttempts,
-        record.ipRef,
-        record.deviceRef
-      );
-      this.#event("otp-prepared", record.emailRef, null, now);
-      return { prepared: true, preparedAt: now };
-    });
+  #canonicalSession({ sessionRef, subjectRef, emailRef, now }) {
+    const row = this.#one(
+      `SELECT u.user_id AS id,u.email_ref AS emailRef,u.email_mask AS emailMask,u.status,
+        u.created_at AS createdAt,s.expires_at AS expiresAt
+       FROM auth_sessions s
+       JOIN auth_users u ON u.user_id=s.user_id
+       JOIN auth_external_identities x ON x.user_id=u.user_id AND x.provider='firebase' AND x.subject_ref=?
+       WHERE s.session_ref=? AND s.revoked_at IS NULL AND s.expires_at>? AND u.email_ref=?`,
+      subjectRef,
+      sessionRef,
+      now,
+      emailRef
+    );
+    if (!row) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
+    if (row.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+    return { user: row };
   }
-  async markDelivery({ challengeId, accepted, uncertain, provider, now }) {
-    return this.#transaction(() => {
-      const row = this.#one("SELECT state FROM auth_challenges WHERE challenge_id=?", challengeId);
-      if (!row) return { error: AUTH_ERROR_CODES.OTP_INVALID };
-      if (accepted) {
-        this.sql.exec(
-          "UPDATE auth_challenges SET delivery_state='accepted',provider=?,delivery_updated_at=? WHERE challenge_id=?",
-          provider,
-          now,
-          challengeId
-        );
-      } else if (uncertain) {
-        this.sql.exec(
-          "UPDATE auth_challenges SET delivery_state='uncertain',provider=?,delivery_updated_at=? WHERE challenge_id=?",
-          provider,
-          now,
-          challengeId
-        );
-      } else {
-        this.sql.exec(
-          "UPDATE auth_challenges SET state='failed',delivery_state='failed',code_mac='',provider=?,delivery_updated_at=? WHERE challenge_id=? AND state='active'",
-          provider,
-          now,
-          challengeId
-        );
-      }
-      return { updated: true };
-    });
-  }
-  async verifyChallenge(input) {
-    return this.#transaction(() => {
-      const denied = this.#consumeLimits(input.limits, input.now);
-      if (denied) return denied;
-      const row = this.#one(
-        `SELECT challenge_id AS challengeId,email_ref AS emailRef,email_mask AS emailMask,code_mac AS codeMac,
-          state,expires_at AS expiresAt,attempts,max_attempts AS maxAttempts
-         FROM auth_challenges WHERE challenge_id=?`,
-        input.challengeId
-      );
-      if (!row || row.emailRef !== input.emailRef || ["superseded", "failed"].includes(row?.state)) {
-        return { error: AUTH_ERROR_CODES.OTP_INVALID };
-      }
-      if (row.state === "consumed") return { error: AUTH_ERROR_CODES.OTP_USED };
-      if (row.state === "locked") return { error: AUTH_ERROR_CODES.OTP_LOCKED };
-      if (Number(row.expiresAt) <= input.now || row.state === "expired") {
-        this.sql.exec("UPDATE auth_challenges SET state='expired',code_mac='' WHERE challenge_id=?", input.challengeId);
-        return { error: AUTH_ERROR_CODES.OTP_EXPIRED };
-      }
-      if (Number(row.attempts) >= Number(row.maxAttempts)) {
-        this.sql.exec("UPDATE auth_challenges SET state='locked',code_mac='' WHERE challenge_id=?", input.challengeId);
-        return { error: AUTH_ERROR_CODES.OTP_LOCKED };
-      }
-      if (!constantTimeEqual(row.codeMac, input.candidateCodeMac)) {
-        const attempts = Number(row.attempts) + 1;
-        if (attempts >= Number(row.maxAttempts)) {
-          this.sql.exec("UPDATE auth_challenges SET attempts=?,state='locked',code_mac='' WHERE challenge_id=?", attempts, input.challengeId);
-          this.#event("otp-locked", input.emailRef, null, input.now);
-          return { error: AUTH_ERROR_CODES.OTP_LOCKED };
-        }
-        this.sql.exec("UPDATE auth_challenges SET attempts=? WHERE challenge_id=?", attempts, input.challengeId);
-        this.#event("otp-invalid", input.emailRef, null, input.now);
-        return { error: AUTH_ERROR_CODES.OTP_INVALID };
-      }
-      this.sql.exec(
-        "UPDATE auth_challenges SET state='consumed',consumed_at=?,code_mac='' WHERE challenge_id=? AND state='active'",
-        input.now,
-        input.challengeId
-      );
-      let user = this.#one(
-        `SELECT user_id AS id,email_mask AS emailMask,status,created_at AS createdAt
-         FROM auth_users WHERE email_ref=?`,
-        input.emailRef
-      );
-      let created = false;
-      if (!user) {
-        this.sql.exec(
-          `INSERT OR IGNORE INTO auth_users(user_id,email_ref,email_mask,status,created_at,last_login_at)
-           VALUES(?,?,?,'active',?,?)`,
-          input.userIdCandidate,
-          input.emailRef,
-          row.emailMask,
-          input.now,
-          input.now
-        );
-        user = this.#one(
-          `SELECT user_id AS id,email_mask AS emailMask,status,created_at AS createdAt
-           FROM auth_users WHERE email_ref=?`,
-          input.emailRef
-        );
-        created = user?.id === input.userIdCandidate;
-      }
-      if (!user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
-      if (user.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
-      this.sql.exec("UPDATE auth_users SET last_login_at=? WHERE user_id=?", input.now, user.id);
-      this.sql.exec(
-        `INSERT INTO auth_sessions(
-          session_ref,user_id,created_at,expires_at,last_seen_at,revoked_at,ip_ref,device_ref,user_agent
-        ) VALUES(?,?,?,?,?,NULL,?,?,?)`,
-        input.sessionRef,
-        user.id,
-        input.now,
-        input.sessionExpiresAt,
-        input.now,
-        input.ipRef,
-        input.deviceRef,
-        input.userAgent
-      );
-      this.#event(created ? "account-created" : "login", input.emailRef, user.id, input.now);
-      return { verified: true, created, user };
-    });
+  #passkeyChallenge({ challengeId, candidateChallengeMac, deviceRef, kind, now }) {
+    const row = this.#one(
+      `SELECT challenge_id AS challengeId,challenge_mac AS challengeMac,kind,user_id AS userId,
+        subject_ref AS subjectRef,user_handle AS userHandle,refresh_cipher AS refreshCipher,
+        state,created_at AS createdAt,expires_at AS expiresAt,device_ref AS deviceRef
+       FROM auth_passkey_challenges WHERE challenge_id=?`,
+      challengeId
+    );
+    if (!row || row.kind !== kind || row.deviceRef !== deviceRef || !constantTimeEqual(row.challengeMac, candidateChallengeMac)) {
+      return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+    }
+    if (row.state !== "active") return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+    if (Number(row.expiresAt) <= now) {
+      this.sql.exec("UPDATE auth_passkey_challenges SET state='expired',challenge_mac='',refresh_cipher=NULL WHERE challenge_id=?", challengeId);
+      return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+    }
+    return { challenge: row };
   }
   async consumeLimits({ limits, now, eventType, subjectRef }) {
     return this.#transaction(() => {
@@ -4648,11 +5685,15 @@ var SqliteAuthRepository = class {
       );
       if (identity && !user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
       if (!identity && user) {
-        this.sql.exec(
-          "DELETE FROM auth_external_identities WHERE provider=? AND user_id=?",
+        const existingForUser = this.#one(
+          "SELECT subject_ref AS subjectRef FROM auth_external_identities WHERE provider=? AND user_id=?",
           input.provider,
           user.id
         );
+        if (existingForUser && existingForUser.subjectRef !== input.subjectRef) {
+          this.#event("firebase-identity-conflict", input.subjectRef, user.id, input.now);
+          return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+        }
       }
       let created = false;
       if (!user) {
@@ -4676,7 +5717,7 @@ var SqliteAuthRepository = class {
       if (user.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
       if (identity && user.emailRef !== input.emailRef) {
         const emailOwner = this.#one("SELECT user_id AS id FROM auth_users WHERE email_ref=?", input.emailRef);
-        if (emailOwner && emailOwner.id !== user.id) return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+        if (emailOwner && emailOwner.id !== user.id) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
         this.sql.exec("UPDATE auth_users SET email_ref=?,email_mask=? WHERE user_id=?", input.emailRef, input.emailMask, user.id);
         user.emailRef = input.emailRef;
         user.emailMask = input.emailMask;
@@ -4742,6 +5783,319 @@ var SqliteAuthRepository = class {
       };
     });
   }
+  async beginPasskeyRegistration(input) {
+    return this.#transaction(() => {
+      const denied = this.#consumeLimits(input.limits, input.now);
+      if (denied) return denied;
+      const session = this.#canonicalSession(input);
+      if (session.error) return session;
+      let handle = this.#one("SELECT user_handle AS userHandle FROM auth_passkey_user_handles WHERE user_id=?", session.user.id);
+      if (!handle) {
+        this.sql.exec(
+          "INSERT INTO auth_passkey_user_handles(user_id,user_handle,created_at) VALUES(?,?,?)",
+          session.user.id,
+          input.userHandleCandidate,
+          input.now
+        );
+        handle = { userHandle: input.userHandleCandidate };
+      }
+      this.sql.exec(
+        "UPDATE auth_passkey_challenges SET state='superseded',challenge_mac='',refresh_cipher=NULL WHERE kind='registration' AND user_id=? AND state='active'",
+        session.user.id
+      );
+      this.sql.exec(
+        `INSERT INTO auth_passkey_challenges(
+          challenge_id,challenge_mac,kind,user_id,subject_ref,user_handle,refresh_cipher,state,
+          created_at,expires_at,ip_ref,device_ref
+        ) VALUES(?,?,'registration',?,?,?,?, 'active',?,?,?,?)`,
+        input.challengeId,
+        input.challengeMac,
+        session.user.id,
+        input.subjectRef,
+        handle.userHandle,
+        input.refreshCipher,
+        input.now,
+        input.expiresAt,
+        input.ipRef,
+        input.deviceRef
+      );
+      const credentials2 = this.#rows(
+        `SELECT credential_id AS credentialId,transports FROM auth_passkey_credentials
+         WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 20`,
+        session.user.id
+      ).map((row) => {
+        let transports = [];
+        try {
+          transports = JSON.parse(row.transports);
+        } catch {
+        }
+        return { credentialId: row.credentialId, transports: Array.isArray(transports) ? transports : [] };
+      });
+      this.#event("passkey-registration-started", input.subjectRef, session.user.id, input.now);
+      return { user: session.user, userHandle: handle.userHandle, credentials: credentials2 };
+    });
+  }
+  async getPasskeyRegistrationChallenge(input) {
+    return this.#transaction(() => {
+      const selected = this.#passkeyChallenge({ ...input, kind: "registration" });
+      if (selected.error) return selected;
+      const session = this.#canonicalSession(input);
+      if (session.error) return session;
+      if (session.user.id !== selected.challenge.userId || input.subjectRef !== selected.challenge.subjectRef) {
+        return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      }
+      return { ...selected.challenge, user: session.user };
+    });
+  }
+  async finishPasskeyRegistration(input) {
+    return this.#transaction(() => {
+      const selected = this.#passkeyChallenge({ ...input, kind: "registration" });
+      if (selected.error) return selected;
+      const challenge = selected.challenge;
+      const existing = this.#one("SELECT user_id AS userId,status FROM auth_passkey_credentials WHERE credential_id=?", input.credential.credentialId);
+      if (existing) {
+        if (existing.userId !== challenge.userId || existing.status === "active") return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+        return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+      }
+      this.sql.exec(
+        `INSERT INTO auth_passkey_credentials(
+          credential_id,user_id,subject_ref,user_handle,public_key_jwk,sign_count,transports,
+          backup_eligible,backup_state,refresh_cipher,status,created_at,last_used_at,revoked_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,'active',?,NULL,NULL)`,
+        input.credential.credentialId,
+        challenge.userId,
+        challenge.subjectRef,
+        challenge.userHandle,
+        JSON.stringify(input.credential.publicKeyJwk),
+        Number(input.credential.counter || 0),
+        JSON.stringify(input.credential.transports || []),
+        input.credential.backupEligible ? 1 : 0,
+        input.credential.backupState ? 1 : 0,
+        input.credential.refreshCipher,
+        input.now
+      );
+      this.sql.exec(
+        "UPDATE auth_passkey_challenges SET state='consumed',consumed_at=?,challenge_mac='',refresh_cipher=NULL WHERE challenge_id=? AND state='active'",
+        input.now,
+        input.challengeId
+      );
+      const user = this.#one(
+        "SELECT user_id AS id,email_mask AS emailMask,status,created_at AS createdAt FROM auth_users WHERE user_id=?",
+        challenge.userId
+      );
+      const count = this.#one("SELECT COUNT(*) AS count FROM auth_passkey_credentials WHERE user_id=? AND status='active'", challenge.userId);
+      this.#event("passkey-registered", challenge.subjectRef, challenge.userId, input.now);
+      return { registered: true, credentialCount: Number(count?.count || 0), user };
+    });
+  }
+  async beginPasskeyAuthentication(input) {
+    return this.#transaction(() => {
+      const denied = this.#consumeLimits(input.limits, input.now);
+      if (denied) return denied;
+      this.sql.exec(
+        "UPDATE auth_passkey_challenges SET state='superseded',challenge_mac='' WHERE kind='authentication' AND device_ref=? AND state='active'",
+        input.deviceRef
+      );
+      this.sql.exec(
+        `INSERT INTO auth_passkey_challenges(
+          challenge_id,challenge_mac,kind,user_id,subject_ref,user_handle,refresh_cipher,state,
+          created_at,expires_at,ip_ref,device_ref
+        ) VALUES(?,?,'authentication',NULL,NULL,NULL,NULL,'active',?,?,?,?)`,
+        input.challengeId,
+        input.challengeMac,
+        input.now,
+        input.expiresAt,
+        input.ipRef,
+        input.deviceRef
+      );
+      this.#event("passkey-authentication-started", null, null, input.now);
+      return { prepared: true };
+    });
+  }
+  async getPasskeyAuthenticationMaterial(input) {
+    return this.#transaction(() => {
+      const selected = this.#passkeyChallenge({ ...input, kind: "authentication" });
+      if (selected.error) return selected;
+      const row = this.#one(
+        `SELECT p.credential_id AS credentialId,p.user_id AS userId,p.subject_ref AS subjectRef,
+          p.user_handle AS userHandle,p.public_key_jwk AS publicKeyJwk,p.sign_count AS counter,
+          p.refresh_cipher AS refreshCipher,p.status,u.status AS userStatus
+         FROM auth_passkey_credentials p JOIN auth_users u ON u.user_id=p.user_id
+         WHERE p.credential_id=?`,
+        input.credentialId
+      );
+      if (!row || row.status !== "active") return { error: AUTH_ERROR_CODES.PASSKEY_NOT_FOUND };
+      if (row.userStatus !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      let publicKeyJwk;
+      try {
+        publicKeyJwk = JSON.parse(row.publicKeyJwk);
+      } catch {
+        return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
+      }
+      return {
+        credential: {
+          credentialId: row.credentialId,
+          userHandle: row.userHandle,
+          publicKeyJwk,
+          counter: Number(row.counter || 0)
+        }
+      };
+    });
+  }
+  async issuePasskeyTicket(input) {
+    return this.#transaction(() => {
+      const selected = this.#passkeyChallenge({ ...input, kind: "authentication" });
+      if (selected.error) return selected;
+      const credential = this.#one(
+        `SELECT credential_id AS credentialId,user_id AS userId,subject_ref AS subjectRef,
+          sign_count AS counter,refresh_cipher AS refreshCipher,status
+         FROM auth_passkey_credentials WHERE credential_id=?`,
+        input.credentialId
+      );
+      if (!credential || credential.status !== "active") return { error: AUTH_ERROR_CODES.PASSKEY_NOT_FOUND };
+      if (Number(credential.counter || 0) !== Number(input.previousCounter || 0)) return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+      this.sql.exec(
+        "UPDATE auth_passkey_credentials SET sign_count=?,backup_state=?,last_used_at=? WHERE credential_id=? AND status='active'",
+        Math.max(Number(credential.counter || 0), Number(input.nextCounter || 0)),
+        input.backupState ? 1 : 0,
+        input.now,
+        input.credentialId
+      );
+      this.sql.exec(
+        "UPDATE auth_passkey_challenges SET state='consumed',consumed_at=?,challenge_mac='' WHERE challenge_id=? AND state='active'",
+        input.now,
+        input.challengeId
+      );
+      this.sql.exec(
+        "UPDATE auth_passkey_tickets SET state='expired' WHERE credential_id=? AND state='active'",
+        input.credentialId
+      );
+      this.sql.exec(
+        `INSERT INTO auth_passkey_tickets(
+          ticket_ref,credential_id,user_id,subject_ref,device_ref,state,created_at,expires_at,consumed_at
+        ) VALUES(?,?,?,?,?,'active',?,?,NULL)`,
+        input.ticketRef,
+        input.credentialId,
+        credential.userId,
+        credential.subjectRef,
+        input.deviceRef,
+        input.now,
+        input.expiresAt
+      );
+      this.#event("passkey-assertion-verified", credential.subjectRef, credential.userId, input.now);
+      return { issued: true, refreshCipher: credential.refreshCipher, subjectRef: credential.subjectRef };
+    });
+  }
+  async completePasskeySession(input) {
+    return this.#transaction(() => {
+      const ticket = this.#one(
+        `SELECT ticket_ref AS ticketRef,credential_id AS credentialId,user_id AS userId,
+          subject_ref AS subjectRef,device_ref AS deviceRef,state,expires_at AS expiresAt
+         FROM auth_passkey_tickets WHERE ticket_ref=?`,
+        input.ticketRef
+      );
+      if (!ticket || ticket.state !== "active" || ticket.deviceRef !== input.deviceRef || ticket.subjectRef !== input.subjectRef) {
+        return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+      }
+      if (Number(ticket.expiresAt) <= input.now) {
+        this.sql.exec("UPDATE auth_passkey_tickets SET state='expired' WHERE ticket_ref=?", input.ticketRef);
+        return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+      }
+      const identity = this.#one(
+        `SELECT u.user_id AS id,u.email_ref AS emailRef,u.email_mask AS emailMask,u.status,u.created_at AS createdAt
+         FROM auth_users u JOIN auth_external_identities x ON x.user_id=u.user_id
+         WHERE u.user_id=? AND x.provider='firebase' AND x.subject_ref=?`,
+        ticket.userId,
+        input.subjectRef
+      );
+      if (!identity) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      if (identity.status !== "active") return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      if (identity.emailRef !== input.emailRef) {
+        const owner = this.#one("SELECT user_id AS id FROM auth_users WHERE email_ref=?", input.emailRef);
+        if (owner && owner.id !== identity.id) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+        this.sql.exec("UPDATE auth_users SET email_ref=?,email_mask=? WHERE user_id=?", input.emailRef, input.emailMask, identity.id);
+        identity.emailRef = input.emailRef;
+        identity.emailMask = input.emailMask;
+      }
+      const credential = this.#one(
+        "SELECT status FROM auth_passkey_credentials WHERE credential_id=? AND user_id=? AND subject_ref=?",
+        ticket.credentialId,
+        ticket.userId,
+        input.subjectRef
+      );
+      if (!credential || credential.status !== "active") return { error: AUTH_ERROR_CODES.PASSKEY_NOT_FOUND };
+      this.sql.exec(
+        "UPDATE auth_passkey_tickets SET state='consumed',consumed_at=? WHERE ticket_ref=? AND state='active'",
+        input.now,
+        input.ticketRef
+      );
+      this.sql.exec(
+        "UPDATE auth_passkey_credentials SET refresh_cipher=?,last_used_at=? WHERE credential_id=? AND status='active'",
+        input.refreshCipher,
+        input.now,
+        ticket.credentialId
+      );
+      this.sql.exec(
+        `INSERT INTO auth_sessions(
+          session_ref,user_id,created_at,expires_at,last_seen_at,revoked_at,ip_ref,device_ref,user_agent
+        ) VALUES(?,?,?,?,?,NULL,?,?,?)`,
+        input.sessionRef,
+        ticket.userId,
+        input.now,
+        input.sessionExpiresAt,
+        input.now,
+        input.ipRef,
+        input.deviceRef,
+        input.userAgent
+      );
+      this.sql.exec("UPDATE auth_users SET last_login_at=? WHERE user_id=?", input.now, ticket.userId);
+      this.#event("firebase-passkey-login", input.subjectRef, ticket.userId, input.now);
+      return { established: true, user: identity };
+    });
+  }
+  async getPasskeyStatus(input) {
+    return this.#transaction(() => {
+      const session = this.#canonicalSession(input);
+      if (session.error) return session;
+      const credentials2 = this.#rows(
+        `SELECT credential_id AS id,created_at AS createdAt,last_used_at AS lastUsedAt,
+          backup_eligible AS backupEligible,backup_state AS backupState
+         FROM auth_passkey_credentials WHERE user_id=? AND subject_ref=? AND status='active'
+         ORDER BY created_at DESC LIMIT 20`,
+        session.user.id,
+        input.subjectRef
+      ).map((row) => ({
+        id: row.id,
+        createdAt: Number(row.createdAt),
+        lastUsedAt: row.lastUsedAt == null ? null : Number(row.lastUsedAt),
+        synced: Boolean(row.backupEligible),
+        backedUp: Boolean(row.backupState)
+      }));
+      return { count: credentials2.length, credentials: credentials2 };
+    });
+  }
+  async removePasskey(input) {
+    return this.#transaction(() => {
+      const session = this.#canonicalSession(input);
+      if (session.error) return session;
+      const row = this.#one(
+        "SELECT status FROM auth_passkey_credentials WHERE credential_id=? AND user_id=? AND subject_ref=?",
+        input.credentialId,
+        session.user.id,
+        input.subjectRef
+      );
+      if (!row || row.status !== "active") return { error: AUTH_ERROR_CODES.PASSKEY_NOT_FOUND };
+      this.sql.exec(
+        "UPDATE auth_passkey_credentials SET status='revoked',refresh_cipher='',revoked_at=? WHERE credential_id=?",
+        input.now,
+        input.credentialId
+      );
+      this.sql.exec("UPDATE auth_passkey_tickets SET state='expired' WHERE credential_id=? AND state='active'", input.credentialId);
+      const count = this.#one("SELECT COUNT(*) AS count FROM auth_passkey_credentials WHERE user_id=? AND status='active'", session.user.id);
+      this.#event("passkey-removed", input.subjectRef, session.user.id, input.now);
+      return { removed: true, credentialCount: Number(count?.count || 0) };
+    });
+  }
   async getSession({ sessionRef, now }) {
     return this.#transaction(() => {
       const row = this.#one(
@@ -4773,11 +6127,14 @@ var SqliteAuthRepository = class {
   }
   async ping() {
     const row = this.#one("SELECT value FROM auth_meta WHERE key='schema_version'");
-    return { ok: row?.value === "2", storage: "sqlite-durable-object", schema: Number(row?.value || 0) };
+    const schema = Number(row?.value || 0);
+    return { ok: schema >= 3, storage: "sqlite-durable-object", schema };
   }
   async cleanup(now) {
     return this.#transaction(() => {
-      this.sql.exec("DELETE FROM auth_challenges WHERE expires_at<=?", now);
+      this.sql.exec("DELETE FROM auth_passkey_challenges WHERE expires_at<=?", now);
+      this.sql.exec("DELETE FROM auth_passkey_tickets WHERE expires_at<=?", now);
+      this.sql.exec("DELETE FROM auth_passkey_credentials WHERE status='revoked' AND revoked_at<?", now - EVENT_RETENTION_MS);
       this.sql.exec("DELETE FROM auth_rate_limits WHERE expires_at<=?", now);
       this.sql.exec("DELETE FROM auth_sessions WHERE expires_at<=? OR revoked_at IS NOT NULL", now);
       this.sql.exec("DELETE FROM auth_security_events WHERE occurred_at<?", now - EVENT_RETENTION_MS);
@@ -4788,9 +6145,1403 @@ var SqliteAuthRepository = class {
   async nextExpiry(now) {
     const row = this.#one(
       `SELECT MIN(expiry) AS nextExpiry FROM (
-        SELECT MIN(expires_at) AS expiry FROM auth_challenges WHERE expires_at>?
+        SELECT MIN(expires_at) AS expiry FROM auth_passkey_challenges WHERE expires_at>?
+        UNION ALL SELECT MIN(expires_at) FROM auth_passkey_tickets WHERE expires_at>?
         UNION ALL SELECT MIN(expires_at) FROM auth_sessions WHERE expires_at>? AND revoked_at IS NULL
         UNION ALL SELECT MIN(expires_at) FROM auth_rate_limits WHERE expires_at>?
+      )`,
+      now,
+      now,
+      now,
+      now
+    );
+    const next = Number(row?.nextExpiry || 0);
+    return next > now ? next : null;
+  }
+};
+
+// auth-native/verification/orchestrator.mjs
+var PURPOSES = /* @__PURE__ */ new Set(["account-backup", "sensitive-action"]);
+var HOUR_MS = 60 * 60 * 1e3;
+var SEND_LIMITS = Object.freeze([
+  Object.freeze({ scope: "backup-user-hour", source: "user", limit: 5, windowMs: HOUR_MS }),
+  Object.freeze({ scope: "backup-ip-hour", source: "ip", limit: 20, windowMs: HOUR_MS }),
+  Object.freeze({ scope: "backup-device-hour", source: "device", limit: 10, windowMs: HOUR_MS }),
+  Object.freeze({ scope: "backup-global-minute", source: "global", limit: 120, windowMs: 6e4 })
+]);
+var validText = (value, min, max) => typeof value === "string" && value.length >= min && value.length <= max && !/[\r\n\u0000]/.test(value);
+var reason = (value) => String(value || "UNKNOWN").toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 64) || "UNKNOWN";
+var safeInteraction = (value) => {
+  if (value?.type !== "telegram-link") return null;
+  try {
+    const url = new URL(String(value.url || ""));
+    const token = url.searchParams.get("start") || "";
+    if (url.protocol !== "https:" || url.hostname !== "t.me" || !/^\/[A-Za-z][A-Za-z0-9_]{4,31}bot$/i.test(url.pathname) || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) return null;
+    return Object.freeze({ type: "telegram-link", url: url.href, proof: "webhook-required", identityKind: "telegram-account", phoneOwnership: false });
+  } catch {
+    return null;
+  }
+};
+var ratio2 = (quota) => {
+  const limit = Number(quota?.limit || 0);
+  const remaining = Number(quota?.remaining || 0);
+  return limit > 0 ? Math.max(0, Math.min(1, remaining / limit)) : 0;
+};
+function contextOf(input = {}) {
+  const deviceId = String(input.deviceId || "");
+  if (!/^[A-Za-z0-9_-]{20,96}$/.test(deviceId)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  return Object.freeze({
+    deviceId,
+    ip: String(input.ip || "unknown").slice(0, 96),
+    userAgent: String(input.userAgent || "").slice(0, 300),
+    origin: String(input.origin || "").slice(0, 256)
+  });
+}
+function providerFailure(error) {
+  if (error instanceof VerificationProviderError) return error;
+  return new VerificationProviderError("UNEXPECTED_PROVIDER_FAILURE", VERIFICATION_FAILURE_CLASS.TEMPORARY);
+}
+async function bounded(action, milliseconds) {
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.resolve().then(action),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new VerificationProviderError("PROVIDER_TIMEOUT", VERIFICATION_FAILURE_CLASS.TEMPORARY)), milliseconds);
+      })
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+var VerificationOrchestrator = class {
+  constructor({ repository, hmacSecret, config, providers = [], activated = false, now = Date.now, cryptoImpl = globalThis.crypto } = {}) {
+    const required = [
+      "reserveChallenge",
+      "markChallengeDelivery",
+      "confirmProviderEvidence",
+      "failChallenge",
+      "getChallenge",
+      "verifyLocalChallenge",
+      "rejectChallengeAttempt",
+      "completeRemoteChallenge",
+      "dailyQuotaSnapshot",
+      "reserveDailyQuota",
+      "providerSnapshot",
+      "recordProviderResult",
+      "status",
+      "getRuntimeConfig",
+      "setRuntimeConfig",
+      "cleanup",
+      "nextExpiry"
+    ];
+    if (!repository || required.some((method) => typeof repository[method] !== "function")) throw new TypeError("Verification repository is invalid.");
+    this.repository = repository;
+    this.hmac = new AuthHmac(hmacSecret, cryptoImpl);
+    this.activated = activated === true;
+    const configured = verificationConfig(config);
+    this.runtimeEnabled = configured.enabled;
+    this.config = this.activated ? configured : Object.freeze({ ...configured, enabled: false });
+    this.now = now;
+    this.crypto = cryptoImpl;
+    this.capabilityCache = null;
+    const supplied = providers instanceof Map ? providers : new Map(providers.map((provider) => [provider.id, provider]));
+    this.providers = new Map(this.config.providers.map((entry) => {
+      const provider = supplied.get(entry.id) || new DisabledVerificationProvider(entry);
+      assertVerificationProvider(provider);
+      if (provider.id !== entry.id || provider.channel !== entry.channel || provider.verificationMode !== entry.verificationMode) {
+        throw new TypeError(`Verification provider does not match configured slot: ${entry.id}`);
+      }
+      return [entry.id, provider];
+    }));
+  }
+  async #identity(input, requestContext) {
+    const sessionToken = String(input?.sessionToken || "").trim();
+    const subject = String(input?.subject || "").trim();
+    const userId = String(input?.userId || "").trim();
+    const email = normalizeAuthEmail(input?.email);
+    const purpose = PURPOSES.has(input?.purpose) ? input.purpose : "account-backup";
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(sessionToken) || !validText(subject, 1, 256) || !validText(userId, 3, 128)) {
+      failAuth(AUTH_ERROR_CODES.SESSION_INVALID);
+    }
+    const linked = input?.linkedDestinations && typeof input.linkedDestinations === "object" ? input.linkedDestinations : {};
+    const suppliedPhone = String(linked.whatsapp || input?.contact || "");
+    const whatsapp = /^\+[1-9]\d{7,14}$/.test(suppliedPhone) ? suppliedPhone : "";
+    const linkedTelegram = /^[A-Za-z0-9_-]{8,128}$/.test(String(linked.telegram || "")) ? String(linked.telegram) : "";
+    const telegram = linkedTelegram || (input?.allowTelegramLink === true ? "user-initiated-link" : "");
+    const destinations = Object.freeze({ otp: email, whatsapp, telegram });
+    const context = contextOf(requestContext);
+    const [sessionRef, subjectRef, emailRef, ipRef, deviceRef, destinationRef] = await Promise.all([
+      this.hmac.hex("session-ref-v1", sessionToken),
+      this.hmac.hex("firebase-subject-v1", subject),
+      this.hmac.hex("email-ref-v1", email),
+      this.hmac.hex("network-ref-v1", context.ip),
+      this.hmac.hex("device-ref-v1", context.deviceId),
+      this.hmac.hex("verification-destination-v1", `${email}|${whatsapp}|${telegram}`)
+    ]);
+    return Object.freeze({ sessionToken, subject, userId, email, purpose, destinations, context, sessionRef, subjectRef, emailRef, ipRef, deviceRef, destinationRef });
+  }
+  #limits(identity) {
+    return SEND_LIMITS.map((limit) => Object.freeze({
+      scope: limit.scope,
+      key: limit.source === "user" ? identity.userId : limit.source === "ip" ? identity.ipRef : limit.source === "device" ? identity.deviceRef : "global",
+      limit: limit.limit,
+      windowMs: limit.windowMs
+    }));
+  }
+  async #record(entry, input) {
+    return this.repository.recordProviderResult({
+      providerId: entry.id,
+      attemptId: input.attemptId,
+      userId: input.userId,
+      subjectRef: input.subjectRef,
+      channel: entry.channel,
+      success: input.success,
+      failureClass: input.failureClass,
+      reason: reason(input.reason),
+      latencyMs: input.latencyMs,
+      failureThreshold: this.config.policy.circuitFailureThreshold,
+      forceCooldown: Number(input.retryAfter || 0) > 0,
+      cooldownMs: Math.max(
+        this.config.policy.circuitCooldownSeconds * 1e3,
+        Math.max(0, Number(input.retryAfter || 0)) * 1e3
+      ),
+      now: input.now
+    });
+  }
+  async #candidateRows(identity, destinations, now) {
+    const eligible = this.config.enabled ? this.config.providers.filter((entry) => entry.enabled && destinations[entry.channel]) : [];
+    const rows = await Promise.all(eligible.map(async (entry) => {
+      const provider = this.providers.get(entry.id);
+      const started = Date.now();
+      try {
+        const [availability, remoteQuota, localQuota, state] = await Promise.all([
+          bounded(() => provider.checkAvailability({ purpose: identity.purpose }), entry.timeoutMs),
+          bounded(() => provider.getRemainingQuota({ now }), entry.timeoutMs),
+          this.repository.dailyQuotaSnapshot({ providerId: entry.id, dailyQuota: entry.dailyQuota, now }),
+          this.repository.providerSnapshot({ providerId: entry.id, now })
+        ]);
+        if (availability?.available !== true || state.circuit === "open" || Number(remoteQuota?.remaining || 0) <= 0 || localQuota.remaining <= 0) return null;
+        const lowestRatio = Math.min(ratio2(remoteQuota), ratio2(localQuota));
+        const lowPenalty = lowestRatio <= this.config.policy.lowQuotaRatio ? 1e4 : (1 - lowestRatio) * 100;
+        const failureTotal = Number(state.successCount || 0) + Number(state.failureCount || 0);
+        const failurePenalty = failureTotal ? Number(state.failureCount || 0) / failureTotal * 500 : 0;
+        const circuitPenalty = state.circuit === "half-open" ? 5e3 : 0;
+        return { entry, provider, score: entry.priority + lowPenalty + failurePenalty + circuitPenalty + Number(state.latencyEwmaMs || 0) / 50 };
+      } catch (cause) {
+        const failure = providerFailure(cause);
+        await this.#record(entry, {
+          attemptId: identity.attemptId,
+          userId: identity.userId,
+          subjectRef: identity.subjectRef,
+          success: false,
+          failureClass: failure.failureClass,
+          reason: failure.code,
+          retryAfter: failure.retryAfter,
+          latencyMs: Date.now() - started,
+          now
+        });
+        return null;
+      }
+    }));
+    return rows.filter(Boolean).sort((left, right) => left.score - right.score || left.entry.priority - right.entry.priority);
+  }
+  async requestVerification(input = {}, requestContext = {}) {
+    const identity = await this.#identity(input, requestContext);
+    const now = Number(this.now());
+    const attemptId = randomToken(24, this.crypto);
+    const code = randomSixDigitOtp(this.crypto);
+    const linkToken = randomToken(32, this.crypto);
+    const [codeMac, linkTokenMac] = await Promise.all([
+      this.hmac.hex("backup-verification-code-v1", `${attemptId}:${code}`),
+      this.hmac.hex("backup-verification-link-v1", linkToken)
+    ]);
+    const policy = this.config.policy;
+    errorFromRepository(await this.repository.reserveChallenge({
+      attemptId,
+      userId: identity.userId,
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.emailRef,
+      destinationRef: identity.destinationRef,
+      deviceRef: identity.deviceRef,
+      ipRef: identity.ipRef,
+      purpose: identity.purpose,
+      codeMac,
+      linkTokenMac,
+      maxAttempts: policy.maxAttempts,
+      createdAt: now,
+      expiresAt: now + policy.codeTtlSeconds * 1e3,
+      resendAt: now + policy.resendCooldownSeconds * 1e3,
+      limits: this.#limits(identity),
+      now
+    }));
+    const destinations = identity.destinations;
+    const candidates = await this.#candidateRows({ ...identity, attemptId }, destinations, now);
+    for (const candidate of candidates) {
+      const { entry, provider } = candidate;
+      const maxTries = 1 + policy.maxProviderRetries;
+      for (let currentTry = 0; currentTry < maxTries; currentTry += 1) {
+        const quota = await this.repository.reserveDailyQuota({ providerId: entry.id, dailyQuota: entry.dailyQuota, now });
+        if (quota.exhausted) break;
+        const started = Date.now();
+        let providerAccepted = false;
+        try {
+          const result = await bounded(() => provider.sendVerification({
+            attemptId,
+            purpose: identity.purpose,
+            destination: destinations[entry.channel],
+            code,
+            linkToken,
+            expiresAt: now + policy.codeTtlSeconds * 1e3,
+            signalContext: { origin: identity.context.origin }
+          }), entry.timeoutMs);
+          if (result?.accepted !== true) throw new VerificationProviderError("INVALID_PROVIDER_RESPONSE", VERIFICATION_FAILURE_CLASS.HARD);
+          providerAccepted = true;
+          const latencyMs = Date.now() - started;
+          await this.#record(entry, { attemptId, userId: identity.userId, subjectRef: identity.subjectRef, success: true, reason: "accepted", latencyMs, now });
+          errorFromRepository(await this.repository.markChallengeDelivery({
+            attemptId,
+            providerId: entry.id,
+            channel: entry.channel,
+            verificationMode: entry.verificationMode,
+            latencyMs,
+            now
+          }));
+          const interaction = safeInteraction(result.interaction);
+          return Object.freeze({
+            accepted: true,
+            attemptId,
+            expiresAt: now + policy.codeTtlSeconds * 1e3,
+            resendAfter: policy.resendCooldownSeconds,
+            attemptsAllowed: policy.maxAttempts,
+            ...interaction ? { interaction } : {}
+          });
+        } catch (cause) {
+          if (providerAccepted) {
+            try {
+              await this.repository.failChallenge({ attemptId, reason: "delivery_state_unavailable", now });
+            } catch {
+            }
+            if (cause instanceof NativeAuthError) throw cause;
+            throw new NativeAuthError(AUTH_ERROR_CODES.STORAGE_UNAVAILABLE);
+          }
+          const failure = providerFailure(cause);
+          const providerState = await this.#record(entry, {
+            attemptId,
+            userId: identity.userId,
+            subjectRef: identity.subjectRef,
+            success: false,
+            failureClass: failure.failureClass,
+            reason: failure.code,
+            retryAfter: failure.retryAfter,
+            latencyMs: Date.now() - started,
+            now
+          });
+          if (failure.failureClass === VERIFICATION_FAILURE_CLASS.USER) {
+            await this.repository.failChallenge({ attemptId, reason: failure.code, now });
+            throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+          }
+          if (failure.failureClass === VERIFICATION_FAILURE_CLASS.HARD || providerState.circuit === "open") break;
+        }
+      }
+    }
+    await this.repository.failChallenge({ attemptId, reason: "all_providers_unavailable", now });
+    throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+  }
+  async verify(input = {}, requestContext = {}) {
+    const identity = await this.#identity(input, requestContext);
+    const attemptId = String(input.attemptId || "").trim();
+    if (!/^[A-Za-z0-9_-]{24,96}$/.test(attemptId)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+    const now = Number(this.now());
+    const selectedResult = errorFromRepository(await this.repository.getChallenge({
+      attemptId,
+      userId: identity.userId,
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      deviceRef: identity.deviceRef,
+      emailRef: identity.emailRef,
+      purpose: identity.purpose,
+      now
+    }));
+    const selected = selectedResult.challenge;
+    if (!selected) throw new NativeAuthError(AUTH_ERROR_CODES.STORAGE_UNAVAILABLE);
+    let verified;
+    if (selected.verificationMode === VERIFICATION_MODES.LOCAL_CODE) {
+      const code = String(input.code || "").trim();
+      if (!/^\d{6}$/.test(code)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+      const candidateCodeMac = await this.hmac.hex("backup-verification-code-v1", `${attemptId}:${code}`);
+      verified = errorFromRepository(await this.repository.verifyLocalChallenge({
+        attemptId,
+        userId: identity.userId,
+        sessionRef: identity.sessionRef,
+        subjectRef: identity.subjectRef,
+        deviceRef: identity.deviceRef,
+        emailRef: identity.emailRef,
+        purpose: identity.purpose,
+        candidateCodeMac,
+        lockoutMs: this.config.policy.lockoutSeconds * 1e3,
+        now
+      }));
+    } else {
+      const evidence = String(input.evidence || "").trim();
+      if (!validText(evidence, 8, 4096)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+      const entry = this.config.providers.find((row) => row.id === selected.providerId && row.enabled);
+      const provider = entry ? this.providers.get(entry.id) : null;
+      if (!entry || !provider) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+      if (entry.id === "telegram" && !Boolean(selected.providerConfirmed)) {
+        throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE, { retryAfter: 3 });
+      }
+      const started = Date.now();
+      try {
+        const result = await bounded(() => provider.verifyCode({
+          attemptId,
+          evidence,
+          purpose: identity.purpose,
+          serverConfirmed: Boolean(selected.providerConfirmed)
+        }), entry.timeoutMs);
+        if (result?.verified !== true) {
+          errorFromRepository(await this.repository.rejectChallengeAttempt({
+            attemptId,
+            userId: identity.userId,
+            sessionRef: identity.sessionRef,
+            subjectRef: identity.subjectRef,
+            deviceRef: identity.deviceRef,
+            emailRef: identity.emailRef,
+            purpose: identity.purpose,
+            lockoutMs: this.config.policy.lockoutSeconds * 1e3,
+            reason: "provider_evidence_rejected",
+            now
+          }));
+        }
+        await this.#record(entry, { attemptId, userId: identity.userId, subjectRef: identity.subjectRef, success: true, reason: "verified", latencyMs: Date.now() - started, now });
+      } catch (cause) {
+        if (cause instanceof NativeAuthError) throw cause;
+        const failure = providerFailure(cause);
+        await this.#record(entry, {
+          attemptId,
+          userId: identity.userId,
+          subjectRef: identity.subjectRef,
+          success: false,
+          failureClass: failure.failureClass,
+          reason: failure.code,
+          retryAfter: failure.retryAfter,
+          latencyMs: Date.now() - started,
+          now
+        });
+        if (failure.failureClass === VERIFICATION_FAILURE_CLASS.USER) {
+          errorFromRepository(await this.repository.rejectChallengeAttempt({
+            attemptId,
+            userId: identity.userId,
+            sessionRef: identity.sessionRef,
+            subjectRef: identity.subjectRef,
+            deviceRef: identity.deviceRef,
+            emailRef: identity.emailRef,
+            purpose: identity.purpose,
+            lockoutMs: this.config.policy.lockoutSeconds * 1e3,
+            reason: failure.code,
+            now
+          }));
+        }
+        throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+      }
+      verified = errorFromRepository(await this.repository.completeRemoteChallenge({
+        attemptId,
+        userId: identity.userId,
+        sessionRef: identity.sessionRef,
+        subjectRef: identity.subjectRef,
+        deviceRef: identity.deviceRef,
+        emailRef: identity.emailRef,
+        purpose: identity.purpose,
+        now
+      }));
+    }
+    if (verified.userId !== identity.userId || verified.purpose !== identity.purpose) failAuth(AUTH_ERROR_CODES.ACCOUNT_CONFLICT);
+    return Object.freeze({ verified: true, purpose: verified.purpose, userId: identity.userId });
+  }
+  async confirmTelegramWebhook(input = {}) {
+    const linkToken = String(input.linkToken || "").trim();
+    const telegramUserId = String(input.telegramUserId || "").trim();
+    const chatId = String(input.chatId || "").trim();
+    if (!/^[A-Za-z0-9_-]{32,64}$/.test(linkToken) || !/^[1-9]\d{0,19}$/.test(telegramUserId) || chatId !== telegramUserId) {
+      failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+    }
+    const entry = this.config.providers.find((row) => row.id === "telegram" && row.enabled);
+    const provider = entry ? this.providers.get(entry.id) : null;
+    if (!this.config.enabled || !entry || !provider) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    const status = await bounded(() => provider.getProviderStatus({ now: Number(this.now()) }), entry.timeoutMs);
+    if (status?.configured !== true) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    const [linkTokenMac, externalIdentityRef] = await Promise.all([
+      this.hmac.hex("backup-verification-link-v1", linkToken),
+      this.hmac.hex("telegram-identity-v1", telegramUserId)
+    ]);
+    errorFromRepository(await this.repository.confirmProviderEvidence({
+      linkTokenMac,
+      externalIdentityRef,
+      providerId: "telegram",
+      channel: "telegram",
+      now: Number(this.now())
+    }));
+    return Object.freeze({ accepted: true, identityKind: "telegram-account", phoneOwnership: false });
+  }
+  async capabilities() {
+    const now = Number(this.now());
+    if (this.capabilityCache?.expiresAt > now) return this.capabilityCache.value || this.capabilityCache.promise;
+    const promise = (async () => {
+      const rows = await this.#candidateRows(
+        { purpose: "account-backup", attemptId: "", userId: "", subjectRef: "" },
+        { otp: "configured", whatsapp: "configured", telegram: "user-initiated-link" },
+        now
+      );
+      const channels = new Set(rows.map((row) => row.entry.channel));
+      const phoneMode = channels.has("whatsapp") ? channels.has("otp") || channels.has("telegram") ? "optional" : "required" : "none";
+      return Object.freeze({
+        available: rows.length > 0,
+        availabilityCode: rows.length ? "READY" : this.config.enabled ? "NO_HEALTHY_PROVIDER" : "NOT_ACTIVATED",
+        genericFlow: true,
+        providerNamesExposed: false,
+        contactInput: phoneMode,
+        maxAttempts: this.config.policy.maxAttempts,
+        expiresInSeconds: this.config.policy.codeTtlSeconds
+      });
+    })();
+    this.capabilityCache = { promise, expiresAt: now + 3e4 };
+    const value = await promise;
+    this.capabilityCache = { value, expiresAt: now + 3e4 };
+    return value;
+  }
+  async adminStatus() {
+    const now = Number(this.now());
+    const stored = await this.repository.status({ providerIds: this.config.providers.map((row) => row.id), now });
+    const providers = await Promise.all(this.config.providers.map(async (entry) => {
+      const provider = this.providers.get(entry.id);
+      const state = stored.providerStates.find((row) => row.providerId === entry.id) || {};
+      const quota = await this.repository.dailyQuotaSnapshot({ providerId: entry.id, dailyQuota: entry.dailyQuota, now });
+      let availability = { available: false, code: "NOT_RUN" };
+      let remoteQuota = { remaining: 0, limit: 0, resetAt: 0 };
+      let remoteStatus = { status: "unknown", configured: false };
+      const probes = await Promise.allSettled([
+        bounded(() => provider.checkAvailability({ purpose: "status" }), entry.timeoutMs),
+        bounded(() => provider.getRemainingQuota({ now }), entry.timeoutMs),
+        bounded(() => provider.getProviderStatus({ now }), entry.timeoutMs)
+      ]);
+      if (probes[0].status === "fulfilled") availability = probes[0].value;
+      else availability = { available: false, code: providerFailure(probes[0].reason).code };
+      if (probes[1].status === "fulfilled") remoteQuota = probes[1].value;
+      if (probes[2].status === "fulfilled") remoteStatus = probes[2].value;
+      const total = Number(state.successCount || 0) + Number(state.failureCount || 0);
+      return Object.freeze({
+        id: entry.id,
+        channel: entry.channel,
+        enabled: entry.enabled,
+        configured: remoteStatus?.configured === true,
+        priority: entry.priority,
+        availability: availability?.available === true,
+        availabilityCode: reason(availability?.code || "UNKNOWN"),
+        quota: Object.freeze({
+          local: quota,
+          remote: {
+            remaining: Math.max(0, Number(remoteQuota?.remaining || 0)),
+            limit: Math.max(0, Number(remoteQuota?.limit || 0)),
+            resetAt: Math.max(0, Number(remoteQuota?.resetAt || 0))
+          },
+          low: ratio2(quota) <= this.config.policy.lowQuotaRatio
+        }),
+        health: Object.freeze({
+          circuit: state.circuit || "closed",
+          cooldownUntil: Number(state.cooldownUntil || 0),
+          successCount: Number(state.successCount || 0),
+          failureCount: Number(state.failureCount || 0),
+          userErrorCount: Number(state.userErrorCount || 0),
+          successRate: total ? Number(state.successCount || 0) / total : 0,
+          failureRate: total ? Number(state.failureCount || 0) / total : 0,
+          latencyMs: Number(state.latencyEwmaMs || 0),
+          lastSuccessAt: Number(state.lastSuccessAt || 0),
+          lastFailureAt: Number(state.lastFailureAt || 0),
+          lastReason: reason(state.lastReason || "NONE")
+        })
+      });
+    }));
+    return Object.freeze({
+      enabled: this.config.enabled,
+      runtimeEnabled: this.runtimeEnabled,
+      activation: this.activated ? "enabled" : "disabled",
+      policy: this.config.policy,
+      providers: Object.freeze(providers),
+      recentEvents: Object.freeze((stored.recentEvents || []).slice(-100))
+    });
+  }
+  async updateConfig(input) {
+    const next = verificationConfig(input);
+    await this.repository.setRuntimeConfig({ config: next, now: Number(this.now()) });
+    this.runtimeEnabled = next.enabled;
+    this.config = this.activated ? next : Object.freeze({ ...next, enabled: false });
+    this.capabilityCache = null;
+    return this.adminStatus();
+  }
+  cleanup() {
+    return this.repository.cleanup(Number(this.now()));
+  }
+  nextExpiry() {
+    return this.repository.nextExpiry(Number(this.now()));
+  }
+};
+var __verificationOrchestratorTest = Object.freeze({ PURPOSES, SEND_LIMITS, providerFailure, ratio: ratio2 });
+
+// auth-native/verification/providers.mjs
+var safeInteger = (value, min = 0, max = Number.MAX_SAFE_INTEGER) => {
+  const number = Number(value);
+  return Number.isInteger(number) && number >= min && number <= max ? number : 0;
+};
+var validSecret = (value) => typeof value === "string" && value.length >= 20 && value.length <= 4096 && !/[\r\n\u0000]/.test(value);
+var validTelegramBotToken = (value) => /^\d{6,12}:[A-Za-z0-9_-]{30,64}$/.test(String(value || ""));
+var validTelegramWebhookSecret = (value) => /^[A-Za-z0-9_-]{20,256}$/.test(String(value || ""));
+function httpsOrigin(value) {
+  try {
+    const url = new URL(String(value || ""));
+    if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash) return "";
+    return url.origin;
+  } catch {
+    return "";
+  }
+}
+function telegramWebhookEndpoint(value) {
+  try {
+    const url = new URL(String(value || ""));
+    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash || url.pathname !== "/api/auth/v1/telegram/webhook") return "";
+    if (!["admissionhub.pages.dev", "admission-gk.admissionhub.workers.dev"].includes(url.hostname)) return "";
+    return url.href;
+  } catch {
+    return "";
+  }
+}
+async function boundedJson(response3, maximum = 32 * 1024) {
+  if (!response3.body) return {};
+  const reader = response3.body.getReader();
+  const chunks = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maximum) {
+      await reader.cancel();
+      throw new VerificationProviderError("INVALID_PROVIDER_RESPONSE", VERIFICATION_FAILURE_CLASS.HARD);
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  if (!total) return {};
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    throw new VerificationProviderError("INVALID_PROVIDER_RESPONSE", VERIFICATION_FAILURE_CLASS.HARD);
+  }
+}
+function httpFailure(response3, _payload, { userStatuses = [400, 404, 422] } = {}) {
+  const status = Number(response3?.status || 0);
+  const code = status >= 100 && status <= 599 ? `PROVIDER_HTTP_${status}` : "PROVIDER_FAILURE";
+  if (userStatuses.includes(status)) return new VerificationProviderError(code, VERIFICATION_FAILURE_CLASS.USER);
+  if ([401, 403].includes(status)) return new VerificationProviderError(code, VERIFICATION_FAILURE_CLASS.HARD);
+  if (status === 429 || status >= 500 || status === 0) return new VerificationProviderError(code, VERIFICATION_FAILURE_CLASS.TEMPORARY, { retryAfter: 60 });
+  return new VerificationProviderError(code, VERIFICATION_FAILURE_CLASS.HARD);
+}
+async function fetchJson(fetchImpl, url, init = {}) {
+  let response3;
+  try {
+    response3 = await fetchImpl(url, { ...init, redirect: "error", signal: init.signal || AbortSignal.timeout(12e3) });
+  } catch {
+    throw new VerificationProviderError("NETWORK_ERROR", VERIFICATION_FAILURE_CLASS.TEMPORARY);
+  }
+  const payload = await boundedJson(response3);
+  if (!response3.ok) throw httpFailure(response3, payload);
+  return payload;
+}
+var BridgeOtpVerificationProvider = class {
+  constructor({ id, origin, apiKey, declaredDailyQuota, fetchImpl = globalThis.fetch } = {}) {
+    this.id = String(id || "");
+    this.channel = VERIFICATION_CHANNELS.OTP;
+    this.verificationMode = VERIFICATION_MODES.LOCAL_CODE;
+    this.origin = httpsOrigin(origin);
+    this.apiKey = String(apiKey || "");
+    this.declaredDailyQuota = safeInteger(declaredDailyQuota, 1, 1e7);
+    this.fetch = typeof fetchImpl === "function" ? fetchImpl.bind(globalThis) : null;
+    this.configured = Boolean(this.origin && validSecret(this.apiKey) && this.declaredDailyQuota && this.fetch);
+  }
+  #headers(content = false) {
+    return {
+      Accept: "application/json",
+      "Cache-Control": "no-store",
+      "X-Verification-Key": this.apiKey,
+      ...content ? { "Content-Type": "application/json" } : {}
+    };
+  }
+  async checkAvailability() {
+    if (!this.configured) return { available: false, code: "NOT_CONFIGURED" };
+    try {
+      const payload = await fetchJson(this.fetch, `${this.origin}/v1/verification/health`, { method: "GET", headers: this.#headers() });
+      return { available: payload?.ok === true && payload?.ready === true, code: payload?.ready === true ? "READY" : "NOT_READY" };
+    } catch (error) {
+      throw error;
+    }
+  }
+  async getRemainingQuota() {
+    if (!this.configured) return { remaining: 0, limit: 0, resetAt: 0, source: "not-configured" };
+    const payload = await fetchJson(this.fetch, `${this.origin}/v1/verification/quota`, { method: "GET", headers: this.#headers() });
+    const limit = safeInteger(payload?.limit, 1, this.declaredDailyQuota) || this.declaredDailyQuota;
+    const remaining = Math.min(limit, safeInteger(payload?.remaining, 0, limit));
+    const resetAt = safeInteger(payload?.resetAt, 0, 9e12);
+    if (!resetAt) throw new VerificationProviderError("INVALID_QUOTA_RESPONSE", VERIFICATION_FAILURE_CLASS.HARD);
+    return { remaining, limit, resetAt, source: "provider-api" };
+  }
+  async sendVerification(input = {}) {
+    if (!this.configured) throw new VerificationProviderError("NOT_CONFIGURED", VERIFICATION_FAILURE_CLASS.HARD);
+    if (!/^\d{6}$/.test(String(input.code || "")) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(input.destination || ""))) {
+      throw new VerificationProviderError("INVALID_DESTINATION", VERIFICATION_FAILURE_CLASS.USER);
+    }
+    const payload = await fetchJson(this.fetch, `${this.origin}/v1/verification/send`, {
+      method: "POST",
+      headers: this.#headers(true),
+      body: JSON.stringify({
+        attemptId: input.attemptId,
+        destination: input.destination,
+        code: input.code,
+        purpose: input.purpose,
+        expiresAt: input.expiresAt
+      })
+    });
+    if (payload?.accepted !== true || !/^[A-Za-z0-9_-]{6,128}$/.test(String(payload?.messageRef || ""))) {
+      throw new VerificationProviderError("INVALID_PROVIDER_RESPONSE", VERIFICATION_FAILURE_CLASS.HARD);
+    }
+    return { accepted: true };
+  }
+  async verifyCode() {
+    throw new VerificationProviderError("LOCAL_VERIFICATION_ONLY", VERIFICATION_FAILURE_CLASS.USER);
+  }
+  async getProviderStatus() {
+    return { status: this.configured ? "configured" : "disabled", configured: this.configured };
+  }
+};
+var OfficialWhatsAppVerificationProvider = class {
+  constructor({ graphVersion, phoneNumberId, accessToken, templateName, templateLanguage = "en_US", declaredDailyQuota, fetchImpl = globalThis.fetch } = {}) {
+    this.id = "whatsapp";
+    this.channel = VERIFICATION_CHANNELS.WHATSAPP;
+    this.verificationMode = VERIFICATION_MODES.LOCAL_CODE;
+    this.graphVersion = /^v\d{1,2}\.\d$/.test(String(graphVersion || "")) ? String(graphVersion) : "";
+    this.phoneNumberId = /^\d{6,32}$/.test(String(phoneNumberId || "")) ? String(phoneNumberId) : "";
+    this.accessToken = String(accessToken || "");
+    this.templateName = /^[a-z0-9_]{3,128}$/.test(String(templateName || "")) ? String(templateName) : "";
+    this.templateLanguage = /^[a-z]{2,3}(?:_[A-Z]{2})?$/.test(String(templateLanguage || "")) ? String(templateLanguage) : "";
+    this.declaredDailyQuota = safeInteger(declaredDailyQuota, 1, 1e7);
+    this.fetch = typeof fetchImpl === "function" ? fetchImpl.bind(globalThis) : null;
+    this.configured = Boolean(this.graphVersion && this.phoneNumberId && validSecret(this.accessToken) && this.templateName && this.templateLanguage && this.declaredDailyQuota && this.fetch);
+  }
+  #url(suffix = "") {
+    return `https://graph.facebook.com/${this.graphVersion}/${this.phoneNumberId}${suffix}`;
+  }
+  #headers(content = false) {
+    return {
+      Accept: "application/json",
+      Authorization: `Bearer ${this.accessToken}`,
+      "Cache-Control": "no-store",
+      ...content ? { "Content-Type": "application/json" } : {}
+    };
+  }
+  async checkAvailability() {
+    if (!this.configured) return { available: false, code: "NOT_CONFIGURED" };
+    const payload = await fetchJson(this.fetch, `${this.#url()}?fields=id`, { method: "GET", headers: this.#headers() });
+    return { available: String(payload?.id || "") === this.phoneNumberId, code: String(payload?.id || "") === this.phoneNumberId ? "READY" : "PHONE_ID_MISMATCH" };
+  }
+  async getRemainingQuota({ now = Date.now() } = {}) {
+    if (!this.configured) return { remaining: 0, limit: 0, resetAt: 0, source: "not-configured" };
+    const resetAt = (Math.floor(Number(now) / 864e5) + 1) * 864e5;
+    return { remaining: this.declaredDailyQuota, limit: this.declaredDailyQuota, resetAt, source: "operator-declared-cap" };
+  }
+  async sendVerification(input = {}) {
+    if (!this.configured) throw new VerificationProviderError("NOT_CONFIGURED", VERIFICATION_FAILURE_CLASS.HARD);
+    const destination = String(input.destination || "");
+    const code = String(input.code || "");
+    if (!/^\+[1-9]\d{7,14}$/.test(destination) || !/^\d{6}$/.test(code)) {
+      throw new VerificationProviderError("INVALID_DESTINATION", VERIFICATION_FAILURE_CLASS.USER);
+    }
+    const payload = await fetchJson(this.fetch, this.#url("/messages"), {
+      method: "POST",
+      headers: this.#headers(true),
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: destination.slice(1),
+        type: "template",
+        template: {
+          name: this.templateName,
+          language: { code: this.templateLanguage },
+          components: [{ type: "body", parameters: [{ type: "text", text: code }] }]
+        }
+      })
+    });
+    if (!validSecret(String(payload?.messages?.[0]?.id || ""))) {
+      throw new VerificationProviderError("INVALID_PROVIDER_RESPONSE", VERIFICATION_FAILURE_CLASS.HARD);
+    }
+    return { accepted: true };
+  }
+  async verifyCode() {
+    throw new VerificationProviderError("LOCAL_VERIFICATION_ONLY", VERIFICATION_FAILURE_CLASS.USER);
+  }
+  async getProviderStatus() {
+    return { status: this.configured ? "configured" : "disabled", configured: this.configured, officialApi: true };
+  }
+};
+var TelegramLinkVerificationProvider = class {
+  constructor({ botUsername, botToken, webhookSecret, webhookUrl, declaredDailyQuota, fetchImpl = globalThis.fetch } = {}) {
+    this.id = "telegram";
+    this.channel = VERIFICATION_CHANNELS.TELEGRAM;
+    this.verificationMode = VERIFICATION_MODES.PROVIDER_EVIDENCE;
+    this.botUsername = /^[A-Za-z][A-Za-z0-9_]{4,31}bot$/i.test(String(botUsername || "")) ? String(botUsername) : "";
+    this.botToken = validTelegramBotToken(botToken) ? String(botToken) : "";
+    this.webhookSecret = validTelegramWebhookSecret(webhookSecret) ? String(webhookSecret) : "";
+    this.webhookUrl = telegramWebhookEndpoint(webhookUrl);
+    this.declaredDailyQuota = safeInteger(declaredDailyQuota, 1, 1e7);
+    this.fetch = typeof fetchImpl === "function" ? fetchImpl.bind(globalThis) : null;
+    this.configured = Boolean(this.botUsername && this.botToken && this.webhookSecret && this.webhookUrl && this.declaredDailyQuota && this.fetch);
+  }
+  async checkAvailability() {
+    if (!this.configured) return { available: false, code: "NOT_CONFIGURED" };
+    const base = `https://api.telegram.org/bot${this.botToken}`;
+    const headers = { Accept: "application/json", "Cache-Control": "no-store" };
+    const [identity, webhook] = await Promise.all([
+      fetchJson(this.fetch, `${base}/getMe`, { method: "GET", headers }),
+      fetchJson(this.fetch, `${base}/getWebhookInfo`, { method: "GET", headers })
+    ]);
+    const username = String(identity?.result?.username || "");
+    const identityReady = identity?.ok === true && username.toLowerCase() === this.botUsername.toLowerCase();
+    const webhookReady = webhook?.ok === true && String(webhook?.result?.url || "") === this.webhookUrl;
+    return {
+      available: identityReady && webhookReady,
+      code: !identityReady ? "BOT_IDENTITY_MISMATCH" : !webhookReady ? "WEBHOOK_NOT_READY" : "READY"
+    };
+  }
+  async getRemainingQuota({ now = Date.now() } = {}) {
+    if (!this.configured) return { remaining: 0, limit: 0, resetAt: 0, source: "not-configured" };
+    return {
+      remaining: this.declaredDailyQuota,
+      limit: this.declaredDailyQuota,
+      resetAt: (Math.floor(Number(now) / 864e5) + 1) * 864e5,
+      source: "operator-declared-cap"
+    };
+  }
+  async sendVerification(input = {}) {
+    if (!this.configured) throw new VerificationProviderError("NOT_CONFIGURED", VERIFICATION_FAILURE_CLASS.HARD);
+    if (!/^[A-Za-z0-9_-]{32,64}$/.test(String(input.linkToken || ""))) {
+      throw new VerificationProviderError("INVALID_LINK_TOKEN", VERIFICATION_FAILURE_CLASS.HARD);
+    }
+    const link = new URL(`https://t.me/${this.botUsername}`);
+    link.searchParams.set("start", input.linkToken);
+    return { accepted: true, interaction: { type: "telegram-link", url: link.href } };
+  }
+  async verifyCode(input = {}) {
+    return { verified: input.serverConfirmed === true, identityKind: "telegram-account", phoneOwnership: false };
+  }
+  async getProviderStatus() {
+    return { status: this.configured ? "configured" : "disabled", configured: this.configured, identityKind: "telegram-account", phoneOwnership: false };
+  }
+};
+function createConfiguredVerificationProviders(env = {}, { fetchImpl = globalThis.fetch } = {}) {
+  return [
+    new BridgeOtpVerificationProvider({ id: "otp-a", origin: env.OTP_A_PROVIDER_ORIGIN, apiKey: env.OTP_A_PROVIDER_KEY, declaredDailyQuota: env.OTP_A_DAILY_QUOTA, fetchImpl }),
+    new BridgeOtpVerificationProvider({ id: "otp-b", origin: env.OTP_B_PROVIDER_ORIGIN, apiKey: env.OTP_B_PROVIDER_KEY, declaredDailyQuota: env.OTP_B_DAILY_QUOTA, fetchImpl }),
+    new BridgeOtpVerificationProvider({ id: "otp-c", origin: env.OTP_C_PROVIDER_ORIGIN, apiKey: env.OTP_C_PROVIDER_KEY, declaredDailyQuota: env.OTP_C_DAILY_QUOTA, fetchImpl }),
+    new OfficialWhatsAppVerificationProvider({
+      graphVersion: env.WHATSAPP_GRAPH_VERSION,
+      phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
+      accessToken: env.WHATSAPP_ACCESS_TOKEN,
+      templateName: env.WHATSAPP_TEMPLATE_NAME,
+      templateLanguage: env.WHATSAPP_TEMPLATE_LANGUAGE,
+      declaredDailyQuota: env.WHATSAPP_DAILY_QUOTA,
+      fetchImpl
+    }),
+    new TelegramLinkVerificationProvider({
+      botUsername: env.TELEGRAM_AUTH_BOT_USERNAME,
+      botToken: env.TELEGRAM_AUTH_BOT_TOKEN,
+      webhookSecret: env.TELEGRAM_AUTH_WEBHOOK_SECRET,
+      webhookUrl: env.TELEGRAM_AUTH_WEBHOOK_URL,
+      declaredDailyQuota: env.TELEGRAM_AUTH_DAILY_QUOTA,
+      fetchImpl
+    })
+  ];
+}
+var __verificationProvidersTest = Object.freeze({ httpsOrigin, boundedJson, httpFailure });
+
+// auth-native/verification/sqlite-verification-repository.mjs
+var DAY_MS2 = 864e5;
+var EVENT_RETENTION_MS2 = 90 * DAY_MS2;
+var safeReason = (value) => String(value || "UNKNOWN").toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 64) || "UNKNOWN";
+var SqliteVerificationRepository = class {
+  constructor(storage) {
+    if (!storage?.sql || typeof storage.sql.exec !== "function") throw new TypeError("SQLite Durable Object storage is required.");
+    this.storage = storage;
+    this.sql = storage.sql;
+  }
+  migrate() {
+    const statements = [
+      `CREATE TABLE IF NOT EXISTS auth_verification_challenges (
+        attempt_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        session_ref TEXT NOT NULL,
+        subject_ref TEXT NOT NULL,
+        email_ref TEXT NOT NULL,
+        destination_ref TEXT NOT NULL,
+        device_ref TEXT NOT NULL,
+        ip_ref TEXT NOT NULL,
+        purpose TEXT NOT NULL CHECK(purpose IN ('account-backup','sensitive-action')),
+        code_mac TEXT NOT NULL,
+        link_token_mac TEXT NOT NULL,
+        provider_id TEXT,
+        channel TEXT,
+        verification_mode TEXT,
+        state TEXT NOT NULL CHECK(state IN ('pending','sent','verified','failed','expired','locked','superseded')),
+        attempts INTEGER NOT NULL DEFAULT 0,
+        max_attempts INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        resend_at INTEGER NOT NULL,
+        sent_at INTEGER,
+        verified_at INTEGER,
+        lockout_until INTEGER NOT NULL DEFAULT 0,
+        provider_confirmed INTEGER NOT NULL DEFAULT 0,
+        external_identity_ref TEXT,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_verification_user_purpose
+       ON auth_verification_challenges(user_id,purpose,created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS auth_verification_expiry
+       ON auth_verification_challenges(expires_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_verification_daily_quota (
+        provider_id TEXT NOT NULL,
+        day_start INTEGER NOT NULL,
+        used INTEGER NOT NULL,
+        quota_limit INTEGER NOT NULL,
+        reset_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY(provider_id,day_start)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_verification_quota_reset
+       ON auth_verification_daily_quota(reset_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_verification_provider_state (
+        provider_id TEXT PRIMARY KEY,
+        circuit TEXT NOT NULL CHECK(circuit IN ('closed','open','half-open')),
+        consecutive_failures INTEGER NOT NULL DEFAULT 0,
+        success_count INTEGER NOT NULL DEFAULT 0,
+        failure_count INTEGER NOT NULL DEFAULT 0,
+        user_error_count INTEGER NOT NULL DEFAULT 0,
+        latency_ewma_ms INTEGER NOT NULL DEFAULT 0,
+        cooldown_until INTEGER NOT NULL DEFAULT 0,
+        last_success_at INTEGER NOT NULL DEFAULT 0,
+        last_failure_at INTEGER NOT NULL DEFAULT 0,
+        last_reason TEXT NOT NULL DEFAULT 'NONE',
+        updated_at INTEGER NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS auth_verification_runtime_config (
+        config_key TEXT PRIMARY KEY,
+        config_json TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS auth_verification_events (
+        event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        attempt_id TEXT,
+        user_id TEXT,
+        subject_ref TEXT,
+        provider_id TEXT,
+        channel TEXT,
+        occurred_at INTEGER NOT NULL,
+        outcome TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        latency_ms INTEGER NOT NULL DEFAULT 0
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_verification_events_time
+       ON auth_verification_events(occurred_at DESC)`
+    ];
+    for (const statement of statements) this.sql.exec(statement);
+    const challengeColumns = new Set(
+      Array.from(this.sql.exec("PRAGMA table_info(auth_verification_challenges)")).map((row) => String(row.name || ""))
+    );
+    const additiveColumns = [
+      ["link_token_mac", "ALTER TABLE auth_verification_challenges ADD COLUMN link_token_mac TEXT NOT NULL DEFAULT ''"],
+      ["provider_confirmed", "ALTER TABLE auth_verification_challenges ADD COLUMN provider_confirmed INTEGER NOT NULL DEFAULT 0"],
+      ["external_identity_ref", "ALTER TABLE auth_verification_challenges ADD COLUMN external_identity_ref TEXT"]
+    ];
+    for (const [column, statement] of additiveColumns) {
+      if (!challengeColumns.has(column)) this.sql.exec(statement);
+    }
+    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','4') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
+  }
+  #rows(statement, ...bindings) {
+    return Array.from(this.sql.exec(statement, ...bindings));
+  }
+  #one(statement, ...bindings) {
+    return this.#rows(statement, ...bindings)[0] || null;
+  }
+  #transaction(work) {
+    return typeof this.storage.transactionSync === "function" ? this.storage.transactionSync(work) : work();
+  }
+  async getRuntimeConfig() {
+    const row = this.#one("SELECT config_json AS configJson,updated_at AS updatedAt FROM auth_verification_runtime_config WHERE config_key='active'");
+    if (!row) return null;
+    try {
+      const config = JSON.parse(row.configJson);
+      return config && typeof config === "object" ? { ...config, updatedAt: Number(row.updatedAt) } : null;
+    } catch {
+      return null;
+    }
+  }
+  async setRuntimeConfig({ config, now }) {
+    this.sql.exec(
+      `INSERT INTO auth_verification_runtime_config(config_key,config_json,updated_at) VALUES('active',?,?)
+       ON CONFLICT(config_key) DO UPDATE SET config_json=excluded.config_json,updated_at=excluded.updated_at`,
+      JSON.stringify(config),
+      Number(now)
+    );
+    return { updated: true, updatedAt: Number(now) };
+  }
+  #event(input) {
+    this.sql.exec(
+      `INSERT INTO auth_verification_events(
+        attempt_id,user_id,subject_ref,provider_id,channel,occurred_at,outcome,reason,latency_ms
+      ) VALUES(?,?,?,?,?,?,?,?,?)`,
+      input.attemptId || null,
+      input.userId || null,
+      input.subjectRef || null,
+      input.providerId || null,
+      input.channel || null,
+      Number(input.now),
+      safeReason(input.outcome),
+      safeReason(input.reason),
+      Math.max(0, Math.round(Number(input.latencyMs || 0)))
+    );
+  }
+  #consumeLimits(limits, now) {
+    let denied = null;
+    for (const limit of limits || []) {
+      const start = Math.floor(now / limit.windowMs) * limit.windowMs;
+      const expiresAt = start + limit.windowMs;
+      this.sql.exec(
+        `INSERT INTO auth_rate_limits(scope,bucket_key,window_start,window_ms,count,expires_at)
+         VALUES(?,?,?,?,1,?)
+         ON CONFLICT(scope,bucket_key,window_start) DO UPDATE SET count=count+1`,
+        limit.scope,
+        limit.key,
+        start,
+        limit.windowMs,
+        expiresAt
+      );
+      const row = this.#one(
+        "SELECT count,expires_at AS expiresAt FROM auth_rate_limits WHERE scope=? AND bucket_key=? AND window_start=?",
+        limit.scope,
+        limit.key,
+        start
+      );
+      if (Number(row?.count || 0) > limit.limit) {
+        const retryAfter = Math.max(1, Math.ceil((Number(row.expiresAt) - now) / 1e3));
+        if (!denied || retryAfter > denied.retryAfter) denied = { error: AUTH_ERROR_CODES.RATE_LIMITED, retryAfter };
+      }
+    }
+    return denied;
+  }
+  #challenge(input) {
+    const row = this.#one(
+      `SELECT attempt_id AS attemptId,user_id AS userId,session_ref AS sessionRef,subject_ref AS subjectRef,
+        email_ref AS emailRef,destination_ref AS destinationRef,device_ref AS deviceRef,ip_ref AS ipRef,
+        purpose,code_mac AS codeMac,link_token_mac AS linkTokenMac,provider_id AS providerId,channel,
+        verification_mode AS verificationMode,state,attempts,max_attempts AS maxAttempts,
+        created_at AS createdAt,expires_at AS expiresAt,resend_at AS resendAt,sent_at AS sentAt,
+        verified_at AS verifiedAt,lockout_until AS lockoutUntil,provider_confirmed AS providerConfirmed,
+        external_identity_ref AS externalIdentityRef
+       FROM auth_verification_challenges WHERE attempt_id=?`,
+      input.attemptId
+    );
+    if (!row || row.sessionRef !== input.sessionRef || row.subjectRef !== input.subjectRef || row.userId !== input.userId || row.deviceRef !== input.deviceRef || row.emailRef !== input.emailRef || row.purpose !== input.purpose) {
+      return { error: AUTH_ERROR_CODES.OTP_INVALID };
+    }
+    if (row.state === "verified") return { error: AUTH_ERROR_CODES.OTP_USED };
+    if (row.state === "locked") return {
+      error: AUTH_ERROR_CODES.OTP_LOCKED,
+      retryAfter: Math.max(1, Math.ceil((Number(row.lockoutUntil || input.now + 1e3) - input.now) / 1e3))
+    };
+    if (row.state !== "sent") return { error: AUTH_ERROR_CODES.OTP_INVALID };
+    if (Number(row.expiresAt) <= input.now) {
+      this.sql.exec("UPDATE auth_verification_challenges SET state='expired',code_mac='',link_token_mac='' WHERE attempt_id=?", input.attemptId);
+      return { error: AUTH_ERROR_CODES.OTP_EXPIRED };
+    }
+    return { challenge: row };
+  }
+  async reserveChallenge(input) {
+    return this.#transaction(() => {
+      const lockout = this.#one(
+        `SELECT MAX(lockout_until) AS lockoutUntil FROM auth_verification_challenges
+         WHERE user_id=? AND purpose=? AND state='locked' AND lockout_until>?`,
+        input.userId,
+        input.purpose,
+        input.now
+      );
+      if (Number(lockout?.lockoutUntil || 0) > input.now) {
+        return {
+          error: AUTH_ERROR_CODES.OTP_LOCKED,
+          retryAfter: Math.max(1, Math.ceil((Number(lockout.lockoutUntil) - input.now) / 1e3))
+        };
+      }
+      const denied = this.#consumeLimits(input.limits, input.now);
+      if (denied) return denied;
+      const latest = this.#one(
+        `SELECT resend_at AS resendAt FROM auth_verification_challenges
+         WHERE user_id=? AND purpose=? AND state IN ('pending','sent')
+         ORDER BY created_at DESC LIMIT 1`,
+        input.userId,
+        input.purpose
+      );
+      if (latest && input.now < Number(latest.resendAt)) {
+        return { error: AUTH_ERROR_CODES.RESEND_COOLDOWN, retryAfter: Math.max(1, Math.ceil((Number(latest.resendAt) - input.now) / 1e3)) };
+      }
+      this.sql.exec(
+        `INSERT INTO auth_verification_challenges(
+          attempt_id,user_id,session_ref,subject_ref,email_ref,destination_ref,device_ref,ip_ref,purpose,
+          code_mac,link_token_mac,provider_id,channel,verification_mode,state,attempts,max_attempts,
+          created_at,expires_at,resend_at,sent_at,verified_at,lockout_until
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,'pending',0,?,?,?,?,NULL,NULL,0)`,
+        input.attemptId,
+        input.userId,
+        input.sessionRef,
+        input.subjectRef,
+        input.emailRef,
+        input.destinationRef,
+        input.deviceRef,
+        input.ipRef,
+        input.purpose,
+        input.codeMac,
+        input.linkTokenMac,
+        input.maxAttempts,
+        input.createdAt,
+        input.expiresAt,
+        input.resendAt
+      );
+      this.#event({ ...input, outcome: "prepared", reason: "accepted" });
+      return { reserved: true };
+    });
+  }
+  async markChallengeDelivery(input) {
+    return this.#transaction(() => {
+      const row = this.#one("SELECT user_id AS userId,subject_ref AS subjectRef,purpose,state FROM auth_verification_challenges WHERE attempt_id=?", input.attemptId);
+      if (!row || row.state !== "pending") return { error: AUTH_ERROR_CODES.OTP_INVALID };
+      this.sql.exec(
+        `UPDATE auth_verification_challenges SET provider_id=?,channel=?,verification_mode=?,state='sent',sent_at=?
+         WHERE attempt_id=? AND state='pending'`,
+        input.providerId,
+        input.channel,
+        input.verificationMode,
+        input.now,
+        input.attemptId
+      );
+      this.sql.exec(
+        `UPDATE auth_verification_challenges SET state='superseded',code_mac='',link_token_mac=''
+         WHERE user_id=? AND purpose=? AND attempt_id<>? AND state IN ('pending','sent')`,
+        row.userId,
+        row.purpose,
+        input.attemptId
+      );
+      this.#event({ ...input, userId: row.userId, subjectRef: row.subjectRef, outcome: "sent", reason: "accepted" });
+      return { delivered: true };
+    });
+  }
+  async confirmProviderEvidence(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT attempt_id AS attemptId,user_id AS userId,subject_ref AS subjectRef,provider_id AS providerId,channel
+         FROM auth_verification_challenges
+         WHERE link_token_mac=? AND provider_id=? AND channel=? AND state='sent' AND expires_at>?`,
+        input.linkTokenMac,
+        input.providerId,
+        input.channel,
+        input.now
+      );
+      if (!row) return { error: AUTH_ERROR_CODES.OTP_INVALID };
+      this.sql.exec(
+        `UPDATE auth_verification_challenges
+         SET provider_confirmed=1,external_identity_ref=?,link_token_mac=''
+         WHERE attempt_id=? AND state='sent' AND link_token_mac=?`,
+        input.externalIdentityRef,
+        row.attemptId,
+        input.linkTokenMac
+      );
+      this.#event({ ...row, now: input.now, outcome: "provider_confirmed", reason: "webhook_verified" });
+      return { confirmed: true, attemptId: row.attemptId };
+    });
+  }
+  async failChallenge(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        "SELECT user_id AS userId,subject_ref AS subjectRef,provider_id AS providerId,channel FROM auth_verification_challenges WHERE attempt_id=?",
+        input.attemptId
+      );
+      this.sql.exec(
+        "UPDATE auth_verification_challenges SET state='failed',code_mac='',link_token_mac='' WHERE attempt_id=? AND state IN ('pending','sent')",
+        input.attemptId
+      );
+      this.#event({ ...row || {}, ...input, outcome: "failed" });
+      return { failed: true };
+    });
+  }
+  async getChallenge(input) {
+    return this.#transaction(() => this.#challenge(input));
+  }
+  async rejectChallengeAttempt(input) {
+    return this.#transaction(() => {
+      const selected = this.#challenge(input);
+      if (selected.error) return selected;
+      const row = selected.challenge;
+      const attempts = Number(row.attempts || 0) + 1;
+      if (attempts >= Number(row.maxAttempts)) {
+        const lockoutUntil = input.now + input.lockoutMs;
+        this.sql.exec(
+          "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',link_token_mac='',lockout_until=? WHERE attempt_id=?",
+          attempts,
+          lockoutUntil,
+          input.attemptId
+        );
+        this.#event({ ...row, now: input.now, outcome: "locked", reason: "attempt_limit" });
+        return { error: AUTH_ERROR_CODES.OTP_LOCKED, retryAfter: Math.ceil(input.lockoutMs / 1e3) };
+      }
+      this.sql.exec("UPDATE auth_verification_challenges SET attempts=? WHERE attempt_id=?", attempts, input.attemptId);
+      this.#event({ ...row, now: input.now, outcome: "rejected", reason: input.reason || "user_code_mismatch" });
+      return { error: AUTH_ERROR_CODES.OTP_INVALID, attemptsRemaining: Number(row.maxAttempts) - attempts };
+    });
+  }
+  async verifyLocalChallenge(input) {
+    return this.#transaction(() => {
+      const selected = this.#challenge(input);
+      if (selected.error) return selected;
+      const row = selected.challenge;
+      if (!constantTimeEqual(row.codeMac, input.candidateCodeMac)) {
+        const attempts = Number(row.attempts || 0) + 1;
+        if (attempts >= Number(row.maxAttempts)) {
+          const lockoutUntil = input.now + input.lockoutMs;
+          this.sql.exec(
+            "UPDATE auth_verification_challenges SET attempts=?,state='locked',code_mac='',link_token_mac='',lockout_until=? WHERE attempt_id=?",
+            attempts,
+            lockoutUntil,
+            input.attemptId
+          );
+          this.#event({ ...row, now: input.now, outcome: "locked", reason: "attempt_limit" });
+          return { error: AUTH_ERROR_CODES.OTP_LOCKED, retryAfter: Math.ceil(input.lockoutMs / 1e3) };
+        }
+        this.sql.exec("UPDATE auth_verification_challenges SET attempts=? WHERE attempt_id=?", attempts, input.attemptId);
+        this.#event({ ...row, now: input.now, outcome: "rejected", reason: "user_code_mismatch" });
+        return { error: AUTH_ERROR_CODES.OTP_INVALID, attemptsRemaining: Number(row.maxAttempts) - attempts };
+      }
+      this.sql.exec(
+        "UPDATE auth_verification_challenges SET state='verified',code_mac='',link_token_mac='',verified_at=? WHERE attempt_id=? AND state='sent'",
+        input.now,
+        input.attemptId
+      );
+      this.#event({ ...row, now: input.now, outcome: "verified", reason: "accepted" });
+      return { verified: true, userId: row.userId, purpose: row.purpose };
+    });
+  }
+  async completeRemoteChallenge(input) {
+    return this.#transaction(() => {
+      const selected = this.#challenge(input);
+      if (selected.error) return selected;
+      const row = selected.challenge;
+      this.sql.exec(
+        "UPDATE auth_verification_challenges SET state='verified',code_mac='',link_token_mac='',verified_at=? WHERE attempt_id=? AND state='sent'",
+        input.now,
+        input.attemptId
+      );
+      this.#event({ ...row, now: input.now, outcome: "verified", reason: "provider_evidence" });
+      return { verified: true, userId: row.userId, purpose: row.purpose };
+    });
+  }
+  async dailyQuotaSnapshot({ providerId, dailyQuota, now }) {
+    const dayStart = Math.floor(now / DAY_MS2) * DAY_MS2;
+    const resetAt = dayStart + DAY_MS2;
+    const row = this.#one(
+      "SELECT used FROM auth_verification_daily_quota WHERE provider_id=? AND day_start=?",
+      providerId,
+      dayStart
+    );
+    const used = Math.max(0, Number(row?.used || 0));
+    return { used, remaining: Math.max(0, dailyQuota - used), limit: dailyQuota, resetAt };
+  }
+  async reserveDailyQuota({ providerId, dailyQuota, now }) {
+    return this.#transaction(() => {
+      const dayStart = Math.floor(now / DAY_MS2) * DAY_MS2;
+      const resetAt = dayStart + DAY_MS2;
+      this.sql.exec(
+        `INSERT INTO auth_verification_daily_quota(provider_id,day_start,used,quota_limit,reset_at,updated_at)
+         VALUES(?,?,0,?,?,?) ON CONFLICT(provider_id,day_start)
+         DO UPDATE SET quota_limit=excluded.quota_limit,reset_at=excluded.reset_at,updated_at=excluded.updated_at`,
+        providerId,
+        dayStart,
+        dailyQuota,
+        resetAt,
+        now
+      );
+      const before = this.#one(
+        "SELECT used FROM auth_verification_daily_quota WHERE provider_id=? AND day_start=?",
+        providerId,
+        dayStart
+      );
+      if (dailyQuota <= 0 || Number(before?.used || 0) >= dailyQuota) {
+        return { exhausted: true, used: Number(before?.used || 0), remaining: 0, limit: dailyQuota, resetAt };
+      }
+      this.sql.exec(
+        `UPDATE auth_verification_daily_quota SET used=used+1,updated_at=?
+         WHERE provider_id=? AND day_start=? AND used<quota_limit`,
+        now,
+        providerId,
+        dayStart
+      );
+      const row = this.#one(
+        "SELECT used FROM auth_verification_daily_quota WHERE provider_id=? AND day_start=?",
+        providerId,
+        dayStart
+      );
+      const used = Number(row?.used || 0);
+      return { exhausted: false, used, remaining: Math.max(0, dailyQuota - used), limit: dailyQuota, resetAt };
+    });
+  }
+  async providerSnapshot({ providerId, now }) {
+    return this.#transaction(() => {
+      this.sql.exec(
+        `INSERT OR IGNORE INTO auth_verification_provider_state(
+          provider_id,circuit,consecutive_failures,success_count,failure_count,user_error_count,
+          latency_ewma_ms,cooldown_until,last_success_at,last_failure_at,last_reason,updated_at
+        ) VALUES(?,'closed',0,0,0,0,0,0,0,0,'NONE',?)`,
+        providerId,
+        now
+      );
+      this.sql.exec(
+        "UPDATE auth_verification_provider_state SET circuit='half-open',updated_at=? WHERE provider_id=? AND circuit='open' AND cooldown_until<=?",
+        now,
+        providerId,
+        now
+      );
+      return this.#one(
+        `SELECT provider_id AS providerId,circuit,consecutive_failures AS consecutiveFailures,
+          success_count AS successCount,failure_count AS failureCount,user_error_count AS userErrorCount,
+          latency_ewma_ms AS latencyEwmaMs,cooldown_until AS cooldownUntil,
+          last_success_at AS lastSuccessAt,last_failure_at AS lastFailureAt,last_reason AS lastReason
+         FROM auth_verification_provider_state WHERE provider_id=?`,
+        providerId
+      );
+    });
+  }
+  async recordProviderResult(input) {
+    return this.#transaction(() => {
+      const current = this.#one(
+        `SELECT provider_id AS providerId,circuit,consecutive_failures AS consecutiveFailures,
+          success_count AS successCount,failure_count AS failureCount,user_error_count AS userErrorCount,
+          latency_ewma_ms AS latencyEwmaMs,cooldown_until AS cooldownUntil,
+          last_success_at AS lastSuccessAt,last_failure_at AS lastFailureAt,last_reason AS lastReason
+         FROM auth_verification_provider_state WHERE provider_id=?`,
+        input.providerId
+      ) || {
+        providerId: input.providerId,
+        circuit: "closed",
+        consecutiveFailures: 0,
+        successCount: 0,
+        failureCount: 0,
+        userErrorCount: 0,
+        latencyEwmaMs: 0,
+        cooldownUntil: 0,
+        lastSuccessAt: 0,
+        lastFailureAt: 0,
+        lastReason: "NONE"
+      };
+      const latency = Math.max(0, Number(input.latencyMs || 0));
+      const next = {
+        ...current,
+        latencyEwmaMs: current.latencyEwmaMs ? Math.round(Number(current.latencyEwmaMs) * 0.8 + latency * 0.2) : Math.round(latency),
+        lastReason: safeReason(input.reason)
+      };
+      if (input.success) {
+        next.successCount = Number(next.successCount) + 1;
+        next.consecutiveFailures = 0;
+        next.circuit = "closed";
+        next.cooldownUntil = 0;
+        next.lastSuccessAt = input.now;
+      } else if (input.failureClass === VERIFICATION_FAILURE_CLASS.USER) {
+        next.userErrorCount = Number(next.userErrorCount) + 1;
+      } else {
+        next.failureCount = Number(next.failureCount) + 1;
+        next.consecutiveFailures = Number(next.consecutiveFailures) + 1;
+        next.lastFailureAt = input.now;
+        if (input.failureClass === VERIFICATION_FAILURE_CLASS.HARD || input.forceCooldown === true || next.consecutiveFailures >= input.failureThreshold) {
+          next.circuit = "open";
+          next.cooldownUntil = input.now + input.cooldownMs;
+        }
+      }
+      this.sql.exec(
+        `INSERT INTO auth_verification_provider_state(
+          provider_id,circuit,consecutive_failures,success_count,failure_count,user_error_count,
+          latency_ewma_ms,cooldown_until,last_success_at,last_failure_at,last_reason,updated_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(provider_id) DO UPDATE SET
+          circuit=excluded.circuit,consecutive_failures=excluded.consecutive_failures,
+          success_count=excluded.success_count,failure_count=excluded.failure_count,
+          user_error_count=excluded.user_error_count,latency_ewma_ms=excluded.latency_ewma_ms,
+          cooldown_until=excluded.cooldown_until,last_success_at=excluded.last_success_at,
+          last_failure_at=excluded.last_failure_at,last_reason=excluded.last_reason,updated_at=excluded.updated_at`,
+        input.providerId,
+        next.circuit,
+        next.consecutiveFailures,
+        next.successCount,
+        next.failureCount,
+        next.userErrorCount,
+        next.latencyEwmaMs,
+        next.cooldownUntil,
+        next.lastSuccessAt,
+        next.lastFailureAt,
+        next.lastReason,
+        input.now
+      );
+      this.#event({ ...input, outcome: input.success ? "provider_success" : "provider_failure" });
+      return next;
+    });
+  }
+  async status({ providerIds, now }) {
+    const providerStates = [];
+    for (const providerId of providerIds) providerStates.push(await this.providerSnapshot({ providerId, now }));
+    return {
+      providerStates,
+      quotas: this.#rows(
+        `SELECT provider_id AS providerId,day_start AS dayStart,used,quota_limit AS "limit",reset_at AS resetAt
+         FROM auth_verification_daily_quota WHERE reset_at>? ORDER BY provider_id`,
+        now
+      ),
+      recentEvents: this.#rows(
+        `SELECT attempt_id AS attemptId,user_id AS userId,subject_ref AS subjectRef,provider_id AS providerId,
+          channel,occurred_at AS occurredAt,outcome,reason,latency_ms AS latencyMs
+         FROM auth_verification_events ORDER BY occurred_at DESC,event_id DESC LIMIT 100`
+      ).reverse()
+    };
+  }
+  async cleanup(now) {
+    return this.#transaction(() => {
+      this.sql.exec("DELETE FROM auth_verification_challenges WHERE expires_at<=?", now);
+      this.sql.exec("DELETE FROM auth_verification_daily_quota WHERE reset_at<=?", now);
+      this.sql.exec("DELETE FROM auth_verification_events WHERE occurred_at<?", now - EVENT_RETENTION_MS2);
+      return { cleaned: true };
+    });
+  }
+  async nextExpiry(now) {
+    const row = this.#one(
+      `SELECT MIN(expiry) AS nextExpiry FROM (
+        SELECT MIN(expires_at) AS expiry FROM auth_verification_challenges WHERE expires_at>?
+        UNION ALL SELECT MIN(reset_at) FROM auth_verification_daily_quota WHERE reset_at>?
+        UNION ALL SELECT MIN(cooldown_until) FROM auth_verification_provider_state WHERE cooldown_until>?
       )`,
       now,
       now,
@@ -4814,7 +7565,7 @@ var response2 = (status, body, extraHeaders = {}) => new Response(JSON.stringify
 });
 async function readJson2(request) {
   const raw = await request.text();
-  if (!raw || raw.length > 16384) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
+  if (!raw || raw.length > 32768) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
   try {
     return JSON.parse(raw);
   } catch {
@@ -4828,17 +7579,35 @@ var AdmissionAuthAuthority = class {
     this.ready = state.blockConcurrencyWhile(async () => {
       this.repository = new SqliteAuthRepository(state.storage);
       this.repository.migrate();
+      this.verificationRepository = new SqliteVerificationRepository(state.storage);
+      this.verificationRepository.migrate();
       this.engine = new CloudflareNativeAuthEngine({
         repository: this.repository,
         hmacSecret: env.AUTH_HMAC_SECRET
       });
+      const persistedVerificationConfig = await this.verificationRepository.getRuntimeConfig();
+      this.verification = new VerificationOrchestrator({
+        repository: this.verificationRepository,
+        hmacSecret: env.AUTH_HMAC_SECRET,
+        config: persistedVerificationConfig || env.VERIFICATION_ORCHESTRATOR_CONFIG,
+        providers: createConfiguredVerificationProviders(env),
+        activated: env.VERIFICATION_AUTH_ACTIVATION === "enabled"
+      });
     });
   }
   async #scheduleExpiry() {
-    const next = await this.engine.nextExpiry();
+    const expiries = await Promise.all([this.engine.nextExpiry(), this.verification.nextExpiry()]);
+    const next = expiries.filter(Boolean).sort((left, right) => left - right)[0] || null;
     if (!next) return;
     const scheduled = await this.state.storage.getAlarm();
     if (!scheduled || next < scheduled) await this.state.storage.setAlarm(next);
+  }
+  async #verificationIdentity(input = {}) {
+    const session = await this.engine.getFirebaseSession(input.sessionToken, {
+      email: input.email,
+      subject: input.subject
+    });
+    return { ...input, userId: session.user.id };
   }
   async fetch(request) {
     try {
@@ -4849,20 +7618,6 @@ var AdmissionAuthAuthority = class {
       }
       if (request.method !== "POST") return response2(405, { ok: false, error: { code: "METHOD_NOT_ALLOWED" } }, { Allow: "POST" });
       const body = await readJson2(request);
-      if (url.pathname === "/internal/otp/prepare") {
-        const result = await this.engine.prepareOtp(body.input, body.context);
-        await this.#scheduleExpiry();
-        return response2(200, { ok: true, result });
-      }
-      if (url.pathname === "/internal/otp/delivery") {
-        const result = await this.engine.markDelivery(body.challengeId, body.delivery);
-        return response2(200, { ok: true, result });
-      }
-      if (url.pathname === "/internal/otp/verify") {
-        const result = await this.engine.verifyOtp(body.input, body.context);
-        await this.#scheduleExpiry();
-        return response2(200, { ok: true, result });
-      }
       if (url.pathname === "/internal/firebase/rate") {
         const result = await this.engine.consumeFirebaseOperation(body.input, body.context);
         await this.#scheduleExpiry();
@@ -4875,6 +7630,69 @@ var AdmissionAuthAuthority = class {
       }
       if (url.pathname === "/internal/firebase/session/get") {
         const result = await this.engine.getFirebaseSession(body.sessionToken, body.input);
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/passkey/registration/begin") {
+        const result = await this.engine.beginPasskeyRegistration(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/passkey/registration/finish") {
+        const result = await this.engine.finishPasskeyRegistration(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/passkey/authentication/begin") {
+        const result = await this.engine.beginPasskeyAuthentication(body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/passkey/authentication/finish") {
+        const result = await this.engine.finishPasskeyAuthentication(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/passkey/session/complete") {
+        const result = await this.engine.completePasskeySession(body.input, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/passkey/status") {
+        const result = await this.engine.getPasskeyStatus(body.input, body.context);
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/passkey/remove") {
+        const result = await this.engine.removePasskey(body.input, body.context);
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/capabilities") {
+        const result = await this.verification.capabilities();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/request") {
+        const input = await this.#verificationIdentity(body.input);
+        const result = await this.verification.requestVerification(input, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/verify") {
+        const input = await this.#verificationIdentity(body.input);
+        const result = await this.verification.verify(input, body.context);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/telegram/webhook") {
+        const result = await this.verification.confirmTelegramWebhook(body.input);
+        await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/admin/status") {
+        const result = await this.verification.adminStatus();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/admin/config") {
+        const result = await this.verification.updateConfig(body.config);
+        await this.#scheduleExpiry();
         return response2(200, { ok: true, result });
       }
       if (url.pathname === "/internal/session/get") {
@@ -4894,8 +7712,9 @@ var AdmissionAuthAuthority = class {
   async alarm() {
     try {
       await this.ready;
-      await this.engine.cleanup();
-      const next = await this.engine.nextExpiry();
+      await Promise.all([this.engine.cleanup(), this.verification.cleanup()]);
+      const expiries = await Promise.all([this.engine.nextExpiry(), this.verification.nextExpiry()]);
+      const next = expiries.filter(Boolean).sort((left, right) => left - right)[0] || null;
       if (next) await this.state.storage.setAlarm(next);
     } catch {
       await this.state.storage.setAlarm(Date.now() + 60 * 60 * 1e3);

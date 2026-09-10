@@ -214,7 +214,8 @@ test('Firebase provider binds platform fetch to the global runtime receiver', as
   });
   assert.deepEqual(await provider.inspectProject(), {
     projectIdentified: true,
-    continueDomainAuthorized: true
+    continueDomainAuthorized: true,
+    google: { enabled: false, clientId: '' }
   });
   assert.equal(receiver, globalThis);
 });

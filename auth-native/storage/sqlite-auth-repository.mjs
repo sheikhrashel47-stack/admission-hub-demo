@@ -36,25 +36,9 @@ export class SqliteAuthRepository {
         FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
       )`,
       `CREATE INDEX IF NOT EXISTS auth_external_user ON auth_external_identities(user_id)`,
-      `CREATE TABLE IF NOT EXISTS auth_challenges (
-        challenge_id TEXT PRIMARY KEY,
-        email_ref TEXT NOT NULL,
-        email_mask TEXT NOT NULL,
-        code_mac TEXT NOT NULL,
-        state TEXT NOT NULL CHECK(state IN ('active','consumed','expired','locked','superseded','failed')),
-        delivery_state TEXT NOT NULL CHECK(delivery_state IN ('pending','accepted','uncertain','failed')),
-        provider TEXT,
-        created_at INTEGER NOT NULL,
-        expires_at INTEGER NOT NULL,
-        attempts INTEGER NOT NULL DEFAULT 0,
-        max_attempts INTEGER NOT NULL,
-        consumed_at INTEGER,
-        ip_ref TEXT NOT NULL,
-        device_ref TEXT NOT NULL,
-        delivery_updated_at INTEGER
-      )`,
-      `CREATE INDEX IF NOT EXISTS auth_challenges_email_created ON auth_challenges(email_ref, created_at DESC)`,
-      `CREATE INDEX IF NOT EXISTS auth_challenges_expiry ON auth_challenges(expires_at)`,
+      // Standalone OTP identity was retired; backup challenges live only in the
+      // Firebase-session-bound verification repository.
+      `DROP TABLE IF EXISTS auth_challenges`,
       `CREATE TABLE IF NOT EXISTS auth_sessions (
         session_ref TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -79,6 +63,62 @@ export class SqliteAuthRepository {
         PRIMARY KEY(scope, bucket_key, window_start)
       )`,
       `CREATE INDEX IF NOT EXISTS auth_rate_expiry ON auth_rate_limits(expires_at)`,
+      `CREATE TABLE IF NOT EXISTS auth_passkey_user_handles (
+        user_id TEXT PRIMARY KEY,
+        user_handle TEXT NOT NULL UNIQUE,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS auth_passkey_credentials (
+        credential_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        subject_ref TEXT NOT NULL,
+        user_handle TEXT NOT NULL,
+        public_key_jwk TEXT NOT NULL,
+        sign_count INTEGER NOT NULL DEFAULT 0,
+        transports TEXT NOT NULL,
+        backup_eligible INTEGER NOT NULL DEFAULT 0,
+        backup_state INTEGER NOT NULL DEFAULT 0,
+        refresh_cipher TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('active','revoked')),
+        created_at INTEGER NOT NULL,
+        last_used_at INTEGER,
+        revoked_at INTEGER,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_passkey_user ON auth_passkey_credentials(user_id,status,created_at DESC)`,
+      `CREATE TABLE IF NOT EXISTS auth_passkey_challenges (
+        challenge_id TEXT PRIMARY KEY,
+        challenge_mac TEXT NOT NULL,
+        kind TEXT NOT NULL CHECK(kind IN ('registration','authentication')),
+        user_id TEXT,
+        subject_ref TEXT,
+        user_handle TEXT,
+        refresh_cipher TEXT,
+        state TEXT NOT NULL CHECK(state IN ('active','consumed','expired','superseded')),
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        consumed_at INTEGER,
+        ip_ref TEXT NOT NULL,
+        device_ref TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_passkey_challenge_expiry ON auth_passkey_challenges(expires_at)`,
+      `CREATE INDEX IF NOT EXISTS auth_passkey_challenge_device ON auth_passkey_challenges(device_ref,kind,created_at DESC)`,
+      `CREATE TABLE IF NOT EXISTS auth_passkey_tickets (
+        ticket_ref TEXT PRIMARY KEY,
+        credential_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        subject_ref TEXT NOT NULL,
+        device_ref TEXT NOT NULL,
+        state TEXT NOT NULL CHECK(state IN ('active','consumed','expired')),
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        consumed_at INTEGER,
+        FOREIGN KEY(credential_id) REFERENCES auth_passkey_credentials(credential_id),
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_passkey_ticket_expiry ON auth_passkey_tickets(expires_at)`,
       `CREATE TABLE IF NOT EXISTS auth_security_events (
         event_id INTEGER PRIMARY KEY AUTOINCREMENT,
         event_type TEXT NOT NULL,
@@ -89,7 +129,7 @@ export class SqliteAuthRepository {
       `CREATE INDEX IF NOT EXISTS auth_security_events_time ON auth_security_events(occurred_at DESC)`
     ];
     for (const statement of statements) this.sql.exec(statement);
-    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','2') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
+    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','3') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
   }
 
   #rows(statement, ...bindings) {
@@ -135,131 +175,38 @@ export class SqliteAuthRepository {
     );
   }
 
-  async prepareChallenge({ record, limits, cooldownMs, now }) {
-    return this.#transaction(() => {
-      const denied = this.#consumeLimits(limits, now);
-      if (denied) return denied;
-      const latest = this.#one(
-        `SELECT created_at AS createdAt FROM auth_challenges
-         WHERE email_ref=? AND state='active' ORDER BY created_at DESC LIMIT 1`,
-        record.emailRef
-      );
-      if (latest && now - Number(latest.createdAt) < cooldownMs) {
-        return {
-          error: AUTH_ERROR_CODES.RESEND_COOLDOWN,
-          retryAfter: Math.max(1, Math.ceil((cooldownMs - (now - Number(latest.createdAt))) / 1000))
-        };
-      }
-      this.sql.exec("UPDATE auth_challenges SET state='superseded',code_mac='' WHERE email_ref=? AND state='active'", record.emailRef);
-      this.sql.exec(
-        `INSERT INTO auth_challenges(
-          challenge_id,email_ref,email_mask,code_mac,state,delivery_state,created_at,expires_at,
-          attempts,max_attempts,ip_ref,device_ref
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
-        record.challengeId, record.emailRef, record.emailMask, record.codeMac, record.state,
-        record.deliveryState, record.createdAt, record.expiresAt, record.attempts,
-        record.maxAttempts, record.ipRef, record.deviceRef
-      );
-      this.#event('otp-prepared', record.emailRef, null, now);
-      return { prepared: true, preparedAt: now };
-    });
+  #canonicalSession({ sessionRef, subjectRef, emailRef, now }) {
+    const row = this.#one(
+      `SELECT u.user_id AS id,u.email_ref AS emailRef,u.email_mask AS emailMask,u.status,
+        u.created_at AS createdAt,s.expires_at AS expiresAt
+       FROM auth_sessions s
+       JOIN auth_users u ON u.user_id=s.user_id
+       JOIN auth_external_identities x ON x.user_id=u.user_id AND x.provider='firebase' AND x.subject_ref=?
+       WHERE s.session_ref=? AND s.revoked_at IS NULL AND s.expires_at>? AND u.email_ref=?`,
+      subjectRef, sessionRef, now, emailRef
+    );
+    if (!row) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
+    if (row.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+    return { user: row };
   }
 
-  async markDelivery({ challengeId, accepted, uncertain, provider, now }) {
-    return this.#transaction(() => {
-      const row = this.#one('SELECT state FROM auth_challenges WHERE challenge_id=?', challengeId);
-      if (!row) return { error: AUTH_ERROR_CODES.OTP_INVALID };
-      if (accepted) {
-        this.sql.exec(
-          "UPDATE auth_challenges SET delivery_state='accepted',provider=?,delivery_updated_at=? WHERE challenge_id=?",
-          provider, now, challengeId
-        );
-      } else if (uncertain) {
-        this.sql.exec(
-          "UPDATE auth_challenges SET delivery_state='uncertain',provider=?,delivery_updated_at=? WHERE challenge_id=?",
-          provider, now, challengeId
-        );
-      } else {
-        this.sql.exec(
-          "UPDATE auth_challenges SET state='failed',delivery_state='failed',code_mac='',provider=?,delivery_updated_at=? WHERE challenge_id=? AND state='active'",
-          provider, now, challengeId
-        );
-      }
-      return { updated: true };
-    });
-  }
-
-  async verifyChallenge(input) {
-    return this.#transaction(() => {
-      const denied = this.#consumeLimits(input.limits, input.now);
-      if (denied) return denied;
-      const row = this.#one(
-        `SELECT challenge_id AS challengeId,email_ref AS emailRef,email_mask AS emailMask,code_mac AS codeMac,
-          state,expires_at AS expiresAt,attempts,max_attempts AS maxAttempts
-         FROM auth_challenges WHERE challenge_id=?`,
-        input.challengeId
-      );
-      if (!row || row.emailRef !== input.emailRef || ['superseded', 'failed'].includes(row?.state)) {
-        return { error: AUTH_ERROR_CODES.OTP_INVALID };
-      }
-      if (row.state === 'consumed') return { error: AUTH_ERROR_CODES.OTP_USED };
-      if (row.state === 'locked') return { error: AUTH_ERROR_CODES.OTP_LOCKED };
-      if (Number(row.expiresAt) <= input.now || row.state === 'expired') {
-        this.sql.exec("UPDATE auth_challenges SET state='expired',code_mac='' WHERE challenge_id=?", input.challengeId);
-        return { error: AUTH_ERROR_CODES.OTP_EXPIRED };
-      }
-      if (Number(row.attempts) >= Number(row.maxAttempts)) {
-        this.sql.exec("UPDATE auth_challenges SET state='locked',code_mac='' WHERE challenge_id=?", input.challengeId);
-        return { error: AUTH_ERROR_CODES.OTP_LOCKED };
-      }
-      if (!constantTimeEqual(row.codeMac, input.candidateCodeMac)) {
-        const attempts = Number(row.attempts) + 1;
-        if (attempts >= Number(row.maxAttempts)) {
-          this.sql.exec("UPDATE auth_challenges SET attempts=?,state='locked',code_mac='' WHERE challenge_id=?", attempts, input.challengeId);
-          this.#event('otp-locked', input.emailRef, null, input.now);
-          return { error: AUTH_ERROR_CODES.OTP_LOCKED };
-        }
-        this.sql.exec('UPDATE auth_challenges SET attempts=? WHERE challenge_id=?', attempts, input.challengeId);
-        this.#event('otp-invalid', input.emailRef, null, input.now);
-        return { error: AUTH_ERROR_CODES.OTP_INVALID };
-      }
-
-      this.sql.exec(
-        "UPDATE auth_challenges SET state='consumed',consumed_at=?,code_mac='' WHERE challenge_id=? AND state='active'",
-        input.now, input.challengeId
-      );
-      let user = this.#one(
-        `SELECT user_id AS id,email_mask AS emailMask,status,created_at AS createdAt
-         FROM auth_users WHERE email_ref=?`,
-        input.emailRef
-      );
-      let created = false;
-      if (!user) {
-        this.sql.exec(
-          `INSERT OR IGNORE INTO auth_users(user_id,email_ref,email_mask,status,created_at,last_login_at)
-           VALUES(?,?,?,'active',?,?)`,
-          input.userIdCandidate, input.emailRef, row.emailMask, input.now, input.now
-        );
-        user = this.#one(
-          `SELECT user_id AS id,email_mask AS emailMask,status,created_at AS createdAt
-           FROM auth_users WHERE email_ref=?`,
-          input.emailRef
-        );
-        created = user?.id === input.userIdCandidate;
-      }
-      if (!user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
-      if (user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
-      this.sql.exec('UPDATE auth_users SET last_login_at=? WHERE user_id=?', input.now, user.id);
-      this.sql.exec(
-        `INSERT INTO auth_sessions(
-          session_ref,user_id,created_at,expires_at,last_seen_at,revoked_at,ip_ref,device_ref,user_agent
-        ) VALUES(?,?,?,?,?,NULL,?,?,?)`,
-        input.sessionRef, user.id, input.now, input.sessionExpiresAt, input.now,
-        input.ipRef, input.deviceRef, input.userAgent
-      );
-      this.#event(created ? 'account-created' : 'login', input.emailRef, user.id, input.now);
-      return { verified: true, created, user };
-    });
+  #passkeyChallenge({ challengeId, candidateChallengeMac, deviceRef, kind, now }) {
+    const row = this.#one(
+      `SELECT challenge_id AS challengeId,challenge_mac AS challengeMac,kind,user_id AS userId,
+        subject_ref AS subjectRef,user_handle AS userHandle,refresh_cipher AS refreshCipher,
+        state,created_at AS createdAt,expires_at AS expiresAt,device_ref AS deviceRef
+       FROM auth_passkey_challenges WHERE challenge_id=?`,
+      challengeId
+    );
+    if (!row || row.kind !== kind || row.deviceRef !== deviceRef || !constantTimeEqual(row.challengeMac, candidateChallengeMac)) {
+      return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+    }
+    if (row.state !== 'active') return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+    if (Number(row.expiresAt) <= now) {
+      this.sql.exec("UPDATE auth_passkey_challenges SET state='expired',challenge_mac='',refresh_cipher=NULL WHERE challenge_id=?", challengeId);
+      return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+    }
+    return { challenge: row };
   }
 
   async consumeLimits({ limits, now, eventType, subjectRef }) {
@@ -289,10 +236,14 @@ export class SqliteAuthRepository {
       );
       if (identity && !user) return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE };
       if (!identity && user) {
-        this.sql.exec(
-          'DELETE FROM auth_external_identities WHERE provider=? AND user_id=?',
+        const existingForUser = this.#one(
+          'SELECT subject_ref AS subjectRef FROM auth_external_identities WHERE provider=? AND user_id=?',
           input.provider, user.id
         );
+        if (existingForUser && existingForUser.subjectRef !== input.subjectRef) {
+          this.#event('firebase-identity-conflict', input.subjectRef, user.id, input.now);
+          return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+        }
       }
       let created = false;
       if (!user) {
@@ -312,7 +263,7 @@ export class SqliteAuthRepository {
       if (user.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
       if (identity && user.emailRef !== input.emailRef) {
         const emailOwner = this.#one('SELECT user_id AS id FROM auth_users WHERE email_ref=?', input.emailRef);
-        if (emailOwner && emailOwner.id !== user.id) return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+        if (emailOwner && emailOwner.id !== user.id) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
         this.sql.exec('UPDATE auth_users SET email_ref=?,email_mask=? WHERE user_id=?', input.emailRef, input.emailMask, user.id);
         user.emailRef = input.emailRef;
         user.emailMask = input.emailMask;
@@ -365,6 +316,274 @@ export class SqliteAuthRepository {
     });
   }
 
+  async beginPasskeyRegistration(input) {
+    return this.#transaction(() => {
+      const denied = this.#consumeLimits(input.limits, input.now);
+      if (denied) return denied;
+      const session = this.#canonicalSession(input);
+      if (session.error) return session;
+      let handle = this.#one('SELECT user_handle AS userHandle FROM auth_passkey_user_handles WHERE user_id=?', session.user.id);
+      if (!handle) {
+        this.sql.exec(
+          'INSERT INTO auth_passkey_user_handles(user_id,user_handle,created_at) VALUES(?,?,?)',
+          session.user.id, input.userHandleCandidate, input.now
+        );
+        handle = { userHandle: input.userHandleCandidate };
+      }
+      this.sql.exec(
+        "UPDATE auth_passkey_challenges SET state='superseded',challenge_mac='',refresh_cipher=NULL WHERE kind='registration' AND user_id=? AND state='active'",
+        session.user.id
+      );
+      this.sql.exec(
+        `INSERT INTO auth_passkey_challenges(
+          challenge_id,challenge_mac,kind,user_id,subject_ref,user_handle,refresh_cipher,state,
+          created_at,expires_at,ip_ref,device_ref
+        ) VALUES(?,?,'registration',?,?,?,?, 'active',?,?,?,?)`,
+        input.challengeId, input.challengeMac, session.user.id, input.subjectRef, handle.userHandle,
+        input.refreshCipher, input.now, input.expiresAt, input.ipRef, input.deviceRef
+      );
+      const credentials = this.#rows(
+        `SELECT credential_id AS credentialId,transports FROM auth_passkey_credentials
+         WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 20`,
+        session.user.id
+      ).map(row => {
+        let transports = [];
+        try { transports = JSON.parse(row.transports); } catch {}
+        return { credentialId: row.credentialId, transports: Array.isArray(transports) ? transports : [] };
+      });
+      this.#event('passkey-registration-started', input.subjectRef, session.user.id, input.now);
+      return { user: session.user, userHandle: handle.userHandle, credentials };
+    });
+  }
+
+  async getPasskeyRegistrationChallenge(input) {
+    return this.#transaction(() => {
+      const selected = this.#passkeyChallenge({ ...input, kind: 'registration' });
+      if (selected.error) return selected;
+      const session = this.#canonicalSession(input);
+      if (session.error) return session;
+      if (session.user.id !== selected.challenge.userId || input.subjectRef !== selected.challenge.subjectRef) {
+        return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      }
+      return { ...selected.challenge, user: session.user };
+    });
+  }
+
+  async finishPasskeyRegistration(input) {
+    return this.#transaction(() => {
+      const selected = this.#passkeyChallenge({ ...input, kind: 'registration' });
+      if (selected.error) return selected;
+      const challenge = selected.challenge;
+      const existing = this.#one('SELECT user_id AS userId,status FROM auth_passkey_credentials WHERE credential_id=?', input.credential.credentialId);
+      if (existing) {
+        if (existing.userId !== challenge.userId || existing.status === 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+        return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+      }
+      this.sql.exec(
+        `INSERT INTO auth_passkey_credentials(
+          credential_id,user_id,subject_ref,user_handle,public_key_jwk,sign_count,transports,
+          backup_eligible,backup_state,refresh_cipher,status,created_at,last_used_at,revoked_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,'active',?,NULL,NULL)`,
+        input.credential.credentialId, challenge.userId, challenge.subjectRef, challenge.userHandle,
+        JSON.stringify(input.credential.publicKeyJwk), Number(input.credential.counter || 0),
+        JSON.stringify(input.credential.transports || []), input.credential.backupEligible ? 1 : 0,
+        input.credential.backupState ? 1 : 0, input.credential.refreshCipher, input.now
+      );
+      this.sql.exec(
+        "UPDATE auth_passkey_challenges SET state='consumed',consumed_at=?,challenge_mac='',refresh_cipher=NULL WHERE challenge_id=? AND state='active'",
+        input.now, input.challengeId
+      );
+      const user = this.#one(
+        'SELECT user_id AS id,email_mask AS emailMask,status,created_at AS createdAt FROM auth_users WHERE user_id=?',
+        challenge.userId
+      );
+      const count = this.#one("SELECT COUNT(*) AS count FROM auth_passkey_credentials WHERE user_id=? AND status='active'", challenge.userId);
+      this.#event('passkey-registered', challenge.subjectRef, challenge.userId, input.now);
+      return { registered: true, credentialCount: Number(count?.count || 0), user };
+    });
+  }
+
+  async beginPasskeyAuthentication(input) {
+    return this.#transaction(() => {
+      const denied = this.#consumeLimits(input.limits, input.now);
+      if (denied) return denied;
+      this.sql.exec(
+        "UPDATE auth_passkey_challenges SET state='superseded',challenge_mac='' WHERE kind='authentication' AND device_ref=? AND state='active'",
+        input.deviceRef
+      );
+      this.sql.exec(
+        `INSERT INTO auth_passkey_challenges(
+          challenge_id,challenge_mac,kind,user_id,subject_ref,user_handle,refresh_cipher,state,
+          created_at,expires_at,ip_ref,device_ref
+        ) VALUES(?,?,'authentication',NULL,NULL,NULL,NULL,'active',?,?,?,?)`,
+        input.challengeId, input.challengeMac, input.now, input.expiresAt, input.ipRef, input.deviceRef
+      );
+      this.#event('passkey-authentication-started', null, null, input.now);
+      return { prepared: true };
+    });
+  }
+
+  async getPasskeyAuthenticationMaterial(input) {
+    return this.#transaction(() => {
+      const selected = this.#passkeyChallenge({ ...input, kind: 'authentication' });
+      if (selected.error) return selected;
+      const row = this.#one(
+        `SELECT p.credential_id AS credentialId,p.user_id AS userId,p.subject_ref AS subjectRef,
+          p.user_handle AS userHandle,p.public_key_jwk AS publicKeyJwk,p.sign_count AS counter,
+          p.refresh_cipher AS refreshCipher,p.status,u.status AS userStatus
+         FROM auth_passkey_credentials p JOIN auth_users u ON u.user_id=p.user_id
+         WHERE p.credential_id=?`,
+        input.credentialId
+      );
+      if (!row || row.status !== 'active') return { error: AUTH_ERROR_CODES.PASSKEY_NOT_FOUND };
+      if (row.userStatus !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      let publicKeyJwk;
+      try { publicKeyJwk = JSON.parse(row.publicKeyJwk); } catch { return { error: AUTH_ERROR_CODES.STORAGE_UNAVAILABLE }; }
+      return {
+        credential: {
+          credentialId: row.credentialId,
+          userHandle: row.userHandle,
+          publicKeyJwk,
+          counter: Number(row.counter || 0)
+        }
+      };
+    });
+  }
+
+  async issuePasskeyTicket(input) {
+    return this.#transaction(() => {
+      const selected = this.#passkeyChallenge({ ...input, kind: 'authentication' });
+      if (selected.error) return selected;
+      const credential = this.#one(
+        `SELECT credential_id AS credentialId,user_id AS userId,subject_ref AS subjectRef,
+          sign_count AS counter,refresh_cipher AS refreshCipher,status
+         FROM auth_passkey_credentials WHERE credential_id=?`,
+        input.credentialId
+      );
+      if (!credential || credential.status !== 'active') return { error: AUTH_ERROR_CODES.PASSKEY_NOT_FOUND };
+      if (Number(credential.counter || 0) !== Number(input.previousCounter || 0)) return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+      this.sql.exec(
+        'UPDATE auth_passkey_credentials SET sign_count=?,backup_state=?,last_used_at=? WHERE credential_id=? AND status=\'active\'',
+        Math.max(Number(credential.counter || 0), Number(input.nextCounter || 0)), input.backupState ? 1 : 0,
+        input.now, input.credentialId
+      );
+      this.sql.exec(
+        "UPDATE auth_passkey_challenges SET state='consumed',consumed_at=?,challenge_mac='' WHERE challenge_id=? AND state='active'",
+        input.now, input.challengeId
+      );
+      this.sql.exec(
+        "UPDATE auth_passkey_tickets SET state='expired' WHERE credential_id=? AND state='active'",
+        input.credentialId
+      );
+      this.sql.exec(
+        `INSERT INTO auth_passkey_tickets(
+          ticket_ref,credential_id,user_id,subject_ref,device_ref,state,created_at,expires_at,consumed_at
+        ) VALUES(?,?,?,?,?,'active',?,?,NULL)`,
+        input.ticketRef, input.credentialId, credential.userId, credential.subjectRef,
+        input.deviceRef, input.now, input.expiresAt
+      );
+      this.#event('passkey-assertion-verified', credential.subjectRef, credential.userId, input.now);
+      return { issued: true, refreshCipher: credential.refreshCipher, subjectRef: credential.subjectRef };
+    });
+  }
+
+  async completePasskeySession(input) {
+    return this.#transaction(() => {
+      const ticket = this.#one(
+        `SELECT ticket_ref AS ticketRef,credential_id AS credentialId,user_id AS userId,
+          subject_ref AS subjectRef,device_ref AS deviceRef,state,expires_at AS expiresAt
+         FROM auth_passkey_tickets WHERE ticket_ref=?`,
+        input.ticketRef
+      );
+      if (!ticket || ticket.state !== 'active' || ticket.deviceRef !== input.deviceRef || ticket.subjectRef !== input.subjectRef) {
+        return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+      }
+      if (Number(ticket.expiresAt) <= input.now) {
+        this.sql.exec("UPDATE auth_passkey_tickets SET state='expired' WHERE ticket_ref=?", input.ticketRef);
+        return { error: AUTH_ERROR_CODES.PASSKEY_INVALID };
+      }
+      const identity = this.#one(
+        `SELECT u.user_id AS id,u.email_ref AS emailRef,u.email_mask AS emailMask,u.status,u.created_at AS createdAt
+         FROM auth_users u JOIN auth_external_identities x ON x.user_id=u.user_id
+         WHERE u.user_id=? AND x.provider='firebase' AND x.subject_ref=?`,
+        ticket.userId, input.subjectRef
+      );
+      if (!identity) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+      if (identity.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      if (identity.emailRef !== input.emailRef) {
+        const owner = this.#one('SELECT user_id AS id FROM auth_users WHERE email_ref=?', input.emailRef);
+        if (owner && owner.id !== identity.id) return { error: AUTH_ERROR_CODES.ACCOUNT_CONFLICT };
+        this.sql.exec('UPDATE auth_users SET email_ref=?,email_mask=? WHERE user_id=?', input.emailRef, input.emailMask, identity.id);
+        identity.emailRef = input.emailRef;
+        identity.emailMask = input.emailMask;
+      }
+      const credential = this.#one(
+        "SELECT status FROM auth_passkey_credentials WHERE credential_id=? AND user_id=? AND subject_ref=?",
+        ticket.credentialId, ticket.userId, input.subjectRef
+      );
+      if (!credential || credential.status !== 'active') return { error: AUTH_ERROR_CODES.PASSKEY_NOT_FOUND };
+      this.sql.exec(
+        "UPDATE auth_passkey_tickets SET state='consumed',consumed_at=? WHERE ticket_ref=? AND state='active'",
+        input.now, input.ticketRef
+      );
+      this.sql.exec(
+        "UPDATE auth_passkey_credentials SET refresh_cipher=?,last_used_at=? WHERE credential_id=? AND status='active'",
+        input.refreshCipher, input.now, ticket.credentialId
+      );
+      this.sql.exec(
+        `INSERT INTO auth_sessions(
+          session_ref,user_id,created_at,expires_at,last_seen_at,revoked_at,ip_ref,device_ref,user_agent
+        ) VALUES(?,?,?,?,?,NULL,?,?,?)`,
+        input.sessionRef, ticket.userId, input.now, input.sessionExpiresAt, input.now,
+        input.ipRef, input.deviceRef, input.userAgent
+      );
+      this.sql.exec('UPDATE auth_users SET last_login_at=? WHERE user_id=?', input.now, ticket.userId);
+      this.#event('firebase-passkey-login', input.subjectRef, ticket.userId, input.now);
+      return { established: true, user: identity };
+    });
+  }
+
+  async getPasskeyStatus(input) {
+    return this.#transaction(() => {
+      const session = this.#canonicalSession(input);
+      if (session.error) return session;
+      const credentials = this.#rows(
+        `SELECT credential_id AS id,created_at AS createdAt,last_used_at AS lastUsedAt,
+          backup_eligible AS backupEligible,backup_state AS backupState
+         FROM auth_passkey_credentials WHERE user_id=? AND subject_ref=? AND status='active'
+         ORDER BY created_at DESC LIMIT 20`,
+        session.user.id, input.subjectRef
+      ).map(row => ({
+        id: row.id,
+        createdAt: Number(row.createdAt),
+        lastUsedAt: row.lastUsedAt == null ? null : Number(row.lastUsedAt),
+        synced: Boolean(row.backupEligible),
+        backedUp: Boolean(row.backupState)
+      }));
+      return { count: credentials.length, credentials };
+    });
+  }
+
+  async removePasskey(input) {
+    return this.#transaction(() => {
+      const session = this.#canonicalSession(input);
+      if (session.error) return session;
+      const row = this.#one(
+        "SELECT status FROM auth_passkey_credentials WHERE credential_id=? AND user_id=? AND subject_ref=?",
+        input.credentialId, session.user.id, input.subjectRef
+      );
+      if (!row || row.status !== 'active') return { error: AUTH_ERROR_CODES.PASSKEY_NOT_FOUND };
+      this.sql.exec(
+        "UPDATE auth_passkey_credentials SET status='revoked',refresh_cipher='',revoked_at=? WHERE credential_id=?",
+        input.now, input.credentialId
+      );
+      this.sql.exec("UPDATE auth_passkey_tickets SET state='expired' WHERE credential_id=? AND state='active'", input.credentialId);
+      const count = this.#one("SELECT COUNT(*) AS count FROM auth_passkey_credentials WHERE user_id=? AND status='active'", session.user.id);
+      this.#event('passkey-removed', input.subjectRef, session.user.id, input.now);
+      return { removed: true, credentialCount: Number(count?.count || 0) };
+    });
+  }
+
   async getSession({ sessionRef, now }) {
     return this.#transaction(() => {
       const row = this.#one(
@@ -398,12 +617,15 @@ export class SqliteAuthRepository {
 
   async ping() {
     const row = this.#one("SELECT value FROM auth_meta WHERE key='schema_version'");
-    return { ok: row?.value === '2', storage: 'sqlite-durable-object', schema: Number(row?.value || 0) };
+    const schema = Number(row?.value || 0);
+    return { ok: schema >= 3, storage: 'sqlite-durable-object', schema };
   }
 
   async cleanup(now) {
     return this.#transaction(() => {
-      this.sql.exec('DELETE FROM auth_challenges WHERE expires_at<=?', now);
+      this.sql.exec('DELETE FROM auth_passkey_challenges WHERE expires_at<=?', now);
+      this.sql.exec('DELETE FROM auth_passkey_tickets WHERE expires_at<=?', now);
+      this.sql.exec("DELETE FROM auth_passkey_credentials WHERE status='revoked' AND revoked_at<?", now - EVENT_RETENTION_MS);
       this.sql.exec('DELETE FROM auth_rate_limits WHERE expires_at<=?', now);
       this.sql.exec('DELETE FROM auth_sessions WHERE expires_at<=? OR revoked_at IS NOT NULL', now);
       this.sql.exec('DELETE FROM auth_security_events WHERE occurred_at<?', now - EVENT_RETENTION_MS);
@@ -415,11 +637,12 @@ export class SqliteAuthRepository {
   async nextExpiry(now) {
     const row = this.#one(
       `SELECT MIN(expiry) AS nextExpiry FROM (
-        SELECT MIN(expires_at) AS expiry FROM auth_challenges WHERE expires_at>?
+        SELECT MIN(expires_at) AS expiry FROM auth_passkey_challenges WHERE expires_at>?
+        UNION ALL SELECT MIN(expires_at) FROM auth_passkey_tickets WHERE expires_at>?
         UNION ALL SELECT MIN(expires_at) FROM auth_sessions WHERE expires_at>? AND revoked_at IS NULL
         UNION ALL SELECT MIN(expires_at) FROM auth_rate_limits WHERE expires_at>?
       )`,
-      now, now, now
+      now, now, now, now
     );
     const next = Number(row?.nextExpiry || 0);
     return next > now ? next : null;

@@ -284,10 +284,10 @@ export async function runLiveMailboxE2E({
     let config = null;
     for (let attempt = 0; attempt < 12; attempt += 1) {
       config = await appRequest(normalizedBase, '/api/auth/v1/config');
-      if (config.response.ok && config.body?.auth?.version === 'firebase-email-password-v1' && config.body?.auth?.available === true) break;
+      if (config.response.ok && config.body?.auth?.version === 'firebase-canonical-auth-v2' && config.body?.auth?.available === true) break;
       await sleep(5000);
     }
-    if (!config?.response?.ok || config.body?.auth?.version !== 'firebase-email-password-v1' || config.body?.auth?.available !== true) {
+    if (!config?.response?.ok || config.body?.auth?.version !== 'firebase-canonical-auth-v2' || config.body?.auth?.mode !== 'firebase-canonical-multi-method' || config.body?.auth?.available !== true) {
       throw new LiveCheckError(
         'config',
         config?.body?.auth?.providerStatus || config?.response?.status || 0,
@@ -296,6 +296,10 @@ export async function runLiveMailboxE2E({
     }
     if (config.body?.auth?.verificationEmail?.dailyCapacity !== 1000 || config.body?.auth?.registeredAccountLimit !== 'unlimited') {
       throw new LiveCheckError('config', 0, 'QUOTA_CONTRACT');
+    }
+    const methods = config.body?.auth?.methods;
+    if (methods?.emailPassword?.available !== true || methods?.google?.available !== false || methods?.passkey?.available !== false || methods?.backup?.available !== false) {
+      throw new LiveCheckError('config', 0, 'UNPUBLISHED_METHOD_EXPOSED');
     }
 
     mailbox = await createMailbox();

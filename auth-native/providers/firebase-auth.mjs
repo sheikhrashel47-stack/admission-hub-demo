@@ -1,5 +1,6 @@
 const IDENTITY_TOOLKIT = 'https://identitytoolkit.googleapis.com/v1';
 const SECURE_TOKEN = 'https://securetoken.googleapis.com/v1/token';
+const GOOGLE_USERINFO = 'https://www.googleapis.com/oauth2/v3/userinfo';
 const DEFAULT_CONTINUE_URL = 'https://admissionhub.pages.dev/?firebaseVerified=1';
 
 export class FirebaseRequestError extends Error {
@@ -21,6 +22,7 @@ const errorReason = payload => String(payload?.error?.message || 'FIREBASE_UNAVA
 const validApiKey = value => /^[A-Za-z0-9_-]{20,128}$/.test(String(value || ''));
 const validToken = value => typeof value === 'string' && value.length >= 20 && value.length <= 4096 && !/[\r\n\u0000;]/.test(value);
 const validSubject = value => typeof value === 'string' && value.length >= 1 && value.length <= 256 && !/[\r\n\u0000]/.test(value);
+const validGoogleClientId = value => /^\d{6,}-[A-Za-z0-9_-]{8,}\.apps\.googleusercontent\.com$/.test(String(value || ''));
 
 function safeContinueUrl(value) {
   try {
@@ -28,6 +30,28 @@ function safeContinueUrl(value) {
     if (url.protocol !== 'https:' || url.hostname !== 'admissionhub.pages.dev') return DEFAULT_CONTINUE_URL;
     return url.href;
   } catch { return DEFAULT_CONTINUE_URL; }
+}
+
+function googleIdpFromProject(payload) {
+  const entries = Array.isArray(payload?.idpConfig) ? payload.idpConfig : [];
+  const row = entries.find(item => {
+    const provider = String(item?.provider || item?.providerId || '').toLowerCase();
+    return provider === 'google' || provider === 'google.com';
+  });
+  const clientId = String(row?.clientId || '');
+  return Object.freeze({
+    enabled: row?.enabled === true,
+    clientId: validGoogleClientId(clientId) ? clientId : ''
+  });
+}
+
+function googleCredential(input = {}) {
+  const idToken = String(input.idToken || '').trim();
+  const accessToken = String(input.accessToken || '').trim();
+  if (Boolean(idToken) === Boolean(accessToken)) throw new FirebaseRequestError('INVALID_IDP_RESPONSE');
+  const value = idToken || accessToken;
+  if (!validToken(value)) throw new FirebaseRequestError('INVALID_IDP_RESPONSE');
+  return Object.freeze({ kind: idToken ? 'id_token' : 'access_token', value });
 }
 
 export class FirebaseEmailPasswordProvider {
@@ -46,6 +70,7 @@ export class FirebaseEmailPasswordProvider {
       response = await this.fetch(`${IDENTITY_TOOLKIT}/projects?key=${encodeURIComponent(this.apiKey)}`, {
         method: 'GET',
         headers: { Accept: 'application/json', 'Cache-Control': 'no-store' },
+        redirect: 'error',
         signal: AbortSignal.timeout(12_000)
       });
     } catch { throw new FirebaseRequestError('NETWORK_ERROR'); }
@@ -57,7 +82,8 @@ export class FirebaseEmailPasswordProvider {
       : [];
     return Object.freeze({
       projectIdentified: typeof payload?.projectId === 'string' && payload.projectId.length > 3,
-      continueDomainAuthorized: authorizedDomains.includes(new URL(this.continueUrl).hostname)
+      continueDomainAuthorized: authorizedDomains.includes(new URL(this.continueUrl).hostname),
+      google: googleIdpFromProject(payload)
     });
   }
 
@@ -73,6 +99,7 @@ export class FirebaseEmailPasswordProvider {
           'Cache-Control': 'no-store'
         },
         body: form ? String(body) : JSON.stringify(body),
+        redirect: 'error',
         signal: AbortSignal.timeout(12_000)
       });
     } catch { throw new FirebaseRequestError('NETWORK_ERROR'); }
@@ -80,6 +107,21 @@ export class FirebaseEmailPasswordProvider {
     try { payload = await response.json(); } catch {}
     if (!response.ok) throw new FirebaseRequestError(errorReason(payload), response.status);
     return payload;
+  }
+
+  async inspectGoogleProvider() {
+    const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:createAuthUri?key=${encodeURIComponent(this.apiKey)}`, {
+      providerId: 'google.com',
+      continueUri: new URL(this.continueUrl).origin,
+      customParameter: { prompt: 'select_account' }
+    });
+    let authUri;
+    try { authUri = new URL(String(payload?.authUri || '')); } catch { throw new FirebaseRequestError('INVALID_PROVIDER_RESPONSE'); }
+    const clientId = authUri.searchParams.get('client_id') || '';
+    if (payload?.providerId !== 'google.com' || !validToken(String(payload?.sessionId || '')) || authUri.protocol !== 'https:' || authUri.hostname !== 'accounts.google.com' || !validGoogleClientId(clientId)) {
+      throw new FirebaseRequestError('INVALID_PROVIDER_RESPONSE');
+    }
+    return Object.freeze({ available: true, clientId });
   }
 
   async signUp(email, password) {
@@ -128,6 +170,55 @@ export class FirebaseEmailPasswordProvider {
     });
   }
 
+  async #googleSignIn(input, firebaseIdToken = '') {
+    const credential = googleCredential(input);
+    if (firebaseIdToken && !validToken(firebaseIdToken)) throw new FirebaseRequestError('INVALID_ID_TOKEN');
+    const postBody = new URLSearchParams({ [credential.kind]: credential.value, providerId: 'google.com' });
+    const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:signInWithIdp?key=${encodeURIComponent(this.apiKey)}`, {
+      requestUri: new URL(this.continueUrl).origin,
+      postBody: postBody.toString(),
+      returnIdpCredential: true,
+      returnSecureToken: true,
+      autoCreate: !firebaseIdToken,
+      ...(firebaseIdToken ? { idToken: firebaseIdToken } : {})
+    });
+    if (!validToken(payload?.idToken) || !validToken(payload?.refreshToken) || !validSubject(payload?.localId) || typeof payload?.email !== 'string' || payload?.emailVerified !== true) {
+      throw new FirebaseRequestError('INVALID_PROVIDER_RESPONSE');
+    }
+    return Object.freeze({
+      idToken: payload.idToken,
+      refreshToken: payload.refreshToken,
+      subject: payload.localId,
+      email: payload.email,
+      emailVerified: true,
+      isNewUser: payload.isNewUser === true,
+      expiresIn: Math.max(60, Number(payload.expiresIn || 3600))
+    });
+  }
+
+  signInWithGoogle(input) { return this.#googleSignIn(input); }
+  linkGoogle(firebaseIdToken, input) { return this.#googleSignIn(input, firebaseIdToken); }
+
+  async googleIdentity(accessToken) {
+    if (!validToken(accessToken)) throw new FirebaseRequestError('INVALID_IDP_RESPONSE');
+    let response;
+    try {
+      response = await this.fetch(GOOGLE_USERINFO, {
+        method: 'GET',
+        headers: { Accept: 'application/json', Authorization: `Bearer ${accessToken}`, 'Cache-Control': 'no-store' },
+        redirect: 'error',
+        signal: AbortSignal.timeout(12_000)
+      });
+    } catch { throw new FirebaseRequestError('NETWORK_ERROR'); }
+    let payload = {};
+    try { payload = await response.json(); } catch {}
+    if (!response.ok) throw new FirebaseRequestError('INVALID_IDP_RESPONSE', response.status);
+    if (!validSubject(payload?.sub) || typeof payload?.email !== 'string' || payload?.email_verified !== true) {
+      throw new FirebaseRequestError('INVALID_IDP_RESPONSE');
+    }
+    return Object.freeze({ subject: payload.sub, email: payload.email, emailVerified: true });
+  }
+
   async lookup(idToken) {
     if (!validToken(idToken)) throw new FirebaseRequestError('INVALID_ID_TOKEN');
     const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:lookup?key=${encodeURIComponent(this.apiKey)}`, { idToken });
@@ -135,11 +226,16 @@ export class FirebaseEmailPasswordProvider {
     if (!user || !validSubject(user.localId) || typeof user.email !== 'string') {
       throw new FirebaseRequestError('INVALID_PROVIDER_RESPONSE');
     }
+    const providerRows = Array.isArray(user.providerUserInfo) ? user.providerUserInfo : [];
     return Object.freeze({
       subject: user.localId,
       email: user.email,
       emailVerified: user.emailVerified === true,
-      disabled: user.disabled === true
+      disabled: user.disabled === true,
+      providers: Object.freeze(providerRows.map(row => String(row?.providerId || '')).filter(Boolean)),
+      googleSubjects: Object.freeze(providerRows
+        .filter(row => row?.providerId === 'google.com' && validSubject(row?.rawId))
+        .map(row => String(row.rawId)))
     });
   }
 
@@ -158,3 +254,5 @@ export class FirebaseEmailPasswordProvider {
     });
   }
 }
+
+export const __firebaseProviderTest = Object.freeze({ validGoogleClientId, googleIdpFromProject });

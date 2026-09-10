@@ -1,15 +1,19 @@
 {
+  "type": "module",
   "scripts": {
     "build:worker": "npx --yes esbuild@0.25.9 gk-agent-worker.js --bundle --format=esm --platform=browser --target=es2022 --charset=utf8 --outfile=worker-bundle.mjs",
     "check:worker-bundle": "tmp=$(mktemp) && npx --yes esbuild@0.25.9 gk-agent-worker.js --bundle --format=esm --platform=browser --target=es2022 --charset=utf8 --outfile=$tmp >/dev/null && cmp -s worker-bundle.mjs $tmp; code=$?; rm -f $tmp; exit $code",
     "notify:telegram": "node email-gateway/operations/notify-telegram.mjs",
     "test:auth": "node --test --experimental-test-coverage auth-foundation.test.mjs auth-foundation-chaos.test.mjs auth-protection.test.mjs",
     "test:email": "node --test --experimental-test-coverage email-gateway.test.mjs email-gateway-failover.test.mjs email-gateway-security.test.mjs email-gateway-load.test.mjs email-gateway-infisical-bootstrap.test.mjs email-gateway-cloudflare-inventory.test.mjs email-gateway-provider-account-audit.test.mjs telegram-notifier.test.mjs && node --test email-gateway-integration.test.mjs",
-    "test:native-auth": "node --test native-auth.test.mjs native-auth-operations.test.mjs native-auth-protection.test.mjs firebase-auth-ui.test.mjs",
+    "test:native-auth": "node --test native-auth.test.mjs native-auth-operations.test.mjs native-auth-protection.test.mjs firebase-auth-ui.test.mjs firebase-google-auth.test.mjs passkey-auth.test.mjs verification-orchestrator.test.mjs verification-providers.test.mjs verification-admin.test.mjs telegram-webhook.test.mjs backup-public-handler.test.mjs multimethod-auth-ui.test.mjs sqlite-auth-runtime.test.mjs",
     "test:phase2": "npm run test:auth && npm run test:email",
     "test:production-auth": "npm run test:auth && npm run test:email && npm run test:native-auth"
   },
   "dependencies": {
     "jsdom": "^29.1.1"
+  },
+  "devDependencies": {
+    "better-sqlite3": "11.10.0"
   }
 }

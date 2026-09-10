@@ -1,0 +1,304 @@
+import { AUTH_ERROR_CODES } from '../core/errors.mjs';
+import { constantTimeEqual } from '../core/crypto.mjs';
+import { VERIFICATION_FAILURE_CLASS } from './provider-contract.mjs';
+
+const DAY_MS = 86_400_000;
+const copy = value => value == null ? value : JSON.parse(JSON.stringify(value));
+const safeReason = value => String(value || 'UNKNOWN').toUpperCase().replace(/[^A-Z0-9_-]/g, '_').slice(0, 64) || 'UNKNOWN';
+
+export class MemoryVerificationRepository {
+  constructor() {
+    this.challenges = new Map();
+    this.quotas = new Map();
+    this.providers = new Map();
+    this.rates = new Map();
+    this.events = [];
+    this.runtimeConfig = null;
+  }
+
+  async getRuntimeConfig() { return copy(this.runtimeConfig); }
+
+  async setRuntimeConfig({ config, now }) {
+    this.runtimeConfig = { ...copy(config), updatedAt: Number(now) };
+    return { updated: true, updatedAt: Number(now) };
+  }
+
+  #consumeLimits(limits, now) {
+    let denied = null;
+    for (const limit of limits || []) {
+      const start = Math.floor(now / limit.windowMs) * limit.windowMs;
+      const key = `${limit.scope}:${limit.key}:${start}`;
+      const row = this.rates.get(key) || { count: 0, expiresAt: start + limit.windowMs };
+      row.count += 1;
+      this.rates.set(key, row);
+      if (row.count > limit.limit) {
+        const retryAfter = Math.max(1, Math.ceil((row.expiresAt - now) / 1000));
+        if (!denied || retryAfter > denied.retryAfter) denied = { error: AUTH_ERROR_CODES.RATE_LIMITED, retryAfter };
+      }
+    }
+    return denied;
+  }
+
+  #event(input) {
+    this.events.push({
+      attemptId: input.attemptId || null,
+      userId: input.userId || null,
+      subjectRef: input.subjectRef || null,
+      providerId: input.providerId || null,
+      channel: input.channel || null,
+      occurredAt: Number(input.now),
+      outcome: safeReason(input.outcome),
+      reason: safeReason(input.reason),
+      latencyMs: Math.max(0, Math.round(Number(input.latencyMs || 0)))
+    });
+  }
+
+  async reserveChallenge(input) {
+    const activeLockout = [...this.challenges.values()]
+      .filter(row => row.userId === input.userId && row.purpose === input.purpose && row.state === 'locked' && row.lockoutUntil > input.now)
+      .reduce((latest, row) => Math.max(latest, Number(row.lockoutUntil || 0)), 0);
+    if (activeLockout) {
+      return { error: AUTH_ERROR_CODES.OTP_LOCKED, retryAfter: Math.max(1, Math.ceil((activeLockout - input.now) / 1000)) };
+    }
+    const denied = this.#consumeLimits(input.limits, input.now);
+    if (denied) return denied;
+    const latest = [...this.challenges.values()]
+      .filter(row => row.userId === input.userId && row.purpose === input.purpose && ['pending', 'sent'].includes(row.state))
+      .sort((left, right) => right.createdAt - left.createdAt)[0];
+    if (latest && input.now < latest.resendAt) {
+      return { error: AUTH_ERROR_CODES.RESEND_COOLDOWN, retryAfter: Math.max(1, Math.ceil((latest.resendAt - input.now) / 1000)) };
+    }
+    this.challenges.set(input.attemptId, copy({
+      ...input,
+      providerId: null,
+      channel: null,
+      verificationMode: null,
+      state: 'pending',
+      attempts: 0,
+      verifiedAt: null,
+      lockoutUntil: 0,
+      providerConfirmed: false,
+      externalIdentityRef: null
+    }));
+    this.#event({ ...input, outcome: 'prepared', reason: 'accepted' });
+    return { reserved: true };
+  }
+
+  async markChallengeDelivery(input) {
+    const row = this.challenges.get(input.attemptId);
+    if (!row || row.state !== 'pending') return { error: AUTH_ERROR_CODES.OTP_INVALID };
+    row.providerId = input.providerId;
+    row.channel = input.channel;
+    row.verificationMode = input.verificationMode;
+    row.state = 'sent';
+    row.sentAt = input.now;
+    for (const candidate of this.challenges.values()) {
+      if (candidate.attemptId !== row.attemptId && candidate.userId === row.userId
+        && candidate.purpose === row.purpose && ['pending', 'sent'].includes(candidate.state)) {
+        candidate.state = 'superseded';
+        candidate.codeMac = '';
+        candidate.linkTokenMac = '';
+      }
+    }
+    this.#event({ ...row, now: input.now, outcome: 'sent', reason: 'accepted', latencyMs: input.latencyMs });
+    return { delivered: true };
+  }
+
+  async confirmProviderEvidence(input) {
+    const row = [...this.challenges.values()].find(candidate =>
+      candidate.providerId === input.providerId &&
+      candidate.channel === input.channel &&
+      candidate.state === 'sent' &&
+      candidate.expiresAt > input.now &&
+      constantTimeEqual(candidate.linkTokenMac, input.linkTokenMac)
+    );
+    if (!row) return { error: AUTH_ERROR_CODES.OTP_INVALID };
+    row.providerConfirmed = true;
+    row.externalIdentityRef = input.externalIdentityRef;
+    row.linkTokenMac = '';
+    this.#event({ ...row, now: input.now, outcome: 'provider_confirmed', reason: 'webhook_verified' });
+    return { confirmed: true, attemptId: row.attemptId };
+  }
+
+  async failChallenge(input) {
+    const row = this.challenges.get(input.attemptId);
+    if (row && ['pending', 'sent'].includes(row.state)) {
+      row.state = 'failed';
+      row.codeMac = '';
+      row.linkTokenMac = '';
+    }
+    this.#event({ ...(row || {}), ...input, outcome: 'failed' });
+    return { failed: true };
+  }
+
+  async getChallenge(input) {
+    const row = this.challenges.get(input.attemptId);
+    if (!row || row.sessionRef !== input.sessionRef || row.subjectRef !== input.subjectRef || row.userId !== input.userId
+      || row.deviceRef !== input.deviceRef || row.emailRef !== input.emailRef || row.purpose !== input.purpose) {
+      return { error: AUTH_ERROR_CODES.OTP_INVALID };
+    }
+    if (row.state === 'verified') return { error: AUTH_ERROR_CODES.OTP_USED };
+    if (row.state === 'locked') return { error: AUTH_ERROR_CODES.OTP_LOCKED, retryAfter: Math.max(1, Math.ceil((row.lockoutUntil - input.now) / 1000)) };
+    if (row.state !== 'sent') return { error: AUTH_ERROR_CODES.OTP_INVALID };
+    if (row.expiresAt <= input.now) {
+      row.state = 'expired';
+      row.codeMac = '';
+      row.linkTokenMac = '';
+      return { error: AUTH_ERROR_CODES.OTP_EXPIRED };
+    }
+    return { challenge: copy(row) };
+  }
+
+  async rejectChallengeAttempt(input) {
+    const selected = await this.getChallenge(input);
+    if (selected.error) return selected;
+    const row = this.challenges.get(input.attemptId);
+    row.attempts += 1;
+    if (row.attempts >= row.maxAttempts) {
+      row.state = 'locked';
+      row.codeMac = '';
+      row.linkTokenMac = '';
+      row.lockoutUntil = input.now + input.lockoutMs;
+      this.#event({ ...row, now: input.now, outcome: 'locked', reason: 'attempt_limit' });
+      return { error: AUTH_ERROR_CODES.OTP_LOCKED, retryAfter: Math.ceil(input.lockoutMs / 1000) };
+    }
+    this.#event({ ...row, now: input.now, outcome: 'rejected', reason: input.reason || 'user_code_mismatch' });
+    return { error: AUTH_ERROR_CODES.OTP_INVALID, attemptsRemaining: row.maxAttempts - row.attempts };
+  }
+
+  async verifyLocalChallenge(input) {
+    const selected = await this.getChallenge(input);
+    if (selected.error) return selected;
+    const row = this.challenges.get(input.attemptId);
+    if (!constantTimeEqual(row.codeMac, input.candidateCodeMac)) {
+      return this.rejectChallengeAttempt({ ...input, reason: 'user_code_mismatch' });
+    }
+    row.state = 'verified';
+    row.codeMac = '';
+    row.linkTokenMac = '';
+    row.verifiedAt = input.now;
+    this.#event({ ...row, now: input.now, outcome: 'verified', reason: 'accepted' });
+    return { verified: true, userId: row.userId, purpose: row.purpose };
+  }
+
+  async completeRemoteChallenge(input) {
+    const selected = await this.getChallenge(input);
+    if (selected.error) return selected;
+    const row = this.challenges.get(input.attemptId);
+    row.state = 'verified';
+    row.codeMac = '';
+    row.linkTokenMac = '';
+    row.verifiedAt = input.now;
+    this.#event({ ...row, now: input.now, outcome: 'verified', reason: 'provider_evidence' });
+    return { verified: true, userId: row.userId, purpose: row.purpose };
+  }
+
+  async dailyQuotaSnapshot({ providerId, dailyQuota, now }) {
+    const dayStart = Math.floor(now / DAY_MS) * DAY_MS;
+    const resetAt = dayStart + DAY_MS;
+    const row = this.quotas.get(`${providerId}:${dayStart}`);
+    const used = Math.max(0, Number(row?.used || 0));
+    return { used, remaining: Math.max(0, dailyQuota - used), limit: dailyQuota, resetAt };
+  }
+
+  async reserveDailyQuota({ providerId, dailyQuota, now }) {
+    const dayStart = Math.floor(now / DAY_MS) * DAY_MS;
+    const resetAt = dayStart + DAY_MS;
+    const key = `${providerId}:${dayStart}`;
+    const row = this.quotas.get(key) || { providerId, dayStart, used: 0, limit: dailyQuota, resetAt };
+    row.limit = dailyQuota;
+    if (dailyQuota <= 0 || row.used >= dailyQuota) {
+      this.quotas.set(key, row);
+      return { exhausted: true, used: row.used, remaining: 0, limit: dailyQuota, resetAt };
+    }
+    row.used += 1;
+    this.quotas.set(key, row);
+    return { exhausted: false, used: row.used, remaining: Math.max(0, dailyQuota - row.used), limit: dailyQuota, resetAt };
+  }
+
+  async providerSnapshot({ providerId, now }) {
+    const row = this.providers.get(providerId) || {
+      providerId,
+      circuit: 'closed',
+      consecutiveFailures: 0,
+      successCount: 0,
+      failureCount: 0,
+      userErrorCount: 0,
+      latencyEwmaMs: 0,
+      cooldownUntil: 0,
+      lastSuccessAt: 0,
+      lastFailureAt: 0,
+      lastReason: 'NONE'
+    };
+    if (row.circuit === 'open' && row.cooldownUntil <= now) row.circuit = 'half-open';
+    this.providers.set(providerId, row);
+    return copy(row);
+  }
+
+  async recordProviderResult(input) {
+    const row = await this.providerSnapshot({ providerId: input.providerId, now: input.now });
+    const latency = Math.max(0, Number(input.latencyMs || 0));
+    row.latencyEwmaMs = row.latencyEwmaMs ? Math.round((row.latencyEwmaMs * 0.8) + (latency * 0.2)) : Math.round(latency);
+    row.lastReason = safeReason(input.reason);
+    if (input.success) {
+      row.successCount += 1;
+      row.consecutiveFailures = 0;
+      row.circuit = 'closed';
+      row.cooldownUntil = 0;
+      row.lastSuccessAt = input.now;
+    } else if (input.failureClass === VERIFICATION_FAILURE_CLASS.USER) {
+      row.userErrorCount += 1;
+    } else {
+      row.failureCount += 1;
+      row.consecutiveFailures += 1;
+      row.lastFailureAt = input.now;
+      const shouldOpen = input.failureClass === VERIFICATION_FAILURE_CLASS.HARD || input.forceCooldown === true || row.consecutiveFailures >= input.failureThreshold;
+      if (shouldOpen) {
+        row.circuit = 'open';
+        row.cooldownUntil = input.now + input.cooldownMs;
+      }
+    }
+    this.providers.set(input.providerId, row);
+    this.#event({ ...input, outcome: input.success ? 'provider_success' : 'provider_failure' });
+    return copy(row);
+  }
+
+  async status({ providerIds, now }) {
+    const providerStates = [];
+    for (const providerId of providerIds) providerStates.push(await this.providerSnapshot({ providerId, now }));
+    return {
+      providerStates,
+      quotas: [...this.quotas.values()].filter(row => row.resetAt > now).map(copy),
+      recentEvents: this.events.slice(-100).map(copy)
+    };
+  }
+
+  async cleanup(now) {
+    for (const [key, row] of this.challenges) if (row.expiresAt <= now || ['verified', 'failed', 'superseded'].includes(row.state)) this.challenges.delete(key);
+    for (const [key, row] of this.quotas) if (row.resetAt <= now) this.quotas.delete(key);
+    for (const [key, row] of this.rates) if (row.expiresAt <= now) this.rates.delete(key);
+    this.events = this.events.filter(row => row.occurredAt > now - (90 * DAY_MS));
+    return { cleaned: true };
+  }
+
+  async nextExpiry(now) {
+    const values = [
+      ...[...this.challenges.values()].map(row => row.expiresAt),
+      ...[...this.quotas.values()].map(row => row.resetAt),
+      ...[...this.rates.values()].map(row => row.expiresAt),
+      ...[...this.providers.values()].map(row => row.cooldownUntil)
+    ].filter(value => Number(value) > now);
+    return values.length ? Math.min(...values) : null;
+  }
+
+  snapshot() {
+    return copy({
+      challenges: [...this.challenges.values()],
+      quotas: [...this.quotas.values()],
+      providers: [...this.providers.values()],
+      rates: [...this.rates.entries()],
+      events: this.events,
+      runtimeConfig: this.runtimeConfig
+    });
+  }
+}

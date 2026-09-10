@@ -5,6 +5,10 @@ workers_dev = true
 
 [vars]
 FIREBASE_CONTINUE_URL = "https://admissionhub.pages.dev/?firebaseVerified=1"
+GOOGLE_AUTH_ACTIVATION = "disabled"
+PASSKEY_AUTH_ACTIVATION = "disabled"
+VERIFICATION_AUTH_ACTIVATION = "disabled"
+VERIFICATION_ORCHESTRATOR_CONFIG = '{"enabled":false}'
 
 [triggers]
 crons = ["30 18 * * *"]
