@@ -209,6 +209,24 @@ export class FirebaseEmailPasswordProvider {
     return Object.freeze({ accepted: true });
   }
 
+  async sendPasswordResetEmail(email) {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized || normalized.length > 254 || /[\r\n\u0000]/.test(normalized)) throw new FirebaseRequestError('INVALID_EMAIL');
+    const continueUrl = new URL(this.continueUrl);
+    continueUrl.searchParams.delete('firebaseVerified');
+    continueUrl.searchParams.set('passwordReset', '1');
+    const payload = await this.#post(`${IDENTITY_TOOLKIT}/accounts:sendOobCode?key=${encodeURIComponent(this.apiKey)}`, {
+      requestType: 'PASSWORD_RESET',
+      email: normalized,
+      continueUrl: continueUrl.href,
+      canHandleCodeInApp: false
+    });
+    if (typeof payload?.email !== 'string' || payload.email.trim().toLowerCase() !== normalized) {
+      throw new FirebaseRequestError('INVALID_PROVIDER_RESPONSE');
+    }
+    return Object.freeze({ accepted: true });
+  }
+
   async deleteAccount(idToken) {
     if (!validToken(idToken)) throw new FirebaseRequestError('INVALID_ID_TOKEN');
     await this.#post(`${IDENTITY_TOOLKIT}/accounts:delete?key=${encodeURIComponent(this.apiKey)}`, { idToken });

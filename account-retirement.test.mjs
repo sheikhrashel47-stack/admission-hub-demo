@@ -49,6 +49,9 @@ const DISPATCH = readFileSync('gk-agent-worker.js', 'utf8');
 const PAGES = readFileSync('_worker.js', 'utf8');
 const STUDIO_SHELL = readFileSync('experience-studio-shell.js', 'utf8');
 const STUDIO_CARDS = readFileSync('experience-studio-cards.js', 'utf8');
+const ACCOUNT_UI = readFileSync('account-access.js', 'utf8');
+const AUTH_HANDLER = readFileSync('auth-native/worker/public-auth-handler.mjs', 'utf8');
+const INSTITUTIONS = readFileSync('institutions-bd.js', 'utf8');
 
 const retiredFiles = [
   'premium-auth.js', 'premium-auth.css', 'auth-svg.js', 'user-account.js',
@@ -104,14 +107,20 @@ await test('content hydration is public and account-independent',
   !/AHAuth|ahPubToken|authHeaders|Authorization/.test(CLOUD));
 
 await test('service-worker build and HTML registration are synchronized',
-  SW.includes("const BUILD_ID = 'v232-auth-ui-skew-20260911'") &&
-  H.includes("const expectedSwVersion = 'v232-auth-ui-skew-20260911'") &&
-  H.includes('sw.js?v=v232-auth-ui-skew-20260911') &&
-  H.includes('admission-hub-shell-v232-auth-ui-skew-20260911'));
+  SW.includes("const BUILD_ID = 'v234-premium-onboarding-20260911'") &&
+  H.includes("const expectedSwVersion = 'v234-premium-onboarding-20260911'") &&
+  H.includes('sw.js?v=v234-premium-onboarding-20260911') &&
+  H.includes('admission-hub-shell-v234-premium-onboarding-20260911'));
 await test('service-worker shell cannot cache retired assets', retiredMarkers.every(marker => !SW.includes(marker)));
-await test('multi-method account assets use the same cache-busting version in HTML and service worker',
-  ['account-access.css?v=20260911-auth-selector-v4', 'account-access.js?v=20260911-auth-selector-v4']
-    .every(asset => H.includes(asset) && SW.includes(asset)));
+await test('premium account and institution assets use synchronized cache-busting versions',
+  ['account-access.css?v=20260911-premium-onboarding-v2', 'account-access.js?v=20260911-premium-onboarding-v2', 'institutions-bd.js?v=bd-institutions-v1']
+    .every(asset => H.includes(asset) && SW.includes(asset)) &&
+  H.indexOf('institutions-bd.js?v=bd-institutions-v1') < H.indexOf('account-access.js?v=20260911-premium-onboarding-v2'));
+await test('premium Auth UI/server contract and curated-manual institution policy are locked',
+  ACCOUNT_UI.includes("'X-AH-Auth-UI': 'auth-premium-v6'") &&
+  AUTH_HANDLER.includes("const AUTH_UI_VERSION = 'auth-premium-v6'") &&
+  AUTH_HANDLER.includes("version: 'premium-onboarding-v1'") &&
+  INSTITUTIONS.includes("coverage: 'curated-starter-index'") && INSTITUTIONS.includes("mode: 'manual'"));
 await test('service-worker caches guest AI UI v14 and purges prior shells',
   SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') &&
   H.includes("name.startsWith('admission-hub-shell-')") && SW.includes('.filter(key => key !== CACHE_NAME)'));

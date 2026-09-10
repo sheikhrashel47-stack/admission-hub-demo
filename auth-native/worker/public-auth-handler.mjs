@@ -16,7 +16,7 @@ const YEAR_SECONDS = 365 * 24 * 60 * 60;
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
 const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 128;
-const AUTH_UI_VERSION = 'auth-selector-v4';
+const AUTH_UI_VERSION = 'auth-premium-v6';
 const FIREBASE_VERIFICATION_RESEND_SECONDS = Math.floor(FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS / 1000);
 
 const JSON_HEADERS = Object.freeze({
@@ -485,6 +485,13 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           ok: true,
           auth: {
             version: AUTH_NATIVE_VERSION,
+            uiContract: AUTH_UI_VERSION,
+            onboarding: {
+              version: 'premium-onboarding-v1',
+              firstEntryRemembered: true,
+              guestAllowed: true,
+              profileVersion: 1
+            },
             mode: 'firebase-canonical-multi-method',
             provider: 'firebase',
             available,
@@ -504,13 +511,16 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
                 neverMandatory: true
               },
               emailPassword: { available, availabilityCode: available ? 'READY' : availability.code },
+              passwordReset: { available, availabilityCode: available ? 'READY' : availability.code },
+              profile: { available, version: 1, accountScoped: true, pendingTicketScoped: true },
               telegramVerification,
               backup: publicBackup
             },
             verificationEmail: {
               kind: 'address-verification',
               dailyCapacity: 1000,
-              resendCooldownSeconds: FIREBASE_VERIFICATION_RESEND_SECONDS
+              resendCooldownSeconds: FIREBASE_VERIFICATION_RESEND_SECONDS,
+              statusCheckAvailable: true
             },
             registeredAccountLimit: 'unlimited',
             session: { transport: 'secure-http-only-cookie', maxAge: SESSION_SECONDS }
@@ -594,6 +604,29 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             dailyCapacity: 1000,
             resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
           }
+        }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
+      }
+
+      if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/password-reset`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const body = await readJson(request);
+        const email = normalizeAuthEmail(body?.email);
+        const prepared = await callAuthority(env, '/internal/firebase/rate', {
+          input: { operation: 'password-reset', email }, context
+        });
+        try {
+          await provider.sendPasswordResetEmail(prepared.email);
+        } catch (cause) {
+          // Account existence, disabled state, and provider-side address normalization must look identical.
+          const privateAccountResult = cause instanceof FirebaseRequestError
+            && ['EMAIL_NOT_FOUND', 'USER_DISABLED', 'INVALID_EMAIL', 'MISSING_EMAIL'].includes(cause.reason);
+          if (!privateAccountResult) throw providerError(cause, 'password-reset');
+        }
+        return json(request, 202, {
+          ok: true,
+          accepted: true,
+          deliveryDisclosed: false,
+          resendAfter: FIREBASE_VERIFICATION_RESEND_SECONDS
         }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
       }
 
@@ -773,6 +806,43 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
       }
 
+      if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/account-verification/email/status`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
+        if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        await readJson(request);
+        await callAuthority(env, '/internal/firebase/rate', { input: { operation: 'verification-status' }, context });
+        const material = await callAuthority(env, '/internal/firebase/account-verification/material', {
+          verificationTicket,
+          context
+        });
+        let refreshed;
+        let user;
+        try { refreshed = await provider.refresh(material.refreshToken); } catch (cause) { throw providerError(cause, 'refresh'); }
+        try { user = await provider.lookup(refreshed.idToken); } catch (cause) { throw providerError(cause, 'lookup-session'); }
+        assertProviderUser(refreshed, user);
+        if (user.emailVerified !== true) {
+          return json(request, 200, {
+            ok: true,
+            authenticated: false,
+            emailVerified: false,
+            emailMasked: material.user?.emailMasked || 'তোমার Email-এ'
+          }, context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
+        }
+        const established = await callAuthority(env, '/internal/firebase/account-verification/complete', {
+          input: {
+            verificationTicket,
+            email: user.email,
+            subject: user.subject
+          },
+          context
+        });
+        return authSuccess(request, established, refreshed.refreshToken, context, {
+          emailVerified: true,
+          telegramVerified: false
+        }, [verificationCookie('', 0)]);
+      }
+
       if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/telegram/verification/start`) {
         if (!provider.configured || !telegramVerificationRequested(env, url)) {
           throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_UNAVAILABLE);
@@ -874,6 +944,61 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           emailVerified: user.emailVerified === true,
           telegramVerified: true
         }, [verificationCookie('', 0)]);
+      }
+
+      if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/profile/pending`) {
+        const verificationTicket = jar[AUTH_VERIFICATION_COOKIE];
+        if (!verificationTicket) throw new NativeAuthError(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+        const profile = await readJson(request);
+        await callAuthority(env, '/internal/firebase/rate', { input: { operation: 'pending-profile-write' }, context });
+        const result = await callAuthority(env, '/internal/profile/save-pending', {
+          verificationTicket,
+          input: profile,
+          context
+        });
+        return json(request, 200, { ok: true, saved: result?.saved === true },
+          context.isNewDevice ? { 'Set-Cookie': deviceCookie(context.deviceId) } : {});
+      }
+
+      if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/profile`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const profile = await readJson(request);
+        const current = await firebaseReadySession({
+          provider, jar, env, context, allowTelegram: telegramVerificationRequested(env, url)
+        });
+        await callAuthority(env, '/internal/firebase/rate', {
+          input: { operation: 'profile-write', email: current.user.email }, context
+        });
+        const result = await callAuthority(env, '/internal/profile/save', {
+          input: {
+            sessionToken: current.sessionToken,
+            email: current.user.email,
+            subject: current.user.subject,
+            profile
+          },
+          context
+        });
+        return json(request, 200, { ok: true, saved: result?.saved === true, profile: result?.profile || null }, {
+          'Set-Cookie': sessionCookies(current.session, current.refreshed.refreshToken, context)
+        });
+      }
+
+      if (request.method === 'GET' && url.pathname === `${AUTH_API_PREFIX}/profile`) {
+        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.NOT_CONFIGURED);
+        const current = await firebaseReadySession({
+          provider, jar, env, context, allowTelegram: telegramVerificationRequested(env, url)
+        });
+        const result = await callAuthority(env, '/internal/profile/get', {
+          input: {
+            sessionToken: current.sessionToken,
+            email: current.user.email,
+            subject: current.user.subject
+          },
+          context
+        });
+        return json(request, 200, { ok: true, profile: result?.profile || null }, {
+          'Set-Cookie': sessionCookies(current.session, current.refreshed.refreshToken, context)
+        });
       }
 
       if (request.method === 'POST' && url.pathname === `${AUTH_API_PREFIX}/passkey/registration/begin`) {

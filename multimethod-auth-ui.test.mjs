@@ -346,7 +346,7 @@ test('Telegram interaction requires the bot OTP and sends no link token back for
   await waitFor(() => app.document.querySelector('[data-view="backup"]').hidden === false);
   assert.equal(app.document.querySelector('[data-role="backup-link"]').href, interaction.url);
   assert.match(app.document.querySelector('[data-role="backup-interaction"]').textContent, /খোলা সফল যাচাই নয়/);
-  assert.match(app.document.querySelector('[data-role="backup-interaction"]').textContent, /Gmail\/ইমেইল মালিকানার প্রমাণ নয়/);
+  assert.match(app.document.querySelector('[data-role="backup-interaction"]').textContent, /Email মালিকানার প্রমাণও নয়/);
   app.document.querySelector('#ah-backup-code').value = '654321';
   app.document.querySelector('[data-view="backup"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => app.calls.some(call => call.path.endsWith('/backup/verify')));

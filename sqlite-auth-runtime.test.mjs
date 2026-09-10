@@ -6,6 +6,7 @@ import { SqliteVerificationRepository } from './auth-native/verification/sqlite-
 import { CloudflareNativeAuthEngine } from './auth-native/core/auth-engine.mjs';
 import { VerificationOrchestrator } from './auth-native/verification/orchestrator.mjs';
 import { VERIFICATION_CHANNELS, VERIFICATION_MODES } from './auth-native/verification/provider-contract.mjs';
+import { AUTH_ERROR_CODES } from './auth-native/core/errors.mjs';
 
 const SECRET = 'sqlite-runtime-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const START = 1_800_000_000_000;
@@ -75,6 +76,48 @@ class TelegramProvider {
   }
   async verifyCode() { throw new Error('Telegram OTP must be verified locally.'); }
 }
+
+test('SQLite persists one guided profile per canonical Firebase user and enforces session ownership', async t => {
+  const fixture = storageFixture();
+  t.after(() => fixture.database.close());
+  const repository = new SqliteAuthRepository(fixture.storage);
+  repository.migrate();
+  const now = START;
+  const identity = {
+    provider: 'firebase', subjectRef: 'profile-subject-ref', emailRef: 'profile-email-ref', emailMask: 'p***@example.com',
+    userIdCandidate: 'usr_profile_sqlite', sessionRef: 'profile-session-one', sessionExpiresAt: now + 600_000,
+    ipRef: 'ip-ref', deviceRef: 'device-ref', userAgent: 'Safari', now
+  };
+  assert.equal((await repository.establishExternalSession(identity)).established, true);
+  const profile = {
+    version: 1,
+    fullName: 'Profile Student',
+    dob: '2007-05-12',
+    school: { id: 's-cox-govt-high', name: 'Cox’s Bazar Government High School', district: 'Cox’s Bazar' },
+    higherInstitution: { id: 'h-du', name: 'University of Dhaka', district: 'Dhaka' }
+  };
+  const saved = await repository.saveProfile({
+    sessionRef: identity.sessionRef, subjectRef: identity.subjectRef, emailRef: identity.emailRef,
+    profile, now: now + 1
+  });
+  assert.equal(saved.saved, true);
+  assert.equal(saved.profile.fullName, profile.fullName);
+  assert.equal(fixture.database.prepare('SELECT COUNT(*) AS count FROM auth_profiles').get().count, 1);
+
+  const second = { ...identity, userIdCandidate: 'must-not-create-a-second-user', sessionRef: 'profile-session-two', now: now + 2 };
+  assert.equal((await repository.establishExternalSession(second)).created, false);
+  const loaded = await repository.getProfile({
+    sessionRef: second.sessionRef, subjectRef: identity.subjectRef, emailRef: identity.emailRef, now: now + 3
+  });
+  assert.equal(loaded.profile.school.id, profile.school.id);
+  assert.equal(loaded.profile.higherInstitution.id, profile.higherInstitution.id);
+  assert.equal(fixture.database.prepare('SELECT COUNT(*) AS count FROM auth_users').get().count, 1);
+
+  const denied = await repository.getProfile({
+    sessionRef: second.sessionRef, subjectRef: 'other-subject-ref', emailRef: identity.emailRef, now: now + 4
+  });
+  assert.equal(denied.error, AUTH_ERROR_CODES.SESSION_INVALID);
+});
 
 test('SQLite schema 5 executes complete Passkey repository lifecycle with valid placeholders', async t => {
   const fixture = storageFixture();

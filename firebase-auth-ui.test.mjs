@@ -22,6 +22,22 @@ async function waitFor(predicate, timeout = 1000) {
   throw new Error('Timed out waiting for UI state.');
 }
 
+async function fillGuidedProfile(app, email = 'student@example.com') {
+  const { document, window } = app;
+  document.querySelector('#ah-signup-name').value = 'Test Student';
+  document.querySelector('#ah-signup-email').value = email;
+  document.querySelector('#ah-dob-day').value = '12';
+  document.querySelector('#ah-dob-month').value = '5';
+  document.querySelector('#ah-dob-year').value = '2007';
+  document.querySelector('[data-role="signup-next-education"]').click();
+  const school = document.querySelector('#ah-signup-school');
+  school.value = 'Test School';
+  school.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await waitFor(() => document.querySelectorAll('#ah-school-results [role="option"]').length > 0);
+  [...document.querySelectorAll('#ah-school-results [role="option"]')].at(-1).click();
+  document.querySelector('[data-role="signup-next-security"]').click();
+}
+
 function setup({ loginVerified = false, resendMode = 'sent' } = {}) {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {
     url: 'https://admissionhub.pages.dev/',
@@ -82,7 +98,7 @@ test('signup UI collects Email and Password, clears passwords, and waits for sta
   await sleep(0);
   app.document.querySelector('.ah-account-launcher').click();
   app.document.querySelector('[data-role="show-signup"]').click();
-  app.document.querySelector('#ah-signup-email').value = 'student@example.com';
+  await fillGuidedProfile(app);
   app.document.querySelector('#ah-signup-password').value = 'Secure-password-44';
   app.document.querySelector('#ah-signup-confirm').value = 'Secure-password-44';
   const signupForm = app.document.querySelector('[data-view="signup"]');
@@ -101,7 +117,7 @@ test('signup UI collects Email and Password, clears passwords, and waits for sta
   assert.equal(app.document.querySelector('#ah-signup-password').value, '');
   assert.equal(app.document.querySelector('#ah-signup-confirm').value, '');
   assert.equal(app.window.AdmissionAccount.isVerified(), false);
-  assert.match(app.document.querySelector('[data-view="verify"]').textContent, /ইমেইল যাচাই করুন/);
+  assert.match(app.document.querySelector('[data-view="verify"]').textContent, /Email verification শেষ করো/);
   app.dom.window.close();
 });
 

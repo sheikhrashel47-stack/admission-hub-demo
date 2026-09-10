@@ -14,7 +14,7 @@ import {
   verifyPasskeyRegistration
 } from './webauthn.mjs';
 
-export const AUTH_NATIVE_VERSION = 'firebase-canonical-auth-v2';
+export const AUTH_NATIVE_VERSION = 'firebase-canonical-auth-v3';
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const FIREBASE_VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
 export const PASSKEY_CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -66,6 +66,28 @@ const FIREBASE_OPERATION_LIMITS = Object.freeze({
     Object.freeze({ scope: 'firebase-google-ip-15m', source: 'ip', limit: 60, windowMs: 15 * 60 * 1000 }),
     Object.freeze({ scope: 'firebase-google-device-15m', source: 'device', limit: 30, windowMs: 15 * 60 * 1000 }),
     Object.freeze({ scope: 'firebase-google-global-minute', source: 'global', limit: 180, windowMs: 60 * 1000 })
+  ]),
+  'password-reset': Object.freeze([
+    Object.freeze({ scope: 'firebase-reset-email-hour', source: 'email', limit: 3, windowMs: 60 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-reset-email-day', source: 'email', limit: 8, windowMs: 24 * 60 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-reset-ip-hour', source: 'ip', limit: 20, windowMs: 60 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-reset-device-hour', source: 'device', limit: 10, windowMs: 60 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-reset-global-day', source: 'global', limit: 1000, windowMs: 24 * 60 * 60 * 1000 })
+  ]),
+  'verification-status': Object.freeze([
+    Object.freeze({ scope: 'firebase-verification-status-ip-15m', source: 'ip', limit: 60, windowMs: 15 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-verification-status-device-15m', source: 'device', limit: 30, windowMs: 15 * 60 * 1000 })
+  ]),
+  'pending-profile-write': Object.freeze([
+    Object.freeze({ scope: 'firebase-pending-profile-ip-hour', source: 'ip', limit: 120, windowMs: 60 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-pending-profile-device-hour', source: 'device', limit: 20, windowMs: 60 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-pending-profile-global-minute', source: 'global', limit: 1000, windowMs: 60 * 1000 })
+  ]),
+  'profile-write': Object.freeze([
+    Object.freeze({ scope: 'firebase-profile-email-day', source: 'email', limit: 30, windowMs: 24 * 60 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-profile-device-day', source: 'device', limit: 60, windowMs: 24 * 60 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-profile-ip-hour', source: 'ip', limit: 300, windowMs: 60 * 60 * 1000 }),
+    Object.freeze({ scope: 'firebase-profile-global-minute', source: 'global', limit: 1000, windowMs: 60 * 1000 })
   ])
 });
 
@@ -74,6 +96,7 @@ const requiredRepositoryMethods = Object.freeze([
   'getExternalSession', 'getSession', 'revokeSession',
   'beginFirebaseAccountVerification', 'getFirebaseAccountVerification',
   'completeFirebaseAccountVerification', 'getFirebaseIdentity',
+  'savePendingProfile', 'saveProfile', 'getProfile',
   'beginPasskeyRegistration', 'getPasskeyRegistrationChallenge', 'finishPasskeyRegistration',
   'beginPasskeyAuthentication', 'getPasskeyAuthenticationMaterial', 'issuePasskeyTicket',
   'completePasskeySession', 'getPasskeyStatus', 'removePasskey',
@@ -116,6 +139,47 @@ const validSubject = value => {
   if (!subject || subject.length > 256 || /[\r\n\u0000]/.test(subject)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
   return subject;
 };
+
+const cleanProfileText = (value, max) => String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').slice(0, max + 1);
+const onboardingInstitution = (value, required = false) => {
+  if (!value && !required) return null;
+  if (!value || typeof value !== 'object') failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  const id = cleanProfileText(value.id, 80);
+  const name = cleanProfileText(value.name, 120);
+  const district = cleanProfileText(value.district, 60);
+  if (!/^(?:manual|[a-z0-9][a-z0-9-]{1,79})$/.test(id)
+    || name.length < 2 || name.length > 120 || /[\r\n\u0000<>]/.test(name)
+    || district.length > 60 || /[\r\n\u0000<>]/.test(district)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  return Object.freeze({ id, name, district });
+};
+
+export function normalizeOnboardingProfile(value = {}, now = Date.now()) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  const fullName = cleanProfileText(value.fullName, 80);
+  if (fullName.length < 2 || fullName.length > 80 || !/^[\p{L}\p{M} .'-]+$/u.test(fullName)
+    || (fullName.match(/\p{L}/gu) || []).length < 2) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  const dob = String(value.dob || '');
+  const match = dob.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const today = new Date(Number(now));
+  let age = today.getUTCFullYear() - year;
+  const beforeBirthday = today.getUTCMonth() < month - 1 || (today.getUTCMonth() === month - 1 && today.getUTCDate() < day);
+  if (beforeBirthday) age -= 1;
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day || age < 8 || age > 80) {
+    failAuth(AUTH_ERROR_CODES.INVALID_INPUT);
+  }
+  return Object.freeze({
+    version: 1,
+    fullName,
+    dob,
+    school: onboardingInstitution(value.school, true),
+    higherInstitution: onboardingInstitution(value.higherInstitution, false)
+  });
+}
 
 const validChallengeId = value => {
   const challengeId = String(value || '').trim();
@@ -349,6 +413,48 @@ export class CloudflareNativeAuthEngine {
       subjectRef: identity.subjectRef,
       emailRef: identity.refs.emailRef
     });
+  }
+
+  async savePendingProfile(verificationTicket, input = {}, requestContext = {}) {
+    const token = String(verificationTicket || '').trim();
+    if (!/^[A-Za-z0-9_-]{40,96}$/.test(token)) failAuth(AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID);
+    const context = normalizeContext(requestContext);
+    const profile = normalizeOnboardingProfile(input, Number(this.now()));
+    const [refs, ticketRef] = await Promise.all([
+      this.#references('account-verification@admissionhub.invalid', context),
+      this.hmac.hex('session-ref-v1', token)
+    ]);
+    const result = errorFromRepository(await this.repository.savePendingProfile({
+      ticketRef,
+      deviceRef: refs.deviceRef,
+      profile,
+      now: Number(this.now())
+    }));
+    return Object.freeze({ saved: result.saved === true, profile: result.profile });
+  }
+
+  async saveProfile(input = {}, requestContext = {}) {
+    const profile = normalizeOnboardingProfile(input.profile, Number(this.now()));
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const result = errorFromRepository(await this.repository.saveProfile({
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      profile,
+      now: Number(this.now())
+    }));
+    return Object.freeze({ saved: result.saved === true, profile: result.profile });
+  }
+
+  async getProfile(input = {}, requestContext = {}) {
+    const identity = await this.#firebaseIdentity(input, requestContext, AUTH_ERROR_CODES.SESSION_INVALID);
+    const result = errorFromRepository(await this.repository.getProfile({
+      sessionRef: identity.sessionRef,
+      subjectRef: identity.subjectRef,
+      emailRef: identity.refs.emailRef,
+      now: Number(this.now())
+    }));
+    return Object.freeze({ profile: result.profile || null });
   }
 
   async beginPasskeyRegistration(input = {}, requestContext = {}) {

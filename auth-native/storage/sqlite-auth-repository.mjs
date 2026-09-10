@@ -25,6 +25,22 @@ export class SqliteAuthRepository {
         created_at INTEGER NOT NULL,
         last_login_at INTEGER NOT NULL
       )`,
+      `CREATE TABLE IF NOT EXISTS auth_profiles (
+        user_id TEXT PRIMARY KEY,
+        profile_version INTEGER NOT NULL,
+        full_name TEXT NOT NULL,
+        date_of_birth TEXT NOT NULL,
+        school_id TEXT NOT NULL,
+        school_name TEXT NOT NULL,
+        school_district TEXT NOT NULL,
+        higher_id TEXT,
+        higher_name TEXT,
+        higher_district TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES auth_users(user_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS auth_profiles_updated ON auth_profiles(updated_at DESC)`,
       `CREATE TABLE IF NOT EXISTS auth_external_identities (
         provider TEXT NOT NULL,
         subject_ref TEXT NOT NULL,
@@ -145,7 +161,7 @@ export class SqliteAuthRepository {
       `CREATE INDEX IF NOT EXISTS auth_security_events_time ON auth_security_events(occurred_at DESC)`
     ];
     for (const statement of statements) this.sql.exec(statement);
-    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','3') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
+    this.sql.exec("INSERT INTO auth_meta(key,value) VALUES('schema_version','4') ON CONFLICT(key) DO UPDATE SET value=excluded.value");
   }
 
   #rows(statement, ...bindings) {
@@ -189,6 +205,46 @@ export class SqliteAuthRepository {
       'INSERT INTO auth_security_events(event_type,subject_ref,user_id,occurred_at) VALUES(?,?,?,?)',
       String(eventType).slice(0, 48), subjectRef || null, userId || null, now
     );
+  }
+
+  #profileForUser(userId) {
+    const row = this.#one(
+      `SELECT profile_version AS version,full_name AS fullName,date_of_birth AS dob,
+        school_id AS schoolId,school_name AS schoolName,school_district AS schoolDistrict,
+        higher_id AS higherId,higher_name AS higherName,higher_district AS higherDistrict,
+        created_at AS createdAt,updated_at AS updatedAt
+       FROM auth_profiles WHERE user_id=?`,
+      userId
+    );
+    if (!row) return null;
+    return {
+      version: Number(row.version || 1),
+      fullName: row.fullName,
+      dob: row.dob,
+      school: { id: row.schoolId, name: row.schoolName, district: row.schoolDistrict || '' },
+      higherInstitution: row.higherId ? { id: row.higherId, name: row.higherName, district: row.higherDistrict || '' } : null,
+      createdAt: Number(row.createdAt),
+      updatedAt: Number(row.updatedAt)
+    };
+  }
+
+  #writeProfile(userId, profile, now) {
+    const higher = profile.higherInstitution || null;
+    this.sql.exec(
+      `INSERT INTO auth_profiles(
+        user_id,profile_version,full_name,date_of_birth,school_id,school_name,school_district,
+        higher_id,higher_name,higher_district,created_at,updated_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        profile_version=excluded.profile_version,full_name=excluded.full_name,date_of_birth=excluded.date_of_birth,
+        school_id=excluded.school_id,school_name=excluded.school_name,school_district=excluded.school_district,
+        higher_id=excluded.higher_id,higher_name=excluded.higher_name,higher_district=excluded.higher_district,
+        updated_at=excluded.updated_at`,
+      userId, Number(profile.version || 1), profile.fullName, profile.dob,
+      profile.school.id, profile.school.name, profile.school.district || '',
+      higher?.id || null, higher?.name || null, higher?.district || null, now, now
+    );
+    return this.#profileForUser(userId);
   }
 
   #canonicalSession({ sessionRef, subjectRef, emailRef, now }) {
@@ -460,6 +516,38 @@ export class SqliteAuthRepository {
     if (!row) return { error: AUTH_ERROR_CODES.SESSION_INVALID };
     if (row.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
     return { user: row };
+  }
+
+  async savePendingProfile(input) {
+    return this.#transaction(() => {
+      const row = this.#one(
+        `SELECT t.user_id AS userId,t.state,t.expires_at AS expiresAt,u.status
+         FROM auth_account_verification_tickets t JOIN auth_users u ON u.user_id=t.user_id
+         WHERE t.ticket_ref=? AND t.device_ref=?`,
+        input.ticketRef, input.deviceRef
+      );
+      if (!row || row.state !== 'active' || Number(row.expiresAt) <= input.now) return { error: AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID };
+      if (row.status !== 'active') return { error: AUTH_ERROR_CODES.ACCOUNT_DISABLED };
+      const profile = this.#writeProfile(row.userId, input.profile, input.now);
+      this.#event('onboarding-profile-saved', null, row.userId, input.now);
+      return { saved: true, profile };
+    });
+  }
+
+  async saveProfile(input) {
+    return this.#transaction(() => {
+      const session = this.#canonicalSession(input);
+      if (session.error) return session;
+      const profile = this.#writeProfile(session.user.id, input.profile, input.now);
+      this.#event('account-profile-updated', input.subjectRef, session.user.id, input.now);
+      return { saved: true, profile };
+    });
+  }
+
+  async getProfile(input) {
+    const session = this.#canonicalSession(input);
+    if (session.error) return session;
+    return { profile: this.#profileForUser(session.user.id) };
   }
 
   async beginPasskeyRegistration(input) {

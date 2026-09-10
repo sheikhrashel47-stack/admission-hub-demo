@@ -60,6 +60,56 @@ test('Firebase operation limits are consumed atomically', async () => {
     () => state.engine.consumeFirebaseOperation({ operation: 'login', email: 'limited@example.com' }, state.context),
     AUTH_ERROR_CODES.RATE_LIMITED
   );
+  for (let index = 0; index < 20; index += 1) {
+    await state.engine.consumeFirebaseOperation({ operation: 'pending-profile-write' }, state.context);
+  }
+  await expectCode(
+    () => state.engine.consumeFirebaseOperation({ operation: 'pending-profile-write' }, state.context),
+    AUTH_ERROR_CODES.RATE_LIMITED
+  );
+});
+
+test('guided profile is validated, verification-ticket scoped, and readable only through the canonical account session', async () => {
+  const state = setup();
+  const email = 'profile@example.com';
+  const subject = 'firebase-profile-subject';
+  const prepared = await state.engine.beginFirebaseAccountVerification({
+    email,
+    subject,
+    refreshToken: `refresh-${'x'.repeat(40)}`
+  }, state.context);
+  const profile = {
+    fullName: 'রহিম আহমেদ',
+    dob: '2007-05-12',
+    school: { id: 's-cox-govt-high', name: 'Cox’s Bazar Government High School', district: 'Cox’s Bazar' },
+    higherInstitution: { id: 'h-du', name: 'University of Dhaka', district: 'Dhaka' }
+  };
+  const saved = await state.engine.savePendingProfile(prepared.verificationTicket, profile, state.context);
+  assert.equal(saved.saved, true);
+  assert.equal(saved.profile.fullName, profile.fullName);
+  assert.equal(JSON.stringify(state.repository.snapshot()).includes('refresh-xxxxxxxx'), false);
+
+  await expectCode(
+    () => state.engine.savePendingProfile(prepared.verificationTicket, { ...profile, dob: '2029-01-01' }, state.context),
+    AUTH_ERROR_CODES.INVALID_INPUT
+  );
+  await expectCode(
+    () => state.engine.savePendingProfile(prepared.verificationTicket, profile, { ...state.context, deviceId: 'different-device-01234567890' }),
+    AUTH_ERROR_CODES.TELEGRAM_VERIFICATION_INVALID
+  );
+
+  const session = await state.engine.completeFirebaseAccountVerification({
+    verificationTicket: prepared.verificationTicket,
+    email,
+    subject
+  }, state.context);
+  const loaded = await state.engine.getProfile({
+    sessionToken: session.sessionToken,
+    email,
+    subject
+  }, state.context);
+  assert.equal(loaded.profile.school.id, 's-cox-govt-high');
+  assert.equal(loaded.profile.higherInstitution.id, 'h-du');
 });
 
 test('opaque Firebase sessions expire and revoke without exposing stored token', async () => {
@@ -97,6 +147,12 @@ class EngineNamespace {
         '/internal/firebase/rate': () => this.engine.consumeFirebaseOperation(body.input, body.context),
         '/internal/firebase/session/create': () => this.engine.establishFirebaseSession(body.input, body.context),
         '/internal/firebase/session/get': () => this.engine.getFirebaseSession(body.sessionToken, body.input),
+        '/internal/firebase/account-verification/begin': () => this.engine.beginFirebaseAccountVerification(body.input, body.context),
+        '/internal/firebase/account-verification/material': () => this.engine.getFirebaseAccountVerification(body.verificationTicket, body.input || {}, body.context),
+        '/internal/firebase/account-verification/complete': () => this.engine.completeFirebaseAccountVerification(body.input, body.context),
+        '/internal/profile/save-pending': () => this.engine.savePendingProfile(body.verificationTicket, body.input, body.context),
+        '/internal/profile/save': () => this.engine.saveProfile(body.input, body.context),
+        '/internal/profile/get': () => this.engine.getProfile(body.input, body.context),
         '/internal/session/get': () => this.engine.getSession(body.sessionToken),
         '/internal/session/revoke': () => this.engine.revokeSession(body.sessionToken)
       };
@@ -166,6 +222,12 @@ class FirebaseMock {
     }
 
     if (parsed.pathname.endsWith('/accounts:sendOobCode')) {
+      if (body.requestType === 'PASSWORD_RESET') {
+        const user = this.users.get(String(body.email || '').toLowerCase());
+        if (!user) return this.error('EMAIL_NOT_FOUND');
+        if (user.disabled) return this.error('USER_DISABLED');
+        return this.response({ email: user.email });
+      }
       if (this.failVerification) return this.error('QUOTA_EXCEEDED', 429);
       if (this.malformedVerification) return this.response({});
       const user = this.tokens.get(body.idToken);
@@ -218,7 +280,7 @@ const extractCookiePair = (response, name) => {
   return match?.[1] || '';
 };
 
-const apiRequest = (path, { method = 'GET', body, cookie = '', origin = 'https://admissionhub.pages.dev', ui = 'auth-selector-v4' } = {}) => new Request(`https://worker.example${path}`, {
+const apiRequest = (path, { method = 'GET', body, cookie = '', origin = 'https://admissionhub.pages.dev', ui = 'auth-premium-v6' } = {}) => new Request(`https://worker.example${path}`, {
   method,
   headers: {
     Origin: origin,
@@ -263,6 +325,42 @@ test('Firebase signup sends standard verification but creates no authenticated s
   assert.equal(extractCookiePair(signup, '__Host-ah_session'), '');
   assert.equal(extractCookiePair(signup, '__Host-ah_firebase'), '');
   assert.ok(extractCookiePair(signup, '__Host-ah_device'));
+});
+
+test('password reset uses genuine email action while returning the same non-enumerating response for known and unknown addresses', async () => {
+  const app = handlerSetup();
+  const email = 'reset.user@example.com';
+  await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
+    method: 'POST', body: { email, password: 'Reset-password-44' }
+  }), app.env, {});
+
+  const known = await app.handler(apiRequest(`${AUTH_API_PREFIX}/password-reset`, {
+    method: 'POST', body: { email }
+  }), app.env, {});
+  const unknown = await app.handler(apiRequest(`${AUTH_API_PREFIX}/password-reset`, {
+    method: 'POST', body: { email: 'missing.user@example.com' }
+  }), app.env, {});
+  const disabledEmail = 'disabled.reset@example.com';
+  await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
+    method: 'POST', body: { email: disabledEmail, password: 'Reset-password-55' }
+  }), app.env, {});
+  app.firebase.users.get(disabledEmail).disabled = true;
+  const disabled = await app.handler(apiRequest(`${AUTH_API_PREFIX}/password-reset`, {
+    method: 'POST', body: { email: disabledEmail }
+  }), app.env, {});
+  const knownBody = await known.json();
+  const unknownBody = await unknown.json();
+  const disabledBody = await disabled.json();
+  assert.equal(known.status, 202);
+  assert.equal(unknown.status, 202);
+  assert.equal(disabled.status, 202);
+  assert.deepEqual(knownBody, unknownBody);
+  assert.deepEqual(knownBody, disabledBody);
+  assert.equal(knownBody.accepted, true);
+  assert.equal(knownBody.deliveryDisclosed, false);
+  const resets = app.firebase.calls.filter(call => call.pathname.endsWith('/accounts:sendOobCode') && call.body.requestType === 'PASSWORD_RESET');
+  assert.equal(resets.length, 3);
+  assert.equal(resets[0].body.continueUrl, 'https://admissionhub.pages.dev/?passwordReset=1');
 });
 
 test('unverified Firebase account is denied, verified account gets opaque HttpOnly session', async () => {
@@ -331,7 +429,13 @@ test('config publishes verified-only Firebase mode and correct Spark verificatio
   assert.equal(body.auth.provider, 'firebase');
   assert.equal(body.auth.mode, 'firebase-canonical-multi-method');
   assert.equal(body.auth.available, true);
+  assert.equal(body.auth.uiContract, 'auth-premium-v6');
+  assert.equal(body.auth.onboarding.version, 'premium-onboarding-v1');
+  assert.equal(body.auth.onboarding.profileVersion, 1);
   assert.equal(body.auth.methods.emailPassword.available, true);
+  assert.equal(body.auth.methods.passwordReset.available, true);
+  assert.equal(body.auth.methods.profile.available, true);
+  assert.equal(body.auth.methods.profile.accountScoped, true);
   assert.equal(body.auth.methods.google.available, false);
   assert.equal(body.auth.methods.passkey.neverMandatory, true);
   assert.equal(body.auth.methods.backup.available, false);
@@ -340,6 +444,7 @@ test('config publishes verified-only Firebase mode and correct Spark verificatio
   assert.equal(body.auth.emailVerifiedRequired, true);
   assert.equal(body.auth.verificationEmail.dailyCapacity, 1000);
   assert.equal(body.auth.verificationEmail.resendCooldownSeconds, 60);
+  assert.equal(body.auth.verificationEmail.statusCheckAvailable, true);
   assert.equal(body.auth.registeredAccountLimit, 'unlimited');
   const firebaseCalls = app.firebase.calls.length;
   const cached = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), app.env, {});
@@ -456,6 +561,67 @@ test('approved Telegram publication exposes only the Email-or-Telegram selector 
   assert.equal((await diagnostic.json()).auth.methods.backup.available, true);
 });
 
+test('Email status creates a session only after real verification and preserves the ticket-scoped guided profile', async () => {
+  const app = handlerSetup({ backupCapabilities: { available: true, availabilityCode: 'READY', telegramAvailable: true } });
+  app.env.VERIFICATION_AUTH_ACTIVATION = 'enabled';
+  const email = 'guided.status@example.com';
+  const password = 'StrongPassword!9';
+  const signup = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
+    method: 'POST', body: { email, password }
+  }), app.env, {});
+  assert.equal(signup.status, 202);
+  assert.equal((await signup.clone().json()).verification.sent, false);
+  const verificationCookie = extractCookiePair(signup, '__Host-ah_verification');
+  const deviceCookie = extractCookiePair(signup, '__Host-ah_device');
+  const pendingCookies = [verificationCookie, deviceCookie].filter(Boolean).join('; ');
+  assert.ok(verificationCookie);
+  assert.ok(deviceCookie);
+
+  const profile = {
+    fullName: 'Guided Student',
+    dob: '2007-05-12',
+    school: { id: 's-cox-govt-high', name: 'Cox’s Bazar Government High School', district: 'Cox’s Bazar' },
+    higherInstitution: null
+  };
+  const saved = await app.handler(apiRequest(`${AUTH_API_PREFIX}/profile/pending`, {
+    method: 'POST', cookie: pendingCookies, body: profile
+  }), app.env, {});
+  assert.equal(saved.status, 200);
+  assert.equal((await saved.json()).saved, true);
+
+  const started = await app.handler(apiRequest(`${AUTH_API_PREFIX}/account-verification/email/start`, {
+    method: 'POST', cookie: pendingCookies, body: {}
+  }), app.env, {});
+  assert.equal(started.status, 202);
+  assert.equal((await started.json()).verification.sent, true);
+
+  const before = await app.handler(apiRequest(`${AUTH_API_PREFIX}/account-verification/email/status`, {
+    method: 'POST', cookie: pendingCookies, body: {}
+  }), app.env, {});
+  assert.equal(before.status, 200);
+  assert.equal((await before.json()).authenticated, false);
+  assert.equal(extractCookiePair(before, '__Host-ah_session'), '');
+
+  app.firebase.users.get(email).emailVerified = true;
+  const after = await app.handler(apiRequest(`${AUTH_API_PREFIX}/account-verification/email/status`, {
+    method: 'POST', cookie: pendingCookies, body: {}
+  }), app.env, {});
+  assert.equal(after.status, 200);
+  const afterBody = await after.clone().json();
+  assert.equal(afterBody.authenticated, true);
+  assert.equal(afterBody.emailVerified, true);
+  const sessionCookies = [
+    extractCookiePair(after, '__Host-ah_session'),
+    extractCookiePair(after, '__Host-ah_firebase'),
+    deviceCookie
+  ].filter(Boolean).join('; ');
+  const loaded = await app.handler(apiRequest(`${AUTH_API_PREFIX}/profile`, { cookie: sessionCookies }), app.env, {});
+  assert.equal(loaded.status, 200);
+  const loadedBody = await loaded.json();
+  assert.equal(loadedBody.profile.fullName, profile.fullName);
+  assert.equal(loadedBody.profile.school.id, profile.school.id);
+});
+
 test('stale cached Auth UI is rejected before signup creates an account or sends Email', async () => {
   const app = handlerSetup({ backupCapabilities: { available: true, availabilityCode: 'READY', telegramAvailable: true } });
   app.env.VERIFICATION_AUTH_ACTIVATION = 'enabled';
@@ -475,6 +641,10 @@ test('stale cached Auth UI is rejected before signup creates an account or sends
 test('selector setup failure preserves the account but never auto-sends Firebase Email', async () => {
   const app = handlerSetup({ backupCapabilities: { available: true, availabilityCode: 'READY', telegramAvailable: true } });
   app.env.VERIFICATION_AUTH_ACTIVATION = 'enabled';
+  const authorityFetch = app.authority.fetch.bind(app.authority);
+  app.authority.fetch = request => new URL(request.url).pathname === '/internal/firebase/account-verification/begin'
+    ? jsonResponse({ error: { code: AUTH_ERROR_CODES.VERIFICATION_UNAVAILABLE } }, 503)
+    : authorityFetch(request);
   const email = 'selector-outage@example.com';
   const response = await app.handler(apiRequest(`${AUTH_API_PREFIX}/signup`, {
     method: 'POST',

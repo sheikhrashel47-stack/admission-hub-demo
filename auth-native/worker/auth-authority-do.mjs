@@ -120,6 +120,18 @@ export class AdmissionAuthAuthority {
         await this.#scheduleExpiry();
         return response(200, { ok: true, result });
       }
+      if (url.pathname === '/internal/profile/save-pending') {
+        const result = await this.engine.savePendingProfile(body.verificationTicket, body.input, body.context);
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/profile/save') {
+        const result = await this.engine.saveProfile(body.input, body.context);
+        return response(200, { ok: true, result });
+      }
+      if (url.pathname === '/internal/profile/get') {
+        const result = await this.engine.getProfile(body.input, body.context);
+        return response(200, { ok: true, result });
+      }
       if (url.pathname === '/internal/passkey/registration/begin') {
         const result = await this.engine.beginPasskeyRegistration(body.input, body.context);
         await this.#scheduleExpiry();

@@ -2,6 +2,19 @@
   'use strict';
 
   const API = '/api/auth/v1';
+  const ENTRY_COOKIE = 'ah_entry_v1';
+  const ENTRY_MAX_AGE = 365 * 24 * 60 * 60;
+  const entryMode = () => {
+    const row = String(document.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith(`${ENTRY_COOKIE}=`));
+    const value = row ? decodeURIComponent(row.slice(row.indexOf('=') + 1)) : '';
+    return ['guest', 'account'].includes(value) ? value : '';
+  };
+  const rememberEntry = mode => {
+    if (!['guest', 'account'].includes(mode)) return;
+    const secure = location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${ENTRY_COOKIE}=${mode}; Path=/; Max-Age=${ENTRY_MAX_AGE}; SameSite=Lax${secure}`;
+  };
+
   const state = {
     session: null,
     verification: null,
@@ -14,6 +27,21 @@
     available: null,
     resendTimer: null,
     resendCooldownSeconds: 60,
+    signupStep: 'personal',
+    signupJourney: false,
+    pendingProfile: null,
+    profileBound: false,
+    profileSynced: false,
+    profileSyncPromise: null,
+    profilePendingAttempted: false,
+    currentView: 'login',
+    emailStatusBusy: false,
+    successTimer: null,
+    guideBusy: false,
+    guideHistory: [],
+    guideGuestId: '',
+    institutionIndex: null,
+    institutionSelection: { school: null, college: null },
     capabilities: {
       google: { available: false, clientId: '' },
       passkey: { available: false, enrollmentAvailable: false },
@@ -37,194 +65,155 @@
   overlay.className = 'ah-account-overlay';
   overlay.hidden = true;
   overlay.innerHTML = `
-    <section class="ah-account-modal" role="dialog" aria-modal="true" aria-labelledby="ah-account-title">
-      <button class="ah-account-close" type="button" aria-label="বন্ধ করুন">×</button>
+    <section class="ah-account-modal" role="dialog" aria-modal="true" aria-labelledby="ah-account-title" data-current-view="login">
+      <button class="ah-account-close" type="button" data-role="close" aria-label="বন্ধ করুন">×</button>
       <header class="ah-account-head">
-        <p class="ah-account-kicker">নিরাপদ অ্যাকাউন্ট</p>
-        <h2 class="ah-account-title" id="ah-account-title">Admission Hub অ্যাকাউন্ট</h2>
-        <p class="ah-account-subtitle" data-role="account-subtitle">Google দিয়ে দ্রুত প্রবেশ করুন। চাইলে ইমেইল ও পাসওয়ার্ডও ব্যবহার করতে পারবেন।</p>
+        <p class="ah-account-kicker">Admission Hub</p>
+        <h2 class="ah-account-title" id="ah-account-title">তোমার Admission Journey</h2>
+        <p class="ah-account-subtitle" data-role="account-subtitle">নিরাপদ ও সহজে account-এ প্রবেশ করো।</p>
       </header>
       <div class="ah-account-body">
         <div class="ah-account-message" data-role="message" hidden aria-live="polite"></div>
 
-        <form class="ah-account-view" data-view="login" novalidate>
+        <div class="ah-account-view ah-welcome-view" data-view="welcome" hidden>
+          <div class="ah-brand-lockup"><span class="ah-brand-shield" aria-hidden="true">A</span><strong>Admission Hub</strong></div>
+          <div class="ah-academic-hero" data-role="academic-hero" aria-hidden="true">
+            <svg viewBox="0 0 360 250" role="img">
+              <defs>
+                <linearGradient id="ahHub" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#28c796"/><stop offset="1" stop-color="#08775a"/></linearGradient>
+                <radialGradient id="ahAura"><stop stop-color="#8bf2d0" stop-opacity=".55"/><stop offset="1" stop-color="#dff9f0" stop-opacity="0"/></radialGradient>
+                <filter id="ahGlow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <circle cx="180" cy="126" r="104" fill="url(#ahAura)"/>
+              <g class="ah-orbit-lines" fill="none" stroke="#58bda0" stroke-width="1.5" stroke-dasharray="4 7" opacity=".6"><ellipse cx="180" cy="126" rx="128" ry="72"/><ellipse cx="180" cy="126" rx="78" ry="112" transform="rotate(38 180 126)"/></g>
+              <g class="ah-hub-core" filter="url(#ahGlow)"><circle cx="180" cy="126" r="49" fill="url(#ahHub)"/><path d="m148 113 32-14 32 14-32 14-32-14Zm10 8v18c14 10 30 10 44 0v-18" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M211 115v21" stroke="#fff" stroke-width="4" stroke-linecap="round"/></g>
+              <g class="ah-node ah-node-book" transform="translate(40 73)"><rect width="53" height="47" rx="15" fill="#fff"/><path d="M13 14c8-3 13-1 14 2v19c-4-4-9-5-14-3V14Zm28 0c-8-3-13-1-14 2v19c4-4 9-5 14-3V14Z" fill="none" stroke="#16936f" stroke-width="2.5"/></g>
+              <g class="ah-node ah-node-target" transform="translate(267 50)"><rect width="53" height="53" rx="17" fill="#fff"/><circle cx="26.5" cy="27" r="13" fill="none" stroke="#16936f" stroke-width="3"/><circle cx="26.5" cy="27" r="5" fill="#2bc99a"/></g>
+              <g class="ah-node ah-node-check" transform="translate(269 161)"><rect width="51" height="51" rx="17" fill="#fff"/><path d="m15 27 8 8 15-19" fill="none" stroke="#16936f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
+              <g class="ah-node ah-node-question" transform="translate(38 165)"><rect width="51" height="51" rx="17" fill="#fff"/><path d="M19 19c1-8 15-8 16 0 1 7-9 7-9 13m0 7h.1" fill="none" stroke="#16936f" stroke-width="3.5" stroke-linecap="round"/></g>
+              <g fill="#2bc99a" class="ah-sparkles"><path d="M95 34l3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Z"/><path d="M260 218l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5Z"/></g>
+            </svg>
+          </div>
+          <div class="ah-welcome-copy">
+            <p class="ah-welcome-eyebrow">YOUR ADMISSION JOURNEY</p>
+            <h3>তোমার স্বপ্নের বিশ্ববিদ্যালয়ের পথে,<br>প্রথম ধাপটা আজ থেকেই।</h3>
+            <p>পড়াশোনা, practice আর preparation—সবকিছু এক জায়গায়।</p>
+          </div>
+          <div class="ah-entry-actions" aria-label="প্রবেশের পদ্ধতি">
+            <button class="ah-account-primary ah-entry-signup" type="button" data-role="welcome-signup"><span aria-hidden="true">✨</span> Sign Up</button>
+            <button class="ah-account-secondary" type="button" data-role="welcome-login">Log In</button>
+            <div class="ah-account-google ah-welcome-google" data-role="welcome-google-button"><button class="ah-account-secondary" type="button" disabled aria-label="Google দিয়ে প্রবেশ এখন প্রস্তুত হচ্ছে">Continue with Google</button></div>
+            <button class="ah-account-link ah-entry-guest" type="button" data-role="continue-guest">Continue as Guest</button>
+          </div>
+          <p class="ah-assistant-hint">Signup করতে সাহায্য লাগলে নিচের Assistant আছে ✨</p>
+        </div>
+
+        <form class="ah-account-view ah-login-view" data-view="login" novalidate>
+          <div class="ah-view-intro"><span class="ah-mini-orb" aria-hidden="true">↗</span><div><h3>আবার দেখা হলো 👋</h3><p>তোমার account-এ নিরাপদে প্রবেশ করো।</p></div></div>
           <div class="ah-account-preferred" data-role="preferred-methods" hidden>
-            <p class="ah-account-preferred-label">দ্রুত ও নিরাপদ প্রবেশ</p>
+            <p class="ah-account-preferred-label">দ্রুত প্রবেশ</p>
             <div class="ah-account-google" data-role="google-button" hidden></div>
-            <button class="ah-account-method ah-account-passkey" type="button" data-role="passkey-login" hidden>
-              <span aria-hidden="true">◉</span><span>Passkey দিয়ে প্রবেশ</span>
-            </button>
+            <button class="ah-account-method ah-account-passkey" type="button" data-role="passkey-login" hidden><span aria-hidden="true">◉</span><span>Use Passkey</span></button>
             <p class="ah-account-method-help" data-role="method-help" hidden></p>
-            <div class="ah-account-divider"><span>অথবা ইমেইল দিয়ে</span></div>
+            <div class="ah-account-divider"><span>অথবা email দিয়ে</span></div>
           </div>
-          <div class="ah-account-field">
-            <label class="ah-account-label" for="ah-login-email">ইমেইল</label>
-            <input class="ah-account-input" id="ah-login-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="name@example.com" required>
-          </div>
-          <div class="ah-account-field">
-            <label class="ah-account-label" for="ah-login-password">পাসওয়ার্ড</label>
-            <input class="ah-account-input" id="ah-login-password" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" placeholder="আপনার পাসওয়ার্ড" required>
-          </div>
-          <button class="ah-account-primary" type="submit">লগইন করুন</button>
-          <p class="ah-account-switch">নতুন ব্যবহারকারী? <button class="ah-account-link" type="button" data-role="show-signup">অ্যাকাউন্ট তৈরি করুন</button></p>
-          <p class="ah-account-note">সব পদ্ধতিতেই একই Firebase অ্যাকাউন্ট খোলে। Passkey কখনো বাধ্যতামূলক নয় এবং credential browser-readable storage-এ রাখা হয় না।</p>
+          <div class="ah-account-field"><label class="ah-account-label" for="ah-login-email">Email address</label><input class="ah-account-input" id="ah-login-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="you@email.com" required></div>
+          <div class="ah-account-field"><label class="ah-account-label" for="ah-login-password">Password</label><div class="ah-password-wrap"><input class="ah-account-input" id="ah-login-password" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" placeholder="Password" required><button class="ah-password-toggle" type="button" data-password-target="ah-login-password" aria-label="Password দেখুন">দেখুন</button></div></div>
+          <button class="ah-account-link ah-forgot-link" type="button" data-role="show-forgot">Password মনে নেই?</button>
+          <button class="ah-account-primary" type="submit">Log In</button>
+          <p class="ah-account-switch">নতুন student? <button class="ah-account-link" type="button" data-role="show-signup">Sign Up</button></p>
+          <p class="ah-account-note">তোমার Password এই পেজে জমা রাখা হয় না।</p>
         </form>
 
-        <form class="ah-account-view" data-view="signup" hidden novalidate>
-          <div class="ah-account-field">
-            <label class="ah-account-label" for="ah-signup-email">ইমেইল</label>
-            <input class="ah-account-input" id="ah-signup-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="name@example.com" required>
-          </div>
-          <div class="ah-account-field">
-            <label class="ah-account-label" for="ah-signup-password">পাসওয়ার্ড</label>
-            <input class="ah-account-input" id="ah-signup-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="কমপক্ষে ৮ অক্ষর" required>
-          </div>
-          <div class="ah-account-field">
-            <label class="ah-account-label" for="ah-signup-confirm">পাসওয়ার্ড আবার লিখুন</label>
-            <input class="ah-account-input" id="ah-signup-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="একই পাসওয়ার্ড" required>
-          </div>
-          <button class="ah-account-primary" type="submit">সাইনআপ করুন</button>
-          <p class="ah-account-switch">আগে থেকেই অ্যাকাউন্ট আছে? <button class="ah-account-link" type="button" data-role="show-login">লগইন করুন</button></p>
-          <p class="ah-account-note" data-role="signup-verification-note">সাইনআপের পর Firebase ইমেইল যাচাইয়ের একটি নিরাপদ লিংক পাঠাবে। লিংকে ক্লিক করলেই যাচাই সম্পন্ন হবে।</p>
+        <form class="ah-account-view ah-forgot-view" data-view="forgot" hidden novalidate>
+          <div class="ah-view-intro"><span class="ah-mini-orb" aria-hidden="true">↺</span><div><h3>Password নতুন করে সেট করো</h3><p>Account-এর email লিখলে reset link পাঠানোর চেষ্টা করা হবে।</p></div></div>
+          <div class="ah-account-field"><label class="ah-account-label" for="ah-forgot-email">Email address</label><input class="ah-account-input" id="ah-forgot-email" type="email" autocomplete="email" maxlength="254" placeholder="you@email.com" required></div>
+          <button class="ah-account-primary" type="submit">Reset link পাঠান</button>
+          <button class="ah-account-secondary" type="button" data-role="forgot-back">Login-এ ফিরুন</button>
         </form>
 
-        <div class="ah-account-view" data-view="verify" hidden>
+        <form class="ah-account-view ah-signup-view" data-view="signup" hidden novalidate>
+          <div class="ah-signup-heading"><p>CREATE YOUR PROFILE</p><h3>তোমার Admission Hub profile তৈরি করো</h3><span>Preparation-কে personal করতে কয়েকটি ছোট ধাপ।</span></div>
+          <div class="ah-signup-progress" role="list" aria-label="Signup progress">
+            <button type="button" class="active" data-signup-step-button="personal"><i>1</i><span>Personal</span></button><b></b>
+            <button type="button" data-signup-step-button="education"><i>2</i><span>Education</span></button><b></b>
+            <button type="button" data-signup-step-button="security"><i>3</i><span>Security</span></button>
+          </div>
+          <section class="ah-signup-panel" data-signup-panel="personal">
+            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-name">তোমাকে কী নামে ডাকব?</label><input class="ah-account-input" id="ah-signup-name" name="fullName" autocomplete="name" maxlength="80" placeholder="তোমার পূর্ণ নাম" required><p class="ah-field-feedback" data-role="name-feedback"></p></div>
+            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-email">তোমার Email</label><input class="ah-account-input" id="ah-signup-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="you@email.com" required></div>
+            <fieldset class="ah-dob-card"><legend>তোমার জন্মদিন কবে?</legend><div class="ah-dob-selectors"><label><span>Day</span><select id="ah-dob-day" aria-label="জন্মদিন" required></select></label><label><span>Month</span><select id="ah-dob-month" aria-label="জন্মমাস" required></select></label><label><span>Year</span><select id="ah-dob-year" aria-label="জন্মবছর" required></select></label></div><p data-role="dob-preview">12 January 2007</p></fieldset>
+            <div class="ah-panel-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-entry">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-education">Next →</button></div>
+          </section>
+          <section class="ah-signup-panel" data-signup-panel="education" hidden>
+            <div class="ah-account-field ah-search-field"><label class="ah-account-label" for="ah-signup-school">তোমার School কোনটি?</label><input class="ah-account-input" id="ah-signup-school" autocomplete="off" maxlength="120" placeholder="School-এর নাম লিখো" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ah-school-results" required><div class="ah-search-results" id="ah-school-results" role="listbox" hidden></div><p class="ah-field-feedback">না পেলে পুরো নাম লিখে “নিজের লেখা ব্যবহার করুন” বেছে নাও।</p></div>
+            <div class="ah-account-field ah-search-field"><label class="ah-account-label" for="ah-signup-college">তোমার College / University?</label><input class="ah-account-input" id="ah-signup-college" autocomplete="off" maxlength="120" placeholder="College বা University-এর নাম" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ah-college-results"><div class="ah-search-results" id="ah-college-results" role="listbox" hidden></div></div>
+            <div class="ah-panel-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-personal">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-security">Next →</button></div>
+          </section>
+          <section class="ah-signup-panel" data-signup-panel="security" hidden>
+            <div class="ah-security-illustration" aria-hidden="true"><span>●</span><i></i><b>✓</b></div>
+            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-password">তৈরি করো তোমার Password</label><div class="ah-password-wrap"><input class="ah-account-input" id="ah-signup-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="কমপক্ষে ৮ অক্ষর" required><button class="ah-password-toggle" type="button" data-password-target="ah-signup-password" aria-label="Password দেখুন">দেখুন</button></div><div class="ah-password-meter"><i data-role="password-meter"></i></div><p class="ah-field-feedback" data-role="password-strength">Password strength</p></div>
+            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-confirm">Confirm Password</label><div class="ah-password-wrap"><input class="ah-account-input" id="ah-signup-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="একই password আবার লিখো" required><button class="ah-password-toggle" type="button" data-password-target="ah-signup-confirm" aria-label="Password দেখুন">দেখুন</button></div><p class="ah-field-feedback" data-role="password-match"></p></div>
+            <div class="ah-panel-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-education">← Back</button><button class="ah-account-primary" type="submit">আমার Account তৈরি করুন →</button></div>
+          </section>
+          <p class="ah-account-switch">আগে থেকেই account আছে? <button class="ah-account-link" type="button" data-role="show-login">Log In</button></p>
+          <p class="ah-account-note" data-role="signup-verification-note">Account তৈরির পরে Email অথবা Telegram—একটি বাস্তব verification method বেছে নেবে। তার আগে কিছু পাঠানো হবে না।</p>
+        </form>
+
+        <div class="ah-account-view ah-verification-view" data-view="verify" hidden>
           <div class="ah-account-verify-badge" aria-hidden="true" data-role="verification-badge">✓</div>
-          <h3 class="ah-account-view-title" data-role="verification-title">যাচাই পদ্ধতি বেছে নিন</h3>
-
+          <p class="ah-view-kicker">ACCOUNT CREATED</p>
+          <h3 class="ah-account-view-title" data-role="verification-title">একটি ছোট verification বাকি</h3>
           <div data-role="verification-selection">
-            <p class="ah-account-mask">অ্যাকাউন্ট তৈরি হয়েছে। নিচের যেকোনো একটি নিরাপদ পদ্ধতি বেছে নিন—পছন্দ করার আগে কোনো verification email বা Telegram code পাঠানো হবে না।</p>
-            <button class="ah-account-primary" type="button" data-role="email-verification-start">
-              Gmail/ইমেইল যাচাই
-            </button>
-            <button class="ah-account-telegram" type="button" data-role="telegram-verification-start">
-              <span class="ah-account-telegram-icon" aria-hidden="true">➤</span>
-              <span><strong>Telegram যাচাই</strong><small>Official bot-এ START → ৬ সংখ্যার code</small></span>
-            </button>
-            <p class="ah-account-note">Telegram শুধু Telegram account-এর নিয়ন্ত্রণ প্রমাণ করে; Gmail/ইমেইল মালিকানা নয়।</p>
+            <p class="ah-account-mask">Account নিরাপদ রাখতে নিচের বাস্তব method-এর একটি বেছে নাও। পছন্দ করার আগে কোনো message পাঠানো হবে না।</p>
+            <div class="ah-method-stack">
+              <button class="ah-method-card recommended" type="button" data-role="email-verification-start"><span class="ah-method-icon email" aria-hidden="true">✉</span><span><strong>Email Verification</strong><small>নিরাপদ link দিয়ে verify</small></span><em>Recommended</em><b>›</b></button>
+              <button class="ah-method-card telegram" type="button" data-role="telegram-verification-start"><span class="ah-method-icon" aria-hidden="true">➤</span><span><strong>Telegram</strong><small>Official bot-এর ৬ সংখ্যার code</small></span><b>›</b></button>
+            </div>
+            <p class="ah-account-note">Telegram শুধু Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করে; Email মালিকানা নয়। Passkey verification-এর পরে optional security হিসেবে আসবে।</p>
           </div>
-
           <div data-role="verification-email-panel" hidden>
-            <p class="ah-account-mask" data-role="verification-email-copy">Firebase থেকে ইমেইল যাচাইয়ের লিংক পাঠানো হয়েছে <strong data-role="mask">আপনার ইমেইলে</strong>। Inbox-এর সঙ্গে Spam/Promotions-ও দেখুন এবং লিংকে ক্লিক করুন।</p>
-            <button class="ah-account-primary" type="button" data-role="verified-login">যাচাই করেছি—এখন লগইন</button>
-            <button class="ah-account-telegram" type="button" data-role="telegram-alternative" hidden>
-              <span class="ah-account-telegram-icon" aria-hidden="true">➤</span>
-              <span><strong>Telegram দিয়ে যাচাই করুন</strong><small>ইমেইলের ঐচ্ছিক বিকল্প</small></span>
-            </button>
-            <details class="ah-account-resend">
-              <summary>ইমেইলটি আবার পাঠাবেন?</summary>
-              <form data-role="resend-form" novalidate>
-                <div class="ah-account-field">
-                  <label class="ah-account-label" for="ah-resend-email">ইমেইল</label>
-                  <input class="ah-account-input" id="ah-resend-email" type="email" autocomplete="email" maxlength="254" required>
-                </div>
-                <div class="ah-account-field">
-                  <label class="ah-account-label" for="ah-resend-password">পাসওয়ার্ড</label>
-                  <input class="ah-account-input" id="ah-resend-password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required>
-                </div>
-                <p class="ah-account-resend-status" data-role="resend-status" aria-live="polite"></p>
-                <button class="ah-account-secondary" type="submit" data-role="resend-submit">যাচাইয়ের ইমেইল আবার পাঠান</button>
-              </form>
-            </details>
+            <div class="ah-email-hero" aria-hidden="true"><span>✉</span><i>✓</i></div>
+            <h3 class="ah-account-view-title">তোমার Email-এ একটি ছোট্ট কাজ আছে ✉️</h3>
+            <p class="ah-account-mask" data-role="verification-email-copy">Verification link পাঠানো হয়েছে <strong data-role="mask">তোমার email-এ</strong>। Inbox-এর সঙ্গে Spam/Promotions-ও দেখো।</p>
+            <div class="ah-status-card"><span>✓</span><div><strong data-role="email-status-address">Email selected</strong><small>Verification message sent</small></div></div>
+            <button class="ah-account-primary" type="button" data-role="open-email">Open Email</button>
+            <button class="ah-account-secondary" type="button" data-role="verified-login">✓ আমি Verify করেছি — Check করুন</button>
+            <button class="ah-account-telegram" type="button" data-role="telegram-alternative" hidden><span class="ah-account-telegram-icon" aria-hidden="true">➤</span><span><strong>Telegram দিয়ে যাচাই</strong><small>অন্য যাচাই পদ্ধতি</small></span></button>
+            <details class="ah-account-resend"><summary>Email পাইনি?</summary><form data-role="resend-form" novalidate><div class="ah-account-field"><label class="ah-account-label" for="ah-resend-email">Email</label><input class="ah-account-input" id="ah-resend-email" type="email" autocomplete="email" maxlength="254" required></div><div class="ah-account-field"><label class="ah-account-label" for="ah-resend-password">Password</label><input class="ah-account-input" id="ah-resend-password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></div><p class="ah-account-resend-status" data-role="resend-status" aria-live="polite"></p><button class="ah-account-secondary" type="submit" data-role="resend-submit">Verification আবার পাঠান</button></form></details>
           </div>
-          <p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="verify-back">অন্য ইমেইলে সাইনআপ</button></p>
+          <p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="verify-back">Log In-এ ফিরুন</button></p>
         </div>
 
         <form class="ah-account-view ah-account-telegram-view" data-view="telegram" data-state="connecting" hidden novalidate>
-          <div class="ah-account-telegram-mark" aria-hidden="true">➤</div>
-          <h3 class="ah-account-view-title">Telegram দিয়ে যাচাই করুন</h3>
-          <p class="ah-account-mask">Official bot খুলে <strong>START</strong> চাপুন। Bot যে ৬ সংখ্যার কোড পাঠাবে, সেটি নিচে লিখুন।</p>
-          <ol class="ah-account-telegram-steps" aria-label="Telegram যাচাইয়ের ধাপ">
-            <li><span>১</span> Official Telegram bot খুলুন</li>
-            <li><span>২</span> START চাপুন ও কোড নিন</li>
-            <li><span>৩</span> Admission Hub-এ কোড লিখুন</li>
-          </ol>
-          <a class="ah-account-primary ah-account-external ah-account-telegram-open" data-role="telegram-link" target="_blank" rel="noopener noreferrer">Official Telegram Bot খুলুন</a>
-          <div class="ah-account-telegram-status" data-role="telegram-status" aria-live="polite">START চাপার অপেক্ষায়…</div>
-          <div class="ah-account-field">
-            <label class="ah-account-label" for="ah-telegram-code">Telegram-এর ৬ সংখ্যার কোড</label>
-            <input class="ah-account-input ah-account-otp" id="ah-telegram-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required>
-          </div>
-          <button class="ah-account-primary" type="submit" data-role="telegram-verify">কোড যাচাই করুন</button>
-          <button class="ah-account-secondary" type="button" data-role="telegram-resend">নতুন কোড নিন</button>
-          <p class="ah-account-note">শুধু Telegram খোলা সফল যাচাই নয়—START-এর পর পাওয়া কোড backend-এ মিলতে হবে। Telegram শুধু আপনার Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করে; এটি Gmail/ইমেইল মালিকানার প্রমাণ নয়। Bot কখনো password, API key বা secret চাইবে না।</p>
-          <p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="telegram-email-back">ইমেইল দিয়ে যাচাই করুন</button></p>
+          <div class="ah-telegram-hero" aria-hidden="true"><span>➤</span><i></i></div><p class="ah-view-kicker">SECURE VERIFICATION</p><h3 class="ah-account-view-title">Telegram দিয়ে verify করো</h3><p class="ah-account-mask">Official bot খুলে <strong>START</strong> চাপো। Bot যে ৬ সংখ্যার code পাঠাবে, সেটি শুধু নিচের secure box-এ লিখবে।</p>
+          <ol class="ah-account-telegram-steps" aria-label="Telegram verification steps"><li><span>১</span> Official Telegram bot খোলো</li><li><span>২</span> START চাপো ও code নাও</li><li><span>৩</span> Admission Hub-এ code লিখো</li></ol>
+          <a class="ah-account-primary ah-account-external ah-account-telegram-open" data-role="telegram-link" target="_blank" rel="noopener noreferrer">Continue with Telegram →</a><div class="ah-account-telegram-status" data-role="telegram-status" aria-live="polite">START চাপার অপেক্ষায়…</div>
+          <div class="ah-account-field"><label class="ah-account-label" for="ah-telegram-code">Telegram-এর ৬ সংখ্যার code</label><input class="ah-account-input ah-account-otp" id="ah-telegram-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required></div>
+          <button class="ah-account-primary" type="submit" data-role="telegram-verify">Verify →</button><button class="ah-account-secondary" type="button" data-role="telegram-resend">নতুন code নিন</button><p class="ah-account-note">Telegram verification শুধু Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করে—Email মালিকানা নয়। Code বা Password কখনো Assistant/chat-এ লিখবে না; শুধু secure form ব্যবহার করবে। START বা animation একা success নয়—নিশ্চিত ফল Admission Hub দেখাবে।</p><p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="telegram-email-back">অন্য method বেছে নিন</button></p>
         </form>
 
-        <form class="ah-account-view" data-view="google-link" hidden novalidate>
-          <div class="ah-account-verify-badge" aria-hidden="true">G</div>
-          <h3 class="ah-account-view-title">আগের অ্যাকাউন্টে Google যুক্ত করুন</h3>
-          <p class="ah-account-mask">একই ইমেইলে আগের অ্যাকাউন্ট আছে। একবার সেই ইমেইল ও পাসওয়ার্ড দিন; Google নতুন অ্যাকাউন্ট না বানিয়ে নিরাপদে আগের Firebase অ্যাকাউন্টেই যুক্ত হবে।</p>
-          <div class="ah-account-field">
-            <label class="ah-account-label" for="ah-link-email">ইমেইল</label>
-            <input class="ah-account-input" id="ah-link-email" type="email" autocomplete="email" maxlength="254" required>
-          </div>
-          <div class="ah-account-field">
-            <label class="ah-account-label" for="ah-link-password">পাসওয়ার্ড</label>
-            <input class="ah-account-input" id="ah-link-password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required>
-          </div>
-          <button class="ah-account-primary" type="submit">Google যুক্ত করে প্রবেশ করুন</button>
-          <p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="link-cancel">ইমেইল লগইনে ফিরুন</button></p>
-        </form>
+        <form class="ah-account-view" data-view="google-link" hidden novalidate><div class="ah-account-verify-badge" aria-hidden="true">G</div><h3 class="ah-account-view-title">আগের account-এ Google যুক্ত করো</h3><p class="ah-account-mask">একই Email-এ account আছে। একবার আগের Email ও Password দিলে Google নতুন account না বানিয়ে সেটিতেই যুক্ত হবে।</p><div class="ah-account-field"><label class="ah-account-label" for="ah-link-email">Email</label><input class="ah-account-input" id="ah-link-email" type="email" autocomplete="email" maxlength="254" required></div><div class="ah-account-field"><label class="ah-account-label" for="ah-link-password">Password</label><input class="ah-account-input" id="ah-link-password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></div><button class="ah-account-primary" type="submit">Google যুক্ত করে প্রবেশ করুন</button><p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="link-cancel">Login-এ ফিরুন</button></p></form>
 
-        <form class="ah-account-view" data-view="backup-prepare" hidden novalidate>
-          <div class="ah-account-verify-badge" aria-hidden="true">✓</div>
-          <h3 class="ah-account-view-title">বিকল্পভাবে যাচাই করুন</h3>
-          <p class="ah-account-mask">আপনার জন্য পাওয়া নিরাপদ উপায়ে যাচাই হবে।</p>
-          <div class="ah-account-field" data-role="backup-contact-field">
-            <label class="ah-account-label" for="ah-backup-contact">মোবাইল নম্বর <span data-role="backup-contact-mode">(ঐচ্ছিক)</span></label>
-            <input class="ah-account-input" id="ah-backup-contact" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" placeholder="+8801XXXXXXXXX">
-          </div>
-          <button class="ah-account-primary" type="submit">যাচাই শুরু করুন</button>
-          <p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="backup-prepare-cancel">ফিরে যান</button></p>
-        </form>
+        <form class="ah-account-view" data-view="backup-prepare" hidden novalidate><div class="ah-account-verify-badge" aria-hidden="true">✓</div><h3 class="ah-account-view-title">বিকল্প verification</h3><p class="ah-account-mask">তোমার জন্য available নিরাপদ method ব্যবহার হবে।</p><div class="ah-account-field" data-role="backup-contact-field"><label class="ah-account-label" for="ah-backup-contact">Mobile number <span data-role="backup-contact-mode">(optional)</span></label><input class="ah-account-input" id="ah-backup-contact" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" placeholder="+8801XXXXXXXXX"></div><button class="ah-account-primary" type="submit">Verification শুরু করুন</button><p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="backup-prepare-cancel">ফিরে যান</button></p></form>
+        <form class="ah-account-view" data-view="backup" hidden novalidate><div class="ah-account-verify-badge" aria-hidden="true">✓</div><h3 class="ah-account-view-title">বিকল্প verification</h3><p class="ah-account-mask" data-role="backup-instruction">নিরাপদ code লিখুন।</p><div class="ah-account-interaction" data-role="backup-interaction" hidden><a class="ah-account-primary ah-account-external" data-role="backup-link" target="_blank" rel="noopener noreferrer">Telegram খুলুন</a><p>START চাপুন এবং পাওয়া ৬ সংখ্যার code নিচে লিখুন। Telegram খোলা সফল যাচাই নয়; এটি Email মালিকানার প্রমাণও নয়।</p></div><div class="ah-account-field" data-role="backup-code-field"><label class="ah-account-label" for="ah-backup-code">৬ সংখ্যার code</label><input class="ah-account-input ah-account-otp" id="ah-backup-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></div><button class="ah-account-primary" type="submit" data-role="backup-verify">Verify</button><p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="backup-cancel">ফিরে যান</button></p></form>
 
-        <form class="ah-account-view" data-view="backup" hidden novalidate>
-          <div class="ah-account-verify-badge" aria-hidden="true">✓</div>
-          <h3 class="ah-account-view-title">বিকল্পভাবে যাচাই করুন</h3>
-          <p class="ah-account-mask" data-role="backup-instruction">নিরাপদ যাচাই কোডটি লিখুন।</p>
-          <div class="ah-account-interaction" data-role="backup-interaction" hidden>
-            <a class="ah-account-primary ah-account-external" data-role="backup-link" target="_blank" rel="noopener noreferrer">Telegram bot খুলুন</a>
-            <p>শুধু Telegram খোলা সফল যাচাই নয়। Bot-এ START চাপুন এবং Bot যে ৬ সংখ্যার কোড পাঠাবে, সেটিই নিচে লিখুন। Telegram পরিচয় Gmail/ইমেইল মালিকানার প্রমাণ নয়।</p>
-          </div>
-          <div class="ah-account-field" data-role="backup-code-field">
-            <label class="ah-account-label" for="ah-backup-code">৬ সংখ্যার কোড</label>
-            <input class="ah-account-input ah-account-otp" id="ah-backup-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
-          </div>
-          <button class="ah-account-primary" type="submit" data-role="backup-verify">যাচাই করুন</button>
-          <p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="backup-cancel">ফিরে যান</button></p>
-        </form>
+        <div class="ah-account-view ah-passkey-onboarding" data-view="security-setup" hidden><div class="ah-passkey-hero" aria-hidden="true"><div><i></i><span>◉</span></div><b>✓</b></div><p class="ah-view-kicker">OPTIONAL SECURITY</p><h3 class="ah-account-view-title">এক ট্যাপেই নিরাপদে ঢুকবে 🔐</h3><p class="ah-account-mask">তোমার ফোনের Face ID, fingerprint বা device lock দিয়ে দ্রুত ও নিরাপদে account সুরক্ষিত করো। ফোনের নিজের অনুমতি screen-এ শেষ সিদ্ধান্ত তোমার।</p><button class="ah-account-primary" type="button" data-role="setup-passkey">Passkey যোগ করুন →</button><button class="ah-account-secondary" type="button" data-role="setup-skip">এখন নয় — Skip</button><p class="ah-account-note">Passkey সম্পূর্ণ optional। Skip করলে Email, Password, Google বা Telegram বন্ধ হবে না।</p></div>
 
-        <div class="ah-account-view" data-view="security-setup" hidden>
-          <div class="ah-account-secure">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6V10Zm6 4v2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <div><h3>অ্যাকাউন্ট যাচাই সম্পন্ন</h3><p>চাইলে এখন একটি Passkey যোগ করে পরেরবার দ্রুত ও নিরাপদে প্রবেশ করতে পারেন।</p></div>
-          </div>
-          <button class="ah-account-primary" type="button" data-role="setup-passkey">Passkey যোগ করুন</button>
-          <button class="ah-account-secondary" type="button" data-role="setup-skip">এখন নয় — Skip</button>
-          <p class="ah-account-note">Passkey সম্পূর্ণ ঐচ্ছিক। Skip করলে Email/Password, Google বা Telegram verification বন্ধ হবে না।</p>
-        </div>
+        <div class="ah-account-view ah-success-view" data-view="success" hidden><div class="ah-success-check" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="46"/><path d="m38 61 14 14 31-34"/></svg></div><p class="ah-view-kicker">ALL SET</p><h3 class="ah-account-view-title">সব ঠিক আছে! 🎉</h3><p class="ah-account-mask">তোমার account এখন প্রস্তুত।</p><div class="ah-ready-list"><span data-role="ready-profile">… Profile details দেখা হচ্ছে</span><span>✓ Verification Complete</span><span>✓ Admission Hub Ready</span></div><button class="ah-account-primary" type="button" data-role="enter-app">Admission Hub-এ প্রবেশ করো →</button></div>
 
-        <div class="ah-account-view" data-view="signed" hidden>
-          <div class="ah-account-secure">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6V10Zm6 4v2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <div><h3>যাচাইকৃত অ্যাকাউন্ট সক্রিয়</h3><p data-role="account-verification-summary">Firebase নিশ্চিত করেছে যে আপনার একই অ্যাকাউন্টটি নিরাপদে সক্রিয় আছে।</p></div>
-          </div>
-          <div class="ah-account-identity">
-            <p class="ah-account-identity-label" data-role="identity-label">Firebase অ্যাকাউন্ট</p>
-            <p class="ah-account-identity-value" data-role="identity">—</p>
-          </div>
-          <section class="ah-account-security-tools" data-role="passkey-tools" hidden>
-            <div class="ah-account-tool-head"><div><h3>Passkey</h3><p data-role="passkey-status">এই ডিভাইসে দ্রুত প্রবেশ চালু করতে পারেন।</p></div><span aria-hidden="true">◉</span></div>
-            <div data-role="passkey-list"></div>
-            <button class="ah-account-secondary" type="button" data-role="passkey-add">নতুন Passkey যোগ করুন</button>
-          </section>
-          <button class="ah-account-secondary" type="button" data-role="backup-start" hidden>বিকল্পভাবে যাচাই করুন</button>
-          <button class="ah-account-secondary" type="button" data-role="logout">লগ আউট</button>
-          <p class="ah-account-fine">Firebase credential ও নিরাপদ সেশন HttpOnly cookie-তে সুরক্ষিত থাকে; JavaScript সেগুলো পড়তে পারে না।</p>
-        </div>
+        <div class="ah-account-view" data-view="signed" hidden><div class="ah-account-secure"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6V10Zm6 4v2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><div><h3>Account নিরাপদ ও সক্রিয়</h3><p data-role="account-verification-summary">তোমার account সত্যিকারের যাচাইয়ের মাধ্যমে সক্রিয় আছে।</p></div></div><div class="ah-account-identity"><p class="ah-account-identity-label" data-role="identity-label">Admission Hub account</p><p class="ah-account-identity-value" data-role="identity">—</p></div><section class="ah-account-security-tools" data-role="passkey-tools" hidden><div class="ah-account-tool-head"><div><h3>Passkey</h3><p data-role="passkey-status">এই device-এ দ্রুত প্রবেশ চালু করতে পারো।</p></div><span aria-hidden="true">◉</span></div><div data-role="passkey-list"></div><button class="ah-account-secondary" type="button" data-role="passkey-add">নতুন Passkey যোগ করুন</button></section><button class="ah-account-secondary" type="button" data-role="backup-start" hidden>বিকল্প যাচাই</button><button class="ah-account-secondary" type="button" data-role="logout">Log Out</button><p class="ah-account-fine">Password ও প্রবেশের গোপন তথ্য এই পেজে দেখানো বা জমা রাখা হয় না।</p></div>
       </div>
-    </section>`;
+
+      <div class="ah-guide" data-role="guide" hidden>
+        <div class="ah-guide-head"><div><span>✦</span><div><strong>Admission Assistant</strong><small data-role="guide-context">Welcome</small></div></div><button type="button" data-role="guide-close" aria-label="Assistant বন্ধ করুন">×</button></div>
+        <div class="ah-guide-messages" data-role="guide-messages" aria-live="polite"><div class="ah-guide-bubble">চিন্তা করো না—তুমি যে ধাপে আছো, সেই ধাপেই সাহায্য করব। Password বা code কখনো chat-এ দিও না।</div></div>
+        <div class="ah-guide-chips" data-role="guide-chips"></div>
+        <form data-role="guide-form"><label class="sr-only" for="ah-guide-input">Assistant-কে প্রশ্ন করো</label><input id="ah-guide-input" maxlength="300" autocomplete="off" placeholder="কী জানতে চাও?"><button type="submit" aria-label="পাঠান">↑</button></form>
+      </div>
+      <button class="ah-guide-orb" type="button" data-role="guide-open" aria-label="Admission Assistant খুলুন"><span>✦</span><small>Help</small></button>
+    </section>
+  `;
 
   const $ = selector => overlay.querySelector(selector);
   const message = (text = '', kind = 'info') => {
@@ -334,6 +323,7 @@
     const detail = Object.freeze({
       authenticated: accountVerified(state.session),
       accountVerified: accountVerified(state.session),
+      guest: entryMode() === 'guest' && !accountVerified(state.session),
       emailVerified: Boolean(state.session?.emailVerified),
       telegramVerified: Boolean(state.session?.telegramVerified),
       user: state.session?.user || null
@@ -343,7 +333,15 @@
 
   const setBusy = busy => {
     state.busy = Boolean(busy);
-    overlay.querySelectorAll('button,input').forEach(element => { element.disabled = state.busy; });
+    $('.ah-account-modal')?.setAttribute('aria-busy', state.busy ? 'true' : 'false');
+    overlay.querySelectorAll('button,input,select').forEach(element => {
+      if (state.busy) {
+        if (!element.disabled) { element.dataset.ahBusyDisabled = 'true'; element.disabled = true; }
+      } else if (element.dataset.ahBusyDisabled === 'true') {
+        element.disabled = false;
+        delete element.dataset.ahBusyDisabled;
+      }
+    });
     overlay.querySelectorAll('.ah-account-primary').forEach(button => {
       if (!button.dataset.label) button.dataset.label = button.textContent;
       const isActive = button.closest('.ah-account-view:not([hidden])');
@@ -377,37 +375,595 @@
     });
   };
 
+  const reducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const safeStudentText = value => String(value || '')
+    .replace(/\bFirebase\b/gi, 'account system')
+    .replace(/\bbackend\b/gi, 'Admission Hub')
+    .replace(/\bAPI(?:\s+key)?\b/gi, 'নিরাপত্তার তথ্য')
+    .replace(/\bprovider\b/gi, 'service')
+    .replace(/\btoken\b/gi, 'নিরাপত্তার তথ্য')
+    .replace(/\bwebhook\b|\bSMTP\b|\bquota\b|\bdatabase\b/gi, 'service');
+
+  const friendlyError = error => {
+    const known = {
+      CLIENT_UPDATE_REQUIRED: 'Admission Hub-এর নতুন সংস্করণ এসেছে—পেজটি একবার refresh করে আবার চেষ্টা করো।',
+      INVALID_CREDENTIALS: 'Email বা Password সঠিক নয়। আবার দেখে লিখো।',
+      EMAIL_ALREADY_IN_USE: 'এই Email-এ account আছে—Log In করো।',
+      EMAIL_NOT_VERIFIED: 'Account verification এখনো শেষ হয়নি।',
+      WEAK_PASSWORD: 'কমপক্ষে ৮ অক্ষরের একটু শক্তিশালী Password দাও।',
+      RATE_LIMITED: 'অনেকবার চেষ্টা হয়েছে—একটু অপেক্ষা করে আবার চেষ্টা করো।',
+      VERIFICATION_UNAVAILABLE: 'Verification এখন শুরু করা যাচ্ছে না। কিছু পাঠানো হয়নি—একটু পরে আবার চেষ্টা করো।',
+      TELEGRAM_VERIFICATION_UNAVAILABLE: 'Telegram verification এখন পাওয়া যাচ্ছে না—Email ব্যবহার করো।',
+      SESSION_INVALID: 'নিরাপদ প্রবেশের সময় শেষ হয়েছে—আবার Log In করো।',
+      PASSKEY_UNAVAILABLE: 'এই device-এ Passkey এখন পাওয়া যাচ্ছে না—অন্য পথ ব্যবহার করো।',
+      ACCOUNT_CONFLICT: 'এই পরিচয়টি অন্য account-এর সঙ্গে যুক্ত। নিরাপত্তার জন্য প্রবেশ বন্ধ রাখা হয়েছে।'
+    };
+    if (known[error?.code]) return known[error.code];
+    if (error?.status === 0) return 'ইন্টারনেট সংযোগ পাওয়া যাচ্ছে না—সংযোগ ঠিক হলে আবার চেষ্টা করো।';
+    return 'সাময়িক সমস্যা হয়েছে—একটু পরে আবার চেষ্টা করো।';
+  };
+
+  const navigateDashboard = () => {
+    try {
+      if (typeof window.navigate === 'function') window.navigate('dashboard');
+      else {
+        location.hash = 'dashboard';
+        if (window.Router) window.Router.path = 'dashboard';
+        if (typeof window.render === 'function') window.render();
+      }
+    } catch (_) {}
+    document.dispatchEvent(new CustomEvent('admissionhub:entry-complete', {
+      detail: Object.freeze({ mode: entryMode() || 'guest', destination: 'dashboard' })
+    }));
+  };
+
+  const PENDING_SIGNUP_COOKIE = 'ah_signup_pending_v1';
+  const pendingSignupMode = () => {
+    const row = String(document.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith(`${PENDING_SIGNUP_COOKIE}=`));
+    const value = row ? decodeURIComponent(row.slice(row.indexOf('=') + 1)) : '';
+    if (value === '1') return 'select';
+    return ['select', 'email', 'telegram'].includes(value) ? value : '';
+  };
+  const pendingSignup = () => Boolean(pendingSignupMode());
+  const rememberPendingSignup = (active, mode = 'select') => {
+    const secure = location.protocol === 'https:' ? '; Secure' : '';
+    const value = active && ['select', 'email', 'telegram'].includes(mode) ? mode : '';
+    document.cookie = `${PENDING_SIGNUP_COOKIE}=${value}; Path=/; Max-Age=${active ? 3600 : 0}; SameSite=Lax${secure}`;
+  };
+
+  const populateDob = () => {
+    const day = $('#ah-dob-day');
+    const month = $('#ah-dob-month');
+    const year = $('#ah-dob-year');
+    if (!day || day.options.length > 1) return;
+    for (let value = 1; value <= 31; value += 1) day.add(new Option(String(value), String(value)));
+    ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর']
+      .forEach((label, index) => month.add(new Option(label, String(index + 1))));
+    const current = new Date().getFullYear();
+    for (let value = current - 8; value >= current - 60; value -= 1) year.add(new Option(String(value), String(value)));
+  };
+
+  const syncDobDays = () => {
+    const day = $('#ah-dob-day');
+    const month = Number($('#ah-dob-month')?.value || 0);
+    const year = Number($('#ah-dob-year')?.value || 0);
+    if (!day) return;
+    const previous = Number(day.value || 0);
+    const maximum = month && year ? new Date(Date.UTC(year, month, 0)).getUTCDate() : 31;
+    if (day.options.length !== maximum + 1) {
+      day.textContent = '';
+      day.add(new Option('দিন', ''));
+      for (let value = 1; value <= maximum; value += 1) day.add(new Option(String(value), String(value)));
+      day.value = previous > 0 && previous <= maximum ? String(previous) : '';
+    }
+  };
+
+  const selectedDob = () => {
+    const day = Number($('#ah-dob-day')?.value || 0);
+    const month = Number($('#ah-dob-month')?.value || 0);
+    const year = Number($('#ah-dob-year')?.value || 0);
+    if (!day || !month || !year) return '';
+    const value = new Date(Date.UTC(year, month - 1, day));
+    if (value.getUTCFullYear() !== year || value.getUTCMonth() !== month - 1 || value.getUTCDate() !== day || value.getTime() > Date.now()) return '';
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
+
+  const updateDobPreview = () => {
+    const output = $('[data-role="dob-preview"]');
+    if (!output) return;
+    const dob = selectedDob();
+    output.textContent = dob
+      ? new Intl.DateTimeFormat('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${dob}T00:00:00Z`))
+      : 'তারিখ বেছে নিলে এখানে দেখাবে';
+  };
+
+  const normalizeInstitutionText = value => String(value || '').normalize('NFKC').toLocaleLowerCase('bn-BD')
+    .replace(/[’‘`´]/g, "'").replace(/[^\p{L}\p{M}\p{N}]+/gu, ' ').trim().replace(/\s+/g, ' ');
+
+  const buildInstitutionIndex = () => {
+    if (state.institutionIndex) return state.institutionIndex;
+    const source = Array.isArray(window.AdmissionHubInstitutionsV1) ? window.AdmissionHubInstitutionsV1 : [];
+    const rows = source.map(item => {
+      const search = normalizeInstitutionText([item.name, item.district, ...(item.aliases || [])].join(' '));
+      return Object.freeze({ ...item, search, tokens: Object.freeze(search.split(' ').filter(Boolean)) });
+    });
+    const prefixes = new Map();
+    rows.forEach((row, index) => row.tokens.forEach(token => {
+      const max = Math.min(18, token.length);
+      for (let size = 1; size <= max; size += 1) {
+        const prefix = token.slice(0, size);
+        if (!prefixes.has(prefix)) prefixes.set(prefix, new Set());
+        prefixes.get(prefix).add(index);
+      }
+    }));
+    state.institutionIndex = Object.freeze({ rows: Object.freeze(rows), prefixes });
+    return state.institutionIndex;
+  };
+
+  const institutionMatches = (query, kind) => {
+    const normalized = normalizeInstitutionText(query);
+    if (normalized.length < 2) return [];
+    const index = buildInstitutionIndex();
+    const queryTokens = normalized.split(' ').filter(Boolean);
+    const candidateSets = queryTokens.map(token => index.prefixes.get(token.slice(0, 18))).filter(Boolean);
+    let candidates = candidateSets.length ? [...candidateSets[0]] : index.rows.map((_, rowIndex) => rowIndex);
+    for (const set of candidateSets.slice(1)) candidates = candidates.filter(rowIndex => set.has(rowIndex));
+    const accepts = row => kind === 'school' ? ['school', 'both'].includes(row.type) : ['higher', 'both'].includes(row.type);
+    return candidates.map(rowIndex => index.rows[rowIndex]).filter(accepts).filter(row => queryTokens.every(token => row.search.includes(token)))
+      .map(row => ({ row, score: row.search.startsWith(normalized) ? 0 : row.tokens.some(token => token.startsWith(normalized)) ? 1 : 2 }))
+      .sort((a, b) => a.score - b.score || a.row.name.localeCompare(b.row.name, 'en'))
+      .slice(0, 3).map(item => item.row);
+  };
+
+  const closeInstitutionResults = kind => {
+    const input = kind === 'school' ? $('#ah-signup-school') : $('#ah-signup-college');
+    const results = kind === 'school' ? $('#ah-school-results') : $('#ah-college-results');
+    if (results) { results.hidden = true; results.textContent = ''; }
+    if (input) input.setAttribute('aria-expanded', 'false');
+  };
+
+  const renderInstitutionResults = (kind, query) => {
+    const input = kind === 'school' ? $('#ah-signup-school') : $('#ah-signup-college');
+    const results = kind === 'school' ? $('#ah-school-results') : $('#ah-college-results');
+    if (!input || !results) return;
+    const trimmed = String(query || '').trim();
+    if (trimmed.length < 2) return closeInstitutionResults(kind);
+    const matches = institutionMatches(trimmed, kind);
+    results.textContent = '';
+    const choose = item => {
+      const manual = item === null;
+      const value = manual ? trimmed.slice(0, 120) : item.name;
+      input.value = value;
+      input.dataset.institutionId = manual ? 'manual' : item.id;
+      state.institutionSelection[kind] = Object.freeze({ id: manual ? 'manual' : item.id, name: value, district: manual ? '' : item.district });
+      closeInstitutionResults(kind);
+      input.focus();
+    };
+    matches.forEach(item => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'ah-search-option';
+      button.setAttribute('role', 'option');
+      button.textContent = `${item.name} · ${item.district}`;
+      button.addEventListener('pointerdown', event => event.preventDefault());
+      button.addEventListener('click', () => choose(item));
+      results.append(button);
+    });
+    const manual = document.createElement('button');
+    manual.type = 'button';
+    manual.className = 'ah-search-option manual';
+    manual.setAttribute('role', 'option');
+    manual.textContent = `“${trimmed.slice(0, 70)}” নিজের লেখা হিসেবে ব্যবহার করুন`;
+    manual.addEventListener('pointerdown', event => event.preventDefault());
+    manual.addEventListener('click', () => choose(null));
+    results.append(manual);
+    results.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+  };
+
+  const setupInstitutionSearch = kind => {
+    const input = kind === 'school' ? $('#ah-signup-school') : $('#ah-signup-college');
+    const results = kind === 'school' ? $('#ah-school-results') : $('#ah-college-results');
+    if (!input || !results) return;
+    let timer = 0;
+    input.addEventListener('input', () => {
+      state.institutionSelection[kind] = null;
+      delete input.dataset.institutionId;
+      clearTimeout(timer);
+      timer = setTimeout(() => renderInstitutionResults(kind, input.value), 170);
+    });
+    input.addEventListener('focus', () => { if (input.value.trim().length >= 2) renderInstitutionResults(kind, input.value); });
+    input.addEventListener('blur', () => setTimeout(() => closeInstitutionResults(kind), 120));
+    const keyboard = event => {
+      const options = [...results.querySelectorAll('[role="option"]')];
+      if (!options.length || results.hidden) return;
+      const active = document.activeElement;
+      const index = options.indexOf(active);
+      if (event.key === 'ArrowDown') { event.preventDefault(); (options[Math.min(options.length - 1, index + 1)] || options[0]).focus(); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); (options[Math.max(0, index - 1)] || options[options.length - 1]).focus(); }
+      else if (event.key === 'Escape') { event.preventDefault(); closeInstitutionResults(kind); input.focus(); }
+    };
+    input.addEventListener('keydown', keyboard);
+    results.addEventListener('keydown', keyboard);
+  };
+
+  const normalizedName = () => $('#ah-signup-name')?.value.trim().replace(/\s+/g, ' ') || '';
+  const validName = value => value.length >= 2 && value.length <= 80 && /^[\p{L}\p{M} .'-]+$/u.test(value) && (value.match(/\p{L}/gu) || []).length >= 2;
+  const showFieldFeedback = (role, text, kind = '') => {
+    const node = $(`[data-role="${role}"]`);
+    if (!node) return;
+    node.textContent = text;
+    node.classList.toggle('valid', kind === 'valid');
+    node.classList.toggle('error', kind === 'error');
+  };
+
+  const updatePasswordFeedback = () => {
+    const password = $('#ah-signup-password')?.value || '';
+    const confirm = $('#ah-signup-confirm')?.value || '';
+    let score = 0;
+    if (password.length >= 8) score += 1;
+    if (password.length >= 12) score += 1;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score += 1;
+    if (/\d/.test(password)) score += 1;
+    if (/[^\p{L}\p{N}\s]/u.test(password)) score += 1;
+    const labels = ['আরও কিছু অক্ষর দাও','শুরু হয়েছে','মোটামুটি','ভালো','শক্তিশালী','খুব শক্তিশালী'];
+    const meter = $('[data-role="password-meter"]');
+    if (meter) {
+      meter.style.width = `${Math.min(100, score * 20)}%`;
+      meter.style.background = score >= 4 ? '#14a879' : score >= 2 ? '#e4a620' : '#d45a49';
+    }
+    showFieldFeedback('password-strength', password ? `Strength: ${labels[score]}` : 'কমপক্ষে ৮ অক্ষর ব্যবহার করো', score >= 4 ? 'valid' : '');
+    showFieldFeedback('password-match', !confirm ? '' : password === confirm ? '✓ দুইটি Password মিলেছে' : 'Password দুইটি মিলছে না', password === confirm && confirm ? 'valid' : confirm ? 'error' : '');
+  };
+
+  const validatePersonal = () => {
+    const name = normalizedName();
+    if (!validName(name)) { showFieldFeedback('name-feedback', 'নামের মধ্যে অন্তত ২টি অক্ষর দাও।', 'error'); $('#ah-signup-name')?.focus(); return false; }
+    showFieldFeedback('name-feedback', '✓ সুন্দর—নামটি ঠিক আছে', 'valid');
+    const email = $('#ah-signup-email');
+    if (!email?.value.trim() || !email.checkValidity()) { message('সঠিক Email address লিখো।', 'error'); email?.focus(); return false; }
+    if (!selectedDob()) { message('সঠিক জন্মতারিখ বেছে নাও।', 'error'); $('#ah-dob-day')?.focus(); return false; }
+    return true;
+  };
+
+  const validateEducation = () => {
+    const school = $('#ah-signup-school');
+    if (!school?.value.trim()) { message('তোমার School-এর নাম লিখো।', 'error'); school?.focus(); return false; }
+    if (!state.institutionSelection.school || state.institutionSelection.school.name !== school.value.trim()) {
+      renderInstitutionResults('school', school.value);
+      message('Suggestion থেকে School বেছে নাও, অথবা নিজের লেখা ব্যবহার করো।', 'error');
+      school.focus();
+      return false;
+    }
+    const college = $('#ah-signup-college');
+    if (college?.value.trim() && (!state.institutionSelection.college || state.institutionSelection.college.name !== college.value.trim())) {
+      renderInstitutionResults('college', college.value);
+      message('Suggestion থেকে College/University বেছে নাও, অথবা নিজের লেখা ব্যবহার করো।', 'error');
+      college.focus();
+      return false;
+    }
+    return true;
+  };
+
+  const validateSecurity = () => {
+    const password = $('#ah-signup-password')?.value || '';
+    const confirm = $('#ah-signup-confirm')?.value || '';
+    if (password.length < 8) { message('কমপক্ষে ৮ অক্ষরের Password দাও।', 'error'); $('#ah-signup-password')?.focus(); return false; }
+    if (password !== confirm) { message('Password দুইটি মিলছে না।', 'error'); $('#ah-signup-confirm')?.focus(); return false; }
+    return true;
+  };
+
+  const focusWhenUnclaimed = (target, delay = 35) => setTimeout(() => {
+    const node = typeof target === 'function' ? target() : target;
+    const active = document.activeElement;
+    if (!node || node.closest('[hidden]')) return;
+    if (!active || active === document.body || !overlay.contains(active) || active.closest('[hidden]')) node.focus();
+  }, delay);
+
+  const setSignupStep = (step, { validate = false } = {}) => {
+    const order = ['personal', 'education', 'security'];
+    if (!order.includes(step)) return false;
+    const currentIndex = order.indexOf(state.signupStep);
+    const nextIndex = order.indexOf(step);
+    if (validate && nextIndex > currentIndex) {
+      if (state.signupStep === 'personal' && !validatePersonal()) return false;
+      if (state.signupStep === 'education' && !validateEducation()) return false;
+    }
+    state.signupStep = step;
+    overlay.querySelectorAll('[data-signup-panel]').forEach(panel => { panel.hidden = panel.dataset.signupPanel !== step; });
+    overlay.querySelectorAll('[data-signup-step-button]').forEach(button => {
+      const index = order.indexOf(button.dataset.signupStepButton);
+      button.classList.toggle('active', button.dataset.signupStepButton === step);
+      button.classList.toggle('done', index < nextIndex);
+      button.setAttribute('aria-current', button.dataset.signupStepButton === step ? 'step' : 'false');
+    });
+    message();
+    const focus = step === 'personal' ? $('#ah-signup-name') : step === 'education' ? $('#ah-signup-school') : $('#ah-signup-password');
+    focusWhenUnclaimed(focus);
+    updateGuideContext();
+    return true;
+  };
+
+  const collectProfile = () => Object.freeze({
+    fullName: normalizedName(),
+    dob: selectedDob(),
+    school: Object.freeze({ ...state.institutionSelection.school }),
+    higherInstitution: state.institutionSelection.college ? Object.freeze({ ...state.institutionSelection.college }) : null
+  });
+
+  const syncPendingProfile = async ({ pending = false } = {}) => {
+    if (!state.pendingProfile || !state.profileBound || state.profileSynced) return false;
+    if (state.profileSyncPromise) return state.profileSyncPromise;
+    if (pending && state.profilePendingAttempted) return false;
+    if (pending) state.profilePendingAttempted = true;
+    state.profileSyncPromise = (async () => {
+      try {
+        const result = await api(pending ? '/profile/pending' : '/profile', {
+          method: 'POST',
+          body: state.pendingProfile,
+          timeoutMs: pending ? 6000 : 10000
+        });
+        state.profileSynced = result?.saved === true;
+        if (state.profileSynced) {
+          document.dispatchEvent(new CustomEvent('admissionhub:profile-ready', { detail: state.pendingProfile }));
+        }
+        return state.profileSynced;
+      } catch (_) { return false; }
+      finally { state.profileSyncPromise = null; }
+    })();
+    return state.profileSyncPromise;
+  };
+
+  const refreshProfileReadiness = async () => {
+    let ready = state.profileSynced;
+    if (!ready && state.pendingProfile && state.profileBound) ready = await syncPendingProfile();
+    if (!ready) {
+      try { ready = Boolean((await api('/profile'))?.profile); } catch (_) {}
+    }
+    const row = $('[data-role="ready-profile"]');
+    if (row) row.textContent = ready ? '✓ Profile Created' : '• Profile details পরে সম্পূর্ণ করা যাবে';
+  };
+
+  const showReadyTransition = () => {
+    rememberPendingSignup(false);
+    showView('success');
+    refreshProfileReadiness();
+  };
+
+  const guideGuestId = () => {
+    if (state.guideGuestId) return state.guideGuestId;
+    try {
+      if (typeof crypto.randomUUID === 'function') state.guideGuestId = crypto.randomUUID().replace(/-/g, '');
+      else {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        state.guideGuestId = [...bytes].map(value => value.toString(16).padStart(2, '0')).join('');
+      }
+    } catch (_) { state.guideGuestId = `ephemeral${Date.now().toString(36)}admission`; }
+    return state.guideGuestId;
+  };
+
+  const sensitiveGuideInput = value => {
+    const text = String(value || '').trim();
+    const passwordWord = '(?:password|passcode|পাসওয়ার্ড|পাসওয়াৰ্ড|পাসওয়ার্ড)';
+    if (/\b\d{6}\b/.test(text) || /eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}/.test(text) || /-----BEGIN [A-Z ]+PRIVATE KEY-----/.test(text)) return true;
+    if (new RegExp(`(?:my|amar|আমার)\\s*${passwordWord}\\s*(?:is|হলো|:)?\\s*\\S{4,}`, 'i').test(text)) return true;
+    if (new RegExp(`${passwordWord}\\s*(?:is|হলো|:|=|-)\\s*\\S{4,}`, 'i').test(text)) return true;
+    if (new RegExp(`${passwordWord}\\s+(?=\\S{6,})(?=\\S*[0-9])\\S+`, 'i').test(text)) return true;
+    if (/(?:passcode|pin|otp|one[ -]?time code|ওটিপি)\D{0,8}\d{4,8}\b/i.test(text)) return true;
+    if (/(?:secret|api[ -]?key|token|গোপন)\s*(?:is|হলো|:|=)\s*\S{4,}/i.test(text)) return true;
+    return text.split(/\s+/).some(part => part.length >= 8 && /[a-z]/.test(part) && /[A-Z]/.test(part) && /\d/.test(part) && /[^A-Za-z0-9]/.test(part));
+  };
+  const unsafeGuideOutput = value => sensitiveGuideInput(value)
+    || /\b(?:firebase|backend|api|provider|smtp|webhook|quota|database|token)\b/i.test(String(value || ''));
+
+  const guideField = () => {
+    const id = String(document.activeElement?.id || '');
+    if (/password|confirm|telegram-code|backup-code/.test(id)) return 'sensitive-field';
+    if (id.includes('name')) return 'name';
+    if (id.includes('email')) return 'email';
+    if (id.includes('school')) return 'school';
+    if (id.includes('college')) return 'college';
+    if (id.includes('dob')) return 'date-of-birth';
+    return 'none';
+  };
+
+  const guideSuggestions = () => {
+    const query = state.signupStep === 'education'
+      ? ($('#ah-signup-school')?.value.trim() || $('#ah-signup-college')?.value.trim() || '') : '';
+    const kind = $('#ah-signup-college')?.value.trim() ? 'college' : 'school';
+    return query.length >= 2 ? institutionMatches(query, kind).map(item => item.name) : [];
+  };
+
+  const guideContext = () => Object.freeze({
+    surface: 'premium-onboarding',
+    view: state.currentView,
+    step: state.currentView === 'signup' ? state.signupStep : 'none',
+    field: guideField(),
+    validity: Object.freeze({
+      personal: Boolean(normalizedName() && selectedDob() && $('#ah-signup-email')?.checkValidity()),
+      education: Boolean(state.institutionSelection.school),
+      verificationAuthoritative: accountVerified(state.session)
+    }),
+    institutionQuery: state.signupStep === 'education' ? ($('#ah-signup-school')?.value.trim().slice(0, 80) || $('#ah-signup-college')?.value.trim().slice(0, 80) || '') : '',
+    institutionSuggestions: Object.freeze(guideSuggestions().slice(0, 3)),
+    allowedActions: Object.freeze(['focus-name','focus-email','focus-dob','focus-school','focus-college','open-signup','open-login','explain-email','explain-telegram'])
+  });
+
+  const guideChipConfig = () => {
+    if (state.currentView === 'welcome') return [['Sign Up শুরু করি','open-signup'],['Log In সাহায্য','open-login'],['Guest কী?','explain-guest']];
+    if (state.currentView === 'signup' && state.signupStep === 'personal') return [['নাম কোথায় লিখব?','focus-name'],['DOB সাহায্য','focus-dob'],['Email field','focus-email']];
+    if (state.currentView === 'signup' && state.signupStep === 'education') return [['School খুঁজি','focus-school'],['College/University','focus-college'],['না পেলে কী করব?','explain-manual']];
+    if (state.currentView === 'signup') return [['ভালো Password কেমন?','explain-password'],['Password field','focus-password']];
+    if (state.currentView === 'verify') return [['Email কীভাবে?','explain-email'],['Telegram কীভাবে?','explain-telegram']];
+    if (state.currentView === 'telegram') return [['START কোথায়?','explain-telegram'],['Code নিরাপত্তা','explain-code']];
+    return [['এই page বুঝিয়ে দাও','explain-view']];
+  };
+
+  const appendGuideBubble = (text, user = false) => {
+    const host = $('[data-role="guide-messages"]');
+    if (!host) return;
+    const bubble = document.createElement('div');
+    bubble.className = `ah-guide-bubble${user ? ' user' : ''}`;
+    bubble.textContent = safeStudentText(text).slice(0, 1200);
+    host.append(bubble);
+    host.scrollTop = host.scrollHeight;
+  };
+
+  const guideAction = action => {
+    const focus = selector => { const target = $(selector); target?.focus(); target?.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' }); };
+    const messages = {
+      'explain-guest': 'Guest হলে এখনই Dashboard ব্যবহার করতে পারবে। Account-only কাজের সময় চাইলে পরে Sign Up করবে; Guest Assistant chat স্থায়ীভাবে save হয় না।',
+      'explain-manual': 'দুই অক্ষর বা বেশি লিখলে সর্বোচ্চ ৩টি match দেখাবে। না পেলে শেষের “নিজের লেখা ব্যবহার করুন” option বেছে নাও।',
+      'explain-password': 'কমপক্ষে ৮ অক্ষর দাও। বড় ও ছোট অক্ষর, সংখ্যা আর চিহ্ন মেশালে শক্তিশালী হবে। Password আমাকে বা chat-এ লিখবে না।',
+      'explain-email': 'Email card নিজে চাপলে তবেই real verification link পাঠানো হবে। Inbox, Spam ও Promotions দেখবে; link খুলে ফিরে এসে Check করবে।',
+      'explain-telegram': 'Telegram card নিজে চাপো, official bot-এ START দাও, তারপর পাওয়া ৬ সংখ্যার code শুধু secure code box-এ লিখবে—chat-এ নয়।',
+      'explain-code': 'Code কখনো Assistant-এ লিখবে না। শুধু ৬ সংখ্যার secure verification box-এ লিখবে; নিশ্চিত ফল Admission Hub দেখাবে।',
+      'explain-view': `তুমি এখন ${state.currentView === 'login' ? 'Log In' : state.currentView === 'forgot' ? 'Password reset' : state.currentView} page-এ আছো। যে field-এ সাহায্য লাগবে সেটি বলো।`
+    };
+    if (action === 'open-signup') { showView('signup'); setSignupStep('personal'); return appendGuideBubble('Personal ধাপ থেকে শুরু করলাম। আগে নাম, Email ও জন্মতারিখ দাও।'); }
+    if (action === 'open-login') { showView('login'); return appendGuideBubble('Log In page খুলেছি। Email ও Password শুধু form-এ লিখবে।'); }
+    if (action === 'focus-name') focus('#ah-signup-name');
+    else if (action === 'focus-email') focus(state.currentView === 'login' ? '#ah-login-email' : '#ah-signup-email');
+    else if (action === 'focus-dob') focus('#ah-dob-day');
+    else if (action === 'focus-school') focus('#ah-signup-school');
+    else if (action === 'focus-college') focus('#ah-signup-college');
+    else if (action === 'focus-password') focus('#ah-signup-password');
+    appendGuideBubble(messages[action] || 'Field-টি সামনে এনেছি। কোনো secure submit আমি নিজে করব না—শেষ সিদ্ধান্ত তোমার।');
+  };
+
+  function updateGuideContext() {
+    const context = $('[data-role="guide-context"]');
+    if (context) context.textContent = state.currentView === 'signup' ? `Signup · ${state.signupStep}` : state.currentView;
+    const chips = $('[data-role="guide-chips"]');
+    if (!chips) return;
+    chips.textContent = '';
+    guideChipConfig().forEach(([label, action]) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = label;
+      button.addEventListener('click', () => guideAction(action));
+      chips.append(button);
+    });
+  }
+
+  const readGuideStream = async response => {
+    if (!response.ok || !response.body) throw new Error('assistant-unavailable');
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let text = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split('\n\n');
+      buffer = chunks.pop() || '';
+      for (const chunk of chunks) for (const line of chunk.split('\n')) {
+        if (!line.trim().startsWith('data:')) continue;
+        try { const data = JSON.parse(line.trim().slice(5)); if (data.text) text += data.text; } catch (_) {}
+      }
+    }
+    return text.trim();
+  };
+
+  const askGuide = async text => {
+    const clean = String(text || '').trim().slice(0, 300);
+    if (!clean || state.guideBusy) return;
+    if (sensitiveGuideInput(clean)) {
+      appendGuideBubble('নিরাপত্তার জন্য Password, verification code বা গোপন তথ্য Assistant নেয় না। এমন কিছু লিখে থাকলে সেটি বদলে শুধু সাধারণ প্রশ্ন করো।');
+      return;
+    }
+    appendGuideBubble(clean, true);
+    state.guideBusy = true;
+    state.guideHistory.push({ role: 'user', content: clean });
+    state.guideHistory = state.guideHistory.slice(-5);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        credentials: 'same-origin',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', 'X-AH-Guest': guideGuestId() },
+        body: JSON.stringify({ messages: state.guideHistory, context: { onboarding: guideContext() } })
+      });
+      const answer = await readGuideStream(response);
+      if (!answer) throw new Error('assistant-empty');
+      if (unsafeGuideOutput(answer)) {
+        appendGuideBubble('নিরাপত্তার কারণে এই উত্তরটি দেখানো হয়নি। Password বা code ছাড়াই সাধারণভাবে প্রশ্নটি আবার করো।');
+        return;
+      }
+      appendGuideBubble(answer);
+      state.guideHistory.push({ role: 'assistant', content: answer.slice(0, 1200) });
+      state.guideHistory = state.guideHistory.slice(-5);
+    } catch (_) {
+      appendGuideBubble('Assistant এখন উত্তর দিতে পারছে না। সমস্যা নেই—form-এর সব মূল কাজ চলবে। নিচের ছোট helper option ব্যবহার করতে পারো।');
+    } finally { clearTimeout(timer); state.guideBusy = false; }
+  };
+
   const showView = (name, keepMessage = false) => {
+    state.currentView = name;
+    const modal = $('.ah-account-modal');
+    overlay.dataset.currentView = name;
+    if (modal) modal.dataset.currentView = name;
     overlay.querySelectorAll('[data-view]').forEach(view => { view.hidden = view.dataset.view !== name; });
+    const closeButton = $('[data-role="close"]');
+    if (closeButton) closeButton.hidden = name === 'welcome';
     if (!keepMessage) message();
-    if (name === 'login') setTimeout(() => $('#ah-login-email')?.focus(), 30);
-    if (name === 'signup') setTimeout(() => $('#ah-signup-email')?.focus(), 30);
+    const body = $('.ah-account-body');
+    if (body) body.scrollTop = 0;
+    if (name === 'login') focusWhenUnclaimed(() => $('#ah-login-email'), 30);
+    if (name === 'signup') {
+      populateDob();
+      setSignupStep(state.signupStep || 'personal');
+    }
     if (name === 'verify') {
       const selecting = state.verification?.mode === 'select';
-      $('[data-role="mask"]').textContent = state.verification?.emailMasked || 'আপনার ইমেইলে';
-      $('[data-role="verification-title"]').textContent = selecting ? 'যাচাই পদ্ধতি বেছে নিন' : 'Gmail/ইমেইল যাচাই করুন';
+      const sent = state.verification?.emailSent === true;
+      const currentMask = $('[data-role="mask"]');
+      if (currentMask) currentMask.textContent = state.verification?.emailMasked || 'তোমার Email-এ';
+      $('[data-role="verification-title"]').textContent = selecting ? 'Verification method বেছে নাও' : 'Email verification শেষ করো';
       $('[data-role="verification-badge"]').textContent = selecting ? '✓' : '✉';
       $('[data-role="verification-selection"]').hidden = !selecting;
       $('[data-role="verification-email-panel"]').hidden = selecting;
       $('[data-role="telegram-verification-start"]').hidden = !state.capabilities.telegram.available;
+      const copy = $('[data-role="verification-email-copy"]');
+      if (copy) copy.innerHTML = sent
+        ? 'Verification link পাঠানো হয়েছে <strong data-role="mask"></strong>। Inbox-এর সঙ্গে Spam/Promotions-ও দেখো।'
+        : 'এই মুহূর্তে <strong data-role="mask"></strong> নতুন Email পাঠানো হয়নি। নিচের resend option দিয়ে সত্যিকারের link চাইতে পারো।';
+      const mask = $('[data-role="mask"]');
+      if (mask) mask.textContent = state.verification?.emailMasked || 'তোমার Email-এ';
       if (state.verification?.email) $('#ah-resend-email').value = state.verification.email;
       $('[data-role="telegram-alternative"]').hidden = !state.capabilities.telegram.available;
       updateResendCooldown();
     }
-    if (name === 'telegram') {
-      renderTelegramState();
-      setTimeout(() => $('#ah-telegram-code')?.focus(), 80);
-    }
+    if (name === 'telegram') renderTelegramState();
     if (name === 'signed') {
-      $('[data-role="identity"]').textContent = state.session?.user?.emailMasked || 'যাচাইকৃত অ্যাকাউন্ট';
+      $('[data-role="identity"]').textContent = state.session?.user?.emailMasked || 'যাচাইকৃত account';
       const byTelegram = state.session?.telegramVerified === true && state.session?.emailVerified !== true;
-      $('[data-role="identity-label"]').textContent = byTelegram ? 'Firebase অ্যাকাউন্ট · Telegram যাচাইকৃত' : 'যাচাইকৃত ইমেইল';
+      $('[data-role="identity-label"]').textContent = byTelegram ? 'Telegram-verified account' : 'যাচাইকৃত Email';
       $('[data-role="account-verification-summary"]').textContent = byTelegram
-        ? 'Telegram আপনার Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করেছে; Firebase UID একই আছে। ইমেইল মালিকানা দাবি করা হয়নি।'
-        : 'Firebase নিশ্চিত করেছে যে আপনার একই অ্যাকাউন্টটি নিরাপদে সক্রিয় আছে।';
+        ? 'Telegram তোমার Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করেছে; Email মালিকানা দাবি করা হয়নি।'
+        : 'তোমার একই account নিরাপদে সক্রিয় আছে।';
       renderPasskeys();
     }
-    if (name === 'backup') setTimeout(() => $('#ah-backup-code')?.focus(), 80);
+    const focusTarget = {
+      welcome: () => $('[data-role="welcome-signup"]'),
+      forgot: () => $('#ah-forgot-email'),
+      verify: () => state.verification?.mode === 'select'
+        ? $('[data-role="email-verification-start"]') : $('[data-role="open-email"]'),
+      telegram: () => $('#ah-telegram-code'),
+      'google-link': () => $('#ah-link-email'),
+      resend: () => $('#ah-resend-email'),
+      backup: () => $('#ah-backup-code'),
+      'security-setup': () => $('[data-role="setup-passkey"]'),
+      success: () => $('[data-role="enter-app"]'),
+      signed: () => $('[data-role="close"]')
+    }[name];
+    if (focusTarget) focusWhenUnclaimed(focusTarget, name === 'telegram' || name === 'backup' ? 80 : 35);
+    updateGuideContext();
   };
 
   const configureBackupView = interaction => {
@@ -462,14 +1018,15 @@
     } catch (_) {}
     let response;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 18000);
+    const timeoutMs = Math.min(18000, Math.max(2000, Number(options.timeoutMs) || 18000));
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       response = await fetch(`${API}${requestPath}`, {
         method: options.method || 'GET',
         credentials: 'same-origin',
         signal: controller.signal,
         headers: {
-          'X-AH-Auth-UI': 'auth-selector-v4',
+          'X-AH-Auth-UI': 'auth-premium-v6',
           ...(options.body ? { 'Content-Type': 'application/json' } : {})
         },
         ...(options.body ? { body: JSON.stringify(options.body) } : {})
@@ -481,9 +1038,9 @@
     let data = {};
     try { data = await response.json(); } catch (_) {}
     if (!response.ok) {
-      const error = new Error(data?.error?.message || 'সাময়িক সমস্যা হয়েছে—আবার চেষ্টা করুন।');
+      const error = new Error('Admission Hub অনুরোধটি শেষ করতে পারেনি।');
       error.status = response.status;
-      error.code = data?.error?.code;
+      error.code = typeof data?.error?.code === 'string' ? data.error.code : '';
       error.retryAfter = Number(data?.error?.retryAfter || response.headers.get('Retry-After') || 0);
       throw error;
     }
@@ -539,24 +1096,29 @@
     ...(credential.response.userHandle ? { userHandle: encodeBase64Url(credential.response.userHandle) } : {})
   });
   const passkeyErrorMessage = error => {
-    if (error?.name === 'NotAllowedError') return 'Passkey অনুরোধটি বাতিল বা সময় শেষ হয়েছে—চাইলে আবার চেষ্টা করুন।';
+    if (error?.name === 'NotAllowedError') return 'Passkey অনুরোধটি বাতিল বা সময় শেষ হয়েছে—চাইলে আবার চেষ্টা করো।';
     if (error?.name === 'SecurityError') return 'এই browser বা ঠিকানায় Passkey নিরাপদভাবে ব্যবহার করা যাচ্ছে না।';
     if (error?.name === 'InvalidStateError') return 'এই Passkeyটি আগে থেকেই যুক্ত আছে।';
-    return error?.message || 'Passkey যাচাই হয়নি—অন্য পদ্ধতি ব্যবহার করুন।';
+    return friendlyError(error);
   };
 
   const establishSession = (result, text, { offerPasskey = true } = {}) => {
+    const onboarding = state.signupJourney || pendingSignup();
     state.session = result;
     state.verification = null;
     state.telegram = null;
     state.backup = null;
     clearTelegramTimer();
     clearResendCooldown();
+    rememberEntry('account');
     updateLauncher();
     const showSetup = offerPasskey && state.capabilities.passkey.enrollmentAvailable && passkeyBrowserReady();
-    showView(showSetup ? 'security-setup' : 'signed');
+    if (showSetup) showView('security-setup');
+    else if (onboarding) showReadyTransition();
+    else showView('signed');
     message(text, 'success');
     refreshPasskeyStatus();
+    if (!onboarding) syncPendingProfile();
   };
 
   const refreshPasskeyStatus = async () => {
@@ -587,7 +1149,7 @@
         method: 'POST',
         body: { challengeId: begin.challengeId, response: assertionPayload(credential) }
       });
-      establishSession(result, 'Passkey দিয়ে একই Firebase অ্যাকাউন্টে প্রবেশ হয়েছে।', { offerPasskey: false });
+      establishSession(result, 'Passkey দিয়ে তোমার একই account-এ প্রবেশ হয়েছে।', { offerPasskey: false });
     } catch (error) { message(passkeyErrorMessage(error), 'error'); }
     finally { setBusy(false); }
   };
@@ -605,7 +1167,10 @@
         body: { challengeId: begin.challengeId, response: registrationPayload(credential) }
       });
       await refreshPasskeyStatus();
-      if (result.registered && onboarding) showView('signed');
+      if (result.registered && onboarding) {
+        if (state.signupJourney || pendingSignup()) showReadyTransition();
+        else showView('signed');
+      }
       message(result.registered ? 'Passkey নিরাপদভাবে যুক্ত হয়েছে।' : 'Passkey যোগ করা যায়নি।', result.registered ? 'success' : 'error');
     } catch (error) { message(passkeyErrorMessage(error), 'error'); }
     finally { setBusy(false); }
@@ -618,7 +1183,7 @@
       await api('/passkey/remove', { method: 'POST', body: { credentialId } });
       await refreshPasskeyStatus();
       message('Passkey সরানো হয়েছে। অন্য লগইন পদ্ধতি চালু থাকবে।', 'success');
-    } catch (error) { message(error.message, 'error'); }
+    } catch (error) { message(friendlyError(error), 'error'); }
     finally { setBusy(false); }
   }
 
@@ -628,10 +1193,10 @@
     setBusy(true);
     try {
       const result = await api('/google', { method: 'POST', body: { idToken: credential } });
-      establishSession(result, 'Google দিয়ে একই Firebase অ্যাকাউন্টে প্রবেশ হয়েছে।');
+      establishSession(result, 'Google দিয়ে তোমার একই account-এ প্রবেশ হয়েছে।');
     } catch (error) {
       if (error.code === 'ACCOUNT_LINK_REQUIRED') showView('google-link');
-      message(error.message, 'error');
+      message(friendlyError(error), 'error');
     } finally { setBusy(false); }
   };
 
@@ -649,12 +1214,17 @@
             cancel_on_tap_outside: false,
             context: 'signin'
           });
-          const host = $('[data-role="google-button"]');
-          host.textContent = '';
-          window.google.accounts.id.renderButton(host, {
-            type: 'standard', theme: 'outline', size: 'large', shape: 'rectangular', text: 'continue_with', width: 354
+          const hosts = [
+            $('[data-role="google-button"]'),
+            $('[data-role="welcome-google-button"]')
+          ].filter(Boolean);
+          hosts.forEach(host => {
+            host.textContent = '';
+            window.google.accounts.id.renderButton(host, {
+              type: 'standard', theme: 'outline', size: 'large', shape: 'rectangular', text: 'continue_with', width: 354
+            });
+            host.hidden = false;
           });
-          host.hidden = false;
           state.googleReady = true;
           resolve(true);
         } catch (_) { resolve(false); }
@@ -672,8 +1242,17 @@
     }).then(ready => {
       if (!ready) {
         const help = $('[data-role="method-help"]');
-        help.textContent = 'Google popup এই browser-এ খোলা যায়নি—Passkey বা ইমেইল ব্যবহার করুন।';
+        help.textContent = 'Google popup এই browser-এ খোলা যায়নি—Passkey বা Email ব্যবহার করো।';
         help.hidden = false;
+        const welcome = $('[data-role="welcome-google-button"]');
+        if (welcome && !welcome.querySelector('button')) {
+          const fallback = document.createElement('button');
+          fallback.type = 'button';
+          fallback.className = 'ah-account-secondary';
+          fallback.disabled = true;
+          fallback.textContent = 'Continue with Google';
+          welcome.append(fallback);
+        }
       }
       return ready;
     });
@@ -732,14 +1311,26 @@
     backup.hidden = !state.capabilities.backup.available;
     preferred.hidden = !(state.capabilities.google.available || state.capabilities.passkey.available);
     $('[data-role="account-subtitle"]').textContent = state.capabilities.passkey.available
-      ? 'Google বা Passkey দিয়ে দ্রুত প্রবেশ করুন। চাইলে ইমেইল ও পাসওয়ার্ডও ব্যবহার করতে পারবেন।'
+      ? 'Google বা Passkey দিয়ে দ্রুত প্রবেশ করো। চাইলে Email ও Password-ও ব্যবহার করতে পারো।'
       : state.capabilities.google.available
-        ? 'Google দিয়ে দ্রুত প্রবেশ করুন। চাইলে ইমেইল ও পাসওয়ার্ডও ব্যবহার করতে পারবেন।'
-        : 'ইমেইল ও পাসওয়ার্ড দিয়ে নিরাপদে প্রবেশ করুন।';
+        ? 'Google দিয়ে দ্রুত প্রবেশ করো। চাইলে Email ও Password-ও ব্যবহার করতে পারো।'
+        : 'Email ও Password দিয়ে নিরাপদে প্রবেশ করো।';
     $('[data-role="signup-verification-note"]').textContent = state.capabilities.telegram.available
-      ? 'সাইনআপের পর Gmail/ইমেইল অথবা Telegram যাচাই—একটি পদ্ধতি বেছে নেবেন। পছন্দ করার আগে কিছু পাঠানো হবে না।'
-      : 'সাইনআপের পর Firebase ইমেইল যাচাইয়ের একটি নিরাপদ লিংক পাঠাবে। লিংকে ক্লিক করলেই যাচাই সম্পন্ন হবে।';
+      ? 'Sign Up-এর পর Email অথবা Telegram—একটি method বেছে নেবে। বেছে নেওয়ার আগে কিছু পাঠানো হবে না।'
+      : 'Sign Up-এর পর Email verification link পাঠানো হবে। Link-এ click করলেই verification সম্পন্ন হবে।';
     if (state.capabilities.google.available) loadGoogle(state.capabilities.google.clientId);
+    else {
+      const host = $('[data-role="welcome-google-button"]');
+      if (host && !host.querySelector('button')) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'ah-account-secondary';
+        button.disabled = true;
+        button.textContent = 'Continue with Google';
+        button.setAttribute('aria-label', 'Google দিয়ে প্রবেশ এখন পাওয়া যাচ্ছে না');
+        host.append(button);
+      }
+    }
   };
 
   const refreshSession = async () => {
@@ -747,31 +1338,48 @@
       const current = await api('/session');
       state.session = accountVerified(current) ? current : null;
     } catch (error) { if ([401, 403].includes(error.status)) state.session = null; }
+    if (state.session) rememberEntry('account');
     updateLauncher();
     if (!overlay.hidden && state.session) showView('signed');
     if (state.session) refreshPasskeyStatus();
     return state.session;
   };
 
-  const open = () => {
+  const open = options => {
+    const forceWelcome = options?.forceWelcome === true;
     overlay.hidden = false;
     document.documentElement.style.overflow = 'hidden';
     if (accountVerified(state.session)) showView('signed');
     else if (state.telegram) showView('telegram');
     else if (state.verification) showView('verify');
+    else if (forceWelcome || !entryMode()) showView('welcome');
     else showView('login');
-    if (state.available === false) message('Firebase account service এখনো চালু করা হয়নি।', 'info');
+    if (state.available === false && state.currentView !== 'welcome') message('Account service এখন প্রস্তুত নয়—Guest হিসেবে Dashboard ব্যবহার করতে পারো।', 'info');
   };
   const close = () => {
     overlay.hidden = true;
     document.documentElement.style.overflow = '';
+    const guide = $('[data-role="guide"]');
+    if (guide) guide.hidden = true;
     message();
-    launcher.focus();
+    try { launcher.focus(); } catch (_) {}
+  };
+  const dismiss = () => {
+    if (state.busy) return message('কাজটি শেষ হতে একটু সময় দাও।', 'info');
+    $('#ah-login-password').value = '';
+    $('#ah-signup-password').value = '';
+    $('#ah-signup-confirm').value = '';
+    updatePasswordFeedback();
+    if (!entryMode() && !state.session && !state.verification) {
+      showView('welcome');
+      return;
+    }
+    close();
   };
   const prefillLogin = email => { if (email) $('#ah-login-email').value = email; };
   const ensureAvailable = () => {
-    if (state.available === true) return true;
-    message('Firebase account service এখনো চালু করা হয়নি।', 'info');
+    if (state.available !== false) return true;
+    message('Account service এখন প্রস্তুত নয়—Guest হিসেবে Dashboard ব্যবহার করতে পারো।', 'info');
     return false;
   };
 
@@ -781,11 +1389,12 @@
       const result = await api('/telegram/verification/pending');
       if (result?.pending && setTelegramChallenge(result)) return true;
       if (result?.selectionRequired) {
+        const mode = pendingSignupMode() === 'email' ? 'email' : 'select';
         state.verification = {
           email: '',
-          emailMasked: result.emailMasked || 'আপনার ইমেইলে',
-          emailSent: false,
-          mode: 'select',
+          emailMasked: result.emailMasked || 'তোমার Email-এ',
+          emailSent: mode === 'email',
+          mode,
           resendUntil: 0
         };
         if (!overlay.hidden) showView('verify');
@@ -795,39 +1404,113 @@
     return false;
   };
 
+  const recoverPendingAccountVerification = async () => {
+    const pendingMode = pendingSignupMode();
+    if (!pendingMode || state.verification || state.telegram || accountVerified(state.session)) return false;
+    state.signupJourney = true;
+    state.profileBound = true;
+    try {
+      const result = await api('/account-verification/email/status', { method: 'POST', body: {} });
+      if (result?.authenticated === true && result?.emailVerified === true) {
+        establishSession(result, 'Email verification নিশ্চিত হয়েছে।', { offerPasskey: true });
+        return true;
+      }
+      state.verification = {
+        email: '',
+        emailMasked: result?.emailMasked || 'তোমার Email-এ',
+        emailSent: pendingMode === 'email',
+        mode: pendingMode === 'email' ? 'email' : 'select',
+        resendUntil: 0
+      };
+      return true;
+    } catch (error) {
+      if (['TELEGRAM_VERIFICATION_INVALID', 'SESSION_INVALID'].includes(error?.code)) {
+        rememberPendingSignup(false);
+        state.signupJourney = false;
+        state.profileBound = false;
+        return false;
+      }
+      state.verification = {
+        email: '',
+        emailMasked: 'তোমার Email-এ',
+        emailSent: pendingMode === 'email',
+        mode: pendingMode === 'email' ? 'email' : 'select',
+        resendUntil: 0
+      };
+      return true;
+    }
+  };
+
+  const checkEmailVerification = async ({ silent = false } = {}) => {
+    if (state.emailStatusBusy || accountVerified(state.session)) return false;
+    state.emailStatusBusy = true;
+    const button = $('[data-role="verified-login"]');
+    if (button) button.disabled = true;
+    try {
+      const result = await api('/account-verification/email/status', { method: 'POST', body: {} });
+      if (result?.authenticated === true && result?.emailVerified === true) {
+        state.signupJourney = state.signupJourney || pendingSignup();
+        establishSession(result, 'Email verification নিশ্চিত হয়েছে।', { offerPasskey: true });
+        return true;
+      }
+      if (!silent) message('Verification এখনো শেষ হয়নি। Email-এর link খুলে ফিরে এসে আবার Check করো।', 'info');
+      return false;
+    } catch (error) {
+      if (!silent) message(friendlyError(error), 'error');
+      return false;
+    } finally {
+      state.emailStatusBusy = false;
+      if (button) button.disabled = state.busy;
+    }
+  };
+
   const beginEmailVerification = async () => {
     if (state.busy || !state.verification) return;
     setBusy(true);
     try {
+      if (state.pendingProfile && state.profileBound && !state.profileSynced) await syncPendingProfile({ pending: true });
       const result = await api('/account-verification/email/start', { method: 'POST', body: {} });
       if (result.alreadyVerified) {
-        prefillLogin(state.verification.email || '');
-        state.verification = null;
-        showView('login');
-        message('ইমেইল ইতিমধ্যে যাচাইকৃত—এখন লগইন করুন।', 'success');
+        setBusy(false);
+        await checkEmailVerification();
         return;
       }
+      if (result.verification?.sent !== true) throw Object.assign(new Error('delivery-not-confirmed'), { code: 'VERIFICATION_UNAVAILABLE' });
       state.verification.emailSent = true;
       state.verification.mode = 'email';
+      if (state.signupJourney || pendingSignup()) rememberPendingSignup(true, 'email');
       state.verification.emailMasked = result.verification?.emailMasked || state.verification.emailMasked;
       startResendCooldown(result.verification?.resendAfter || state.resendCooldownSeconds);
       showView('verify');
-      message('Firebase verification email পাঠানো হয়েছে। Inbox-এর সঙ্গে Spam/Promotions-ও দেখুন।', 'success');
-    } catch (error) { message(error.message, 'error'); }
+      message('Verification Email পাঠানো হয়েছে। Inbox-এর সঙ্গে Spam/Promotions-ও দেখো।', 'success');
+    } catch (error) { message(friendlyError(error), 'error'); }
     finally { setBusy(false); }
+  };
+
+  const openEmailInbox = () => {
+    const email = String(state.verification?.email || '').toLowerCase();
+    const domain = email.split('@')[1] || '';
+    const target = /(^|\.)gmail\.com$/.test(domain) ? 'https://mail.google.com/'
+      : /(^|\.)(outlook|hotmail|live)\.(com|co\.uk)$/.test(domain) ? 'https://outlook.live.com/mail/'
+        : /(^|\.)yahoo\./.test(domain) ? 'https://mail.yahoo.com/'
+          : 'https://mail.google.com/';
+    const opened = window.open(target, '_blank', 'noopener,noreferrer');
+    if (!opened) message('Inbox নতুন tab-এ খোলা যায়নি—তোমার Email app খুলে verification link দেখো।', 'info');
   };
 
   const beginTelegramVerification = async () => {
     if (state.busy || !state.verification || !state.capabilities.telegram.available) return;
     setBusy(true);
     try {
+      if (state.pendingProfile && state.profileBound && !state.profileSynced) await syncPendingProfile({ pending: true });
       const result = await api('/telegram/verification/start', { method: 'POST', body: {} });
       if (!setTelegramChallenge(result)) throw new Error('Telegram যাচাই এখন পাওয়া যাচ্ছে না।');
+      if (state.signupJourney || pendingSignup()) rememberPendingSignup(true, 'telegram');
       showView('telegram');
       message('Official Telegram bot খুলে START চাপুন, তারপর পাওয়া ৬ সংখ্যার code লিখুন।', 'success');
     } catch (error) {
       if (error.retryAfter > 0 && state.telegram) state.telegram.resendUntil = Date.now() + error.retryAfter * 1000;
-      message(error.message, 'error');
+      message(friendlyError(error), 'error');
     } finally { setBusy(false); }
   };
 
@@ -845,7 +1528,7 @@
       configureBackupView(state.backup.interaction);
       showView('backup');
       message(result.interaction ? 'Official Telegram bot খুলে START চাপুন, তারপর পাওয়া ৬ সংখ্যার কোড লিখুন।' : 'যাচাই কোড পাঠানো হয়েছে।', 'success');
-    } catch (error) { message(error.message, 'error'); }
+    } catch (error) { message(friendlyError(error), 'error'); }
     finally { setBusy(false); }
   };
 
@@ -854,16 +1537,152 @@
     state.initialized = true;
     document.body.append(launcher, overlay);
     launcher.addEventListener('click', open);
-    $('.ah-account-close').addEventListener('click', close);
-    overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
-    document.addEventListener('keydown', event => { if (event.key === 'Escape' && !overlay.hidden) close(); });
+    $('.ah-account-close').addEventListener('click', dismiss);
+    overlay.addEventListener('click', event => { if (event.target === overlay && state.currentView !== 'welcome') dismiss(); });
+    document.addEventListener('keydown', event => {
+      if (overlay.hidden) return;
+      if (event.key === 'Tab') {
+        const focusable = [...overlay.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+          .filter(node => !node.closest('[hidden]') && node.getClientRects().length > 0);
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && (document.activeElement === first || !overlay.contains(document.activeElement))) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || !overlay.contains(document.activeElement))) {
+          event.preventDefault();
+          first.focus();
+        }
+        return;
+      }
+      if (event.key !== 'Escape') return;
+      const guide = $('[data-role="guide"]');
+      if (guide && !guide.hidden) { guide.hidden = true; $('[data-role="guide-open"]')?.focus(); }
+      else if (state.currentView !== 'welcome') dismiss();
+    });
+
+    populateDob();
+    setupInstitutionSearch('school');
+    setupInstitutionSearch('college');
+    $('#ah-dob-day').addEventListener('change', updateDobPreview);
+    overlay.querySelectorAll('#ah-dob-month,#ah-dob-year').forEach(select => select.addEventListener('change', () => {
+      syncDobDays();
+      updateDobPreview();
+    }));
+    $('#ah-signup-name').addEventListener('input', () => {
+      const name = normalizedName();
+      showFieldFeedback('name-feedback', !name ? '' : validName(name) ? '✓ সুন্দর—নামটি ঠিক আছে' : 'নামের মধ্যে অন্তত ২টি অক্ষর দাও।', validName(name) ? 'valid' : name ? 'error' : '');
+    });
+    $('#ah-signup-password').addEventListener('input', updatePasswordFeedback);
+    $('#ah-signup-confirm').addEventListener('input', updatePasswordFeedback);
+    overlay.querySelectorAll('[data-password-target]').forEach(button => button.addEventListener('click', () => {
+      const input = document.getElementById(button.dataset.passwordTarget);
+      if (!input) return;
+      const reveal = input.type === 'password';
+      input.type = reveal ? 'text' : 'password';
+      button.textContent = reveal ? 'লুকান' : 'দেখুন';
+      button.setAttribute('aria-label', reveal ? 'Password লুকান' : 'Password দেখুন');
+    }));
+
+    $('[data-role="welcome-signup"]').addEventListener('click', () => {
+      state.signupJourney = true;
+      state.signupStep = 'personal';
+      showView('signup');
+    });
+    $('[data-role="welcome-login"]').addEventListener('click', () => {
+      state.signupJourney = false;
+      state.pendingProfile = null;
+      state.profileBound = false;
+      showView('login');
+    });
+    $('[data-role="continue-guest"]').addEventListener('click', () => {
+      rememberEntry('guest');
+      state.signupJourney = false;
+      close();
+      navigateDashboard();
+      notify();
+    });
+    $('[data-role="signup-back-entry"]').addEventListener('click', () => {
+      $('#ah-signup-password').value = '';
+      $('#ah-signup-confirm').value = '';
+      updatePasswordFeedback();
+      showView(entryMode() ? 'login' : 'welcome');
+    });
+    $('[data-role="signup-next-education"]').addEventListener('click', () => setSignupStep('education', { validate: true }));
+    $('[data-role="signup-back-personal"]').addEventListener('click', () => setSignupStep('personal'));
+    $('[data-role="signup-next-security"]').addEventListener('click', () => setSignupStep('security', { validate: true }));
+    $('[data-role="signup-back-education"]').addEventListener('click', () => setSignupStep('education'));
+    overlay.querySelectorAll('[data-signup-step-button]').forEach(button => button.addEventListener('click', () => {
+      const target = button.dataset.signupStepButton;
+      const order = ['personal', 'education', 'security'];
+      if (order.indexOf(target) <= order.indexOf(state.signupStep)) setSignupStep(target);
+      else setSignupStep(target, { validate: true });
+    }));
+
+    $('[data-role="show-forgot"]').addEventListener('click', () => {
+      $('#ah-forgot-email').value = $('#ah-login-email').value;
+      $('#ah-login-password').value = '';
+      showView('forgot');
+      focusWhenUnclaimed(() => $('#ah-forgot-email'), 30);
+    });
+    $('[data-role="forgot-back"]').addEventListener('click', () => { prefillLogin($('#ah-forgot-email').value); showView('login'); });
+    $('[data-view="forgot"]').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (state.busy || !ensureAvailable()) return;
+      const email = $('#ah-forgot-email').value.trim();
+      if (!email || !$('#ah-forgot-email').checkValidity()) return message('সঠিক Email address লিখো।', 'error');
+      setBusy(true);
+      try {
+        await api('/password-reset', { method: 'POST', body: { email } });
+        message('এই Email-এ অ্যাকাউন্ট থাকলে reset link পাঠানোর অনুরোধ নেওয়া হয়েছে। কিছুক্ষণ পর Inbox, Spam ও Promotions দেখো।', 'success');
+      } catch (error) { message(friendlyError(error), 'error'); }
+      finally { setBusy(false); }
+    });
+
+    $('[data-role="guide-open"]').addEventListener('click', () => {
+      const guide = $('[data-role="guide"]');
+      guide.hidden = false;
+      updateGuideContext();
+      setTimeout(() => $('#ah-guide-input')?.focus(), 30);
+    });
+    $('[data-role="guide-close"]').addEventListener('click', () => { $('[data-role="guide"]').hidden = true; $('[data-role="guide-open"]').focus(); });
+    $('[data-role="guide-form"]').addEventListener('submit', event => {
+      event.preventDefault();
+      const input = $('#ah-guide-input');
+      const value = input.value;
+      input.value = '';
+      askGuide(value);
+    });
+    $('[data-role="enter-app"]').addEventListener('click', () => { close(); navigateDashboard(); });
+    $('[data-role="open-email"]').addEventListener('click', openEmailInbox);
+    $('[data-role="verified-login"]').addEventListener('click', () => checkEmailVerification());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && !overlay.hidden && state.currentView === 'verify' && state.verification?.mode === 'email') checkEmailVerification({ silent: true });
+    });
+    const hero = $('[data-role="academic-hero"]');
+    if (hero && !reducedMotion()) {
+      hero.addEventListener('pointermove', event => {
+        if (event.pointerType === 'touch') return;
+        const rect = hero.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / Math.max(1, rect.width) - .5) * 7;
+        const y = ((event.clientY - rect.top) / Math.max(1, rect.height) - .5) * -5;
+        const svg = hero.querySelector('svg');
+        if (svg) svg.style.transform = `rotateY(${x}deg) rotateX(${y}deg)`;
+      });
+      hero.addEventListener('pointerleave', () => { const svg = hero.querySelector('svg'); if (svg) svg.style.transform = ''; });
+    }
 
     $('[data-role="show-signup"]').addEventListener('click', () => {
+      state.signupJourney = true;
+      state.signupStep = 'personal';
       $('#ah-signup-email').value = $('#ah-login-email').value;
       $('#ah-login-password').value = '';
       showView('signup');
     });
     $('[data-role="show-login"]').addEventListener('click', () => {
+      state.signupJourney = false;
+      if (!state.profileBound) state.pendingProfile = null;
       prefillLogin($('#ah-signup-email').value);
       $('#ah-signup-password').value = '';
       $('#ah-signup-confirm').value = '';
@@ -873,49 +1692,71 @@
     $('[data-role="passkey-add"]').addEventListener('click', addPasskey);
     $('[data-role="setup-passkey"]').addEventListener('click', () => addPasskey({ onboarding: true }));
     $('[data-role="setup-skip"]').addEventListener('click', () => {
-      showView('signed');
-      message('Passkey এখন যোগ করা হয়নি—অন্য লগইন পদ্ধতিগুলো চালু আছে।', 'info');
+      if (state.signupJourney || pendingSignup()) showReadyTransition();
+      else showView('signed');
+      message('Passkey এখন যোগ করা হয়নি—অন্য Log In পথগুলো চালু আছে।', 'info');
     });
 
     $('[data-view="signup"]').addEventListener('submit', async event => {
       event.preventDefault();
       if (state.busy || !ensureAvailable()) return;
+      if (!validatePersonal()) { setSignupStep('personal'); validatePersonal(); return; }
+      if (!validateEducation()) { setSignupStep('education'); validateEducation(); return; }
+      if (!validateSecurity()) { setSignupStep('security'); validateSecurity(); return; }
       const email = $('#ah-signup-email').value.trim();
       const password = $('#ah-signup-password').value;
-      const confirm = $('#ah-signup-confirm').value;
-      if (!email || !$('#ah-signup-email').checkValidity()) return message('সঠিক ইমেইল ঠিকানা লিখুন।', 'error');
-      if (password.length < 8) return message('কমপক্ষে ৮ অক্ষরের পাসওয়ার্ড দিন।', 'error');
-      if (password !== confirm) return message('দুইবার লেখা পাসওয়ার্ড মিলছে না।', 'error');
+      state.pendingProfile = collectProfile();
+      state.profileBound = false;
+      state.profileSynced = false;
+      state.profilePendingAttempted = false;
+      state.signupJourney = true;
       setBusy(true);
       try {
         const result = await api('/signup', { method: 'POST', body: { email, password } });
         const selectionRequired = result.verification?.selectionRequired === true;
+        const emailSent = result.verification?.sent === true;
+        if (!selectionRequired && !emailSent) throw Object.assign(new Error('delivery-not-confirmed'), { code: 'VERIFICATION_UNAVAILABLE' });
+        state.profileBound = true;
+        rememberPendingSignup(true, selectionRequired ? 'select' : 'email');
         state.verification = {
           email,
           emailMasked: result.verification?.emailMasked || email,
-          emailSent: result.verification?.sent === true,
+          emailSent,
           mode: selectionRequired ? 'select' : 'email',
           resendUntil: 0
         };
         clearTelegramTimer();
         state.telegram = null;
-        if (!selectionRequired) startResendCooldown(result.verification?.resendAfter || state.resendCooldownSeconds);
+        await syncPendingProfile({ pending: true });
+        if (emailSent) startResendCooldown(result.verification?.resendAfter || state.resendCooldownSeconds);
         showView('verify');
         message(selectionRequired
-          ? 'অ্যাকাউন্ট তৈরি হয়েছে। এখন Gmail/ইমেইল অথবা Telegram—একটি যাচাই পদ্ধতি বেছে নিন।'
-          : 'অ্যাকাউন্ট তৈরি হয়েছে। ইমেইলের যাচাইয়ের লিংকে ক্লিক করুন।', 'success');
+          ? 'Account তৈরি হয়েছে। এখন Email অথবা Telegram—একটি verification method বেছে নাও।'
+          : 'Account তৈরি হয়েছে এবং verification Email পাঠানো হয়েছে।', 'success');
       } catch (error) {
         if (error.code === 'EMAIL_ALREADY_IN_USE') {
-          clearResendCooldown(); state.verification = null; prefillLogin(email); showView('login');
+          clearResendCooldown();
+          state.verification = null;
+          state.pendingProfile = null;
+          state.profileBound = false;
+          state.signupJourney = false;
+          rememberPendingSignup(false);
+          prefillLogin(email);
+          showView('login');
         } else if (error.code === 'VERIFICATION_UNAVAILABLE') {
-          state.verification = { email, emailMasked: email, emailSent: true, mode: 'email', resendUntil: 0 };
-          startResendCooldown(error.retryAfter || state.resendCooldownSeconds);
-          showView('verify');
+          state.verification = null;
+          state.profileBound = false;
+          rememberPendingSignup(false);
+          prefillLogin(email);
+          showView('login');
+          message('Account তৈরি হয়ে থাকতে পারে, কিন্তু কোনো verification message পাঠানো হয়নি। একটু পরে এই Email দিয়ে Log In করে method বেছে নাও।', 'error');
+          return;
         }
-        message(error.message, 'error');
+        message(friendlyError(error), 'error');
       } finally {
         $('#ah-signup-password').value = '';
         $('#ah-signup-confirm').value = '';
+        updatePasswordFeedback();
         setBusy(false);
       }
     });
@@ -951,9 +1792,11 @@
         }
       } catch (error) {
         if (error.code === 'EMAIL_NOT_VERIFIED') {
-          clearResendCooldown(); state.verification = { email, emailMasked: email, emailSent: true, mode: 'email', resendUntil: 0 }; showView('verify');
-        }
-        message(error.message, 'error');
+          clearResendCooldown();
+          state.verification = { email, emailMasked: email, emailSent: false, mode: 'email', resendUntil: 0 };
+          showView('verify');
+          message('Account verification বাকি। এই মুহূর্তে নতুন Email পাঠানো হয়নি—resend option ব্যবহার করতে পারো।', 'info');
+        } else message(friendlyError(error), 'error');
       } finally { $('#ah-login-password').value = ''; setBusy(false); }
     });
 
@@ -966,25 +1809,21 @@
       setBusy(true);
       try {
         const result = await linkGoogle(email, password);
-        establishSession(result, 'Google আগের Firebase অ্যাকাউন্টে নিরাপদে যুক্ত হয়েছে।');
-      } catch (error) { message(error.message, 'error'); }
+        establishSession(result, 'Google আগের account-এ নিরাপদে যুক্ত হয়েছে।');
+      } catch (error) { message(friendlyError(error), 'error'); }
       finally { $('#ah-link-password').value = ''; setBusy(false); }
     });
     $('[data-role="link-cancel"]').addEventListener('click', () => { $('#ah-link-password').value = ''; prefillLogin($('#ah-link-email').value); showView('login'); });
 
-    $('[data-role="verified-login"]').addEventListener('click', () => {
-      prefillLogin(state.verification?.email || '');
-      showView('login');
-      message('যাচাই শেষ হলে ইমেইল ও পাসওয়ার্ড দিয়ে লগইন করুন।', 'success');
-    });
     $('[data-role="email-verification-start"]').addEventListener('click', beginEmailVerification);
     $('[data-role="telegram-verification-start"]').addEventListener('click', beginTelegramVerification);
     $('[data-role="telegram-alternative"]').addEventListener('click', beginTelegramVerification);
     $('[data-role="telegram-email-back"]').addEventListener('click', () => {
+      if (state.signupJourney || pendingSignup()) rememberPendingSignup(true, state.verification?.mode === 'email' ? 'email' : 'select');
       showView('verify');
       message(state.verification?.mode === 'select'
         ? 'অন্য যাচাই পদ্ধতি বেছে নিতে পারেন।'
-        : 'Firebase ইমেইল লিংক দিয়েও একই অ্যাকাউন্ট যাচাই করতে পারবেন।', 'info');
+        : 'Email link দিয়েও একই account verify করতে পারো।', 'info');
     });
     $('[data-view="telegram"]').addEventListener('submit', async event => {
       event.preventDefault();
@@ -999,7 +1838,7 @@
           body: { attemptId: state.telegram.attemptId, code }
         });
         renderTelegramState('success');
-        establishSession(result, 'Telegram account যাচাই সফল। একই Firebase UID-এ আপনার Admission Hub account সক্রিয় হয়েছে।');
+        establishSession(result, 'Telegram account verification সফল। তোমার Admission Hub account সক্রিয় হয়েছে।');
       } catch (error) {
         $('#ah-telegram-code').value = '';
         const mode = error.code === 'OTP_EXPIRED' ? 'expired'
@@ -1008,7 +1847,7 @@
               : ['OTP_INVALID', 'INVALID_INPUT'].includes(error.code) ? 'wrong'
                 : error.code === 'ACCOUNT_CONFLICT' ? 'conflict' : 'unavailable';
         renderTelegramState(mode);
-        message(error.message, 'error');
+        message(friendlyError(error), 'error');
       } finally { setBusy(false); }
     });
     $('[data-role="telegram-resend"]').addEventListener('click', async () => {
@@ -1024,13 +1863,19 @@
       } catch (error) {
         if (error.retryAfter > 0 && state.telegram) state.telegram.resendUntil = Date.now() + error.retryAfter * 1000;
         renderTelegramState(error.code === 'OTP_LOCKED' ? 'locked' : 'unavailable');
-        message(error.message, 'error');
+        message(friendlyError(error), 'error');
       } finally { setBusy(false); }
     });
     $('[data-role="verify-back"]').addEventListener('click', () => {
+      const email = state.verification?.email || $('#ah-resend-email').value;
       clearResendCooldown(); state.verification = null; state.telegram = null; clearTelegramTimer();
       $('#ah-resend-email').value = ''; $('#ah-resend-password').value = '';
-      showView('signup');
+      state.signupJourney = false;
+      state.pendingProfile = null;
+      state.profileBound = false;
+      rememberPendingSignup(false);
+      prefillLogin(email);
+      showView('login');
     });
 
     $('[data-role="resend-form"]').addEventListener('submit', async event => {
@@ -1048,14 +1893,15 @@
           clearResendCooldown(); state.verification = null; prefillLogin(email); showView('login');
           message('ইমেইল ইতিমধ্যে যাচাইকৃত—এখন লগইন করুন।', 'success');
         } else {
+          if (result.verification?.sent !== true) throw Object.assign(new Error('delivery-not-confirmed'), { code: 'VERIFICATION_UNAVAILABLE' });
           state.verification = { email, emailMasked: result.verification?.emailMasked || email, emailSent: true, mode: 'email', resendUntil: 0 };
           startResendCooldown(result.verification?.resendAfter || state.resendCooldownSeconds);
           showView('verify');
-          message('ইমেইল যাচাইয়ের নতুন বার্তা পাঠানো হয়েছে।', 'success');
+          message('নতুন verification Email পাঠানো হয়েছে।', 'success');
         }
       } catch (error) {
         if (error.retryAfter > 0) startResendCooldown(error.retryAfter);
-        message(error.message, 'error');
+        message(friendlyError(error), 'error');
       } finally { $('#ah-resend-password').value = ''; setBusy(false); }
     });
 
@@ -1096,8 +1942,8 @@
         state.backup = null;
         $('#ah-backup-code').value = '';
         showView('signed');
-        message('বিকল্প যাচাই সফল হয়েছে। একই Firebase অ্যাকাউন্ট ও সেশন চালু আছে।', 'success');
-      } catch (error) { $('#ah-backup-code').value = ''; message(error.message, 'error'); }
+        message('বিকল্প verification সফল হয়েছে। তোমার একই account চালু আছে।', 'success');
+      } catch (error) { $('#ah-backup-code').value = ''; message(friendlyError(error), 'error'); }
       finally { setBusy(false); }
     });
     $('[data-role="backup-cancel"]').addEventListener('click', () => { state.backup = null; $('#ah-backup-code').value = ''; configureBackupView(null); showView('signed'); });
@@ -1109,37 +1955,84 @@
         await api('/session/logout', { method: 'POST', body: {} });
         state.session = null; state.passkeys = []; state.backup = null; state.telegram = null; clearTelegramTimer();
         updateLauncher(); showView('login'); message('নিরাপদভাবে লগ আউট হয়েছে।', 'success');
-      } catch (error) { message(error.message, 'error'); }
+      } catch (error) { message(friendlyError(error), 'error'); }
       finally { setBusy(false); }
     });
 
-    api(canaryConfigPath()).then(result => {
+    let returnedFromEmail = false;
+    let returnedFromPasswordReset = false;
+    try {
+      const current = new URL(location.href);
+      returnedFromEmail = current.searchParams.get('firebaseVerified') === '1' || current.searchParams.get('emailVerified') === '1';
+      returnedFromPasswordReset = current.searchParams.get('passwordReset') === '1';
+      if (returnedFromEmail || returnedFromPasswordReset) {
+        current.searchParams.delete('firebaseVerified');
+        current.searchParams.delete('emailVerified');
+        current.searchParams.delete('passwordReset');
+        history.replaceState(null, '', current.pathname + current.search + current.hash);
+      }
+    } catch (_) {}
+
+    // Welcome and callback screens must never wait for a slow account-status request.
+    if (returnedFromPasswordReset) {
+      open();
+      showView('login');
+      message('Password বদলানো শেষ করে থাকলে নতুন Password দিয়ে Log In করো।', 'info');
+    } else if (returnedFromEmail) {
+      state.signupJourney = pendingSignup();
+      state.verification = { email: '', emailMasked: 'তোমার Email-এ', emailSent: true, mode: 'email', resendUntil: 0 };
+      open();
+    } else if (!entryMode() && !pendingSignup()) {
+      open({ forceWelcome: true });
+    }
+
+    const configReady = api(canaryConfigPath()).then(result => {
       applyCapabilities(result?.auth || {});
       const cooldown = Number(result?.auth?.verificationEmail?.resendCooldownSeconds);
       if (Number.isFinite(cooldown) && cooldown >= 1 && cooldown <= 86400) state.resendCooldownSeconds = Math.ceil(cooldown);
-      recoverPendingTelegram();
-    }).catch(() => { state.available = false; applyCapabilities({ available: false }); });
-    refreshSession();
-
-    try {
-      const current = new URL(location.href);
-      if (current.searchParams.get('firebaseVerified') === '1') {
-        current.searchParams.delete('firebaseVerified');
-        history.replaceState(null, '', current.pathname + current.search + current.hash);
+      return true;
+    }).catch(() => { state.available = false; applyCapabilities({ available: false }); return false; });
+    const sessionReady = refreshSession();
+    Promise.allSettled([configReady, sessionReady]).then(async () => {
+      if (accountVerified(state.session)) return;
+      if (returnedFromPasswordReset) {
         open();
-        message('ইমেইল যাচাই সম্পন্ন হয়েছে—এখন পাসওয়ার্ড দিয়ে লগইন করুন।', 'success');
+        showView('login');
+        message('Password বদলানো শেষ করে থাকলে নতুন Password দিয়ে Log In করো।', 'info');
+        return;
       }
-    } catch (_) {}
+      await recoverPendingTelegram();
+      if (returnedFromEmail) {
+        state.signupJourney = pendingSignup();
+        state.verification = state.verification || { email: '', emailMasked: 'তোমার Email-এ', emailSent: true, mode: 'email', resendUntil: 0 };
+        open();
+        const verified = await checkEmailVerification();
+        if (!verified && !accountVerified(state.session)) message('Email-এর link খোলা হয়েছে। নিশ্চিত ফল দেখতে Check আবার চাপতে পারো।', 'info');
+        return;
+      }
+      if (!state.telegram && !state.verification) await recoverPendingAccountVerification();
+      if (accountVerified(state.session)) return;
+      if (overlay.hidden && (!entryMode() || state.telegram || state.verification)) {
+        open({ forceWelcome: !state.telegram && !state.verification });
+      }
+    });
   };
 
   window.AdmissionAccount = Object.freeze({
     open,
     refresh: refreshSession,
     getSession: () => state.session,
+    getEntryMode: entryMode,
+    isGuest: () => entryMode() === 'guest' && !accountVerified(state.session),
     isVerified: () => accountVerified(state.session),
     requireVerified() {
       const allowed = accountVerified(state.session);
-      if (!allowed) open();
+      if (!allowed) {
+        open();
+        message(entryMode() === 'guest'
+          ? 'এই কাজটি account-এর জন্য। Guest হিসেবেই পড়াশোনা চালাতে পারো, অথবা সুবিধাটি ব্যবহার করতে Sign Up/Log In করো।'
+          : 'এই কাজের জন্য আগে Sign Up বা Log In করো।', 'info');
+      }
       return allowed;
     }
   });

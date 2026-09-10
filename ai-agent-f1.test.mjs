@@ -6,7 +6,7 @@ let pass = 0, fail = 0;
 const t = (n, c) => { if (c) { pass++; console.log('  ✓', n); } else { fail++; console.log('  ✗', n); } }
 
 const A = await import('./ai-agent.js');
-const { classifyIntent, validateChatReq, capStats, buildSystemPrompt, summarizeTo, safetyGate, authVerificationGuidance, routerChain, geminiTextFromChunk, sseParse, ProviderError, INTENTS, __test } = A;
+const { classifyIntent, validateChatReq, capStats, buildSystemPrompt, summarizeTo, safetyGate, authVerificationGuidance, sanitizeOnboardingContext, onboardingSecretDetected, routerChain, geminiTextFromChunk, sseParse, ProviderError, INTENTS, __test } = A;
 
 /* ── ১. Intent Engine ── */
 const IC = [
@@ -196,9 +196,9 @@ t('৩০. Vision-এ chain-শুধু-gemini (groq-ফলব্যাক ন�
   return r.status === 200 && text.includes('event: error') && !text.includes('গ্রক-উত্তর');
 })(), { timeout: 10000 });
 
-t('৩১. Telegram guidance শুধু backend-authoritative ধাপ বোঝায়; OTP বানায় বা success ঘোষণা করে না', (() => {
+t('৩১. Telegram guidance শুধু Admission Hub-এর নিশ্চিত ধাপ বোঝায়; OTP বানায় বা success ঘোষণা করে না', (() => {
   const guidance = authVerificationGuidance('Telegram OTP কীভাবে verify করব?');
-  return guidance.includes('official bot') && guidance.includes('START') && guidance.includes('backend-এর ফলই চূড়ান্ত')
+  return guidance.includes('official bot') && guidance.includes('START') && guidance.includes('Admission Hub-এর নিশ্চিত ফলই চূড়ান্ত')
     && guidance.includes('Gmail/ইমেইল মালিকানা প্রমাণ করে না') && !/\b\d{6}\b/.test(guidance);
 })());
 
@@ -213,6 +213,54 @@ t('৩২. AI gateway OTP input model/memory-তে পাঠায় না, code
   && aiSafetyText.includes('আমি OTP তৈরি, অনুমান, দেখা, পুনরাবৃত্তি বা যাচাই করতে পারি না')
   && !aiSafetyText.includes('123456')
   && !aiSafety.store.has('chatmem:uid_otp_safety'));
+
+const onboardingContext = sanitizeOnboardingContext({
+  surface: 'premium-onboarding', view: 'signup', step: 'education', field: 'school',
+  validity: { personal: true, education: false, verificationAuthoritative: false },
+  institutionQuery: '<Cox School>', institutionSuggestions: ['One', 'Two', 'Three', 'Four'],
+  allowedActions: ['focus-school', 'open-login', 'run-javascript'],
+  password: 'MustNeverLeave!9', otp: '654321', sessionToken: 'hidden'
+});
+t('৩৩. onboarding context শুধু structured allowlist রাখে; secret ও arbitrary action বাদ দেয়',
+  onboardingContext?.view === 'signup'
+  && onboardingContext.step === 'education'
+  && onboardingContext.institutionQuery === 'Cox School'
+  && onboardingContext.institutionSuggestions.length === 3
+  && onboardingContext.allowedActions.join(',') === 'focus-school,open-login'
+  && !JSON.stringify(onboardingContext).includes('MustNeverLeave!9')
+  && !JSON.stringify(onboardingContext).includes('654321')
+  && !JSON.stringify(onboardingContext).includes('run-javascript'));
+
+t('৩৪. onboarding secret detector password, OTP, PIN ও key-like value fail-closed ধরে',
+  onboardingSecretDetected('password: StrongSecret!9')
+  && onboardingSecretDetected('my password hunter2')
+  && onboardingSecretDetected('আমার পাসওয়ার্ড abcdef')
+  && onboardingSecretDetected('passcode 1234')
+  && onboardingSecretDetected('আমার code 654321')
+  && onboardingSecretDetected('KeyLikeValue!9')
+  && !onboardingSecretDetected('ভালো password কীভাবে বানাব?')
+  && !onboardingSecretDetected('Education ধাপে school কীভাবে বেছে নেব?'));
+
+const prompt = buildSystemPrompt({ onboarding: onboardingContext });
+t('৩৫. onboarding system policy real authority ও confirmation ছাড়া critical success/submit নিষিদ্ধ করে',
+  prompt.includes('Never ask for, repeat, infer, transform, store, or validate a password')
+  && prompt.includes('Never claim signup, delivery, verification, Passkey creation, login, or profile saving succeeded')
+  && prompt.includes('Never submit forms or trigger signup, delivery, verification, login, profile-save, or security actions'));
+
+const onboardingSafety = stubEnv({ GEMINI_KEYS: '', GROQ_API_KEY: '', AGENT_DAILY_CAP: 80 });
+const onboardingSafetyResponse = await A.agentChat(new Request('https://x/api/ai/chat', {
+  method: 'POST',
+  body: JSON.stringify({
+    messages: [{ role: 'user', content: 'my password is hunter2' }],
+    context: { onboarding: { surface: 'premium-onboarding', view: 'signup', step: 'security', field: 'sensitive-field' } }
+  })
+}), onboardingSafety.env, 'uid_onboarding_safety');
+const onboardingSafetyText = await onboardingSafetyResponse.text();
+t('৩৬. onboarding password model, rate-memory ও response history-র আগেই reject হয়',
+  onboardingSafetyResponse.status === 200
+  && onboardingSafetyText.includes('Password, verification code বা গোপন তথ্য Assistant নেয় না')
+  && !onboardingSafetyText.includes('hunter2')
+  && ![...onboardingSafety.store.keys()].some(key => key.includes('uid_onboarding_safety')));
 
 console.log(`\n🤖 AGENT-CORE-F1: ${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);
