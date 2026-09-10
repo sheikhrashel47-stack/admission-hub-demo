@@ -65,7 +65,7 @@ function httpFailure(response, _payload, { userStatuses = [400, 404, 422] } = {}
 async function fetchJson(fetchImpl, url, init = {}) {
   let response;
   try {
-    response = await fetchImpl(url, { ...init, redirect: 'error', signal: init.signal || AbortSignal.timeout(12_000) });
+    response = await fetchImpl(url, { ...init, redirect: 'manual', signal: init.signal || AbortSignal.timeout(12_000) });
   } catch { throw new VerificationProviderError('NETWORK_ERROR', VERIFICATION_FAILURE_CLASS.TEMPORARY); }
   const payload = await boundedJson(response);
   if (!response.ok) throw httpFailure(response, payload);

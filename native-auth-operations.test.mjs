@@ -205,6 +205,7 @@ test('Firebase provider binds platform fetch to the global runtime receiver', as
     if (this !== globalThis) throw new TypeError('Illegal invocation');
     assert.match(String(url), /^https:\/\/identitytoolkit\.googleapis\.com\/v1\/projects\?key=/);
     assert.equal(options.method, 'GET');
+    assert.equal(options.redirect, 'manual');
     return response({ projectId: 'admission-hub-test', authorizedDomains: ['admissionhub.pages.dev'] });
   };
   const provider = new FirebaseEmailPasswordProvider({

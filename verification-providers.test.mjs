@@ -49,6 +49,7 @@ test('OTP bridge uses bounded HTTPS server calls for health, exact quota, and de
     expiresAt: 1_800_000_300_000
   }), { accepted: true });
   const send = calls.find(call => call.url.endsWith('/send'));
+  assert.equal(calls.every(call => call.init.redirect === 'manual'), true);
   assert.equal(send.init.headers['X-Verification-Key'], KEY);
   const body = JSON.parse(send.init.body);
   assert.equal(body.code, '123456');
