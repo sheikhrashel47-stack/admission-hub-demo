@@ -24,6 +24,7 @@ const activationWorkflow = read('.github/workflows/native-auth-activate.yml');
 const boundaryWorkflow = read('.github/workflows/firebase-auth-boundary-deploy.yml');
 const googleReadinessWorkflow = read('.github/workflows/google-auth-readiness-audit.yml');
 const googleReadinessOperation = read('auth-native/operations/verify-google-readiness.mjs');
+const googleBrowserOriginOperation = read('auth-native/operations/verify-google-browser-origin.mjs');
 const serviceWorker = read('sw.js');
 const verificationProviders = read('auth-native/verification/providers.mjs');
 const verificationOrchestrator = read('auth-native/verification/orchestrator.mjs');
@@ -96,8 +97,8 @@ test('generic backup verification is centralized and bound to the current Fireba
   assert.doesNotMatch(client, /otp-a|otp-b|otp-c|mailjet|brevo|sendgrid/i);
 });
 
-test('Google, Passkey, and backup publishing remain independently fail-closed in production', () => {
-  assert.match(wrangler, /GOOGLE_AUTH_ACTIVATION = "canary"/);
+test('Google publication is live only with protected browser-origin proof while Passkey and backup remain fail-closed', () => {
+  assert.match(wrangler, /GOOGLE_AUTH_ACTIVATION = "enabled"/);
   assert.match(wrangler, /PASSKEY_AUTH_ACTIVATION = "canary"/);
   assert.match(wrangler, /VERIFICATION_AUTH_ACTIVATION = "disabled"/);
   assert.match(wrangler, /VERIFICATION_ORCHESTRATOR_CONFIG = '\{"enabled":false\}'/);
@@ -107,9 +108,13 @@ test('Google, Passkey, and backup publishing remain independently fail-closed in
   assert.match(handler, /passkeyCanaryRequested\(env, url\)/);
   assert.match(handler, /cacheVariant = `\$\{googleCanary \? 'google-canary' : 'public'\}:\$\{passkeyCanary \? 'passkey-canary' : 'public'\}`/);
   assert.match(runtime, /env(?:\?\.|\.)VERIFICATION_AUTH_ACTIVATION === 'enabled'/);
-  assert.match(activationWorkflow, /methods\?\.google\?\.available!==false/);
+  assert.match(activationWorkflow, /g\?\.available!==true/);
+  assert.match(activationWorkflow, /verify-google-browser-origin\.mjs/);
   assert.match(activationWorkflow, /methods\?\.passkey\?\.available!==false/);
   assert.match(activationWorkflow, /methods\?\.backup\?\.available!==false/);
+  assert.match(googleBrowserOriginOperation, /origin_mismatch/);
+  assert.match(googleBrowserOriginOperation, /credentialUsed:\s*false/);
+  assert.doesNotMatch(googleBrowserOriginOperation, /console\.(?:log|error)|popup\.url\(\)\s*\)/);
 });
 
 test('backup adapters keep credentials server-side and WhatsApp uses only the official API', () => {

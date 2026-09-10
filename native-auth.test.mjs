@@ -377,6 +377,21 @@ test('Google canary is server-authorized only for its explicit test URL and cann
   assert.equal((await cachedCanary.json()).auth.methods.google.available, true);
 });
 
+test('approved Google activation publishes the provider on the ordinary config without publishing Passkey', async () => {
+  const app = handlerSetup();
+  app.env.GOOGLE_AUTH_ACTIVATION = 'enabled';
+  app.env.PASSKEY_AUTH_ACTIVATION = 'canary';
+
+  const result = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), app.env, {});
+  assert.equal(result.status, 200);
+  const methods = (await result.json()).auth.methods;
+  assert.equal(methods.google.available, true);
+  assert.equal(methods.google.availabilityCode, 'READY');
+  assert.match(methods.google.clientId, /\.apps\.googleusercontent\.com$/);
+  assert.equal(methods.passkey.available, false);
+  assert.equal(methods.passkey.availabilityCode, 'LIVE_E2E_PENDING');
+});
+
 test('public API rejects untrusted origins, weak or oversized input, and fails closed without Firebase config', async () => {
   const app = handlerSetup();
   const forbidden = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`, { origin: 'https://evil.example' }), app.env, {});

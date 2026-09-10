@@ -50,7 +50,7 @@ test('১১. protection snapshot runs as idle post-boot work',
 
 /* PWA lifecycle */
 test('১২. build/cache/AI asset versions are synchronized',
-  SW.includes("const BUILD_ID = 'v227-google-canary-20260910'") && H.includes("const expectedSwVersion = 'v227-google-canary-20260910'") && H.includes('sw.js?v=v227-google-canary-20260910') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
+  SW.includes("const BUILD_ID = 'v228-google-live-20260910'") && H.includes("const expectedSwVersion = 'v228-google-live-20260910'") && H.includes('sw.js?v=v228-google-live-20260910') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest') && SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv14-guest'));
 test('১৩. service-worker activation never navigates or reloads open clients',
   !SW.includes('c.navigate(c.url)') && !SW.includes("self.clients.matchAll({ type: 'window', includeUncontrolled: true });\n      for"));
 test('১৪. installed PWA document is shell-first, not network-blocked',
