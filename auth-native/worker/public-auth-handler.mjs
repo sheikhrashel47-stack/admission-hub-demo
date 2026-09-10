@@ -273,6 +273,8 @@ const adminAuthorized = (request, env) => {
 };
 const passkeyEndpointReady = env => ['canary', 'enabled'].includes(String(env?.PASSKEY_AUTH_ACTIVATION || ''));
 const passkeyPublished = env => env?.PASSKEY_AUTH_ACTIVATION === 'enabled';
+const passkeyCanaryRequested = (env, url) =>
+  env?.PASSKEY_AUTH_ACTIVATION === 'canary' && url.searchParams.get('passkeyCanary') === '1';
 
 export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
   const publicConfigCache = new WeakMap();
@@ -325,7 +327,10 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       }
 
       if (request.method === 'GET' && url.pathname === `${AUTH_API_PREFIX}/config`) {
-        const cached = publicConfigCache.get(env);
+        const passkeyCanary = passkeyCanaryRequested(env, url);
+        const cacheVariant = passkeyCanary ? 'passkey-canary' : 'public';
+        const cache = publicConfigCache.get(env);
+        const cached = cache?.get(cacheVariant);
         if (cached && cached.expiresAt > Date.now()) return json(request, 200, cached.body);
         const health = await callAuthority(env, '/internal/ping', null, 'GET');
         let firebaseReady = false;
@@ -359,7 +364,7 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
           try { backup = await callAuthority(env, '/internal/verification/capabilities', {}); }
           catch { backup = { available: false, availabilityCode: 'STATUS_UNAVAILABLE', genericFlow: true, providerNamesExposed: false }; }
         }
-        const passkeyAvailable = available && health.schema >= 3 && passkeyPublished(env);
+        const passkeyAvailable = available && health.schema >= 3 && (passkeyPublished(env) || passkeyCanary);
         const body = {
           ok: true,
           auth: {
@@ -391,7 +396,9 @@ export function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             session: { transport: 'secure-http-only-cookie', maxAge: SESSION_SECONDS }
           }
         };
-        publicConfigCache.set(env, { body, expiresAt: Date.now() + 30_000 });
+        const nextCache = cache || new Map();
+        nextCache.set(cacheVariant, { body, expiresAt: Date.now() + 30_000 });
+        if (!cache) publicConfigCache.set(env, nextCache);
         return json(request, 200, body);
       }
 

@@ -329,6 +329,24 @@ test('config publishes verified-only Firebase mode and correct Spark verificatio
   assert.equal(app.firebase.calls.length, firebaseCalls);
 });
 
+test('Passkey canary is server-authorized only for the explicit test URL and cannot leak through config cache', async () => {
+  const app = handlerSetup();
+  app.env.PASSKEY_AUTH_ACTIVATION = 'canary';
+
+  const canary = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config?passkeyCanary=1`), app.env, {});
+  assert.equal(canary.status, 200);
+  assert.equal((await canary.json()).auth.methods.passkey.available, true);
+
+  const publicConfig = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), app.env, {});
+  assert.equal(publicConfig.status, 200);
+  const publicBody = await publicConfig.json();
+  assert.equal(publicBody.auth.methods.passkey.available, false);
+  assert.equal(publicBody.auth.methods.passkey.availabilityCode, 'LIVE_E2E_PENDING');
+
+  const cachedCanary = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config?passkeyCanary=1`), app.env, {});
+  assert.equal((await cachedCanary.json()).auth.methods.passkey.available, true);
+});
+
 test('public API rejects untrusted origins, weak or oversized input, and fails closed without Firebase config', async () => {
   const app = handlerSetup();
   const forbidden = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`, { origin: 'https://evil.example' }), app.env, {});
