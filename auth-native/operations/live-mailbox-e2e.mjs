@@ -88,11 +88,16 @@ const headerDomain = value => safeDomain(String(value || '').match(/<([^>]+)>/)?
 
 export function liveAuthMethodsReady(methods = {}) {
   const google = methods?.google;
+  const telegram = methods?.telegramVerification;
   return methods?.emailPassword?.available === true
     && google?.available === true
     && google?.availabilityCode === 'READY'
     && /^[A-Za-z0-9._-]+\.apps\.googleusercontent\.com$/.test(String(google?.clientId || ''))
     && methods?.passkey?.available === false
+    && methods?.passkey?.enrollmentAvailable === true
+    && telegram?.available === true
+    && telegram?.availabilityCode === 'READY'
+    && telegram?.verifiesEmailOwnership === false
     && methods?.backup?.available === false;
 }
 
@@ -317,7 +322,7 @@ export async function runLiveMailboxE2E({
     const signup = await appRequest(normalizedBase, '/api/auth/v1/signup', {
       method: 'POST', body: { email: mailbox.address, password: accountPassword }
     });
-    if (signup.response.status !== 202 || signup.body?.accountCreated !== true || signup.body?.verification?.sent !== true) {
+    if (signup.response.status !== 202 || signup.body?.accountCreated !== true) {
       throw new LiveCheckError('signup', signup.response.status, signup.body?.error?.code || 'SIGNUP');
     }
     if (signup.body?.authenticated !== false || cookiePair(signup.response, '__Host-ah_session')) {
@@ -328,11 +333,30 @@ export async function runLiveMailboxE2E({
     }
     const device = cookiePair(signup.response, '__Host-ah_device');
     if (!device) throw new LiveCheckError('signup', 0, 'DEVICE_COOKIE_MISSING');
+    if (signup.body?.verification?.selectionRequired === true) {
+      if (signup.body?.verification?.sent !== false
+        || signup.body?.verification?.options?.email?.available !== true
+        || signup.body?.verification?.options?.telegram?.available !== true) {
+        throw new LiveCheckError('signup', 0, 'VERIFICATION_SELECTION_CONTRACT');
+      }
+      const verification = cookiePair(signup.response, '__Host-ah_verification');
+      if (!verification) throw new LiveCheckError('signup', 0, 'VERIFICATION_COOKIE_MISSING');
+      const emailStart = await appRequest(normalizedBase, '/api/auth/v1/account-verification/email/start', {
+        method: 'POST', cookie: `${verification}; ${device}`, body: {}
+      });
+      if (emailStart.response.status !== 202 || emailStart.body?.verification?.sent !== true || emailStart.body?.authenticated !== false) {
+        throw new LiveCheckError('email-selection', emailStart.response.status, emailStart.body?.error?.code || 'EMAIL_START');
+      }
+    } else if (signup.body?.verification?.sent !== true) {
+      throw new LiveCheckError('signup', 0, 'VERIFICATION_NOT_SENT');
+    }
 
     const denied = await appRequest(normalizedBase, '/api/auth/v1/login', {
       method: 'POST', cookie: device, body: { email: mailbox.address, password: accountPassword }
     });
-    if (denied.response.status !== 403 || denied.body?.error?.code !== 'EMAIL_NOT_VERIFIED' || cookiePair(denied.response, '__Host-ah_session')) {
+    const deniedSafely = denied.response.status === 403 && denied.body?.error?.code === 'EMAIL_NOT_VERIFIED'
+      || denied.response.status === 202 && denied.body?.authenticated === false && denied.body?.verification?.selectionRequired === true;
+    if (!deniedSafely || cookiePair(denied.response, '__Host-ah_session')) {
       throw new LiveCheckError(
         'verified-gate',
         denied.response.status,
