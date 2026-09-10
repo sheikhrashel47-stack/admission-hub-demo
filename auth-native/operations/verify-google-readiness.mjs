@@ -33,9 +33,12 @@ export async function verifyGoogleReadiness({ apiKey, fetchImpl = globalThis.fet
     }
     const auditSessionId = `readiness-${crypto.randomUUID()}-${crypto.randomUUID()}`;
     const redirect = await provider.inspectGoogleRedirectFlow(auditSessionId);
-    if (redirect.available !== true || redirect.sessionBound !== true || redirect.responseMode !== 'code') {
-      throw new GoogleReadinessError('GOOGLE_REDIRECT_FLOW_NOT_READY');
-    }
+    if (
+      redirect.available !== true ||
+      redirect.sessionBound !== true ||
+      redirect.responseMode !== 'code' ||
+      redirect.authorizationRequestAccepted !== true
+    ) throw new GoogleReadinessError('GOOGLE_REDIRECT_FLOW_NOT_READY');
     return Object.freeze({
       ready: true,
       provider: 'google.com',
@@ -43,7 +46,8 @@ export async function verifyGoogleReadiness({ apiKey, fetchImpl = globalThis.fet
       source,
       redirectSessionBound: true,
       redirectResponseMode: 'code',
-      redirectCallbackKind: redirect.callbackKind
+      redirectCallbackKind: redirect.callbackKind,
+      authorizationRequestAccepted: true
     });
   } catch (cause) {
     throw asReadinessError(cause);
@@ -53,7 +57,7 @@ export async function verifyGoogleReadiness({ apiKey, fetchImpl = globalThis.fet
 async function main({ env = process.env, stdout = process.stdout, stderr = process.stderr } = {}) {
   try {
     const result = await verifyGoogleReadiness({ apiKey: env.FIREBASE_WEB_API_KEY });
-    stdout.write(`GOOGLE_AUTH_READINESS status=READY provider=${result.provider} clientIdValidated=${result.clientIdValidated} source=${result.source} redirectSessionBound=${result.redirectSessionBound} redirectResponseMode=${result.redirectResponseMode} redirectCallbackKind=${result.redirectCallbackKind} clientIdPrinted=false keyPrinted=false credentialPrinted=false authorizationUrlPrinted=false\n`);
+    stdout.write(`GOOGLE_AUTH_READINESS status=READY provider=${result.provider} clientIdValidated=${result.clientIdValidated} source=${result.source} redirectSessionBound=${result.redirectSessionBound} redirectResponseMode=${result.redirectResponseMode} redirectCallbackKind=${result.redirectCallbackKind} authorizationRequestAccepted=${result.authorizationRequestAccepted} clientIdPrinted=false keyPrinted=false credentialPrinted=false authorizationUrlPrinted=false\n`);
   } catch (cause) {
     const safe = asReadinessError(cause);
     stderr.write(`::error title=Google Auth readiness check failed::code=${safe.code} status=${safe.status} credentialPrinted=false\n`);

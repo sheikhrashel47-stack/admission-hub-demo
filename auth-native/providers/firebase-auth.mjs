@@ -156,11 +156,31 @@ export class FirebaseEmailPasswordProvider {
       !responseTypes.has('code') ||
       redirectUri.protocol !== 'https:'
     ) throw new FirebaseRequestError('INVALID_PROVIDER_RESPONSE');
+    let authorizationResponse;
+    try {
+      authorizationResponse = await this.fetch(authUri.href, {
+        method: 'GET',
+        headers: { Accept: 'text/html', 'Cache-Control': 'no-store' },
+        redirect: 'manual',
+        signal: AbortSignal.timeout(12_000)
+      });
+    } catch { throw new FirebaseRequestError('NETWORK_ERROR'); }
+    const redirected = authorizationResponse.status >= 300 && authorizationResponse.status < 400;
+    if (!authorizationResponse.ok && !redirected) throw new FirebaseRequestError('OAUTH_AUTHORIZATION_REQUEST_REJECTED', authorizationResponse.status);
+    if (redirected) {
+      let location;
+      try { location = new URL(String(authorizationResponse.headers.get('Location') || ''), authUri); }
+      catch { throw new FirebaseRequestError('INVALID_PROVIDER_RESPONSE'); }
+      if (location.protocol !== 'https:' || location.hostname !== 'accounts.google.com') {
+        throw new FirebaseRequestError('INVALID_PROVIDER_RESPONSE');
+      }
+    }
     return Object.freeze({
       available: true,
       sessionBound: true,
       responseMode: 'code',
-      callbackKind
+      callbackKind,
+      authorizationRequestAccepted: true
     });
   }
 

@@ -250,7 +250,8 @@ test('Google readiness audit accepts an enabled Firebase project config without 
     apiKey: 'firebase-test-api-key-123456789',
     fetchImpl: async (url, options) => {
       calls.push({ url: String(url), options });
-      if (options.method === 'GET') {
+      const parsed = new URL(url);
+      if (parsed.pathname.endsWith('/projects')) {
         return response({
           projectId: 'admission-hub-test',
           authorizedDomains: ['admissionhub.pages.dev'],
@@ -260,6 +261,9 @@ test('Google readiness audit accepts an enabled Firebase project config without 
             clientId: '123456789012-readinessclient.apps.googleusercontent.com'
           }]
         });
+      }
+      if (parsed.hostname === 'accounts.google.com') {
+        return new Response(null, { status: 302, headers: { Location: 'https://accounts.google.com/v3/signin/identifier' } });
       }
       const body = JSON.parse(options.body);
       return response({
@@ -276,9 +280,10 @@ test('Google readiness audit accepts an enabled Firebase project config without 
     source: 'project-config',
     redirectSessionBound: true,
     redirectResponseMode: 'code',
-    redirectCallbackKind: 'firebase-handler'
+    redirectCallbackKind: 'firebase-handler',
+    authorizationRequestAccepted: true
   });
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
   assert.equal(calls[0].options.method, 'GET');
   assert.equal(calls[0].options.redirect, 'manual');
   const redirectProbe = JSON.parse(calls[1].options.body);
@@ -297,6 +302,9 @@ test('Google readiness audit may validate Firebase createAuthUri but never signs
       paths.push({ path: parsed.pathname, method: options.method, body: bodyText });
       if (parsed.pathname.endsWith('/projects')) {
         return response({ projectId: 'admission-hub-test', authorizedDomains: ['admissionhub.pages.dev'] });
+      }
+      if (parsed.hostname === 'accounts.google.com') {
+        return new Response(null, { status: 302, headers: { Location: 'https://accounts.google.com/v3/signin/identifier' } });
       }
       const body = JSON.parse(bodyText);
       if (body.authFlowType === 'CODE_FLOW') {
@@ -318,13 +326,41 @@ test('Google readiness audit may validate Firebase createAuthUri but never signs
   assert.equal(result.redirectSessionBound, true);
   assert.equal(result.redirectResponseMode, 'code');
   assert.equal(result.redirectCallbackKind, 'firebase-handler');
+  assert.equal(result.authorizationRequestAccepted, true);
   assert.deepEqual(paths.map(row => [row.path, row.method]), [
     ['/v1/projects', 'GET'],
     ['/v1/accounts:createAuthUri', 'POST'],
-    ['/v1/accounts:createAuthUri', 'POST']
+    ['/v1/accounts:createAuthUri', 'POST'],
+    ['/o/oauth2/v2/auth', 'GET']
   ]);
   assert.equal(paths.some(row => /signIn|signUp/.test(row.path)), false);
   assert.equal(paths.some(row => /id_token|access_token|password/i.test(row.body)), false);
+});
+
+test('Google readiness audit rejects an OAuth authorization request that Google refuses before sign-in', async () => {
+  await assert.rejects(
+    verifyGoogleReadiness({
+      apiKey: 'firebase-test-api-key-123456789',
+      fetchImpl: async (url, options) => {
+        const parsed = new URL(url);
+        if (parsed.pathname.endsWith('/projects')) {
+          return response({
+            projectId: 'admission-hub-test',
+            authorizedDomains: ['admissionhub.pages.dev'],
+            idpConfig: [{ provider: 'google.com', enabled: true, clientId: '123456789012-readinessclient.apps.googleusercontent.com' }]
+          });
+        }
+        if (parsed.hostname === 'accounts.google.com') return new Response(null, { status: 400 });
+        const body = JSON.parse(options.body);
+        return response({
+          providerId: 'google.com',
+          sessionId: body.sessionId,
+          authUri: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=123456789012-readinessclient.apps.googleusercontent.com&response_type=code&redirect_uri=https%3A%2F%2Fadmissionhub.pages.dev%2F%3FgoogleAuthCallback%3D1'
+        });
+      }
+    }),
+    error => error instanceof GoogleReadinessError && error.code === 'OAUTH_AUTHORIZATION_REQUEST_REJECTED' && error.status === 400
+  );
 });
 
 test('Google readiness audit rejects an untrusted OAuth authorization host with a bounded code', async () => {
