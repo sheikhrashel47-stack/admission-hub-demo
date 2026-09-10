@@ -1,0 +1,179 @@
+name: Prepare Telegram Verification Canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type PREPARE_TELEGRAM_CANARY to verify the existing bot privately, bind its webhook, and publish only the exact canary URL
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admission-hub-email-gateway-production
+  cancel-in-progress: false
+
+jobs:
+  prepare-canary:
+    if: ${{ inputs.confirmation == 'PREPARE_TELEGRAM_CANARY' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: email-gateway-production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Verify exact bundle, Auth contracts, and retired-account boundary
+        run: |
+          set -eu
+          npm run check:worker-bundle
+          npm run test:production-auth
+          node account-retirement.test.mjs
+
+      - name: Verify required Worker bindings by name only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_WORKER_NAME: admission-gk
+        run: node auth-native/operations/verify-telegram-bindings.mjs
+
+      - name: Capture current Worker version for bounded rollback
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -eu
+          npx --yes wrangler@4.35.0 deployments status --name admission-gk --json > "${RUNNER_TEMP}/worker-deployment.json"
+          PREVIOUS_WORKER_VERSION="$(node -e "const x=require(process.argv[1]); const rows=Array.isArray(x)?x:[x]; const versions=rows.flatMap(row=>Array.isArray(row?.versions)?row.versions:[]); const v=versions.find(v=>Number(v.percentage)===100); if(!v?.version_id) process.exit(1); process.stdout.write(v.version_id)" "${RUNNER_TEMP}/worker-deployment.json")"
+          rm -f "${RUNNER_TEMP}/worker-deployment.json"
+          echo "PREVIOUS_WORKER_VERSION=${PREVIOUS_WORKER_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Deploy Telegram-only verification canary
+        id: worker-deploy
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.35.0'
+          command: deploy --config wrangler.toml
+
+      - name: Verify Firebase binding remains installed
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FIREBASE_WORKER_BINDING_EXPECT: present
+        run: node auth-native/operations/verify-worker-binding.mjs
+
+      - name: Install a transient canary-activation proof
+        id: ephemeral-secret
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -eu
+          umask 077
+          node -e "process.stdout.write(require('node:crypto').randomBytes(48).toString('base64url'))" > "${RUNNER_TEMP}/telegram-activation-proof"
+          proof="$(cat "${RUNNER_TEMP}/telegram-activation-proof")"
+          echo "::add-mask::$proof"
+          printf '%s' "$proof" | npx --yes wrangler@4.35.0 secret put TELEGRAM_CANARY_ACTIVATION_SECRET --name admission-gk
+
+      - name: Validate bot identity and configure the secret webhook
+        id: telegram-activate
+        run: |
+          set -eu
+          proof="$(cat "${RUNNER_TEMP}/telegram-activation-proof")"
+          echo "::add-mask::$proof"
+          ready=false
+          for attempt in 1 2 3 4; do
+            status="$(curl --silent --show-error --connect-timeout 10 --max-time 60 --output "${RUNNER_TEMP}/telegram-activation-response.json" --write-out '%{http_code}' \
+              -X POST -H 'Content-Type: application/json' -H "X-AH-Telegram-Activation: $proof" --data '{}' \
+              'https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/canary/activate' || true)"
+            if [ "$status" = '200' ] && node -e "const x=require(process.argv[1]); if(x?.ok!==true||x?.ready!==true||x?.identityReady!==true||x?.webhookReady!==true||x?.endpointAccepted!==true||typeof x?.webhookChanged!=='boolean'||Object.keys(x).some(k=>!['ok','ready','identityReady','webhookReady','endpointAccepted','webhookChanged'].includes(k))) process.exit(1)" "${RUNNER_TEMP}/telegram-activation-response.json" 2>/dev/null; then
+              ready=true
+              break
+            fi
+            [ "$attempt" = '4' ] || sleep 5
+          done
+          test "$ready" = 'true'
+          changed="$(node -e "const x=require(process.argv[1]); process.stdout.write(String(x.webhookChanged))" "${RUNNER_TEMP}/telegram-activation-response.json")"
+          echo "webhook_changed=$changed" >> "$GITHUB_OUTPUT"
+          echo 'Telegram canary bot identity and secret webhook are ready; no token, username, user ID, chat ID, or URL was printed.'
+
+      - name: Recheck Firebase Email and Password session lifecycle
+        env:
+          AUTH_LIVE_BASE: https://admission-gk.admissionhub.workers.dev
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+        run: node auth-native/operations/live-mailbox-e2e.mjs
+
+      - name: Build sanitized Pages bundle
+        run: |
+          set -eu
+          rm -rf dist
+          mkdir -p dist
+          rsync -a --exclude='.git' --exclude='node_modules' --exclude='docs' --exclude='AGENT_RESUME' --exclude='ai-proxy' --exclude='auth' --exclude='auth-native' --exclude='email-gateway' --exclude='uploads' --exclude='.github' --exclude='gk-agent-worker.js' --exclude='public-worker.js' --exclude='ai-agent.js' --exclude='worker-bundle.mjs' --exclude='voice-worker.js' --exclude='notification-worker.js' --exclude='wrangler.toml' --exclude='package.json' --exclude='package-lock.json' --exclude='*.test.mjs' --exclude='*.md' ./ dist/
+
+      - name: Deploy same-origin canary UI
+        id: pages-deploy
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name admissionhub --branch main
+
+      - name: Verify public isolation and exact Telegram canary readiness
+        run: |
+          set -eu
+          public_body="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/api/auth/v1/config')"
+          canary_body="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/api/auth/v1/config?telegramCanary=1')"
+          node -e "const x=JSON.parse(process.argv[1]); const m=x?.auth?.methods; if(x?.auth?.available!==true||m?.emailPassword?.available!==true||m?.google?.available!==true||m?.google?.availabilityCode!=='READY'||m?.passkey?.available!==false||m?.backup?.available!==false||m?.backup?.availabilityCode!=='LIVE_E2E_PENDING'||m?.backup?.providerNamesExposed!==false) process.exit(1)" "$public_body"
+          node -e "const x=JSON.parse(process.argv[1]); const b=x?.auth?.methods?.backup; if(b?.available!==true||b?.availabilityCode!=='READY'||b?.genericFlow!==true||b?.providerNamesExposed!==false||b?.contactInput!=='none'||/telegram|bot|token|username|chat/i.test(JSON.stringify(b))) process.exit(1)" "$canary_body"
+          echo 'Ordinary visitors retain Google and Email/Password with backup hidden; the exact Telegram canary is READY without provider identifiers.'
+
+      - name: Verify Google browser origin remains accepted
+        run: node auth-native/operations/verify-google-browser-origin.mjs
+
+      - name: Remove configured webhook after an unsuccessful canary setup
+        if: ${{ failure() && steps.telegram-activate.outputs.webhook_changed == 'true' && steps.ephemeral-secret.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          proof="$(cat "${RUNNER_TEMP}/telegram-activation-proof" 2>/dev/null || true)"
+          test -n "$proof" || exit 0
+          echo "::add-mask::$proof"
+          curl --silent --show-error --connect-timeout 10 --max-time 45 --output /dev/null \
+            -X POST -H 'Content-Type: application/json' -H "X-AH-Telegram-Activation: $proof" --data '{}' \
+            'https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/canary/deactivate' || true
+
+      - name: Remove transient canary-activation proof
+        if: ${{ always() && steps.ephemeral-secret.outcome == 'success' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.35.0 secret delete TELEGRAM_CANARY_ACTIVATION_SECRET --name admission-gk
+
+      - name: Remove ephemeral activation files
+        if: ${{ always() }}
+        run: rm -f -- "${RUNNER_TEMP}/telegram-activation-proof" "${RUNNER_TEMP}/telegram-activation-response.json"
+
+      - name: Verify transient activation route is closed
+        if: ${{ success() }}
+        run: |
+          status="$(curl --silent --show-error --connect-timeout 10 --max-time 30 --output /dev/null --write-out '%{http_code}' \
+            -X POST -H 'Content-Type: application/json' --data '{}' \
+            'https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/canary/activate')"
+          test "$status" = '403'
+          echo 'Transient Telegram activation route is closed.'
+
+      - name: Roll back Worker when canary preparation does not complete
+        if: ${{ failure() && steps.worker-deploy.outcome == 'success' && env.PREVIOUS_WORKER_VERSION != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.35.0 rollback "$PREVIOUS_WORKER_VERSION" --name admission-gk --message "Automatic rollback after failed Telegram canary preparation" --yes

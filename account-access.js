@@ -294,12 +294,19 @@
     try {
       const current = new URL(location.href);
       const query = new URLSearchParams();
-      for (const name of ['googleCanary', 'passkeyCanary']) {
+      for (const name of ['googleCanary', 'passkeyCanary', 'telegramCanary']) {
         if (current.searchParams.get(name) === '1') query.set(name, '1');
       }
       const suffix = query.toString();
       return `/config${suffix ? `?${suffix}` : ''}`;
     } catch (_) { return '/config'; }
+  };
+
+  const backupApiPath = path => {
+    try {
+      const current = new URL(location.href);
+      return current.searchParams.get('telegramCanary') === '1' ? `${path}?telegramCanary=1` : path;
+    } catch (_) { return path; }
   };
 
   const api = async (path, options = {}) => {
@@ -601,7 +608,7 @@
     if (state.busy || !state.session || !state.capabilities.backup.available) return;
     setBusy(true);
     try {
-      const result = await api('/backup/request', {
+      const result = await api(backupApiPath('/backup/request'), {
         method: 'POST',
         body: { purpose: 'account-backup', ...(contact ? { contact } : {}) }
       });
@@ -768,7 +775,7 @@
       if (!remote && !/^\d{6}$/.test(code)) return message('৬ সংখ্যার কোড লিখুন।', 'error');
       setBusy(true);
       try {
-        await api('/backup/verify', {
+        await api(backupApiPath('/backup/verify'), {
           method: 'POST',
           body: {
             attemptId: state.backup.attemptId,

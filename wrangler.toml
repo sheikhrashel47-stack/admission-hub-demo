@@ -7,8 +7,11 @@ workers_dev = true
 FIREBASE_CONTINUE_URL = "https://admissionhub.pages.dev/?firebaseVerified=1"
 GOOGLE_AUTH_ACTIVATION = "enabled"
 PASSKEY_AUTH_ACTIVATION = "canary"
-VERIFICATION_AUTH_ACTIVATION = "disabled"
-VERIFICATION_ORCHESTRATOR_CONFIG = '{"enabled":false}'
+VERIFICATION_AUTH_ACTIVATION = "canary"
+# Internal admission cap: existing 120 challenges/minute global limiter × 1,440; this is not a Telegram-reported quota.
+VERIFICATION_ORCHESTRATOR_CONFIG = '{"enabled":true,"providers":[{"id":"telegram","enabled":true,"priority":1,"dailyQuota":172800,"timeoutMs":20000,"label":"secure backup"}]}'
+TELEGRAM_AUTH_WEBHOOK_URL = "https://admission-gk.admissionhub.workers.dev/api/auth/v1/telegram/webhook"
+TELEGRAM_AUTH_DAILY_QUOTA = "172800"
 
 [triggers]
 crons = ["30 18 * * *"]

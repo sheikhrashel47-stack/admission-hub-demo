@@ -4,14 +4,15 @@ import {
   VERIFICATION_MODES,
   VerificationProviderError
 } from './provider-contract.mjs';
+import { deriveTelegramWebhookSecret, validTelegramWebhookSecret } from './telegram-security.mjs';
 
 const safeInteger = (value, min = 0, max = Number.MAX_SAFE_INTEGER) => {
   const number = Number(value);
   return Number.isInteger(number) && number >= min && number <= max ? number : 0;
 };
 const validSecret = value => typeof value === 'string' && value.length >= 20 && value.length <= 4096 && !/[\r\n\u0000]/.test(value);
-const validTelegramBotToken = value => /^\d{6,12}:[A-Za-z0-9_-]{30,64}$/.test(String(value || ''));
-const validTelegramWebhookSecret = value => /^[A-Za-z0-9_-]{20,256}$/.test(String(value || ''));
+const validTelegramBotToken = value => /^[1-9]\d{5,19}:[A-Za-z0-9_-]{30,100}$/.test(String(value || ''));
+const validTelegramBotUsername = value => /^(?=.{5,32}$)[A-Za-z][A-Za-z0-9_]*bot$/i.test(String(value || ''));
 
 function httpsOrigin(value) {
   try {
@@ -211,34 +212,138 @@ export class OfficialWhatsAppVerificationProvider {
 }
 
 export class TelegramLinkVerificationProvider {
-  constructor({ botUsername, botToken, webhookSecret, webhookUrl, declaredDailyQuota, fetchImpl = globalThis.fetch } = {}) {
+  constructor({ botUsername, botToken, webhookSecret, webhookSecretSource, webhookUrl, declaredDailyQuota, fetchImpl = globalThis.fetch, cryptoImpl = globalThis.crypto } = {}) {
     this.id = 'telegram';
     this.channel = VERIFICATION_CHANNELS.TELEGRAM;
     this.verificationMode = VERIFICATION_MODES.PROVIDER_EVIDENCE;
-    this.botUsername = /^[A-Za-z][A-Za-z0-9_]{4,31}bot$/i.test(String(botUsername || '')) ? String(botUsername) : '';
+    this.botUsername = validTelegramBotUsername(botUsername) ? String(botUsername) : '';
     this.botToken = validTelegramBotToken(botToken) ? String(botToken) : '';
+    this.botId = this.botToken ? this.botToken.split(':', 1)[0] : '';
     this.webhookSecret = validTelegramWebhookSecret(webhookSecret) ? String(webhookSecret) : '';
+    this.webhookSecretSource = validSecret(webhookSecretSource) ? String(webhookSecretSource) : '';
     this.webhookUrl = telegramWebhookEndpoint(webhookUrl);
     this.declaredDailyQuota = safeInteger(declaredDailyQuota, 1, 10_000_000);
     this.fetch = typeof fetchImpl === 'function' ? fetchImpl.bind(globalThis) : null;
-    this.configured = Boolean(this.botUsername && this.botToken && this.webhookSecret && this.webhookUrl && this.declaredDailyQuota && this.fetch);
+    this.crypto = cryptoImpl;
+    this.resolvedBotUsername = '';
+    this.configured = Boolean(
+      this.botToken && (this.webhookSecret || this.webhookSecretSource)
+      && this.webhookUrl && this.declaredDailyQuota && this.fetch
+    );
+  }
+
+  #base(method) { return `https://api.telegram.org/bot${this.botToken}/${method}`; }
+  #headers(content = false) {
+    return {
+      Accept: 'application/json',
+      'Cache-Control': 'no-store',
+      ...(content ? { 'Content-Type': 'application/json' } : {})
+    };
+  }
+
+  async #resolvedWebhookSecret() {
+    if (this.webhookSecret) return this.webhookSecret;
+    const derived = await deriveTelegramWebhookSecret(this.webhookSecretSource, this.crypto);
+    if (!derived) throw new VerificationProviderError('NOT_CONFIGURED', VERIFICATION_FAILURE_CLASS.HARD);
+    return derived;
+  }
+
+  async #identity() {
+    const identity = await fetchJson(this.fetch, this.#base('getMe'), { method: 'GET', headers: this.#headers() });
+    const username = String(identity?.result?.username || '');
+    const providerId = String(identity?.result?.id || '');
+    const ready = identity?.ok === true
+      && identity?.result?.is_bot === true
+      && providerId === this.botId
+      && validTelegramBotUsername(username)
+      && (!this.botUsername || username.toLowerCase() === this.botUsername.toLowerCase());
+    if (ready) this.resolvedBotUsername = username;
+    return { ready, username };
+  }
+
+  async #webhookInfo() {
+    return fetchJson(this.fetch, this.#base('getWebhookInfo'), { method: 'GET', headers: this.#headers() });
+  }
+
+  async #deleteWebhook() {
+    const payload = await fetchJson(this.fetch, this.#base('deleteWebhook'), {
+      method: 'POST',
+      headers: this.#headers(true),
+      body: JSON.stringify({ drop_pending_updates: false })
+    });
+    if (payload?.ok !== true || payload?.result !== true) {
+      throw new VerificationProviderError('INVALID_PROVIDER_RESPONSE', VERIFICATION_FAILURE_CLASS.HARD);
+    }
   }
 
   async checkAvailability() {
     if (!this.configured) return { available: false, code: 'NOT_CONFIGURED' };
-    const base = `https://api.telegram.org/bot${this.botToken}`;
-    const headers = { Accept: 'application/json', 'Cache-Control': 'no-store' };
-    const [identity, webhook] = await Promise.all([
-      fetchJson(this.fetch, `${base}/getMe`, { method: 'GET', headers }),
-      fetchJson(this.fetch, `${base}/getWebhookInfo`, { method: 'GET', headers })
-    ]);
-    const username = String(identity?.result?.username || '');
-    const identityReady = identity?.ok === true && username.toLowerCase() === this.botUsername.toLowerCase();
-    const webhookReady = webhook?.ok === true && String(webhook?.result?.url || '') === this.webhookUrl;
+    const [identity, webhook] = await Promise.all([this.#identity(), this.#webhookInfo()]);
+    const currentUrl = String(webhook?.result?.url || '');
+    const webhookReady = webhook?.ok === true && currentUrl === this.webhookUrl;
+    const updates = webhook?.result?.allowed_updates;
+    const updateScopeReady = !Array.isArray(updates) || (updates.length === 1 && updates[0] === 'message');
     return {
-      available: identityReady && webhookReady,
-      code: !identityReady ? 'BOT_IDENTITY_MISMATCH' : !webhookReady ? 'WEBHOOK_NOT_READY' : 'READY'
+      available: identity.ready && webhookReady && updateScopeReady,
+      code: !identity.ready ? 'BOT_IDENTITY_MISMATCH' : !webhookReady ? 'WEBHOOK_NOT_READY' : !updateScopeReady ? 'WEBHOOK_SCOPE_MISMATCH' : 'READY'
     };
+  }
+
+  async configureWebhook() {
+    if (!this.configured) throw new VerificationProviderError('NOT_CONFIGURED', VERIFICATION_FAILURE_CLASS.HARD);
+    const identity = await this.#identity();
+    if (!identity.ready) throw new VerificationProviderError('BOT_IDENTITY_MISMATCH', VERIFICATION_FAILURE_CLASS.HARD);
+    const before = await this.#webhookInfo();
+    const previousUrl = String(before?.result?.url || '');
+    if (previousUrl && previousUrl !== this.webhookUrl) {
+      throw new VerificationProviderError('WEBHOOK_CONFLICT', VERIFICATION_FAILURE_CLASS.HARD);
+    }
+    const changed = !previousUrl;
+    try {
+      const secret = await this.#resolvedWebhookSecret();
+      const configured = await fetchJson(this.fetch, this.#base('setWebhook'), {
+        method: 'POST',
+        headers: this.#headers(true),
+        body: JSON.stringify({
+          url: this.webhookUrl,
+          secret_token: secret,
+          allowed_updates: ['message'],
+          drop_pending_updates: false
+        })
+      });
+      if (configured?.ok !== true || configured?.result !== true) {
+        throw new VerificationProviderError('INVALID_PROVIDER_RESPONSE', VERIFICATION_FAILURE_CLASS.HARD);
+      }
+      const after = await this.#webhookInfo();
+      const scope = after?.result?.allowed_updates;
+      const webhookReady = after?.ok === true
+        && String(after?.result?.url || '') === this.webhookUrl
+        && (!Array.isArray(scope) || (scope.length === 1 && scope[0] === 'message'));
+      if (!webhookReady) throw new VerificationProviderError('WEBHOOK_NOT_READY', VERIFICATION_FAILURE_CLASS.HARD);
+      const probe = await fetchJson(this.fetch, this.webhookUrl, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Cache-Control': 'no-store',
+          'Content-Type': 'application/json',
+          'X-Telegram-Bot-Api-Secret-Token': secret
+        },
+        body: JSON.stringify({ update_id: 0 })
+      });
+      if (probe?.ok !== true) throw new VerificationProviderError('WEBHOOK_ENDPOINT_REJECTED', VERIFICATION_FAILURE_CLASS.HARD);
+      return Object.freeze({ ready: true, identityReady: true, webhookReady: true, endpointAccepted: true, webhookChanged: changed });
+    } catch (cause) {
+      if (changed) await this.#deleteWebhook().catch(() => {});
+      throw cause;
+    }
+  }
+
+  async removeConfiguredWebhook() {
+    if (!this.configured) throw new VerificationProviderError('NOT_CONFIGURED', VERIFICATION_FAILURE_CLASS.HARD);
+    const current = await this.#webhookInfo();
+    if (String(current?.result?.url || '') !== this.webhookUrl) return Object.freeze({ removed: false });
+    await this.#deleteWebhook();
+    return Object.freeze({ removed: true });
   }
 
   async getRemainingQuota({ now = Date.now() } = {}) {
@@ -247,7 +352,7 @@ export class TelegramLinkVerificationProvider {
       remaining: this.declaredDailyQuota,
       limit: this.declaredDailyQuota,
       resetAt: (Math.floor(Number(now) / 86_400_000) + 1) * 86_400_000,
-      source: 'operator-declared-cap'
+      source: 'internal-safety-cap'
     };
   }
 
@@ -256,7 +361,11 @@ export class TelegramLinkVerificationProvider {
     if (!/^[A-Za-z0-9_-]{32,64}$/.test(String(input.linkToken || ''))) {
       throw new VerificationProviderError('INVALID_LINK_TOKEN', VERIFICATION_FAILURE_CLASS.HARD);
     }
-    const link = new URL(`https://t.me/${this.botUsername}`);
+    if (!this.resolvedBotUsername) {
+      const identity = await this.#identity();
+      if (!identity.ready) throw new VerificationProviderError('BOT_IDENTITY_MISMATCH', VERIFICATION_FAILURE_CLASS.HARD);
+    }
+    const link = new URL(`https://t.me/${this.resolvedBotUsername}`);
     link.searchParams.set('start', input.linkToken);
     return { accepted: true, interaction: { type: 'telegram-link', url: link.href } };
   }
@@ -286,8 +395,9 @@ export function createConfiguredVerificationProviders(env = {}, { fetchImpl = gl
     }),
     new TelegramLinkVerificationProvider({
       botUsername: env.TELEGRAM_AUTH_BOT_USERNAME,
-      botToken: env.TELEGRAM_AUTH_BOT_TOKEN,
+      botToken: env.TELEGRAM_AUTH_BOT_TOKEN || env.TG_BOT_TOKEN,
       webhookSecret: env.TELEGRAM_AUTH_WEBHOOK_SECRET,
+      webhookSecretSource: env.AUTH_HMAC_SECRET,
       webhookUrl: env.TELEGRAM_AUTH_WEBHOOK_URL,
       declaredDailyQuota: env.TELEGRAM_AUTH_DAILY_QUOTA,
       fetchImpl

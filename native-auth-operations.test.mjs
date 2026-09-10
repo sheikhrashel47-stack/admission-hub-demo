@@ -9,6 +9,7 @@ import { auditRecentMailjetDelivery } from './auth-native/operations/audit-mailj
 import { FirebaseConfigError, validateFirebaseProjectConfig, verifyFirebaseConfig } from './auth-native/operations/verify-firebase-config.mjs';
 import { GoogleReadinessError, verifyGoogleReadiness } from './auth-native/operations/verify-google-readiness.mjs';
 import { classifyGoogleBrowserPage } from './auth-native/operations/verify-google-browser-origin.mjs';
+import { summarizeTelegramBindings } from './auth-native/operations/verify-telegram-bindings.mjs';
 import { auditVerificationMessage, verificationAction } from './auth-native/operations/live-mailbox-e2e.mjs';
 import { summarizePlacementReport } from './auth-native/operations/live-placement-audit.mjs';
 import { FirebaseEmailPasswordProvider } from './auth-native/providers/firebase-auth.mjs';
@@ -388,6 +389,22 @@ test('Google browser-origin classifier accepts only a non-error Google challenge
   assert.equal(classifyGoogleBrowserPage({
     url: 'https://evil.example/signin', text: 'Sign in with Google'
   }).ready, false);
+});
+
+test('Telegram readiness inventory checks only required binding names and never values', () => {
+  assert.deepEqual(summarizeTelegramBindings([
+    'AUTH_HMAC_SECRET', 'FIREBASE_WEB_API_KEY', 'TG_BOT_TOKEN', 'UNRELATED_SECRET'
+  ]), {
+    ready: true,
+    authAuthority: true,
+    firebaseAuthority: true,
+    botCredential: true,
+    valuesRead: false
+  });
+  const missing = summarizeTelegramBindings(['AUTH_HMAC_SECRET', 'FIREBASE_WEB_API_KEY']);
+  assert.equal(missing.ready, false);
+  assert.equal(missing.botCredential, false);
+  assert.equal('names' in missing, false);
 });
 
 test('live Firebase check extracts only a standard verify-email action', () => {

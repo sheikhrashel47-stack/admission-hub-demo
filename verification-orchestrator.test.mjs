@@ -469,3 +469,32 @@ test('admin status is sanitized and reports priority, quota, reset, health, rate
   assert.equal(serialized.includes(identity.email), false);
   assert.equal(serialized.includes(identity.sessionToken), false);
 });
+
+test('Telegram webhook setup is available only through the enabled Telegram slot and returns bounded state', async () => {
+  const provider = new MockProvider({
+    id: 'telegram',
+    channel: VERIFICATION_CHANNELS.TELEGRAM,
+    verificationMode: VERIFICATION_MODES.PROVIDER_EVIDENCE
+  });
+  let configured = 0;
+  let removed = 0;
+  provider.configureWebhook = async () => {
+    configured += 1;
+    return { ready: true, identityReady: true, webhookReady: true, endpointAccepted: true, webhookChanged: true, privateDetail: 'must-not-return' };
+  };
+  provider.removeConfiguredWebhook = async () => { removed += 1; return { removed: true }; };
+  const app = setup({ providers: [provider] });
+  assert.deepEqual(await app.orchestrator.configureTelegramWebhook(), {
+    ready: true,
+    identityReady: true,
+    webhookReady: true,
+    endpointAccepted: true,
+    webhookChanged: true
+  });
+  assert.deepEqual(await app.orchestrator.removeTelegramWebhook(), { removed: true });
+  assert.equal(configured, 1);
+  assert.equal(removed, 1);
+
+  const disabled = setup({ providers: [provider], config: { enabled: false, providers: [{ id: 'telegram', enabled: false }] } });
+  await expectCode(() => disabled.orchestrator.configureTelegramWebhook(), AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+});

@@ -4544,6 +4544,45 @@ function verificationConfig(raw) {
 }
 var __verificationConfigTest = Object.freeze({ SLOT_DEFINITIONS, DEFAULT_POLICY, safeJson });
 
+// auth-native/verification/telegram-security.mjs
+var WEBHOOK_CONTEXT = "admission-hub-telegram-webhook-v1";
+var SECRET_PATTERN = /^[A-Za-z0-9_-]{20,256}$/;
+var safeRootSecret = (value) => {
+  const text = String(value || "");
+  return text.length >= 32 && text.length <= 4096 && !/[\r\n\u0000]/.test(text) ? text : "";
+};
+var base64Url = (bytes) => {
+  let binary = "";
+  for (const byte of new Uint8Array(bytes)) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+};
+var validTelegramWebhookSecret = (value) => SECRET_PATTERN.test(String(value || ""));
+async function deriveTelegramWebhookSecret(rootSecret, cryptoImpl = globalThis.crypto) {
+  const source = safeRootSecret(rootSecret);
+  if (!source || !cryptoImpl?.subtle) return "";
+  try {
+    const encoder5 = new TextEncoder();
+    const key = await cryptoImpl.subtle.importKey(
+      "raw",
+      encoder5.encode(source),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signature = await cryptoImpl.subtle.sign("HMAC", key, encoder5.encode(WEBHOOK_CONTEXT));
+    const derived = base64Url(signature);
+    return validTelegramWebhookSecret(derived) ? derived : "";
+  } catch {
+    return "";
+  }
+}
+async function resolveTelegramWebhookSecret(env = {}, cryptoImpl = globalThis.crypto) {
+  const explicit = String(env?.TELEGRAM_AUTH_WEBHOOK_SECRET || "");
+  if (validTelegramWebhookSecret(explicit)) return explicit;
+  return deriveTelegramWebhookSecret(env?.AUTH_HMAC_SECRET, cryptoImpl);
+}
+var __telegramSecurityTest = Object.freeze({ WEBHOOK_CONTEXT, safeRootSecret, base64Url });
+
 // auth-native/worker/public-auth-handler.mjs
 var AUTH_API_PREFIX = "/api/auth/v1";
 var AUTH_SESSION_COOKIE = "__Host-ah_session";
@@ -4828,7 +4867,14 @@ var authSuccess = (request, established, refreshToken, context) => json3(request
 var googleEndpointReady = (env) => ["canary", "enabled"].includes(String(env?.GOOGLE_AUTH_ACTIVATION || ""));
 var googlePublished = (env) => env?.GOOGLE_AUTH_ACTIVATION === "enabled";
 var googleCanaryRequested = (env, url) => env?.GOOGLE_AUTH_ACTIVATION === "canary" && url.searchParams.get("googleCanary") === "1";
-var validWebhookSecret = (value) => /^[A-Za-z0-9_-]{20,256}$/.test(String(value || ""));
+var verificationEndpointReady = (env) => ["canary", "enabled"].includes(String(env?.VERIFICATION_AUTH_ACTIVATION || ""));
+var verificationPublished = (env) => env?.VERIFICATION_AUTH_ACTIVATION === "enabled";
+var telegramCanaryRequested = (env, url) => env?.VERIFICATION_AUTH_ACTIVATION === "canary" && url.searchParams.get("telegramCanary") === "1";
+var telegramActivationAuthorized = (request, env) => {
+  const expected = String(env?.TELEGRAM_CANARY_ACTIVATION_SECRET || "");
+  const supplied = String(request.headers.get("X-AH-Telegram-Activation") || "");
+  return /^[A-Za-z0-9_-]{32,128}$/.test(expected) && supplied.length === expected.length && constantTimeEqual(supplied, expected);
+};
 var adminAuthorized = (request, env) => {
   const expected = String(env?.ADMIN_TOKEN || "");
   const supplied = String(request.headers.get("X-AH-Admin-Token") || "");
@@ -4843,7 +4889,12 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith(`${AUTH_API_PREFIX}/`) && url.pathname !== AUTH_API_PREFIX) return null;
     const origin = request.headers.get("Origin") || "";
-    const originOptional = request.method === "GET" || request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/telegram/webhook`;
+    const telegramOperation = request.method === "POST" && [
+      `${AUTH_API_PREFIX}/telegram/webhook`,
+      `${AUTH_API_PREFIX}/telegram/canary/activate`,
+      `${AUTH_API_PREFIX}/telegram/canary/deactivate`
+    ].includes(url.pathname);
+    const originOptional = request.method === "GET" || telegramOperation;
     if (!origin && !originOptional || origin && !allowedOrigin(origin)) {
       return json3(request, 403, { ok: false, error: { code: "ORIGIN_FORBIDDEN", message: "অনুমোদিত উৎস নয়।" } });
     }
@@ -4867,10 +4918,31 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
     const jar = cookies(request);
     const context = clientContext(request, jar[AUTH_DEVICE_COOKIE]);
     try {
+      if (request.method === "POST" && [
+        `${AUTH_API_PREFIX}/telegram/canary/activate`,
+        `${AUTH_API_PREFIX}/telegram/canary/deactivate`
+      ].includes(url.pathname)) {
+        if (url.hostname !== "admission-gk.admissionhub.workers.dev" || env?.VERIFICATION_AUTH_ACTIVATION !== "canary" || !telegramActivationAuthorized(request, env)) {
+          return json3(request, 403, { ok: false, error: { code: "FORBIDDEN", message: "অনুমতি নেই।" } });
+        }
+        await readJson(request);
+        const action = url.pathname.endsWith("/deactivate") ? "deactivate" : "activate";
+        const result = await callAuthority(env, `/internal/verification/telegram/${action}`, {});
+        return json3(request, 200, {
+          ok: true,
+          ...action === "activate" ? {
+            ready: result?.ready === true,
+            identityReady: result?.identityReady === true,
+            webhookReady: result?.webhookReady === true,
+            endpointAccepted: result?.endpointAccepted === true,
+            webhookChanged: result?.webhookChanged === true
+          } : { removed: result?.removed === true }
+        });
+      }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/telegram/webhook`) {
-        const expected = String(env?.TELEGRAM_AUTH_WEBHOOK_SECRET || "");
+        const expected = await resolveTelegramWebhookSecret(env);
         const supplied = String(request.headers.get("X-Telegram-Bot-Api-Secret-Token") || "");
-        if (!validWebhookSecret(expected) || supplied.length !== expected.length || !constantTimeEqual(supplied, expected)) {
+        if (!validTelegramWebhookSecret(expected) || supplied.length !== expected.length || !constantTimeEqual(supplied, expected)) {
           return json3(request, 403, { ok: false, error: { code: "FORBIDDEN", message: "অনুমতি নেই।" } });
         }
         const payload = await readJson(request);
@@ -4890,7 +4962,8 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
       if (request.method === "GET" && url.pathname === `${AUTH_API_PREFIX}/config`) {
         const googleCanary = googleCanaryRequested(env, url);
         const passkeyCanary = passkeyCanaryRequested(env, url);
-        const cacheVariant = `${googleCanary ? "google-canary" : "public"}:${passkeyCanary ? "passkey-canary" : "public"}`;
+        const telegramCanary = telegramCanaryRequested(env, url);
+        const cacheVariant = `${googleCanary ? "google-canary" : "public"}:${passkeyCanary ? "passkey-canary" : "public"}:${telegramCanary ? "telegram-canary" : "public"}`;
         const cache = publicConfigCache.get(env);
         const cached = cache?.get(cacheVariant);
         if (cached && cached.expiresAt > Date.now()) return json3(request, 200, cached.body);
@@ -4925,8 +4998,14 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
             google = { available: false, availabilityCode: failure.code };
           }
         }
-        let backup = { available: false, availabilityCode: "NOT_ACTIVATED", genericFlow: true, providerNamesExposed: false };
-        if (available) {
+        const verificationRequested = verificationPublished(env) || telegramCanary;
+        let backup = {
+          available: false,
+          availabilityCode: verificationRequested ? "STATUS_UNAVAILABLE" : verificationEndpointReady(env) ? "LIVE_E2E_PENDING" : "NOT_ACTIVATED",
+          genericFlow: true,
+          providerNamesExposed: false
+        };
+        if (available && verificationRequested) {
           try {
             backup = await callAuthority(env, "/internal/verification/capabilities", {});
           } catch {
@@ -5249,7 +5328,9 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         });
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/backup/request`) {
-        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        if (!provider.configured || !(verificationPublished(env) || telegramCanaryRequested(env, url))) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        }
         const body = await readJson(request);
         const contact = String(body.contact || "").trim();
         if (contact && !/^\+[1-9]\d{7,14}$/.test(contact)) throw new NativeAuthError(AUTH_ERROR_CODES.INVALID_INPUT);
@@ -5270,7 +5351,9 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
         });
       }
       if (request.method === "POST" && url.pathname === `${AUTH_API_PREFIX}/backup/verify`) {
-        if (!provider.configured) throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        if (!provider.configured || !(verificationPublished(env) || telegramCanaryRequested(env, url))) {
+          throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        }
         const body = await readJson(request);
         const current = await firebaseReadySession({ provider, jar, env, context });
         const result = await callAuthority(env, "/internal/verification/verify", {
@@ -5332,7 +5415,20 @@ function createNativeAuthHandler({ fetchImpl = globalThis.fetch } = {}) {
     }
   };
 }
-var __publicAuthTest = Object.freeze({ allowedOrigin, providerError, googleEndpointReady, googlePublished, googleCanaryRequested, adminAuthorized, passkeyEndpointReady, passkeyPublished });
+var __publicAuthTest = Object.freeze({
+  allowedOrigin,
+  providerError,
+  googleEndpointReady,
+  googlePublished,
+  googleCanaryRequested,
+  verificationEndpointReady,
+  verificationPublished,
+  telegramCanaryRequested,
+  telegramActivationAuthorized,
+  adminAuthorized,
+  passkeyEndpointReady,
+  passkeyPublished
+});
 
 // email-gateway/worker/email-coordinator.mjs
 var response = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -6243,7 +6339,7 @@ var safeInteraction = (value) => {
   try {
     const url = new URL(String(value.url || ""));
     const token = url.searchParams.get("start") || "";
-    if (url.protocol !== "https:" || url.hostname !== "t.me" || !/^\/[A-Za-z][A-Za-z0-9_]{4,31}bot$/i.test(url.pathname) || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) return null;
+    if (url.protocol !== "https:" || url.hostname !== "t.me" || !/^\/(?=.{5,32}$)[A-Za-z][A-Za-z0-9_]*bot$/i.test(url.pathname) || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) return null;
     return Object.freeze({ type: "telegram-link", url: url.href, proof: "webhook-required", identityKind: "telegram-account", phoneOwnership: false });
   } catch {
     return null;
@@ -6651,6 +6747,41 @@ var VerificationOrchestrator = class {
     }));
     return Object.freeze({ accepted: true, identityKind: "telegram-account", phoneOwnership: false });
   }
+  async configureTelegramWebhook() {
+    const entry = this.config.providers.find((row) => row.id === "telegram" && row.enabled);
+    const provider = entry ? this.providers.get(entry.id) : null;
+    if (!this.config.enabled || !entry || !provider || typeof provider.configureWebhook !== "function") {
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
+    try {
+      const result = await bounded(() => provider.configureWebhook(), entry.timeoutMs);
+      if (result?.ready !== true || result?.identityReady !== true || result?.webhookReady !== true || result?.endpointAccepted !== true) {
+        throw new VerificationProviderError("WEBHOOK_NOT_READY", VERIFICATION_FAILURE_CLASS.HARD);
+      }
+      return Object.freeze({
+        ready: true,
+        identityReady: true,
+        webhookReady: true,
+        endpointAccepted: true,
+        webhookChanged: result.webhookChanged === true
+      });
+    } catch {
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
+  }
+  async removeTelegramWebhook() {
+    const entry = this.config.providers.find((row) => row.id === "telegram" && row.enabled);
+    const provider = entry ? this.providers.get(entry.id) : null;
+    if (!entry || !provider || typeof provider.removeConfiguredWebhook !== "function") {
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
+    try {
+      const result = await bounded(() => provider.removeConfiguredWebhook(), entry.timeoutMs);
+      return Object.freeze({ removed: result?.removed === true });
+    } catch {
+      throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+    }
+  }
   async capabilities() {
     const now = Number(this.now());
     if (this.capabilityCache?.expiresAt > now) return this.capabilityCache.value || this.capabilityCache.promise;
@@ -6761,8 +6892,8 @@ var safeInteger = (value, min = 0, max = Number.MAX_SAFE_INTEGER) => {
   return Number.isInteger(number) && number >= min && number <= max ? number : 0;
 };
 var validSecret = (value) => typeof value === "string" && value.length >= 20 && value.length <= 4096 && !/[\r\n\u0000]/.test(value);
-var validTelegramBotToken = (value) => /^\d{6,12}:[A-Za-z0-9_-]{30,64}$/.test(String(value || ""));
-var validTelegramWebhookSecret = (value) => /^[A-Za-z0-9_-]{20,256}$/.test(String(value || ""));
+var validTelegramBotToken = (value) => /^[1-9]\d{5,19}:[A-Za-z0-9_-]{30,100}$/.test(String(value || ""));
+var validTelegramBotUsername = (value) => /^(?=.{5,32}$)[A-Za-z][A-Za-z0-9_]*bot$/i.test(String(value || ""));
 function httpsOrigin(value) {
   try {
     const url = new URL(String(value || ""));
@@ -6964,33 +7095,126 @@ var OfficialWhatsAppVerificationProvider = class {
   }
 };
 var TelegramLinkVerificationProvider = class {
-  constructor({ botUsername, botToken, webhookSecret, webhookUrl, declaredDailyQuota, fetchImpl = globalThis.fetch } = {}) {
+  constructor({ botUsername, botToken, webhookSecret, webhookSecretSource, webhookUrl, declaredDailyQuota, fetchImpl = globalThis.fetch, cryptoImpl = globalThis.crypto } = {}) {
     this.id = "telegram";
     this.channel = VERIFICATION_CHANNELS.TELEGRAM;
     this.verificationMode = VERIFICATION_MODES.PROVIDER_EVIDENCE;
-    this.botUsername = /^[A-Za-z][A-Za-z0-9_]{4,31}bot$/i.test(String(botUsername || "")) ? String(botUsername) : "";
+    this.botUsername = validTelegramBotUsername(botUsername) ? String(botUsername) : "";
     this.botToken = validTelegramBotToken(botToken) ? String(botToken) : "";
+    this.botId = this.botToken ? this.botToken.split(":", 1)[0] : "";
     this.webhookSecret = validTelegramWebhookSecret(webhookSecret) ? String(webhookSecret) : "";
+    this.webhookSecretSource = validSecret(webhookSecretSource) ? String(webhookSecretSource) : "";
     this.webhookUrl = telegramWebhookEndpoint(webhookUrl);
     this.declaredDailyQuota = safeInteger(declaredDailyQuota, 1, 1e7);
     this.fetch = typeof fetchImpl === "function" ? fetchImpl.bind(globalThis) : null;
-    this.configured = Boolean(this.botUsername && this.botToken && this.webhookSecret && this.webhookUrl && this.declaredDailyQuota && this.fetch);
+    this.crypto = cryptoImpl;
+    this.resolvedBotUsername = "";
+    this.configured = Boolean(
+      this.botToken && (this.webhookSecret || this.webhookSecretSource) && this.webhookUrl && this.declaredDailyQuota && this.fetch
+    );
+  }
+  #base(method) {
+    return `https://api.telegram.org/bot${this.botToken}/${method}`;
+  }
+  #headers(content = false) {
+    return {
+      Accept: "application/json",
+      "Cache-Control": "no-store",
+      ...content ? { "Content-Type": "application/json" } : {}
+    };
+  }
+  async #resolvedWebhookSecret() {
+    if (this.webhookSecret) return this.webhookSecret;
+    const derived = await deriveTelegramWebhookSecret(this.webhookSecretSource, this.crypto);
+    if (!derived) throw new VerificationProviderError("NOT_CONFIGURED", VERIFICATION_FAILURE_CLASS.HARD);
+    return derived;
+  }
+  async #identity() {
+    const identity = await fetchJson(this.fetch, this.#base("getMe"), { method: "GET", headers: this.#headers() });
+    const username = String(identity?.result?.username || "");
+    const providerId = String(identity?.result?.id || "");
+    const ready = identity?.ok === true && identity?.result?.is_bot === true && providerId === this.botId && validTelegramBotUsername(username) && (!this.botUsername || username.toLowerCase() === this.botUsername.toLowerCase());
+    if (ready) this.resolvedBotUsername = username;
+    return { ready, username };
+  }
+  async #webhookInfo() {
+    return fetchJson(this.fetch, this.#base("getWebhookInfo"), { method: "GET", headers: this.#headers() });
+  }
+  async #deleteWebhook() {
+    const payload = await fetchJson(this.fetch, this.#base("deleteWebhook"), {
+      method: "POST",
+      headers: this.#headers(true),
+      body: JSON.stringify({ drop_pending_updates: false })
+    });
+    if (payload?.ok !== true || payload?.result !== true) {
+      throw new VerificationProviderError("INVALID_PROVIDER_RESPONSE", VERIFICATION_FAILURE_CLASS.HARD);
+    }
   }
   async checkAvailability() {
     if (!this.configured) return { available: false, code: "NOT_CONFIGURED" };
-    const base = `https://api.telegram.org/bot${this.botToken}`;
-    const headers = { Accept: "application/json", "Cache-Control": "no-store" };
-    const [identity, webhook] = await Promise.all([
-      fetchJson(this.fetch, `${base}/getMe`, { method: "GET", headers }),
-      fetchJson(this.fetch, `${base}/getWebhookInfo`, { method: "GET", headers })
-    ]);
-    const username = String(identity?.result?.username || "");
-    const identityReady = identity?.ok === true && username.toLowerCase() === this.botUsername.toLowerCase();
-    const webhookReady = webhook?.ok === true && String(webhook?.result?.url || "") === this.webhookUrl;
+    const [identity, webhook] = await Promise.all([this.#identity(), this.#webhookInfo()]);
+    const currentUrl = String(webhook?.result?.url || "");
+    const webhookReady = webhook?.ok === true && currentUrl === this.webhookUrl;
+    const updates = webhook?.result?.allowed_updates;
+    const updateScopeReady = !Array.isArray(updates) || updates.length === 1 && updates[0] === "message";
     return {
-      available: identityReady && webhookReady,
-      code: !identityReady ? "BOT_IDENTITY_MISMATCH" : !webhookReady ? "WEBHOOK_NOT_READY" : "READY"
+      available: identity.ready && webhookReady && updateScopeReady,
+      code: !identity.ready ? "BOT_IDENTITY_MISMATCH" : !webhookReady ? "WEBHOOK_NOT_READY" : !updateScopeReady ? "WEBHOOK_SCOPE_MISMATCH" : "READY"
     };
+  }
+  async configureWebhook() {
+    if (!this.configured) throw new VerificationProviderError("NOT_CONFIGURED", VERIFICATION_FAILURE_CLASS.HARD);
+    const identity = await this.#identity();
+    if (!identity.ready) throw new VerificationProviderError("BOT_IDENTITY_MISMATCH", VERIFICATION_FAILURE_CLASS.HARD);
+    const before = await this.#webhookInfo();
+    const previousUrl = String(before?.result?.url || "");
+    if (previousUrl && previousUrl !== this.webhookUrl) {
+      throw new VerificationProviderError("WEBHOOK_CONFLICT", VERIFICATION_FAILURE_CLASS.HARD);
+    }
+    const changed = !previousUrl;
+    try {
+      const secret = await this.#resolvedWebhookSecret();
+      const configured = await fetchJson(this.fetch, this.#base("setWebhook"), {
+        method: "POST",
+        headers: this.#headers(true),
+        body: JSON.stringify({
+          url: this.webhookUrl,
+          secret_token: secret,
+          allowed_updates: ["message"],
+          drop_pending_updates: false
+        })
+      });
+      if (configured?.ok !== true || configured?.result !== true) {
+        throw new VerificationProviderError("INVALID_PROVIDER_RESPONSE", VERIFICATION_FAILURE_CLASS.HARD);
+      }
+      const after = await this.#webhookInfo();
+      const scope = after?.result?.allowed_updates;
+      const webhookReady = after?.ok === true && String(after?.result?.url || "") === this.webhookUrl && (!Array.isArray(scope) || scope.length === 1 && scope[0] === "message");
+      if (!webhookReady) throw new VerificationProviderError("WEBHOOK_NOT_READY", VERIFICATION_FAILURE_CLASS.HARD);
+      const probe = await fetchJson(this.fetch, this.webhookUrl, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Cache-Control": "no-store",
+          "Content-Type": "application/json",
+          "X-Telegram-Bot-Api-Secret-Token": secret
+        },
+        body: JSON.stringify({ update_id: 0 })
+      });
+      if (probe?.ok !== true) throw new VerificationProviderError("WEBHOOK_ENDPOINT_REJECTED", VERIFICATION_FAILURE_CLASS.HARD);
+      return Object.freeze({ ready: true, identityReady: true, webhookReady: true, endpointAccepted: true, webhookChanged: changed });
+    } catch (cause) {
+      if (changed) await this.#deleteWebhook().catch(() => {
+      });
+      throw cause;
+    }
+  }
+  async removeConfiguredWebhook() {
+    if (!this.configured) throw new VerificationProviderError("NOT_CONFIGURED", VERIFICATION_FAILURE_CLASS.HARD);
+    const current = await this.#webhookInfo();
+    if (String(current?.result?.url || "") !== this.webhookUrl) return Object.freeze({ removed: false });
+    await this.#deleteWebhook();
+    return Object.freeze({ removed: true });
   }
   async getRemainingQuota({ now = Date.now() } = {}) {
     if (!this.configured) return { remaining: 0, limit: 0, resetAt: 0, source: "not-configured" };
@@ -6998,7 +7222,7 @@ var TelegramLinkVerificationProvider = class {
       remaining: this.declaredDailyQuota,
       limit: this.declaredDailyQuota,
       resetAt: (Math.floor(Number(now) / 864e5) + 1) * 864e5,
-      source: "operator-declared-cap"
+      source: "internal-safety-cap"
     };
   }
   async sendVerification(input = {}) {
@@ -7006,7 +7230,11 @@ var TelegramLinkVerificationProvider = class {
     if (!/^[A-Za-z0-9_-]{32,64}$/.test(String(input.linkToken || ""))) {
       throw new VerificationProviderError("INVALID_LINK_TOKEN", VERIFICATION_FAILURE_CLASS.HARD);
     }
-    const link = new URL(`https://t.me/${this.botUsername}`);
+    if (!this.resolvedBotUsername) {
+      const identity = await this.#identity();
+      if (!identity.ready) throw new VerificationProviderError("BOT_IDENTITY_MISMATCH", VERIFICATION_FAILURE_CLASS.HARD);
+    }
+    const link = new URL(`https://t.me/${this.resolvedBotUsername}`);
     link.searchParams.set("start", input.linkToken);
     return { accepted: true, interaction: { type: "telegram-link", url: link.href } };
   }
@@ -7033,8 +7261,9 @@ function createConfiguredVerificationProviders(env = {}, { fetchImpl = globalThi
     }),
     new TelegramLinkVerificationProvider({
       botUsername: env.TELEGRAM_AUTH_BOT_USERNAME,
-      botToken: env.TELEGRAM_AUTH_BOT_TOKEN,
+      botToken: env.TELEGRAM_AUTH_BOT_TOKEN || env.TG_BOT_TOKEN,
       webhookSecret: env.TELEGRAM_AUTH_WEBHOOK_SECRET,
+      webhookSecretSource: env.AUTH_HMAC_SECRET,
       webhookUrl: env.TELEGRAM_AUTH_WEBHOOK_URL,
       declaredDailyQuota: env.TELEGRAM_AUTH_DAILY_QUOTA,
       fetchImpl
@@ -7658,7 +7887,7 @@ var AdmissionAuthAuthority = class {
         hmacSecret: env.AUTH_HMAC_SECRET,
         config: persistedVerificationConfig || env.VERIFICATION_ORCHESTRATOR_CONFIG,
         providers: createConfiguredVerificationProviders(env),
-        activated: env.VERIFICATION_AUTH_ACTIVATION === "enabled"
+        activated: ["canary", "enabled"].includes(String(env.VERIFICATION_AUTH_ACTIVATION || ""))
       });
     });
   }
@@ -7751,6 +7980,17 @@ var AdmissionAuthAuthority = class {
       if (url.pathname === "/internal/verification/telegram/webhook") {
         const result = await this.verification.confirmTelegramWebhook(body.input);
         await this.#scheduleExpiry();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/telegram/activate") {
+        if (this.env.VERIFICATION_AUTH_ACTIVATION !== "canary") throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        await this.verification.updateConfig(this.env.VERIFICATION_ORCHESTRATOR_CONFIG);
+        const result = await this.verification.configureTelegramWebhook();
+        return response2(200, { ok: true, result });
+      }
+      if (url.pathname === "/internal/verification/telegram/deactivate") {
+        if (this.env.VERIFICATION_AUTH_ACTIVATION !== "canary") throw new NativeAuthError(AUTH_ERROR_CODES.BACKUP_UNAVAILABLE);
+        const result = await this.verification.removeTelegramWebhook();
         return response2(200, { ok: true, result });
       }
       if (url.pathname === "/internal/verification/admin/status") {

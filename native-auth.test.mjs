@@ -75,7 +75,11 @@ test('opaque Firebase sessions expire and revoke without exposing stored token',
 });
 
 class EngineNamespace {
-  constructor(engine) { this.engine = engine; }
+  constructor(engine, { backupCapabilities = null } = {}) {
+    this.engine = engine;
+    this.backupCapabilities = backupCapabilities;
+    this.calls = [];
+  }
   idFromName(name) { return name; }
   get() {
     return { fetch: (request, init) => this.fetch(request instanceof Request ? request : new Request(request, init)) };
@@ -83,8 +87,12 @@ class EngineNamespace {
   async fetch(request) {
     try {
       const url = new URL(request.url);
+      this.calls.push(url.pathname);
       if (request.method === 'GET' && url.pathname === '/internal/ping') return Response.json({ ok: true, ...(await this.engine.ping()) });
       const body = await request.json();
+      if (url.pathname === '/internal/verification/capabilities' && this.backupCapabilities) {
+        return Response.json({ ok: true, result: this.backupCapabilities });
+      }
       const routes = {
         '/internal/firebase/rate': () => this.engine.consumeFirebaseOperation(body.input, body.context),
         '/internal/firebase/session/create': () => this.engine.establishFirebaseSession(body.input, body.context),
@@ -222,16 +230,17 @@ const apiRequest = (path, { method = 'GET', body, cookie = '', origin = 'https:/
   ...(body ? { body: JSON.stringify(body) } : {})
 });
 
-const handlerSetup = () => {
+const handlerSetup = ({ backupCapabilities = null } = {}) => {
   const state = setup();
   const firebase = new FirebaseMock();
   const handler = createNativeAuthHandler({ fetchImpl: firebase.fetch.bind(firebase) });
+  const authority = new EngineNamespace(state.engine, { backupCapabilities });
   const env = {
-    AUTH_AUTHORITY: new EngineNamespace(state.engine),
+    AUTH_AUTHORITY: authority,
     FIREBASE_WEB_API_KEY: 'test-firebase-api-key-1234567890',
     FIREBASE_CONTINUE_URL: 'https://admissionhub.pages.dev/?firebaseVerified=1'
   };
-  return { state, firebase, handler, env };
+  return { state, firebase, handler, authority, env };
 };
 
 test('Firebase signup sends standard verification but creates no authenticated session', async () => {
@@ -375,6 +384,38 @@ test('Google canary is server-authorized only for its explicit test URL and cann
 
   const cachedCanary = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config?googleCanary=1`), app.env, {});
   assert.equal((await cachedCanary.json()).auth.methods.google.available, true);
+});
+
+test('Telegram canary is exact-query isolated, generic, and cannot leak through the ordinary config cache', async () => {
+  const capabilities = {
+    available: true,
+    availabilityCode: 'READY',
+    genericFlow: true,
+    providerNamesExposed: false,
+    contactInput: 'none',
+    maxAttempts: 5,
+    expiresInSeconds: 300
+  };
+  const app = handlerSetup({ backupCapabilities: capabilities });
+  app.env.VERIFICATION_AUTH_ACTIVATION = 'canary';
+
+  const ordinary = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), app.env, {});
+  assert.equal(ordinary.status, 200);
+  const ordinaryBackup = (await ordinary.json()).auth.methods.backup;
+  assert.equal(ordinaryBackup.available, false);
+  assert.equal(ordinaryBackup.availabilityCode, 'LIVE_E2E_PENDING');
+  assert.equal(app.authority.calls.filter(path => path === '/internal/verification/capabilities').length, 0);
+
+  const canary = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config?telegramCanary=1`), app.env, {});
+  assert.equal(canary.status, 200);
+  assert.deepEqual((await canary.json()).auth.methods.backup, capabilities);
+  assert.equal(app.authority.calls.filter(path => path === '/internal/verification/capabilities').length, 1);
+
+  const ordinaryCached = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config`), app.env, {});
+  assert.equal((await ordinaryCached.json()).auth.methods.backup.available, false);
+  const canaryCached = await app.handler(apiRequest(`${AUTH_API_PREFIX}/config?telegramCanary=1`), app.env, {});
+  assert.equal((await canaryCached.json()).auth.methods.backup.available, true);
+  assert.equal(app.authority.calls.filter(path => path === '/internal/verification/capabilities').length, 1);
 });
 
 test('approved Google activation publishes the provider on the ordinary config without publishing Passkey', async () => {
