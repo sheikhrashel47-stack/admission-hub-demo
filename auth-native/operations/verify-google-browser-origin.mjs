@@ -62,8 +62,11 @@ export async function verifyGoogleBrowserOrigin({ chromiumImpl, env = process.en
     });
     await page.goto(LIVE_URL, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.ah-account-launcher', { timeout: 30_000 });
-    await page.click('.ah-account-launcher');
-    const googleFrame = page.locator('[data-role="google-button"] iframe');
+    const firstEntryWelcome = await page.locator('[data-view="welcome"]').isVisible().catch(() => false);
+    if (!firstEntryWelcome) await page.click('.ah-account-launcher');
+    const googleFrame = page.locator(
+      '[data-role="welcome-google-button"] iframe:visible, [data-role="google-button"] iframe:visible'
+    ).first();
     await googleFrame.waitFor({ state: 'visible', timeout: 30_000 });
     const popupPromise = page.waitForEvent('popup', { timeout: 20_000 }).catch(() => null);
     await googleFrame.click({ timeout: 20_000 });
