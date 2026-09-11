@@ -8,18 +8,18 @@ const V2 = readFileSync('dashboard-v2.js', 'utf8');
 const CSS = readFileSync('dashboard-v2.css', 'utf8');
 
 /* ১ — ফাইল-লোড + ক্যাশ-কী */
-t('dashboard-v2.js defer-লোড (?v=dash2)', H.includes('<script defer src="./dashboard-v2.js?v=dash2f8"></script>'));
-t('dashboard-v2.css link (?v=dash2)', H.includes('<link rel="stylesheet" href="./dashboard-v2.css?v=dash2f8">'));
-t('sw APP_SHELL-এ dashboard-v2 (js+css)', SW.includes("'./dashboard-v2.js?v=dash2f8'") && SW.includes("'./dashboard-v2.css?v=dash2f8'"));
-t('sw BUILD_ID v235-reference-onboarding-20260911', SW.includes("const BUILD_ID = 'v235-reference-onboarding-20260911'"));
-t('index sw-marker v195', H.includes('sw.js?v=v235-reference-onboarding-20260911'));
+t('dashboard-v2.js defer-লোড (?v=dash2)', H.includes('<script defer src="./dashboard-v2.js?v=dash2f9"></script>'));
+t('dashboard-v2.css link (?v=dash2)', H.includes('<link rel="stylesheet" href="./dashboard-v2.css?v=dash2f9">'));
+t('sw APP_SHELL-এ dashboard-v2 (js+css)', SW.includes("'./dashboard-v2.js?v=dash2f9'") && SW.includes("'./dashboard-v2.css?v=dash2f9'"));
+t('sw BUILD_ID v236-static-welcome-20260911', SW.includes("const BUILD_ID = 'v236-static-welcome-20260911'"));
+t('index sw-marker v195', H.includes('sw.js?v=v236-static-welcome-20260911'));
 
 /* ২ — ১৪ মডিউল (ছবির প্রতিটি সেকশন) */
 t('১ Personal Header (avatar+তারিখ+🔔)', V2.includes('dv2-header') && V2.includes('Intl.DateTimeFormat') && V2.includes('dv2-bell'));
 t('২ Smart Daily Mission (63/100-স্টাইল + Focus Mode + Continue + ★)', V2.includes('dv2-mission') && V2.includes('Mission') && V2.includes('Focus Mode') && V2.includes('Continue →') && V2.includes('dv2-star') && V2.includes('MCQ'));
 t('৩ Streak Card (7-day dots + badge)', V2.includes('dv2-days') && V2.includes('Day Streak') && V2.includes('10 Day Badge'));
 t('৪ Today\u2019s Performance (Mastery-ring + Solved/Correct/Wrong + Time)', V2.includes('dv2-ring') && V2.includes('Mastery') && V2.includes('Solved') && V2.includes('Total Time'));
-t('৫ Smart Insight (AI Analysis + Practice Weak Topic)', V2.includes('AI Analysis') && V2.includes('Practice Weak Topic →') && V2.includes('insightText'));
+t('৫ Study Insight (saved progress + Practice Weak Topic)', V2.includes('Study Insight') && V2.includes('>Progress</span>') && V2.includes('Practice Weak Topic →') && V2.includes('insightText'));
 t('৬ Continuous Learning (প্রগ্রেস-বার + Resume/কোর্স)', V2.includes('Continuous Learning') && V2.includes('dv2-bar') && V2.includes('subjectProgress'));
 t('৭ Command Center (Quick Practice/Mistakes/Courses + See more)', V2.includes('Command Center') && V2.includes('Quick Practice') && V2.includes('See more →') && V2.includes('dv2AllTools'));
 t('৮ Performance Graph (SVG লাইন-চার্ট + ৭-দিন)', V2.includes('graphSvg') && V2.includes('<svg viewBox') && V2.includes('সাপ্তাহিক'));
@@ -27,8 +27,8 @@ t('৯ Weakness Radar (Topic-wise Accuracy + রঙিন বার)', V2.includ
 t('১০ Admission Goal (বিশ্ববিদ্যালয় + Days Left + ⚙-বদল)', V2.includes('Admission Goal') && V2.includes('Days Left') && V2.includes('dv2EditGoal') && V2.includes('Rajshahi University'));
 t('১১ 90-Day Roadmap (Day X/90 + checklist + Full Plan)', V2.includes('90-Day Roadmap') && V2.includes('Day ') && V2.includes('Study Checklist') && V2.includes('progress/plan'));
 t('১২ Study Tools (Notes/Vocabulary/Dictionary/More — Problem Solver বাদ)', V2.includes('Study Tools') && V2.includes('Notes') && V2.includes("navigate(\\'notes\\')") && V2.includes("navigate(\\'vocabulary-master\\')") && !V2.includes('Problem Solver'));
-t('১৩ Bottom Nav ৫ core tabs (Home/Bank/Exam/AI/History; Profile retired)', /NAV_TABS=.*key:'dashboard'.*key:'question-bank'.*key:'exam'.*key:'ai'.*key:'history'/s.test(H) && !H.includes("key:'profile'") && !H.includes("key:'ai-chat'"));
-t('১৪ AI সম্পূর্ণ-বিলুপ্ত (মালিক-নির্দেশ ২০২৬-০৯-০৮): ai-chat/web-chat রুট-নেই + removedRoute-এ redirect + Admission AI টুল-নেই', !H.includes('renderAIChat') && !H.includes('renderWebChatRebuild') && !H.includes("navigate('ai-chat')") && !H.includes("navigate('web-chat')") && H.includes("p === 'ai-chat'") && H.includes("p === 'study-ai'") && H.includes("p === 'gk-agent'") && !String(V2).includes('Admission AI') && !String(V2).includes("navigate('ai-chat')"));
+t('১৩ Bottom Nav ৪ core tabs (Home/Bank/Exam/History; AI ও Profile paused)', /NAV_TABS=.*key:'dashboard'.*key:'question-bank'.*key:'exam'.*key:'history'/s.test(H) && !H.includes("key:'profile'") && !H.includes("key:'ai'") && !H.includes("key:'ai-chat'"));
+t('১৪ AI Assistant সম্পূর্ণ paused: script/nav/dashboard entry নেই এবং direct ai route Dashboard-এ ফেরে', !H.includes('ai-agent-chat.js') && !H.includes("key:'ai'") && H.includes("if(p==='ai'){ navigate('dashboard'); return; }") && !V2.includes("navigate('ai')") && !V2.includes("navigate(\\'ai\\')"));
 t('পুরনো-ড্যাশ-সম্পূর্ণ-বিলুপ্ত (মালিক-নির্দেশ ২০২৬-০৯-০৭): renderV2-এ previous()/intel-ক্যাপচার-নেই + dv2Cleanup-পরিচ্ছন্নতা', !V2.includes('data-dv2-phase5') && !V2.includes('intel = el.outerHTML') && V2.includes('function dv2Cleanup') && V2.includes('[data-phase5-dashboard],[data-phase34-dashboard]') && !/previous\(\);[\s\S]{0,300}data-phase5-dashboard/.test(V2));
 
 /* ৩ — ডেটা-সততা: CACHE-ভিত্তিক, কোনো ফেক সংখ্যা নয় */

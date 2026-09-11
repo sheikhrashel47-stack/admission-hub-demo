@@ -145,11 +145,11 @@ try {
 
   const entryButtons = page.locator('.ah-entry-actions button');
   assert.equal(await entryButtons.count(), 4);
-  assert.deepEqual((await entryButtons.allTextContents()).map(value => value.trim().replace(/^✨\s*/, '')), [
+  assert.deepEqual((await entryButtons.allTextContents()).map(value => value.trim().replace(/^G(?=Continue)/, '').replace(/→$/, '').trim()), [
     'Sign Up', 'Log In', 'Continue with Google', 'Continue as Guest'
   ]);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'iPhone page has horizontal overflow');
-  const mobileWelcomeGeometry = await page.locator('.ah-account-modal').evaluate(node => {
+  const mobileWelcomeGeometry = await page.locator('.ah-account-shell').evaluate(node => {
     const box = node.getBoundingClientRect();
     return { width: box.width, height: box.height, viewportWidth: innerWidth, viewportHeight: innerHeight };
   });
@@ -163,13 +163,13 @@ try {
     return { text: button.textContent.trim(), width: rect.width, height: rect.height };
   }));
   assert.equal(welcomeTargets.every(target => target.width >= 44 && target.height >= 44), true, JSON.stringify(welcomeTargets));
-  assert.equal(await page.locator('.ah-account-modal').getAttribute('role'), 'dialog');
-  assert.equal(await page.locator('.ah-account-modal').getAttribute('aria-modal'), 'true');
-  assert.ok(await page.locator('.ah-account-modal').getAttribute('aria-labelledby'));
-  const welcomeCloseState = await page.locator('[data-role="close"]').evaluate(node => ({ hidden: node.hidden, display: getComputedStyle(node).display, currentView: node.closest('.ah-account-modal')?.dataset.currentView }));
+  assert.equal(await page.locator('.ah-account-shell').getAttribute('role'), null);
+  assert.equal(await page.locator('.ah-account-shell').getAttribute('aria-modal'), null);
+  assert.ok(await page.locator('.ah-account-shell').getAttribute('aria-labelledby'));
+  const welcomeCloseState = await page.locator('[data-role="close"]').evaluate(node => ({ hidden: node.hidden, display: getComputedStyle(node).display, currentView: node.closest('.ah-account-shell')?.dataset.currentView }));
   assert.deepEqual(welcomeCloseState, { hidden: true, display: 'none', currentView: 'welcome' }, `Welcome exposed a fifth dismiss path: ${JSON.stringify(welcomeCloseState)}`);
   const semanticIssues = await page.evaluate(() => {
-    const root = document.querySelector('.ah-account-overlay');
+    const root = document.querySelector('.ah-account-page');
     const controls = [...root.querySelectorAll('input:not([type="hidden"]),select,textarea')]
       .filter(control => !control.labels?.length && !control.getAttribute('aria-label') && !control.getAttribute('aria-labelledby'))
       .map(control => control.id || control.outerHTML.slice(0, 80));
@@ -181,10 +181,14 @@ try {
   assert.deepEqual(semanticIssues, { controls: [], unnamedActions: [] });
   await page.keyboard.press('Escape');
   await welcome.waitFor({ state: 'visible' });
-  for (let index = 0; index < 14; index += 1) await page.keyboard.press('Tab');
-  assert.equal(await page.evaluate(() => document.querySelector('.ah-account-overlay').contains(document.activeElement)), true, 'focus escaped dialog');
+  assert.deepEqual(await page.evaluate(() => ({ appInert: document.querySelector('#app').inert, bodyClass: document.body.classList.contains('ah-account-page-active'), pagePosition: getComputedStyle(document.querySelector('.ah-account-page')).position })), { appInert: true, bodyClass: true, pagePosition: 'relative' });
+  assert.equal(await page.locator('.ah-guide-orb').isVisible(), false, 'paused Assistant became visible');
+  assert.equal(await page.locator('.ah-welcome-benefits article').count(), 4);
+  await page.locator('[data-role="welcome-language"]').selectOption('en');
+  assert.match(await page.locator('#ah-welcome-heading').textContent(), /Your dream university/);
+  await page.locator('[data-role="welcome-language"]').selectOption('bn');
 
-  assert.equal(await page.locator('.ah-account-modal').getAttribute('data-visual-contract'), 'reference-onboarding-v2');
+  assert.equal(await page.locator('.ah-account-shell').getAttribute('data-visual-contract'), 'static-page-system-v3');
   assert.equal(await page.locator('.ah-academic-hero img').evaluate(image => image.complete && image.naturalWidth > 0), true);
   await page.getByRole('button', { name: 'Sign Up', exact: true }).click();
   await page.locator('#ah-signup-name').fill('Browser Student');
@@ -294,7 +298,7 @@ try {
   await page.locator('[data-role="enter-app"]').click();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(100);
-  assert.equal(await page.locator('.ah-account-overlay').isVisible(), false, 'returning account entry repeated Welcome');
+  assert.equal(await page.locator('.ah-account-page').isVisible(), false, 'returning account entry repeated Welcome');
   await page.locator('.ah-account-launcher').click();
   await page.locator('[data-view="signed"]').waitFor({ state: 'visible' });
 
@@ -315,22 +319,22 @@ try {
   await guestPage.goto(origin, { waitUntil: 'domcontentloaded' });
   await guestPage.locator('[data-view="welcome"]').waitFor({ state: 'visible' });
   await guestPage.getByRole('button', { name: 'Continue as Guest', exact: true }).click();
-  assert.equal(await guestPage.locator('.ah-account-overlay').isVisible(), false);
+  assert.equal(await guestPage.locator('.ah-account-page').isVisible(), false);
   assert.equal(new URL(guestPage.url()).hash, '#dashboard');
-  await guestPage.locator('[data-dashboard-contract="reference-guest-v2"]').waitFor({ state: 'visible' });
-  assert.equal(await guestPage.locator('.dv2-guest-quick>button').count(), 4);
-  assert.deepEqual(await guestPage.locator('[data-guest-nav] .navbtn').allTextContents(), ['Home', 'Practice', 'Progress', 'More']);
-  assert.equal(await guestPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'Guest dashboard overflow');
-  await guestPage.locator('[data-guest-nav] .navbtn').filter({ hasText: 'Progress' }).click();
-  await guestPage.waitForFunction(() => location.hash.startsWith('#progress'));
-  assert.equal(await guestPage.locator('body').evaluate(node => node.classList.contains('ah-guest-dashboard')), true, 'Guest shell was lost after navigation');
-  assert.ok(await guestPage.locator('#app').evaluate(node => node.getBoundingClientRect().width <= 391), 'Guest route widened beyond the phone shell');
-  assert.deepEqual(await guestPage.locator('[data-guest-nav] .navbtn').allTextContents(), ['Home', 'Practice', 'Progress', 'More']);
-  await guestPage.locator('[data-guest-nav] .navbtn').filter({ hasText: 'Home' }).click();
-  await guestPage.locator('[data-dashboard-contract="reference-guest-v2"]').waitFor({ state: 'visible' });
+  await guestPage.locator('.dv2-root').waitFor({ state: 'visible' });
+  assert.equal(await guestPage.locator('[data-dashboard-contract="reference-guest-v2"],[data-guest-nav],.dv2-guest-root').count(), 0);
+  assert.deepEqual(await guestPage.locator('[data-nav-tab]').evaluateAll(nodes => nodes.map(node => node.dataset.navTab)), ['dashboard', 'question-bank', 'exam', 'history']);
+  assert.equal(await guestPage.locator('[data-nav-tab="ai"]').count(), 0);
+  assert.equal(await guestPage.evaluate(() => [...document.scripts].some(script => script.src.includes('ai-agent-chat.js'))), false);
+  assert.equal(await guestPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'ordinary Guest dashboard overflow');
+  await guestPage.locator('[data-nav-tab="history"]').click();
+  await guestPage.waitForFunction(() => location.hash.startsWith('#history'));
+  assert.equal(await guestPage.locator('body').evaluate(node => node.classList.contains('ah-guest-dashboard')), false);
+  await guestPage.locator('[data-nav-tab="dashboard"]').click();
+  await guestPage.locator('.dv2-root').waitFor({ state: 'visible' });
   await guestPage.reload({ waitUntil: 'domcontentloaded' });
   await guestPage.waitForTimeout(100);
-  assert.equal(await guestPage.locator('.ah-account-overlay').isVisible(), false, 'returning Guest entry repeated Welcome');
+  assert.equal(await guestPage.locator('.ah-account-page').isVisible(), false, 'returning Guest entry repeated Welcome');
   await guestPage.locator('.ah-account-launcher').click();
   await guestPage.locator('[data-view="login"]').waitFor({ state: 'visible' });
   await guestPage.locator('[data-role="close"]').click();
@@ -340,7 +344,7 @@ try {
   await guestPage.reload({ waitUntil: 'domcontentloaded' });
   await guestPage.waitForTimeout(200);
   assert.equal(await guestPage.locator('body').isVisible(), true);
-  assert.equal(await guestPage.locator('.ah-account-overlay').isVisible(), false, 'offline returning Guest was blocked');
+  assert.equal(await guestPage.locator('.ah-account-page').isVisible(), false, 'offline returning Guest was blocked');
   await guestContext.setOffline(false);
   await guestContext.close();
 
@@ -348,18 +352,19 @@ try {
   const desktopPage = await desktopContext.newPage();
   await desktopPage.goto(origin, { waitUntil: 'domcontentloaded' });
   await desktopPage.locator('[data-view="welcome"]').waitFor({ state: 'visible' });
-  await desktopPage.locator('.ah-account-overlay').dispatchEvent('click');
+  await desktopPage.locator('.ah-account-page').dispatchEvent('click');
   await desktopPage.locator('[data-view="welcome"]').waitFor({ state: 'visible' });
-  const desktopBox = await desktopPage.locator('.ah-account-modal').boundingBox();
-  const desktopWelcomeStyle = await desktopPage.locator('.ah-account-modal').evaluate(node => ({
+  const desktopBox = await desktopPage.locator('.ah-account-shell').boundingBox();
+  const desktopWelcomeStyle = await desktopPage.locator('.ah-account-shell').evaluate(node => ({
     borderRadius: getComputedStyle(node).borderRadius,
     boxShadow: getComputedStyle(node).boxShadow
   }));
-  assert.ok(desktopBox.width >= 388 && desktopBox.width <= 392 && desktopBox.height >= 840 && desktopBox.height <= 846, JSON.stringify(desktopBox));
-  assert.equal(desktopWelcomeStyle.borderRadius, '28px');
-  assert.notEqual(desktopWelcomeStyle.boxShadow, 'none');
+  assert.ok(desktopBox.width >= 429 && desktopBox.width <= 431 && desktopBox.height >= 900, JSON.stringify(desktopBox));
+  assert.equal(desktopWelcomeStyle.borderRadius, '0px');
+  assert.equal(desktopWelcomeStyle.boxShadow, 'none');
+  assert.equal(await desktopPage.locator('.ah-account-page').evaluate(node => getComputedStyle(node).position), 'relative');
   assert.equal(await desktopPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
-  const motion = await desktopPage.locator('.ah-account-modal').evaluate(element => ({
+  const motion = await desktopPage.locator('.ah-account-shell').evaluate(element => ({
     animationDuration: getComputedStyle(element).animationDuration,
     transitionDuration: getComputedStyle(element).transitionDuration
   }));
@@ -375,13 +380,13 @@ try {
     profileRequests: requests.filter(item => item.path === '/api/auth/v1/profile/pending').length,
     emailStatusChecks: completedEmailStatusChecks,
     nativePasskeyVirtualDevice: true,
-    referenceVisualContract: 'reference-onboarding-v2',
+    referenceVisualContract: 'static-reference-welcome-v3',
     firstEntryFullScreenNotPopup: true,
     desktopNarrowPhoneComposition: true,
-    guestDashboardContract: 'reference-guest-v2',
+    customGuestDashboardRemoved: true,
     unsupportedMethodsFailClosed: true,
     offlineReturningGuest: true,
-    accessibility: { dialog: true, focusContained: true, labeledFields: true, touchTargets: true, noDuplicateIds: true },
+    accessibility: { documentPage: true, noDialogSemantics: true, appInertWhileActive: true, labeledFields: true, touchTargets: true, noDuplicateIds: true },
     pageErrors: 0
   }, null, 2));
 } finally {

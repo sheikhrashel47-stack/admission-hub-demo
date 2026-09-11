@@ -16,23 +16,6 @@
   const d2 = (n) => Math.round(n * 100) / 100;
   const num = (v) => { const n = Number(v) || 0; return n; };
   const escv = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const guestMode = () => {
-    try {
-      if (window.AdmissionAccount?.snapshot?.().authenticated === true) return false;
-      return String(document.cookie || '').split(';').map((part) => part.trim()).includes('ah_entry_v1=guest');
-    } catch (_) { return false; }
-  };
-  const guestIcon = (name) => {
-    const paths = {
-      bank:'<path d="M5 9h14M7 9v9m5-9v9m5-9v9M4 19h16M12 4l8 4H4l8-4Z"/>',
-      practice:'<path d="m5 17-1 3 3-1L18 8l-2-2L5 17Zm9-9 2 2m-9-4h5"/>',
-      progress:'<path d="M5 19V9m7 10V5m7 14v-7M3 19h18"/>',
-      resources:'<path d="M5 5.5C8 4.5 10.4 5 12 7v12c-1.6-2-4-2.5-7-1.5v-12Zm14 0C16 4.5 13.6 5 12 7v12c1.6-2 4-2.5 7-1.5v-12Z"/>',
-      search:'<circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 4 4"/>',
-      bell:'<path d="M7 16h10l-1.5-2.5V10a3.5 3.5 0 0 0-7 0v3.5L7 16Zm3 3h4"/>'
-    };
-    return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' + (paths[name] || paths.resources) + '</svg>';
-  };
 
   /* CACHE রেজলভার: index.html-এ `const CACHE` (ক্লাসিক-স্ক্রিপ্ট টপ-লেভেল const) window-এ যায় না —
      তাই প্রথমে window, পরে গ্লোবাল-লেক্সিকাল (typeof-গার্ড), শেষ-ফলব্যাক {} — কোনো অবস্থায় ক্র্যাশ নয়। */
@@ -219,7 +202,7 @@
       '<div class="dv2-perf-stats">' + perfStats + '<div class="dv2-ps"><b>' + Math.round(t.time / 60000) + 'm</b><span>Total Time</span></div></div></div>' +
       '<div class="dv2-perf-foot">' + (t.q ? '📈 আজকের সঠিকতা ' + (ans ? Math.round(t.c / ans * 100) + '%' : '—') + ' · পরীক্ষা-সংখ্যা ' + t.exams : '📭 আজ কোনো ডেটা নেই — প্রথম পরীক্ষা দিলে এখানে ফলাফল দেখাবে।') + '</div></section>';
 
-    const insight = '<section class="dv2-card dv2-insight"><div class="dv2-insight-head"><div class="dv2-insight-ic">💡</div><b class="dv2-title" style="font-size:13.5px">Smart Insight</b><span class="dv2-ai-tag">AI Analysis</span></div>' +
+    const insight = '<section class="dv2-card dv2-insight"><div class="dv2-insight-head"><div class="dv2-insight-ic">💡</div><b class="dv2-title" style="font-size:13.5px">Study Insight</b><span class="dv2-ai-tag">Progress</span></div>' +
       '<p>' + escv(insightText()) + '</p>' +
       (weak.length ? '<button class="dv2-btn" style="margin-top:12px" onclick="if(window.startWeakTopicPractice)startWeakTopicPractice(\'' + weak[0].tid + '\')">Practice Weak Topic →</button>' : '<button class="dv2-btn" style="margin-top:12px" onclick="navigate(\'exam/setup\')">📝 প্রথম পরীক্ষা দাও</button>') + '</section>';
 
@@ -231,7 +214,7 @@
     const tools = '<section class="dv2-card"><div class="dv2-between"><div><div class="dv2-title">Command Center</div><div class="dv2-muted">এক জায়গায় সব টুল</div></div><button class="dv2-btn ghost" style="padding:7px 11px;font-size:11px;color:#0f6b4f" onclick="window.dv2AllTools&&dv2AllTools()">See more →</button></div>' +
       '<div class="dv2-tools">' +
       '<div class="dv2-tool" onclick="window.openSmartPracticeModal?openSmartPracticeModal():navigate(\'smart-practice\')"><span class="ic">⚡</span><span>Quick Practice</span></div>' +
-      '<div class="dv2-tool" onclick="navigate(\'ai\')"><span class="ic">🤖</span><span>AI</span></div>' +
+      '<div class="dv2-tool" onclick="navigate(\'notes\')"><span class="ic">🗒️</span><span>Notes</span></div>' +
       '<div class="dv2-tool" onclick="navigate(\'mistakes\')"><span class="ic">❌</span><span>Mistakes</span></div>' +
       '<div class="dv2-tool" onclick="navigate(\'courses\')"><span class="ic">🎓</span><span>Courses</span></div>' +
       '</div></section>';
@@ -278,7 +261,7 @@
   /* ── See-more: পুরনো ১১-টুল (গোপন করা হয় না) ── */
   window.dv2AllTools = function () {
     const tools = [
-      ['🤖', 'AI', "navigate('ai')"], ['📚', 'Bank', "navigate('question-bank')"], ['📝', 'Mock', "navigate('exam/setup')"], ['⚡', 'Quick', "window.openSmartPracticeModal?openSmartPracticeModal():navigate('smart-practice')"],
+      ['📚', 'Bank', "navigate('question-bank')"], ['📝', 'Mock', "navigate('exam/setup')"], ['⚡', 'Quick', "window.openSmartPracticeModal?openSmartPracticeModal():navigate('smart-practice')"],
       ['❌', 'Mistakes', "navigate('mistakes')"], ['📊', 'Progress', "navigate('progress')"], ['🎯', 'Goals', "navigate('progress/plan')"],
       ['🔁', 'Revision', "navigate('vocabulary-master')"], ['📖', 'Vocab', "navigate('vocabulary-master')"], ['🕘', 'History', "navigate('history')"], ['🔍', 'Search', "navigate('question-bank')"],
       ['⚙️', 'Settings', "navigate('settings')"]
@@ -302,23 +285,6 @@
   };
   window.dv2Task = function (el) { try { window.toast(el.checked ? 'আজকের কাজ-টিক ✅' : 'আনটিক'); } catch (_) {} };
 
-  /* ── Reference onboarding continuation: honest Guest dashboard ── */
-  function buildGuest() {
-    const cards = [
-      ['bank', 'Question Bank', 'প্রশ্ন খুঁজে পড়ো', "navigate('question-bank')"],
-      ['practice', 'Practice', 'ছোট practice শুরু করো', "window.openSmartPracticeModal?openSmartPracticeModal():navigate('smart-practice')"],
-      ['progress', 'Progress', 'এই device-এর অগ্রগতি', "navigate('progress')"],
-      ['resources', 'Resources', 'পড়ার resource দেখো', "navigate('courses')"]
-    ];
-    return '<div class="dv2-guest-root" data-dashboard-contract="reference-guest-v2">' +
-      '<header class="dv2-guest-brand"><div><span class="dv2-guest-mark">A</span><strong>Admission Hub</strong></div><div class="dv2-guest-head-actions"><button type="button" onclick="navigate(\'question-bank\')" aria-label="Question Bank-এ খুঁজুন">' + guestIcon('search') + '</button><button type="button" onclick="navigate(\'history\')" aria-label="Activity দেখুন">' + guestIcon('bell') + '</button></div></header>' +
-      '<section class="dv2-guest-greeting"><div><h1>হ্যালো, Guest!</h1><p>Limited access · Explore Admission Hub</p></div><span>Guest</span></section>' +
-      '<section class="dv2-guest-quick" aria-label="Quick access">' + cards.map(function (card) { return '<button type="button" onclick="' + card[3] + '"><i class="' + card[0] + '">' + guestIcon(card[0]) + '</i><span><strong>' + card[1] + '</strong><small>' + card[2] + '</small></span><b aria-hidden="true">›</b></button>'; }).join('') + '</section>' +
-      '<section class="dv2-guest-future"><div class="dv2-guest-future-copy"><span>YOUR ADMISSION JOURNEY</span><h2>Your Future<br>Starts Here</h2><p>Account তৈরি করলে verified profile হবে; সব device-এ study sync পরে যোগ হবে।</p><button type="button" onclick="document.querySelector(\'.ah-account-launcher\')?.click()">Create Account →</button></div><div class="dv2-guest-campus" aria-hidden="true"></div></section>' +
-      '<p class="dv2-guest-privacy">Guest activity শুধু এই device-এ থাকে; personal conversation স্থায়ীভাবে save করা হয় না।</p>' +
-      '</div>';
-  }
-
   /* ── renderDashboard override (সব আগের ইঞ্জিন অক্ষত) ── */
   const previous = window.renderDashboard;
   window.renderDashboard = function () {
@@ -332,8 +298,7 @@
        (study-hub/vocab/greeting/phase345-র্যাপর-সহ) সেই-রেন্ডারে পুরনো-ড্যাশবোর্ড DOM-এ ফেলে দিত
        → দুটো ড্যাশবোর্ড। এখন: পুরনো-চেইন কখনোই চালানো হয় না। */
     let html;
-    const isGuest = guestMode();
-    try { html = isGuest ? buildGuest() : build(); }
+    try { html = build(); }
     catch (e) {
       /* চূড়ান্ত-নিরাপত্তা: dv2-র যেকোনো ভুলে পুরনো ড্যাশবোর্ড — অ্যাপ কখনো "Something went wrong"-এ পড়ে না */
       console.warn('[dv2] build পতন — পুরনো ড্যাশবোর্ডে ফলব্যাক', e);
@@ -341,7 +306,6 @@
       dv2Cleanup();
       return undefined;
     }
-    document.body.classList.toggle('ah-guest-dashboard', isGuest);
     if (typeof window.renderShell === 'function') window.renderShell(html, { title: 'Dashboard', topbar: false });
     else { const app = document.getElementById('app'); if (app) app.innerHTML = '<main class="page">' + html + '</main>'; }
     dv2Cleanup();
@@ -355,25 +319,12 @@
       if (!app) return;
       const pages = Array.from(app.querySelectorAll('.page'));
       if (pages.length > 1) {
-        const keep = pages.filter((p) => p.querySelector('.dv2-root,.dv2-guest-root')).pop() || pages[pages.length - 1];
+        const keep = pages.filter((p) => p.querySelector('.dv2-root')).pop() || pages[pages.length - 1];
         pages.forEach((p) => { if (p !== keep) p.remove(); });
       }
       app.querySelectorAll('[data-phase5-dashboard],[data-phase34-dashboard],[data-dashboard-comparison],[data-phase5-quicklinks],.daily-gk-teaser,.p3-dashboard-v3,.dashboard-v2,.p3-dashboard').forEach((n) => n.remove());
     } catch (_) {}
   }
-
-  document.addEventListener('admission:route-rendered', function () {
-    // Keep every Guest route inside the same narrow phone shell; signed-in routes
-    // return to the existing responsive application as soon as Auth changes.
-    document.body.classList.toggle('ah-guest-dashboard', guestMode());
-  });
-  window.addEventListener('admissionhub:authchange', function (event) {
-    const shouldBeGuest = event.detail?.guest === true;
-    document.body.classList.toggle('ah-guest-dashboard', shouldBeGuest);
-    if (String(window.Router?.path || 'dashboard') !== 'dashboard') return;
-    const isGuestDashboard = Boolean(document.querySelector('[data-dashboard-contract="reference-guest-v2"]'));
-    if (shouldBeGuest !== isGuestDashboard) window.renderDashboard?.();
-  });
 
   // This is the first-interaction module. Signal the coordinator immediately;
   // do not wait for every optional deferred tool or an external Google script.

@@ -2,6 +2,7 @@
   'use strict';
 
   const API = '/api/auth/v1';
+  const ASSISTANT_ENABLED = false;
   const ENTRY_COOKIE = 'ah_entry_v1';
   const ENTRY_MAX_AGE = 365 * 24 * 60 * 60;
   const entryMode = () => {
@@ -59,15 +60,16 @@
   launcher.type = 'button';
   launcher.className = 'ah-account-launcher';
   launcher.setAttribute('aria-label', 'অ্যাকাউন্ট খুলুন');
-  launcher.setAttribute('aria-haspopup', 'dialog');
+  launcher.setAttribute('aria-controls', 'ah-account-page');
   launcher.dataset.authenticated = 'false';
   launcher.innerHTML = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 12.2a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 7.3c.9-3.3 3.3-5 7-5s6.1 1.7 7 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="ah-account-launcher-label">অ্যাকাউন্ট</span><span class="ah-account-dot" aria-hidden="true"></span>';
 
-  const overlay = document.createElement('div');
-  overlay.className = 'ah-account-overlay';
-  overlay.hidden = true;
-  overlay.innerHTML = `
-    <section class="ah-account-modal" role="dialog" aria-modal="true" aria-labelledby="ah-account-title" data-current-view="login" data-visual-contract="reference-onboarding-v2">
+  const pageHost = document.createElement('div');
+  pageHost.id = 'ah-account-page';
+  pageHost.className = 'ah-account-page';
+  pageHost.hidden = true;
+  pageHost.innerHTML = `
+    <main class="ah-account-shell" aria-labelledby="ah-account-title" data-current-view="login" data-visual-contract="static-page-system-v3">
       <button class="ah-account-close" type="button" data-role="close" aria-label="বন্ধ করুন">×</button>
       <header class="ah-account-head">
         <p class="ah-account-kicker">Admission Hub</p>
@@ -77,23 +79,39 @@
       <div class="ah-account-body">
         <div class="ah-account-message" data-role="message" hidden aria-live="polite"></div>
 
-        <div class="ah-account-view ah-welcome-view" data-view="welcome" hidden>
-          <div class="ah-brand-lockup"><span class="ah-brand-shield" aria-hidden="true">A</span><strong>Admission Hub</strong></div>
-          <div class="ah-academic-hero" data-role="academic-hero" aria-hidden="true">
-            <img src="./onboarding-welcome-hero.webp?v=reference-onboarding-v2" alt="" width="900" height="675" decoding="async">
+        <div class="ah-account-view ah-welcome-view" data-view="welcome" hidden data-page-contract="static-reference-welcome-v3">
+          <header class="ah-welcome-header">
+            <div class="ah-brand-lockup" aria-label="Admission Hub">
+              <span class="ah-brand-mark" aria-hidden="true"><svg viewBox="0 0 48 42" fill="none"><path d="M3 13 24 3l21 10-21 10L3 13Z"/><path d="M10 18v12c9 8 19 8 28 0V18"/><path d="M43 14v13"/><circle cx="43" cy="30" r="2.5"/></svg></span>
+              <span><strong>ADMISSION <em>HUB</em></strong><small>Your Smarter Admission Companion</small></span>
+            </div>
+            <label class="ah-language-picker"><span class="sr-only">ভাষা বেছে নাও</span><select data-role="welcome-language" aria-label="ভাষা বেছে নাও"><option value="bn">বাংলা</option><option value="en">English</option></select></label>
+          </header>
+
+          <div class="ah-academic-hero" data-role="academic-hero">
+            <img src="./onboarding-welcome-hero.webp?v=static-reference-welcome-v3" alt="বিশ্ববিদ্যালয় ক্যাম্পাসের সামনে বই ও লক্ষ্যচিহ্নসহ একজন শিক্ষার্থী" width="853" height="625" decoding="async" fetchpriority="high">
           </div>
-          <div class="ah-welcome-copy">
-            <p class="ah-welcome-eyebrow">YOUR ADMISSION JOURNEY</p>
-            <h3>তোমার স্বপ্নের বিশ্ববিদ্যালয়ের পথে,<br>প্রথম ধাপটা আজ থেকেই।</h3>
-            <p>পড়াশোনা, practice আর preparation—সবকিছু এক জায়গায়।</p>
-          </div>
+
+          <section class="ah-welcome-copy" aria-labelledby="ah-welcome-heading">
+            <h1 id="ah-welcome-heading" data-bn="তোমার স্বপ্নের|বিশ্ববিদ্যালয়ের পথে,|প্রথম ধাপটা আজ থেকেই।" data-en="Your dream university|journey begins|with the first step today.">তোমার স্বপ্নের<br><em>বিশ্ববিদ্যালয়ের পথে,</em><br>প্রথম ধাপটা আজ থেকেই।</h1>
+            <p data-bn="পড়াশোনা, practice আর preparation—|সবকিছু এক জায়গায়।" data-en="Learning, practice and preparation—|everything in one place.">পড়াশোনা, practice আর preparation—<br>সবকিছু এক জায়গায়।</p>
+          </section>
+
+          <section class="ah-welcome-benefits" aria-label="Admission Hub সুবিধা">
+            <article><i class="learn" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M5 7c5-2 9-1 11 2v17c-3-3-7-4-11-2V7Zm22 0c-5-2-9-1-11 2v17c3-3 7-4 11-2V7Z"/></svg></i><strong>Learn</strong><small>From expert<br>resources</small></article>
+            <article><i class="practice" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="5" y="5" width="22" height="22" rx="4"/><path d="m10 16 4 4 9-10"/></svg></i><strong>Practice</strong><small>With smart<br>question bank</small></article>
+            <article><i class="improve" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M6 25V17m7 8V12m7 13V8m6 17V4M5 11l7-5 6 3 8-6"/></svg></i><strong>Improve</strong><small>Track your<br>progress</small></article>
+            <article><i class="achieve" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M10 5h12v5c0 6-3 9-6 9s-6-3-6-9V5Z"/><path d="M10 8H5c0 5 2 8 7 8m10-8h5c0 5-2 8-7 8M16 19v5m-6 3h12"/></svg></i><strong>Achieve</strong><small>Your dream<br>university</small></article>
+          </section>
+
           <div class="ah-entry-actions" aria-label="প্রবেশের পদ্ধতি">
-            <button class="ah-account-primary ah-entry-signup" type="button" data-role="welcome-signup"><span aria-hidden="true">✨</span> Sign Up</button>
-            <button class="ah-account-secondary" type="button" data-role="welcome-login">Log In</button>
-            <div class="ah-account-google ah-welcome-google" data-role="welcome-google-button"><button class="ah-account-secondary" type="button" disabled aria-label="Google দিয়ে প্রবেশ এখন প্রস্তুত হচ্ছে">Continue with Google</button></div>
-            <button class="ah-account-link ah-entry-guest" type="button" data-role="continue-guest">Continue as Guest</button>
+            <button class="ah-account-primary ah-entry-signup" type="button" data-role="welcome-signup"><span class="ah-entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.7-4 2.5-6 5.5-6s4.8 2 5.5 6M18 7v6m-3-3h6"/></svg></span><span data-bn="Sign Up" data-en="Sign Up">Sign Up</span><b aria-hidden="true">→</b></button>
+            <button class="ah-account-secondary ah-entry-login" type="button" data-role="welcome-login"><span class="ah-entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg></span><span data-bn="Log In" data-en="Log In">Log In</span><b aria-hidden="true">→</b></button>
+            <div class="ah-account-google ah-welcome-google" data-role="welcome-google-button"><button class="ah-account-secondary" type="button" disabled aria-label="Google দিয়ে প্রবেশ এখন প্রস্তুত হচ্ছে"><span class="ah-google-g" aria-hidden="true">G</span><span>Continue with Google</span><b aria-hidden="true">→</b></button></div>
+            <button class="ah-account-link ah-entry-guest" type="button" data-role="continue-guest"><span class="ah-entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="3"/><path d="M5.5 20c.8-4.5 2.9-6.7 6.5-6.7s5.7 2.2 6.5 6.7"/></svg></span><span data-bn="Continue as Guest" data-en="Continue as Guest">Continue as Guest</span><b aria-hidden="true">→</b></button>
           </div>
-          <p class="ah-assistant-hint">Signup করতে সাহায্য লাগলে নিচের Assistant আছে ✨</p>
+
+          <div class="ah-welcome-landscape" aria-hidden="true"><svg viewBox="0 0 390 86" preserveAspectRatio="none"><path class="hill-back" d="M0 49c44-26 76-25 112-6 44 24 75 18 116-7 51-31 100-22 162 9v41H0V49Z"/><path class="hill-front" d="M0 64c51-18 86-13 126 4 48 20 91 12 139-10 43-20 82-16 125 2v26H0V64Z"/><g class="campus"><path d="M28 62h48v18H28zM36 54h32v8H36zM48 45h8v9h-8zM43 45l9-7 9 7M22 80h60"/><path d="M35 66v14m10-14v14m14-14v14m10-14v14"/></g><g class="trees"><path d="M8 70V49m0 3-5 10h10L8 52Zm84 22V53m0 2-6 12h12L92 55Zm16 20V58m0 2-5 10h10l-5-10Z"/></g></svg></div>
         </div>
 
         <form class="ah-account-view ah-login-view" data-view="login" novalidate>
@@ -252,18 +270,43 @@
         <div class="ah-account-view" data-view="signed" hidden><div class="ah-account-secure"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6V10Zm6 4v2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><div><h3>Account নিরাপদ ও সক্রিয়</h3><p data-role="account-verification-summary">তোমার account সত্যিকারের যাচাইয়ের মাধ্যমে সক্রিয় আছে।</p></div></div><div class="ah-account-identity"><p class="ah-account-identity-label" data-role="identity-label">Admission Hub account</p><p class="ah-account-identity-value" data-role="identity">—</p></div><section class="ah-account-security-tools" data-role="passkey-tools" hidden><div class="ah-account-tool-head"><div><h3>Passkey</h3><p data-role="passkey-status">এই device-এ দ্রুত প্রবেশ চালু করতে পারো।</p></div><span aria-hidden="true">◉</span></div><div data-role="passkey-list"></div><button class="ah-account-secondary" type="button" data-role="passkey-add">নতুন Passkey যোগ করুন</button></section><button class="ah-account-secondary" type="button" data-role="backup-start" hidden>বিকল্প যাচাই</button><button class="ah-account-secondary" type="button" data-role="logout">Log Out</button><p class="ah-account-fine">Password ও প্রবেশের গোপন তথ্য এই পেজে দেখানো বা জমা রাখা হয় না।</p></div>
       </div>
 
-      <div class="ah-guide" data-role="guide" hidden>
+      <div class="ah-guide" data-role="guide" data-assistant-enabled="false" hidden aria-hidden="true">
         <div class="ah-guide-head"><div><span class="ah-guide-robot" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="8" y="12" width="32" height="27" rx="11"/><path d="M24 12V7m-2 0h4M16 27h.1M32 27h.1M18 33c4 2 8 2 12 0"/></svg></span><div><strong>AI Assistant</strong><small data-role="guide-context">তোমার সাথে সবসময়</small></div></div><button type="button" data-role="guide-close" aria-label="Assistant বন্ধ করুন">×</button></div>
         <div class="ah-guide-welcome"><h3>আমি তোমাকে onboarding-এ সাহায্য করতে পারি</h3><p>সাধারণ প্রশ্ন করো। Password, OTP বা secret কখনো chat-এ লিখবে না।</p></div>
         <div class="ah-guide-messages" data-role="guide-messages" aria-live="polite"><div class="ah-guide-bubble">হ্যালো! তুমি যে ধাপে আছো, সেই ধাপেই নিরাপদভাবে সাহায্য করব।</div></div>
         <div class="ah-guide-chips" data-role="guide-chips"></div>
         <form data-role="guide-form"><label class="sr-only" for="ah-guide-input">Assistant-কে প্রশ্ন করো</label><input id="ah-guide-input" maxlength="300" autocomplete="off" placeholder="কী জানতে চাও?"><button type="submit" aria-label="পাঠান">↑</button></form>
       </div>
-      <button class="ah-guide-orb" type="button" data-role="guide-open" aria-label="Admission Assistant খুলুন"><span>✦</span><small>Help</small></button>
-    </section>
+      <button class="ah-guide-orb" type="button" data-role="guide-open" aria-label="Admission Assistant খুলুন" hidden disabled><span>✦</span><small>Help</small></button>
+    </main>
   `;
 
-  const $ = selector => overlay.querySelector(selector);
+  const $ = selector => pageHost.querySelector(selector);
+  const setWelcomeLanguage = language => {
+    const selected = language === 'en' ? 'en' : 'bn';
+    const heading = $('#ah-welcome-heading');
+    if (heading) {
+      const lines = String(heading.dataset[selected] || heading.dataset.bn || '').split('|');
+      heading.textContent = '';
+      lines.forEach((line, index) => {
+        if (index > 0) heading.append(document.createElement('br'));
+        const node = index === 1 ? document.createElement('em') : document.createTextNode(line);
+        if (node.nodeType === 1) node.textContent = line;
+        heading.append(node);
+      });
+    }
+    pageHost.querySelectorAll('[data-bn][data-en]:not(#ah-welcome-heading)').forEach(node => {
+      const value = String(node.dataset[selected] || node.dataset.bn || '');
+      if (value.includes('|')) {
+        node.textContent = '';
+        value.split('|').forEach((line, index) => {
+          if (index > 0) node.append(document.createElement('br'));
+          node.append(document.createTextNode(line));
+        });
+      } else node.textContent = value;
+    });
+    document.documentElement.lang = selected;
+  };
   const message = (text = '', kind = 'info') => {
     const node = $('[data-role="message"]');
     if (!node) return;
@@ -307,7 +350,7 @@
     const input = $('#ah-telegram-code');
     const value = String(input?.value || '').replace(/\D/g, '').slice(0, 6);
     if (input && input.value !== value) input.value = value;
-    overlay.querySelectorAll('[data-otp-digit]').forEach((box, index) => {
+    pageHost.querySelectorAll('[data-otp-digit]').forEach((box, index) => {
       box.textContent = value[index] || '';
       box.classList.toggle('filled', index < value.length);
       box.classList.toggle('next', index === value.length);
@@ -392,8 +435,8 @@
 
   const setBusy = busy => {
     state.busy = Boolean(busy);
-    $('.ah-account-modal')?.setAttribute('aria-busy', state.busy ? 'true' : 'false');
-    overlay.querySelectorAll('button,input,select').forEach(element => {
+    $('.ah-account-shell')?.setAttribute('aria-busy', state.busy ? 'true' : 'false');
+    pageHost.querySelectorAll('button,input,select').forEach(element => {
       if (state.busy) {
         if (!element.disabled) { element.dataset.ahBusyDisabled = 'true'; element.disabled = true; }
       } else if (element.dataset.ahBusyDisabled === 'true') {
@@ -401,9 +444,10 @@
         delete element.dataset.ahBusyDisabled;
       }
     });
-    overlay.querySelectorAll('.ah-account-primary').forEach(button => {
-      if (!button.dataset.label) button.dataset.label = button.textContent;
+    pageHost.querySelectorAll('.ah-account-primary').forEach(button => {
       const isActive = button.closest('.ah-account-view:not([hidden])');
+      if (button.classList.contains('ah-entry-signup')) return;
+      if (!button.dataset.label) button.dataset.label = button.textContent;
       button.innerHTML = state.busy && isActive ? '<span class="ah-account-spinner" aria-hidden="true"></span>অপেক্ষা করুন…' : button.dataset.label;
     });
     updateResendCooldown();
@@ -536,7 +580,7 @@
     const label = dob
       ? new Intl.DateTimeFormat('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${dob}T00:00:00Z`))
       : 'তারিখ বেছে নাও';
-    overlay.querySelectorAll('[data-role="dob-preview"],[data-role="dob-summary"]').forEach(output => { output.textContent = label; });
+    pageHost.querySelectorAll('[data-role="dob-preview"],[data-role="dob-summary"]').forEach(output => { output.textContent = label; });
     const calendarDay = $('.ah-calendar-illustration>span');
     if (calendarDay) calendarDay.textContent = $('#ah-dob-day')?.value || '—';
   };
@@ -681,7 +725,7 @@
       uppercase: /[A-Z]/.test(password),
       number: /\d/.test(password)
     };
-    overlay.querySelectorAll('[data-password-rule]').forEach(rule => rule.classList.toggle('met', Boolean(ruleState[rule.dataset.passwordRule])));
+    pageHost.querySelectorAll('[data-password-rule]').forEach(rule => rule.classList.toggle('met', Boolean(ruleState[rule.dataset.passwordRule])));
     showFieldFeedback('password-strength', password ? `Strength: ${labels[score]}` : 'কমপক্ষে ৮ অক্ষর ব্যবহার করো', score >= 4 ? 'valid' : '');
     showFieldFeedback('password-match', !confirm ? '' : password === confirm ? '✓ দুইটি Password মিলেছে' : 'Password দুইটি মিলছে না', password === confirm && confirm ? 'valid' : confirm ? 'error' : '');
   };
@@ -739,7 +783,7 @@
     const node = typeof target === 'function' ? target() : target;
     const active = document.activeElement;
     if (!node || node.closest('[hidden]')) return;
-    if (!active || active === document.body || !overlay.contains(active) || active.closest('[hidden]')) node.focus();
+    if (!active || active === document.body || !pageHost.contains(active) || active.closest('[hidden]')) node.focus();
   }, delay);
 
   const setSignupStep = (requestedStep, { validate = false } = {}) => {
@@ -756,13 +800,13 @@
       }
     }
     state.signupStep = step;
-    const signupModal = $('.ah-account-modal');
+    const signupModal = $('.ah-account-shell');
     if (signupModal) signupModal.dataset.signupStep = step;
-    overlay.querySelectorAll('[data-signup-panel]').forEach(panel => { panel.hidden = panel.dataset.signupPanel !== step; });
+    pageHost.querySelectorAll('[data-signup-panel]').forEach(panel => { panel.hidden = panel.dataset.signupPanel !== step; });
     const stage = ['personal', 'dob'].includes(step) ? 'personal' : ['school', 'college'].includes(step) ? 'education' : 'security';
     const stages = ['personal', 'education', 'security'];
     const stageIndex = stages.indexOf(stage);
-    overlay.querySelectorAll('[data-signup-step-button]').forEach(button => {
+    pageHost.querySelectorAll('[data-signup-step-button]').forEach(button => {
       const index = stages.indexOf(button.dataset.signupStepButton);
       button.classList.toggle('active', button.dataset.signupStepButton === stage);
       button.classList.toggle('done', index < stageIndex);
@@ -966,6 +1010,7 @@
   };
 
   const askGuide = async text => {
+    if (!ASSISTANT_ENABLED) return;
     const clean = String(text || '').trim().slice(0, 300);
     if (!clean || state.guideBusy) return;
     if (sensitiveGuideInput(clean)) {
@@ -1002,10 +1047,10 @@
 
   const showView = (name, keepMessage = false) => {
     state.currentView = name;
-    const modal = $('.ah-account-modal');
-    overlay.dataset.currentView = name;
-    if (modal) modal.dataset.currentView = name;
-    overlay.querySelectorAll('[data-view]').forEach(view => { view.hidden = view.dataset.view !== name; });
+    const shell = $('.ah-account-shell');
+    pageHost.dataset.currentView = name;
+    if (shell) shell.dataset.currentView = name;
+    pageHost.querySelectorAll('[data-view]').forEach(view => { view.hidden = view.dataset.view !== name; });
     const closeButton = $('[data-role="close"]');
     if (closeButton) closeButton.hidden = name === 'welcome';
     if (!keepMessage) message();
@@ -1342,8 +1387,10 @@
           ].filter(Boolean);
           hosts.forEach(host => {
             host.textContent = '';
+            const measuredWidth = Math.round(host.getBoundingClientRect().width || 280);
+            const buttonWidth = Math.max(220, Math.min(300, measuredWidth));
             window.google.accounts.id.renderButton(host, {
-              type: 'standard', theme: 'outline', size: 'large', shape: 'rectangular', text: 'continue_with', width: 354
+              type: 'standard', theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width: buttonWidth
             });
             host.hidden = false;
           });
@@ -1462,15 +1509,27 @@
     } catch (error) { if ([401, 403].includes(error.status)) state.session = null; }
     if (state.session) rememberEntry('account');
     updateLauncher();
-    if (!overlay.hidden && state.session) showView('signed');
+    if (!pageHost.hidden && state.session) showView('signed');
     if (state.session) refreshPasskeyStatus();
     return state.session;
   };
 
+  const setAccountPageActive = active => {
+    const visible = Boolean(active);
+    pageHost.hidden = !visible;
+    document.body.classList.toggle('ah-account-page-active', visible);
+    const app = document.getElementById('app');
+    const navigation = document.getElementById('navRoot');
+    [app, navigation].filter(Boolean).forEach(node => {
+      node.inert = visible;
+      if (visible) node.setAttribute('aria-hidden', 'true');
+      else node.removeAttribute('aria-hidden');
+    });
+    if (visible) requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
+  };
   const open = options => {
     const forceWelcome = options?.forceWelcome === true;
-    overlay.hidden = false;
-    document.documentElement.style.overflow = 'hidden';
+    setAccountPageActive(true);
     if (accountVerified(state.session)) showView('signed');
     else if (state.telegram) showView('telegram');
     else if (state.verification) showView('verify');
@@ -1479,8 +1538,7 @@
     if (state.available === false && state.currentView !== 'welcome') message('Account service এখন প্রস্তুত নয়—Guest হিসেবে Dashboard ব্যবহার করতে পারো।', 'info');
   };
   const close = () => {
-    overlay.hidden = true;
-    document.documentElement.style.overflow = '';
+    setAccountPageActive(false);
     const guide = $('[data-role="guide"]');
     if (guide) guide.hidden = true;
     message();
@@ -1519,7 +1577,7 @@
           mode,
           resendUntil: 0
         };
-        if (!overlay.hidden) showView('verify');
+        if (!pageHost.hidden) showView('verify');
         return true;
       }
     } catch (_) {}
@@ -1655,39 +1713,26 @@
   const initialize = () => {
     if (state.initialized || !document.body) return;
     state.initialized = true;
-    document.body.append(launcher, overlay);
+    document.body.append(launcher, pageHost);
     launcher.addEventListener('click', open);
     $('.ah-account-close').addEventListener('click', dismiss);
-    overlay.addEventListener('click', event => { if (event.target === overlay && state.currentView !== 'welcome') dismiss(); });
     document.addEventListener('keydown', event => {
-      if (overlay.hidden) return;
-      if (event.key === 'Tab') {
-        const focusable = [...overlay.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
-          .filter(node => !node.closest('[hidden]') && node.getClientRects().length > 0);
-        if (!focusable.length) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (event.shiftKey && (document.activeElement === first || !overlay.contains(document.activeElement))) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && (document.activeElement === last || !overlay.contains(document.activeElement))) {
-          event.preventDefault();
-          first.focus();
-        }
-        return;
-      }
-      if (event.key !== 'Escape') return;
+      if (pageHost.hidden || event.key !== 'Escape') return;
       const guide = $('[data-role="guide"]');
-      if (guide && !guide.hidden) { guide.hidden = true; $('[data-role="guide-open"]')?.focus(); }
-      else if (state.currentView !== 'welcome') dismiss();
+      if (guide && !guide.hidden) guide.hidden = true;
     });
 
+    const welcomeLanguage = $('[data-role="welcome-language"]');
+    if (welcomeLanguage) {
+      welcomeLanguage.addEventListener('change', () => setWelcomeLanguage(welcomeLanguage.value));
+      setWelcomeLanguage(welcomeLanguage.value);
+    }
     populateDob();
     updateDobPreview();
     setupInstitutionSearch('school');
     setupInstitutionSearch('college');
     $('#ah-dob-day').addEventListener('change', updateDobPreview);
-    overlay.querySelectorAll('#ah-dob-month,#ah-dob-year').forEach(select => select.addEventListener('change', () => {
+    pageHost.querySelectorAll('#ah-dob-month,#ah-dob-year').forEach(select => select.addEventListener('change', () => {
       syncDobDays();
       updateDobPreview();
     }));
@@ -1698,7 +1743,7 @@
     });
     $('#ah-signup-password').addEventListener('input', updatePasswordFeedback);
     $('#ah-signup-confirm').addEventListener('input', updatePasswordFeedback);
-    overlay.querySelectorAll('[data-password-target]').forEach(button => button.addEventListener('click', () => {
+    pageHost.querySelectorAll('[data-password-target]').forEach(button => button.addEventListener('click', () => {
       const input = document.getElementById(button.dataset.passwordTarget);
       if (!input) return;
       const reveal = input.type === 'password';
@@ -1740,7 +1785,7 @@
     $('[data-role="signup-back-school"]').addEventListener('click', () => setSignupStep('school'));
     $('[data-role="signup-next-security"]').addEventListener('click', () => setSignupStep('security', { validate: true }));
     $('[data-role="signup-back-education"]').addEventListener('click', () => setSignupStep('college'));
-    overlay.querySelectorAll('[data-signup-step-button]').forEach(button => button.addEventListener('click', () => {
+    pageHost.querySelectorAll('[data-signup-step-button]').forEach(button => button.addEventListener('click', () => {
       const target = button.dataset.signupStepButton === 'education' ? 'school' : button.dataset.signupStepButton;
       const order = ['personal', 'dob', 'school', 'college', 'security'];
       const current = order.indexOf(state.signupStep);
@@ -1787,7 +1832,7 @@
     $('[data-role="open-email"]').addEventListener('click', openEmailInbox);
     $('[data-role="verified-login"]').addEventListener('click', () => checkEmailVerification());
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && !overlay.hidden && state.currentView === 'verify' && state.verification?.mode === 'email') checkEmailVerification({ silent: true });
+      if (document.visibilityState === 'visible' && !pageHost.hidden && state.currentView === 'verify' && state.verification?.mode === 'email') checkEmailVerification({ silent: true });
     });
     const hero = $('[data-role="academic-hero"]');
     if (hero && !reducedMotion()) {
@@ -2154,7 +2199,7 @@
       }
       if (!state.telegram && !state.verification) await recoverPendingAccountVerification();
       if (accountVerified(state.session)) return;
-      if (overlay.hidden && (!entryMode() || state.telegram || state.verification)) {
+      if (pageHost.hidden && (!entryMode() || state.telegram || state.verification)) {
         open({ forceWelcome: !state.telegram && !state.verification });
       }
     });
