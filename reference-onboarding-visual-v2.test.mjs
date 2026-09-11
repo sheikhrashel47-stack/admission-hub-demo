@@ -10,6 +10,8 @@ const DASH_CSS = read('dashboard-v2.css');
 const NAV_JS = read('phase12-ui.js');
 const HTML = read('index.html');
 const SW = read('sw.js');
+const PAGES_GUARD = read('.github/workflows/cf-pages.yml');
+const RELEASE_WORKFLOW = read('.github/workflows/telegram-auth-canary-activate.yml');
 
 const between = (source, start, end) => {
   const from = source.indexOf(start);
@@ -107,4 +109,14 @@ test('reference assets and service-worker release markers are synchronized', () 
   assert.match(SW, new RegExp(`const BUILD_ID = '${shellVersion}'`));
   assert.match(HTML, new RegExp(`expectedSwVersion = '${shellVersion}'`));
   assert.match(HTML, new RegExp(`sw\\.js\\?v=${shellVersion}`));
+});
+
+test('a merge cannot bypass the protected Telegram publication path for visual v2', () => {
+  assert.match(PAGES_GUARD, /Cloudflare Pages Bundle Guard \(No Deploy\)/);
+  assert.doesNotMatch(PAGES_GUARD, /wrangler-action|pages deploy dist/);
+  assert.match(RELEASE_WORKFLOW, /environment: email-gateway-production/);
+  assert.match(RELEASE_WORKFLOW, /npm run test:production-auth/);
+  assert.match(RELEASE_WORKFLOW, /npm run audit:premium-browser/);
+  assert.match(RELEASE_WORKFLOW, /pages deploy dist --project-name admissionhub --branch main/);
+  assert.match(RELEASE_WORKFLOW, /v235-reference-onboarding-20260911/);
 });

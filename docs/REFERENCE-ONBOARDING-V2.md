@@ -49,4 +49,5 @@ Shell build: `v235-reference-onboarding-20260911`
 - `premium-onboarding-ui.test.mjs` locks runtime state transitions and no-delivery-before-selection behavior.
 - `telegram-otp-ui.test.mjs` locks the genuine six-digit Telegram OTP lifecycle.
 - `auth-native/operations/premium-onboarding-browser-audit.mjs` runs an iPhone flow, virtual-device Passkey flow, keyboard/accessibility checks, Guest persistence/offline checks, and the narrow desktop composition.
-- `.github/workflows/telegram-auth-canary-activate.yml` verifies the deployed visual and shell contracts before a protected release can complete.
+- `.github/workflows/cf-pages.yml` is bundle-validation only and cannot publish on a merge.
+- This visual-v2 release must use `.github/workflows/telegram-auth-canary-activate.yml`; it verifies the deployed visual and shell contracts before the protected release can complete.
