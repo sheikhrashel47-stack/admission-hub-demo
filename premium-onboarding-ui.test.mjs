@@ -5,7 +5,6 @@ import { JSDOM } from 'jsdom';
 
 const accountSource = readFileSync(new URL('./account-access.js', import.meta.url), 'utf8');
 const accountCss = readFileSync(new URL('./account-access.css', import.meta.url), 'utf8');
-const personalHero = readFileSync(new URL('./onboarding-personal-hero.webp', import.meta.url));
 const institutionSource = readFileSync(new URL('./institutions-bd.js', import.meta.url), 'utf8');
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -213,21 +212,25 @@ test('slow account startup never delays Welcome or blocks direct Guest entry', a
   app.dom.window.close();
 });
 
-test('Signup 01 Personal uses the supplied static-reference composition and combines name with DOB', async t => {
+test('Signup 01 Personal uses a native DOM illustration and combines name with DOB', async t => {
   const app = setup();
   t.after(() => app.dom.window.close());
   await openSignup(app);
   const personal = app.document.querySelector('[data-signup-panel="personal"]');
   const signup = app.document.querySelector('[data-view="signup"]');
-  assert.equal(signup.dataset.personalVisualContract, 'static-reference-personal-v1');
+  const illustration = personal.querySelector('[data-illustration-contract="native-dom-profile-v1"]');
+  assert.equal(signup.dataset.personalVisualContract, 'native-reference-personal-v2');
   assert.equal(personal.hidden, false);
   assert.equal(app.document.querySelector('[data-signup-panel="dob"]'), null);
   assert.match(personal.textContent, /চলো, তোমার\s*পরিচয়টা তৈরি করি/);
   assert.match(personal.textContent, /তোমার সম্পর্কে একটু বলো/);
   assert.match(personal.textContent, /পরের ধাপ/);
-  assert.equal(personal.querySelector('.ah-personal-hero img')?.getAttribute('src'), './onboarding-personal-hero.webp?v=static-reference-personal-v1');
-  assert.equal(personalHero.subarray(0, 4).toString('ascii'), 'RIFF');
-  assert.match(accountCss, /Page 2 — exact-reference Signup 01 \/ Personal/);
+  assert.ok(illustration);
+  assert.equal(illustration.querySelectorAll('img,canvas,video').length, 0);
+  assert.ok(illustration.querySelector('.ah-native-profile'));
+  assert.ok(illustration.querySelector('.ah-native-pedestal'));
+  assert.doesNotMatch(accountSource, /onboarding-personal-hero\.webp/);
+  assert.match(accountCss, /Page 2 — native responsive Signup 01 \/ Personal; no screenshot or raster hero/);
   assert.deepEqual([...app.document.querySelectorAll('[data-signup-step-button]')].map(button => button.textContent.trim()), ['01Personal', '02Education', '03Security']);
   for (const id of ['ah-signup-name', 'ah-dob-day', 'ah-dob-month', 'ah-dob-year']) {
     assert.equal(personal.contains(app.document.getElementById(id)), true, id);

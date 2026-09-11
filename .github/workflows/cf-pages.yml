@@ -24,7 +24,7 @@ jobs:
           test -s dist/sw.js
           test -s dist/account-access.js
           test -s dist/onboarding-welcome-hero.webp
-          test -s dist/onboarding-personal-hero.webp
+          test ! -e dist/onboarding-personal-hero.webp
           du -sh dist
 
       - name: Require protected Telegram publication workflow

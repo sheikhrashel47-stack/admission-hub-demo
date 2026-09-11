@@ -114,8 +114,8 @@ test('custom Guest Dashboard is removed and Guest returns to the ordinary app ro
 });
 
 test('static Welcome assets and service-worker release markers are synchronized', () => {
-  const uiVersion = '20260911-static-reference-personal-v1-ai-scope';
-  const shellVersion = 'v238-personal-20260911';
+  const uiVersion = '20260911-native-personal-v2-ai-scope';
+  const shellVersion = 'v239-native-personal-20260911';
   for (const asset of [`account-access.css?v=${uiVersion}`, `account-access.js?v=${uiVersion}`, 'dashboard-v2.css?v=dash2f9', 'dashboard-v2.js?v=dash2f10-main-ai']) {
     assert.match(HTML, new RegExp(asset.replace(/[.?]/g, value => `\\${value}`)));
     assert.match(SW, new RegExp(asset.replace(/[.?]/g, value => `\\${value}`)));

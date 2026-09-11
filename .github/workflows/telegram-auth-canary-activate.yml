@@ -41,7 +41,7 @@ jobs:
       - name: Install browser only for the protected release audit
         run: npx playwright-core install --with-deps chromium
 
-      - name: Audit static Welcome page and protected Auth flows on iPhone, desktop, reduced-motion, and offline modes
+      - name: Audit static Welcome, native Personal, and protected Auth flows on iPhone, desktop, reduced-motion, and offline modes
         run: npm run audit:premium-browser
 
       - name: Verify required Worker bindings by name only
@@ -152,8 +152,8 @@ jobs:
 
           public_ready=false
           for attempt in 1 2 3 4 5; do
-            fetch_public "$verify_dir/index.html" "https://admissionhub.pages.dev/?release=v238-personal-20260911"
-            if grep -Fq 'account-access.js?v=20260911-static-reference-personal-v1-ai-scope' "$verify_dir/index.html" \
+            fetch_public "$verify_dir/index.html" "https://admissionhub.pages.dev/?release=v239-native-personal-20260911"
+            if grep -Fq 'account-access.js?v=20260911-native-personal-v2-ai-scope' "$verify_dir/index.html" \
               && grep -Fq 'ai-agent-chat.js?v=agent-f1-ui-chatv15-identity' "$verify_dir/index.html"; then
               public_ready=true
               break
@@ -162,27 +162,28 @@ jobs:
           done
           test "$public_ready" = 'true'
           grep -Fq 'institutions-bd.js?v=bd-institutions-v1' "$verify_dir/index.html"
-          grep -Fq 'account-access.css?v=20260911-static-reference-personal-v1-ai-scope' "$verify_dir/index.html"
+          grep -Fq 'account-access.css?v=20260911-native-personal-v2-ai-scope' "$verify_dir/index.html"
           grep -Fq 'dashboard-v2.css?v=dash2f9' "$verify_dir/index.html"
           grep -Fq 'dashboard-v2.js?v=dash2f10-main-ai' "$verify_dir/index.html"
           grep -Fq 'ai-agent-chat.js?v=agent-f1-ui-chatv15-identity' "$verify_dir/index.html"
           grep -Fq 'phase12-ui.js?v=nav-resume-router-v11-main-ai' "$verify_dir/index.html"
-          grep -Fq 'sw.js?v=v238-personal-20260911' "$verify_dir/index.html"
+          grep -Fq 'sw.js?v=v239-native-personal-20260911' "$verify_dir/index.html"
 
-          fetch_public "$verify_dir/account-access.js" 'https://admissionhub.pages.dev/account-access.js?v=20260911-static-reference-personal-v1-ai-scope'
-          fetch_public "$verify_dir/account-access.css" 'https://admissionhub.pages.dev/account-access.css?v=20260911-static-reference-personal-v1-ai-scope'
+          fetch_public "$verify_dir/account-access.js" 'https://admissionhub.pages.dev/account-access.js?v=20260911-native-personal-v2-ai-scope'
+          fetch_public "$verify_dir/account-access.css" 'https://admissionhub.pages.dev/account-access.css?v=20260911-native-personal-v2-ai-scope'
           fetch_public "$verify_dir/dashboard-v2.js" 'https://admissionhub.pages.dev/dashboard-v2.js?v=dash2f10-main-ai'
           fetch_public "$verify_dir/ai-agent-chat.js" 'https://admissionhub.pages.dev/ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'
           fetch_public "$verify_dir/phase12-ui.js" 'https://admissionhub.pages.dev/phase12-ui.js?v=nav-resume-router-v11-main-ai'
-          fetch_public "$verify_dir/sw.js" 'https://admissionhub.pages.dev/sw.js?v=v238-personal-20260911'
+          fetch_public "$verify_dir/sw.js" 'https://admissionhub.pages.dev/sw.js?v=v239-native-personal-20260911'
           fetch_public "$verify_dir/onboarding-welcome-hero.webp" 'https://admissionhub.pages.dev/onboarding-welcome-hero.webp?v=static-reference-welcome-v3'
-          fetch_public "$verify_dir/onboarding-personal-hero.webp" 'https://admissionhub.pages.dev/onboarding-personal-hero.webp?v=static-reference-personal-v1'
 
           grep -Fq "'X-AH-Auth-UI': 'auth-premium-v6'" "$verify_dir/account-access.js"
           grep -Fq 'data-visual-contract="static-page-system-v3"' "$verify_dir/account-access.js"
           grep -Fq 'data-page-contract="static-reference-welcome-v3"' "$verify_dir/account-access.js"
-          grep -Fq 'data-personal-visual-contract="static-reference-personal-v1"' "$verify_dir/account-access.js"
-          grep -Fq './onboarding-personal-hero.webp?v=static-reference-personal-v1' "$verify_dir/account-access.js"
+          grep -Fq 'data-personal-visual-contract="native-reference-personal-v2"' "$verify_dir/account-access.js"
+          grep -Fq 'data-illustration-contract="native-dom-profile-v1"' "$verify_dir/account-access.js"
+          ! grep -Fq 'onboarding-personal-hero.webp' "$verify_dir/account-access.js"
+          ! grep -Fq '<img' <(sed -n '/data-illustration-contract="native-dom-profile-v1"/,/<\/div>/p' "$verify_dir/account-access.js")
           grep -Fq 'চলো, তোমার' "$verify_dir/account-access.js"
           grep -Fq 'id="ah-dob-day"' "$verify_dir/account-access.js"
           ! grep -Fq 'data-signup-panel="dob"' "$verify_dir/account-access.js"
@@ -191,7 +192,8 @@ jobs:
           grep -Fq 'data-otp-digit="5"' "$verify_dir/account-access.js"
           grep -Fq 'Email OTP নয়' "$verify_dir/account-access.js"
           grep -Fq 'Static page system v3' "$verify_dir/account-access.css"
-          grep -Fq 'Page 2 — exact-reference Signup 01 / Personal' "$verify_dir/account-access.css"
+          grep -Fq 'Page 2 — native responsive Signup 01 / Personal; no screenshot or raster hero' "$verify_dir/account-access.css"
+          grep -Fq '.ah-native-profile{' "$verify_dir/account-access.css"
           ! grep -Fq 'data-role="guide' "$verify_dir/account-access.js"
           ! grep -Fq '/api/ai/chat' "$verify_dir/account-access.js"
           ! grep -Fq '.ah-guide' "$verify_dir/account-access.css"
@@ -204,13 +206,12 @@ jobs:
           grep -Fq "if(p==='ai'){ if(window.renderAiAgentPage)" "$verify_dir/index.html"
           grep -Fq '<span>AI</span>' "$verify_dir/dashboard-v2.js"
           grep -Fq 'window.renderAiAgentPage = render' "$verify_dir/ai-agent-chat.js"
-          grep -Fq "const BUILD_ID = 'v238-personal-20260911'" "$verify_dir/sw.js"
-          grep -Fq './onboarding-personal-hero.webp?v=static-reference-personal-v1' "$verify_dir/sw.js"
+          grep -Fq "const BUILD_ID = 'v239-native-personal-20260911'" "$verify_dir/sw.js"
+          ! grep -Fq 'onboarding-personal-hero.webp' "$verify_dir/sw.js"
           grep -Fq './ai-agent-chat.js?v=agent-f1-ui-chatv15-identity' "$verify_dir/sw.js"
           node -e "const b=require('node:fs').readFileSync(process.argv[1]); if(b.length<20000||b.subarray(0,4).toString()!=='RIFF'||b.subarray(8,12).toString()!=='WEBP') process.exit(1)" "$verify_dir/onboarding-welcome-hero.webp"
-          node -e "const b=require('node:fs').readFileSync(process.argv[1]); if(b.length<15000||b.subarray(0,4).toString()!=='RIFF'||b.subarray(8,12).toString()!=='WEBP') process.exit(1)" "$verify_dir/onboarding-personal-hero.webp"
           rm -rf "$verify_dir"
-          echo 'Static reference Welcome v3 and Personal v1, truthful Email/Telegram verification, ordinary Guest route, signup-only Assistant isolation, restored main-app AI, and cache-safe assets are READY; generic backup and pre-verification Passkey remain protected.'
+          echo 'Static reference Welcome v3 and native Personal v2, truthful Email/Telegram verification, ordinary Guest route, signup-only Assistant isolation, restored main-app AI, and cache-safe assets are READY; generic backup and pre-verification Passkey remain protected.'
 
       - name: Verify Google browser origin remains accepted
         run: node auth-native/operations/verify-google-browser-origin.mjs

@@ -1,4 +1,6 @@
-# Static reference Signup 01 / Personal v1
+# Static reference Signup 01 / Personal v1 — retired
+
+> Retired on 2026-09-11 after the user correctly rejected the cropped raster hero as looking like a pasted screenshot. The crop asset and every runtime/cache reference were removed in native Personal v2.
 
 ## Source of truth
 

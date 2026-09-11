@@ -47,8 +47,8 @@ t('mistake-note-icon.js deferred in production HTML (optional, outside lean shel
 t('note-icon: openQuestionNoteEditor ইন্টিগ্রেশন', MN.includes('openQuestionNoteEditor') && MN.includes('__mistakeNoteIconInstalled'));
 
 /* ৬ — ভার্সন v194 */
-t('sw BUILD_ID current shell', SW.includes("const BUILD_ID = 'v238-personal-20260911'"));
-t('index sw-marker current shell', H.includes('sw.js?v=v238-personal-20260911'));
+t('sw BUILD_ID current shell', SW.includes("const BUILD_ID = 'v239-native-personal-20260911'"));
+t('index sw-marker current shell', H.includes('sw.js?v=v239-native-personal-20260911'));
 
 console.log(`\nP10-MISTAKES: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

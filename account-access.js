@@ -134,7 +134,7 @@
           <button class="ah-account-secondary" type="button" data-role="forgot-back">Login-এ ফিরুন</button>
         </form>
 
-        <form class="ah-account-view ah-signup-view" data-view="signup" data-personal-visual-contract="static-reference-personal-v1" data-signup-current-step="personal" hidden novalidate>
+        <form class="ah-account-view ah-signup-view" data-view="signup" data-personal-visual-contract="native-reference-personal-v2" data-signup-current-step="personal" hidden novalidate>
           <header class="ah-signup-topbar">
             <div class="ah-signup-brand" aria-label="Admission Hub">
               <span class="ah-signup-brand-mark" aria-hidden="true"><svg viewBox="0 0 44 34" fill="none"><path d="m3 12 19-9 19 9-19 9L3 12Z"/><path d="M10 16v8c7 5 17 5 24 0v-8l-12 6-12-6Z"/><path d="M38 14v9"/><circle cx="38" cy="25" r="2"/></svg></span>
@@ -151,7 +151,16 @@
           </nav>
 
           <section class="ah-signup-panel ah-personal-panel" data-signup-panel="personal" aria-labelledby="ah-personal-title">
-            <figure class="ah-personal-hero" aria-hidden="true"><img src="./onboarding-personal-hero.webp?v=static-reference-personal-v1" alt="" width="565" height="370" decoding="async"></figure>
+            <div class="ah-personal-hero" aria-hidden="true" data-illustration-contract="native-dom-profile-v1">
+              <span class="ah-native-orbit ah-native-orbit-one"></span><span class="ah-native-orbit ah-native-orbit-two"></span>
+              <span class="ah-native-spark ah-native-spark-one"></span><span class="ah-native-spark ah-native-spark-two"></span><span class="ah-native-dot"></span>
+              <div class="ah-native-book"><span></span><span></span><i></i></div>
+              <div class="ah-native-cap"><span></span><i></i><b></b></div>
+              <div class="ah-native-plane"></div>
+              <div class="ah-native-leaf"><span></span></div>
+              <div class="ah-native-pedestal"><span></span><i></i><b></b></div>
+              <div class="ah-native-profile"><span class="ah-native-profile-head"></span><span class="ah-native-profile-body"></span><i></i></div>
+            </div>
             <div class="ah-personal-copy">
               <h1 id="ah-personal-title"><span>চলো, তোমার</span><em>পরিচয়টা তৈরি করি</em></h1>
               <p>কয়েকটি তথ্য দিলেই তোমার জন্য Admission Hub আরও ব্যক্তিগত হয়ে উঠবে।</p>
