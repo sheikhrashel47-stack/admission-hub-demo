@@ -61,9 +61,12 @@ export async function verifyGoogleBrowserOrigin({ chromiumImpl, env = process.en
       if (/origin_mismatch|given origin is not allowed/i.test(String(message.text() || ''))) consoleMismatch = true;
     });
     await page.goto(LIVE_URL, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('.ah-account-launcher', { timeout: 30_000 });
+    await page.waitForSelector('.ah-account-page', { state: 'attached', timeout: 30_000 });
     const firstEntryWelcome = await page.locator('[data-view="welcome"]').isVisible().catch(() => false);
-    if (!firstEntryWelcome) await page.click('.ah-account-launcher');
+    if (!firstEntryWelcome) {
+      await page.locator('.ah-account-launcher').waitFor({ state: 'visible', timeout: 30_000 });
+      await page.click('.ah-account-launcher');
+    }
     const googleFrame = page.locator(
       '[data-role="welcome-google-button"] iframe:visible, [data-role="google-button"] iframe:visible'
     ).first();
