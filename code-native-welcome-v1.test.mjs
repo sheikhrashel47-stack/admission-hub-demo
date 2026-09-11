@@ -142,9 +142,12 @@ test('protected publication remains the only release path for code-native entry 
   assert.match(RELEASE_WORKFLOW, /data-media-contract="zero-raster-entry-v1"/);
   assert.match(RELEASE_WORKFLOW, /! grep -Eiq '<\(img\|picture\|source\|canvas\|video\|object\|embed\)/);
   assert.match(RELEASE_WORKFLOW, /! grep -Fq 'onboarding-welcome-hero\.webp'/);
-  assert.match(RELEASE_WORKFLOW, /onboarding-welcome-hero\.webp\?retired=v240-code-native-entry-20260911/);
-  assert.match(RELEASE_WORKFLOW, /onboarding-personal-hero\.webp\?retired=v240-code-native-entry-20260911/);
-  assert.match(RELEASE_WORKFLOW, /\)" = '404'/);
+  assert.match(RELEASE_WORKFLOW, /verify_retired_media_absent\(\)/);
+  assert.match(RELEASE_WORKFLOW, /verify_retired_media_absent 'onboarding-welcome-hero\.webp'/);
+  assert.match(RELEASE_WORKFLOW, /verify_retired_media_absent 'onboarding-personal-hero\.webp'/);
+  assert.match(RELEASE_WORKFLOW, /404\|410/);
+  assert.match(RELEASE_WORKFLOW, /content-type:\[\[:space:\]\]\*image/);
+  assert.match(RELEASE_WORKFLOW, /RIFF'[\s\S]*WEBP/);
   assert.doesNotMatch(RELEASE_WORKFLOW, /fetch_public[^\n]+onboarding-(?:welcome|personal)-hero\.webp/);
   assert.doesNotMatch(RELEASE_WORKFLOW, /printf '%s' "\$[a-z_]+" \| grep -Fq/);
 });
