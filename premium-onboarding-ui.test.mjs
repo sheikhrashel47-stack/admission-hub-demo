@@ -223,9 +223,9 @@ test('Signup 01 Personal uses a real input-bound profile preview and combines na
   assert.equal(signup.dataset.mediaContract, 'zero-raster-entry-v1');
   assert.equal(personal.hidden, false);
   assert.equal(app.document.querySelector('[data-signup-panel="dob"]'), null);
-  assert.match(personal.textContent, /তোমার পরিচয় দিয়ে\s*নিজস্ব পথ শুরু করো/);
-  assert.match(personal.textContent, /profile preview-টি সঙ্গে সঙ্গে বদলে যাবে/);
-  assert.match(personal.textContent, /Education-এ এগিয়ে যাও/);
+  assert.match(personal.textContent, /চলো, আপনার\s*পরিচয়টা তৈরি করি/);
+  assert.match(personal.textContent, /আপনার সম্পর্কে কিছু তথ্য/);
+  assert.match(personal.textContent, /পরের ধাপ/);
   assert.ok(preview);
   assert.equal(preview.querySelectorAll('img,picture,source,canvas,video,object,embed').length, 0);
   assert.ok(preview.querySelector('[data-role="personal-live-initials"]'));
@@ -424,11 +424,11 @@ test('Welcome language control updates the code-native page locally without chan
   const picker = app.document.querySelector('[data-role="welcome-language"]');
   picker.value = 'en';
   picker.dispatchEvent(new app.window.Event('change', { bubbles: true }));
-  assert.match(app.document.querySelector('#ah-welcome-heading').textContent, /Don't just dream/);
+  assert.match(app.document.querySelector('#ah-welcome-heading').textContent, /On the path to your goal/);
   assert.equal(app.document.documentElement.lang, 'en');
   picker.value = 'bn';
   picker.dispatchEvent(new app.window.Event('change', { bubbles: true }));
-  assert.match(app.document.querySelector('#ah-welcome-heading').textContent, /স্বপ্ন শুধু দেখো না/);
+  assert.match(app.document.querySelector('#ah-welcome-heading').textContent, /আপনার লক্ষ্যের পথে/);
   assert.equal(app.document.documentElement.lang, 'bn');
   assert.equal(app.document.querySelectorAll('.ah-entry-actions button').length, 4);
   assert.equal(app.calls.some(call => call.path.includes('/api/ai/chat')), false);
