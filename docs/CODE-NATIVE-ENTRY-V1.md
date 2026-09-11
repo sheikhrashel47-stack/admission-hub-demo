@@ -37,6 +37,8 @@ The prior Welcome and Personal compositions were rejected because they looked li
 
 The account/onboarding source contains no `img`, `picture`, `source`, `canvas`, `video`, `object`, or `embed` element. Its CSS contains no URL-backed background. Both rejected WebP files are absent from source, sanitized Pages bundles, service-worker cache entries, and live publication fetches.
 
+Because the Pages worker can answer an unknown static path with the current HTML shell, the live retirement probe accepts `404`/`410` or a current non-image HTML response. It explicitly rejects image content types and RIFF/WEBP bytes.
+
 Inline SVG paths are markup, not downloaded images. They are limited to small interface icons and brand marks; the page visuals and live state are DOM/CSS.
 
 ## Safety and continuity

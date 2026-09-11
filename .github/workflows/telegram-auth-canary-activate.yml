@@ -172,8 +172,24 @@ jobs:
           grep -Fq 'ai-agent-chat.js?v=agent-f1-ui-chatv15-identity' "$verify_dir/index.html"
           grep -Fq 'phase12-ui.js?v=nav-resume-router-v11-main-ai' "$verify_dir/index.html"
           grep -Fq 'sw.js?v=v240-code-native-entry-20260911' "$verify_dir/index.html"
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' --connect-timeout 10 --max-time 30 -H 'Cache-Control: no-cache' 'https://admissionhub.pages.dev/onboarding-welcome-hero.webp?retired=v240-code-native-entry-20260911')" = '404'
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' --connect-timeout 10 --max-time 30 -H 'Cache-Control: no-cache' 'https://admissionhub.pages.dev/onboarding-personal-hero.webp?retired=v240-code-native-entry-20260911')" = '404'
+          verify_retired_media_absent() {
+            asset="$1"
+            status=$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+              -H 'Cache-Control: no-cache' --dump-header "$verify_dir/${asset}.headers" \
+              --output "$verify_dir/${asset}.body" --write-out '%{http_code}' \
+              "https://admissionhub.pages.dev/${asset}?retired=v240-code-native-entry-20260911")
+            case "$status" in
+              404|410) ;;
+              200)
+                ! grep -Eiq '^content-type:[[:space:]]*image/' "$verify_dir/${asset}.headers"
+                node -e "const b=require('node:fs').readFileSync(process.argv[1]); if(b.subarray(0,4).toString()==='RIFF'&&b.subarray(8,12).toString()==='WEBP') process.exit(1)" "$verify_dir/${asset}.body"
+                grep -Fq 'account-access.js?v=20260911-code-native-entry-v1-ai-scope' "$verify_dir/${asset}.body"
+                ;;
+              *) exit 1 ;;
+            esac
+          }
+          verify_retired_media_absent 'onboarding-welcome-hero.webp'
+          verify_retired_media_absent 'onboarding-personal-hero.webp'
 
           fetch_public "$verify_dir/account-access.js" 'https://admissionhub.pages.dev/account-access.js?v=20260911-code-native-entry-v1-ai-scope'
           fetch_public "$verify_dir/account-access.css" 'https://admissionhub.pages.dev/account-access.css?v=20260911-code-native-entry-v1-ai-scope'
