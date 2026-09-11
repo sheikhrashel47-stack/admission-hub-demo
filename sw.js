@@ -15,7 +15,6 @@ const APP_SHELL = [
   './manifest.json',
   './manifest.webmanifest',
   './dashboard-v2.css?v=dash2f9',
-  './onboarding-welcome-hero.webp?v=static-reference-welcome-v3',
   './3d-loader.css?v=3d-v1',
   './session-persist.js?v=session-v1',
   './account-access.css?v=20260911-native-personal-v2-ai-scope',

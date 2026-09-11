@@ -47,6 +47,10 @@ test('name and all DOB selectors are combined on Personal without collecting Ema
     assert.match(personal, new RegExp(`id="${id}"`));
   }
   assert.equal((personal.match(/<select /g) || []).length, 3);
+  assert.match(personal, /data-dob-contract="native-dob-picker-v3"/);
+  assert.match(personal, /ah-dob-chip/);
+  assert.match(CSS, /\.ah-dob-chip\{[\s\S]*linear-gradient/);
+  assert.match(CSS, /\.ah-personal-dob-card \.ah-dob-selectors select\{[\s\S]{0,450}font:850 18px/);
   assert.doesNotMatch(signup, /data-signup-panel="dob"/);
   assert.doesNotMatch(personal, /id="ah-signup-email"/);
   assert.match(security, /id="ah-signup-email"/);
@@ -65,7 +69,7 @@ test('Personal has no pasted screenshot asset and stays mobile-first', () => {
   assert.match(CSS, /min-height:max\(100dvh,844px\)/);
   assert.match(CSS, /\.ah-personal-card\{[\s\S]{0,260}background:rgba\(255,255,255,\.86\)/);
   assert.match(CSS, /\.ah-personal-next\{[\s\S]{0,450}border-radius:999px/);
-  assert.match(CSS, /\.ah-personal-dob-card \.ah-dob-selectors select\{[\s\S]{0,450}font:850 16px/);
+  assert.match(CSS, /\.ah-personal-dob-card \.ah-dob-selectors select\{[\s\S]{0,450}font:850 18px/);
   assert.match(CSS, /@media\(prefers-reduced-motion:reduce\)/);
   assert.doesNotMatch(CSS, /https?:\/\//);
 });

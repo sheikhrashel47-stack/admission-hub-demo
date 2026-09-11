@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 const read = name => readFileSync(new URL(`./${name}`, import.meta.url), 'utf8');
 const JS = read('account-access.js');
@@ -44,8 +44,10 @@ test('Welcome follows the supplied first-page composition and exposes exactly fo
   assert.match(welcome, /Your Smarter Admission Companion/);
   assert.match(welcome, /data-role="welcome-language"/);
   assert.match(welcome, /<option value="bn">বাংলা<\/option><option value="en">English<\/option>/);
-  assert.match(welcome, /onboarding-welcome-hero\.webp\?v=static-reference-welcome-v3/);
-  assert.match(welcome, /width="853" height="625"/);
+  assert.match(welcome, /data-hero-contract="native-welcome-hero-v3"/);
+  assert.match(welcome, /ah-hero-stage/);
+  assert.match(welcome, /ah-hero-campus/);
+  assert.doesNotMatch(welcome, /onboarding-welcome-hero\.webp|width="853" height="625"/);
   assert.match(welcome, /তোমার স্বপ্নের\|বিশ্ববিদ্যালয়ের পথে,\|প্রথম ধাপটা আজ থেকেই।/);
   assert.match(welcome, /পড়াশোনা, practice আর preparation/);
 
@@ -54,14 +56,11 @@ test('Welcome follows the supplied first-page composition and exposes exactly fo
   assert.deepEqual([...welcome.matchAll(/data-role="(welcome-signup|welcome-login|continue-guest|welcome-google-button)"/g)].map(match => match[1]).sort(), [
     'continue-guest', 'welcome-google-button', 'welcome-login', 'welcome-signup'
   ]);
+  assert.match(CSS, /\.ah-hero-stage\{[\s\S]*linear-gradient/);
+  assert.match(CSS, /\.ah-hero-plane\{[\s\S]*clip-path/);
+  assert.match(CSS, /\.ah-bldg\{/);
   assert.doesNotMatch(welcome, /data-role="close"|AI Assistant|ah-guide|robot/i);
   assert.match(welcome, /ah-welcome-landscape/);
-
-  const image = statSync(new URL('./onboarding-welcome-hero.webp', import.meta.url));
-  assert.ok(image.size > 30_000 && image.size < 80_000, `hero bytes=${image.size}`);
-  const header = readFileSync(new URL('./onboarding-welcome-hero.webp', import.meta.url)).subarray(0, 12);
-  assert.equal(header.subarray(0, 4).toString(), 'RIFF');
-  assert.equal(header.subarray(8, 12).toString(), 'WEBP');
 });
 
 test('Welcome is a one-viewport mobile composition with accessible controls', () => {
@@ -72,8 +71,8 @@ test('Welcome is a one-viewport mobile composition with accessible controls', ()
   assert.match(CSS, /\.ah-welcome-landscape\{position:absolute/);
   assert.match(JS, /setWelcomeLanguage/);
   assert.match(JS, /document\.documentElement\.lang = selected/);
-  assert.match(JS, /fetchpriority="high"/);
-  assert.doesNotMatch(JS, /<canvas|WebGL|<video/i);
+  assert.match(JS, /data-hero-contract="native-welcome-hero-v3"/);
+  assert.doesNotMatch(JS, /<canvas|WebGL|<video|onboarding-welcome-hero\.webp/i);
 });
 
 test('unsupported verification methods remain truthful and fail closed', () => {
@@ -120,7 +119,7 @@ test('static Welcome assets and service-worker release markers are synchronized'
     assert.match(HTML, new RegExp(asset.replace(/[.?]/g, value => `\\${value}`)));
     assert.match(SW, new RegExp(asset.replace(/[.?]/g, value => `\\${value}`)));
   }
-  assert.match(SW, /onboarding-welcome-hero\.webp\?v=static-reference-welcome-v3/);
+  assert.doesNotMatch(SW, /onboarding-welcome-hero\.webp/);
   assert.match(SW, new RegExp(`const BUILD_ID = '${shellVersion}'`));
   assert.match(HTML, new RegExp(`expectedSwVersion = '${shellVersion}'`));
   assert.match(HTML, new RegExp(`sw\\.js\\?v=${shellVersion}`));

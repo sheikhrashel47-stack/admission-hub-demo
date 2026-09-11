@@ -84,8 +84,26 @@
             <label class="ah-language-picker"><span class="sr-only">ভাষা বেছে নাও</span><select data-role="welcome-language" aria-label="ভাষা বেছে নাও"><option value="bn">বাংলা</option><option value="en">English</option></select></label>
           </header>
 
-          <div class="ah-academic-hero" data-role="academic-hero">
-            <img src="./onboarding-welcome-hero.webp?v=static-reference-welcome-v3" alt="বিশ্ববিদ্যালয় ক্যাম্পাসের সামনে বই ও লক্ষ্যচিহ্নসহ একজন শিক্ষার্থী" width="853" height="625" decoding="async" fetchpriority="high">
+          <div class="ah-academic-hero" data-role="academic-hero" data-hero-contract="native-welcome-hero-v3">
+            <div class="ah-hero-stage" aria-hidden="true">
+              <div class="ah-hero-sun"></div>
+              <div class="ah-hero-cloud ah-hero-cloud-a"></div>
+              <div class="ah-hero-cloud ah-hero-cloud-b"></div>
+              <div class="ah-hero-land ah-hero-land-far"></div>
+              <div class="ah-hero-land ah-hero-land-mid"></div>
+              <div class="ah-hero-campus">
+                <span class="ah-bldg ah-bldg-a"></span><span class="ah-bldg ah-bldg-b"></span><span class="ah-bldg ah-bldg-c"></span><span class="ah-bldg ah-bldg-d"></span>
+                <span class="ah-hero-arch ah-hero-arch-a"></span><span class="ah-hero-arch ah-hero-arch-b"></span>
+              </div>
+              <div class="ah-hero-road"></div>
+              <div class="ah-hero-plane"><span></span></div>
+              <div class="ah-hero-float ah-hero-grad"></div>
+              <div class="ah-hero-float ah-hero-cap"></div>
+              <div class="ah-hero-float ah-hero-book"><i></i><i></i></div>
+              <div class="ah-hero-float ah-hero-star ah-hero-star-a"></div>
+              <div class="ah-hero-float ah-hero-star ah-hero-star-b"></div>
+              <div class="ah-hero-float ah-hero-star ah-hero-star-c"></div>
+            </div>
           </div>
 
           <section class="ah-welcome-copy" aria-labelledby="ah-welcome-heading">
@@ -152,14 +170,19 @@
 
           <section class="ah-signup-panel ah-personal-panel" data-signup-panel="personal" aria-labelledby="ah-personal-title">
             <div class="ah-personal-hero" aria-hidden="true" data-illustration-contract="native-dom-profile-v1">
-              <span class="ah-native-orbit ah-native-orbit-one"></span><span class="ah-native-orbit ah-native-orbit-two"></span>
-              <span class="ah-native-spark ah-native-spark-one"></span><span class="ah-native-spark ah-native-spark-two"></span><span class="ah-native-dot"></span>
-              <div class="ah-native-book"><span></span><span></span><i></i></div>
-              <div class="ah-native-cap"><span></span><i></i><b></b></div>
-              <div class="ah-native-plane"></div>
-              <div class="ah-native-leaf"><span></span></div>
-              <div class="ah-native-pedestal"><span></span><i></i><b></b></div>
-              <div class="ah-native-profile"><span class="ah-native-profile-head"></span><span class="ah-native-profile-body"></span><i></i></div>
+              <div class="ah-personal-hero-stage">
+                <span class="ah-native-orbit ah-native-orbit-one"></span><span class="ah-native-orbit ah-native-orbit-two"></span>
+                <span class="ah-native-spark ah-native-spark-one"></span><span class="ah-native-spark ah-native-spark-two"></span><span class="ah-native-dot"></span>
+                <span class="ah-native-glow"></span>
+                <div class="ah-native-pedestal"><span></span><i></i><i class="ah-native-pedestal-ring"></i><b></b></div>
+                <div class="ah-native-profile"><span class="ah-native-profile-head"></span><span class="ah-native-profile-body"></span><i></i></div>
+                <div class="ah-native-book"><span></span><span></span><i></i><b></b></div>
+                <div class="ah-native-cap"><span></span><i></i><b></b><em></em></div>
+                <div class="ah-native-plane"></div>
+                <div class="ah-native-leaf"><span></span></div>
+                <div class="ah-native-float ah-native-float-a"></div>
+                <div class="ah-native-float ah-native-float-b"></div>
+              </div>
             </div>
             <div class="ah-personal-copy">
               <h1 id="ah-personal-title"><span>চলো, তোমার</span><em>পরিচয়টা তৈরি করি</em></h1>
@@ -183,11 +206,12 @@
                 <div class="ah-personal-dob-heading">
                   <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5.5" width="16" height="15" rx="3"/><path d="M8 3v5m8-5v5M4 10h16"/><path d="M8 14h2m4 0h2m-8 3h2m4 0h2"/></svg></span>
                   <div><strong>জন্মতারিখ</strong><small>তোমার বয়স অনুযায়ী অভিজ্ঞতা সাজাতে</small></div>
+                  <output class="ah-dob-live" data-role="dob-preview" aria-live="polite">তারিখ বেছে নাও</output>
                 </div>
-                <div class="ah-dob-selectors">
-                  <label><span>দিন</span><select id="ah-dob-day" aria-label="জন্মদিন" required></select></label>
-                  <label><span>মাস</span><select id="ah-dob-month" aria-label="জন্মমাস" required></select></label>
-                  <label><span>বছর</span><select id="ah-dob-year" aria-label="জন্মবছর" required></select></label>
+                <div class="ah-dob-selectors" data-dob-contract="native-dob-picker-v3">
+                  <label><span class="ah-dob-chip-label">দিন</span><span class="ah-dob-chip"><select id="ah-dob-day" aria-label="জন্মদিন" required></select><b aria-hidden="true"></b></span></label>
+                  <label><span class="ah-dob-chip-label">মাস</span><span class="ah-dob-chip"><select id="ah-dob-month" aria-label="জন্মমাস" required></select><b aria-hidden="true"></b></span></label>
+                  <label><span class="ah-dob-chip-label">বছর</span><span class="ah-dob-chip"><select id="ah-dob-year" aria-label="জন্মবছর" required></select><b aria-hidden="true"></b></span></label>
                 </div>
                 <output class="sr-only" data-role="dob-preview" aria-live="polite">তারিখ বেছে নাও</output>
               </fieldset>

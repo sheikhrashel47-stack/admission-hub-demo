@@ -175,9 +175,9 @@ jobs:
           fetch_public "$verify_dir/ai-agent-chat.js" 'https://admissionhub.pages.dev/ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'
           fetch_public "$verify_dir/phase12-ui.js" 'https://admissionhub.pages.dev/phase12-ui.js?v=nav-resume-router-v11-main-ai'
           fetch_public "$verify_dir/sw.js" 'https://admissionhub.pages.dev/sw.js?v=v239-native-personal-20260911'
-          fetch_public "$verify_dir/onboarding-welcome-hero.webp" 'https://admissionhub.pages.dev/onboarding-welcome-hero.webp?v=static-reference-welcome-v3'
 
           grep -Fq "'X-AH-Auth-UI': 'auth-premium-v6'" "$verify_dir/account-access.js"
+          grep -Fq 'data-hero-contract="native-welcome-hero-v3"' "$verify_dir/account-access.js"
           grep -Fq 'data-visual-contract="static-page-system-v3"' "$verify_dir/account-access.js"
           grep -Fq 'data-page-contract="static-reference-welcome-v3"' "$verify_dir/account-access.js"
           grep -Fq 'data-personal-visual-contract="native-reference-personal-v2"' "$verify_dir/account-access.js"
@@ -209,7 +209,7 @@ jobs:
           grep -Fq "const BUILD_ID = 'v239-native-personal-20260911'" "$verify_dir/sw.js"
           ! grep -Fq 'onboarding-personal-hero.webp' "$verify_dir/sw.js"
           grep -Fq './ai-agent-chat.js?v=agent-f1-ui-chatv15-identity' "$verify_dir/sw.js"
-          node -e "const b=require('node:fs').readFileSync(process.argv[1]); if(b.length<20000||b.subarray(0,4).toString()!=='RIFF'||b.subarray(8,12).toString()!=='WEBP') process.exit(1)" "$verify_dir/onboarding-welcome-hero.webp"
+          grep -Fq 'data-dob-contract="native-dob-picker-v3"' "$verify_dir/account-access.js"
           rm -rf "$verify_dir"
           echo 'Static reference Welcome v3 and native Personal v2, truthful Email/Telegram verification, ordinary Guest route, signup-only Assistant isolation, restored main-app AI, and cache-safe assets are READY; generic backup and pre-verification Passkey remain protected.'
 

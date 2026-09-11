@@ -23,7 +23,7 @@ jobs:
           test -s dist/index.html
           test -s dist/sw.js
           test -s dist/account-access.js
-          test -s dist/onboarding-welcome-hero.webp
+          grep -Fq 'data-hero-contract="native-welcome-hero-v3"' dist/account-access.js
           test ! -e dist/onboarding-personal-hero.webp
           du -sh dist
 
