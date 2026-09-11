@@ -360,7 +360,7 @@ test('Password-reset return opens Login with truthful guidance and removes the c
   app.dom.window.close();
 });
 
-test('Forgot Password stays enumeration-safe while the paused Assistant makes no network request', async t => {
+test('Forgot Password stays enumeration-safe while Signup has no Assistant component or AI request', async t => {
   const app = setup();
   t.after(() => app.dom.window.close());
   await waitFor(() => app.document.querySelector('[data-view="welcome"]')?.hidden === false);
@@ -371,19 +371,10 @@ test('Forgot Password stays enumeration-safe while the paused Assistant makes no
   await waitFor(() => app.document.querySelector('[data-role="message"]').textContent.includes('অ্যাকাউন্ট থাকলে'));
   assert.match(app.document.querySelector('[data-role="message"]').textContent, /অ্যাকাউন্ট থাকলে/);
   assert.doesNotMatch(app.document.querySelector('[data-role="message"]').textContent, /exists|পাওয়া গেছে|নেই/i);
-
-  const guide = app.document.querySelector('[data-role="guide"]');
-  const orb = app.document.querySelector('[data-role="guide-open"]');
-  assert.equal(guide.hidden, true);
-  assert.equal(guide.getAttribute('aria-hidden'), 'true');
-  assert.equal(orb.hidden, true);
-  assert.equal(orb.disabled, true);
-  const input = app.document.querySelector('#ah-guide-input');
-  input.value = 'My password is hunter2';
-  app.document.querySelector('[data-role="guide-form"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
-  await wait(20);
+  assert.equal(app.document.querySelector('[data-role="guide"]'), null);
+  assert.equal(app.document.querySelector('[data-role="guide-open"]'), null);
+  assert.equal(app.document.querySelector('#ah-guide-input'), null);
   assert.equal(app.calls.some(call => call.path.includes('/api/ai/chat')), false);
-  assert.doesNotMatch(app.document.querySelector('[data-role="guide-messages"]').textContent, /hunter2/);
   app.dom.window.close();
 });
 
@@ -405,12 +396,12 @@ test('Welcome language control updates the static page locally without changing 
   app.dom.window.close();
 });
 
-test('paused Assistant remains unreachable and never blocks the core Signup journey', async t => {
-  const app = setup({ aiFailure: true });
+test('Signup Assistant is absent and the core Signup journey remains independent from AI', async t => {
+  const app = setup();
   t.after(() => app.dom.window.close());
   await waitFor(() => app.document.querySelector('[data-view="welcome"]')?.hidden === false);
-  assert.equal(app.document.querySelector('[data-role="guide-open"]').disabled, true);
-  assert.equal(app.document.querySelector('[data-role="guide-open"]').hidden, true);
+  assert.equal(app.document.querySelector('[data-role="guide"]'), null);
+  assert.equal(app.document.querySelector('[data-role="guide-open"]'), null);
   app.document.querySelector('[data-role="welcome-signup"]').click();
   assert.equal(app.document.querySelector('[data-view="signup"]').hidden, false);
   assert.equal(app.document.querySelector('[data-role="signup-next-education"]').disabled, false);

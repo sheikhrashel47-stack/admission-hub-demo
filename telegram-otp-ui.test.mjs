@@ -213,7 +213,8 @@ test('mobile-first signup presents Verify with Telegram, START link, OTP box, ch
   assert.equal(view.querySelectorAll('[data-otp-digit]').length, 6);
   assert.match(view.textContent, /START/);
   assert.match(view.textContent, /Email মালিকানা নয়/);
-  assert.match(view.textContent, /Code বা Password কখনো Assistant\/chat-এ লিখবে না/);
+  assert.match(view.textContent, /Code বা Password কখনো অন্য কোনো chat-এ লিখবে না/);
+  assert.doesNotMatch(view.textContent, /Assistant/);
 
   code.value = '654321';
   view.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));

@@ -85,9 +85,9 @@ await test('production HTML does not load or mount retired account/onboarding UI
 await test('Google identity client is not unconditionally loaded in HTML', !H.includes('accounts.google.com') && !H.includes('openid email profile'));
 
 const navBlock = (H.match(/const NAV_TABS=\[[\s\S]*?\];/) || [''])[0];
-await test('Profile and paused AI navigation are removed without changing the four study tabs',
-  ['dashboard', 'question-bank', 'exam', 'history'].every(key => navBlock.includes(`key:'${key}'`)) &&
-  !navBlock.includes("key:'profile'") && !navBlock.includes("key:'ai'") && (navBlock.match(/\{key:/g) || []).length === 4);
+await test('retired Profile stays removed while the main-app AI and four study tabs remain',
+  ['dashboard', 'question-bank', 'exam', 'ai', 'history'].every(key => navBlock.includes(`key:'${key}'`)) &&
+  !navBlock.includes("key:'profile'") && (navBlock.match(/\{key:/g) || []).length === 5);
 await test('core route dispatch remains available',
   ["p==='dashboard'", "p==='question-bank'", "p==='exam'", "p==='ai'", "p==='history'"].every(marker => H.includes(marker)));
 await test('retired Profile/account hashes only redirect to Dashboard',
@@ -107,22 +107,23 @@ await test('content hydration is public and account-independent',
   !/AHAuth|ahPubToken|authHeaders|Authorization/.test(CLOUD));
 
 await test('service-worker build and HTML registration are synchronized',
-  SW.includes("const BUILD_ID = 'v236-static-welcome-20260911'") &&
-  H.includes("const expectedSwVersion = 'v236-static-welcome-20260911'") &&
-  H.includes('sw.js?v=v236-static-welcome-20260911') &&
-  H.includes('admission-hub-shell-v236-static-welcome-20260911'));
+  SW.includes("const BUILD_ID = 'v237-main-ai-20260911'") &&
+  H.includes("const expectedSwVersion = 'v237-main-ai-20260911'") &&
+  H.includes('sw.js?v=v237-main-ai-20260911') &&
+  H.includes('admission-hub-shell-v237-main-ai-20260911'));
 await test('service-worker shell cannot cache retired assets', retiredMarkers.every(marker => !SW.includes(marker)));
 await test('premium account and institution assets use synchronized cache-busting versions',
-  ['account-access.css?v=20260911-static-reference-welcome-v3', 'account-access.js?v=20260911-static-reference-welcome-v3', 'institutions-bd.js?v=bd-institutions-v1']
+  ['account-access.css?v=20260911-static-reference-welcome-v3-ai-scope', 'account-access.js?v=20260911-static-reference-welcome-v3-ai-scope', 'institutions-bd.js?v=bd-institutions-v1']
     .every(asset => H.includes(asset) && SW.includes(asset)) &&
-  H.indexOf('institutions-bd.js?v=bd-institutions-v1') < H.indexOf('account-access.js?v=20260911-static-reference-welcome-v3'));
+  H.indexOf('institutions-bd.js?v=bd-institutions-v1') < H.indexOf('account-access.js?v=20260911-static-reference-welcome-v3-ai-scope'));
 await test('premium Auth UI/server contract and curated-manual institution policy are locked',
   ACCOUNT_UI.includes("'X-AH-Auth-UI': 'auth-premium-v6'") &&
   AUTH_HANDLER.includes("const AUTH_UI_VERSION = 'auth-premium-v6'") &&
   AUTH_HANDLER.includes("version: 'premium-onboarding-v1'") &&
   INSTITUTIONS.includes("coverage: 'curated-starter-index'") && INSTITUTIONS.includes("mode: 'manual'"));
-await test('paused AI client is absent from the public shell while prior shells are still purged',
-  !SW.includes('ai-agent-chat.js') && !H.includes('ai-agent-chat.js') &&
+await test('main-app AI client is versioned in the public shell while prior shells are still purged',
+  SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') &&
+  H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') &&
   H.includes("name.startsWith('admission-hub-shell-')") && SW.includes('.filter(key => key !== CACHE_NAME)'));
 
 const forbiddenWorkerRoutes = retiredRoutes.filter(route => !route.startsWith('/api/admin/'));
