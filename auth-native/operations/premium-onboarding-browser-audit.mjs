@@ -182,7 +182,7 @@ try {
   await page.keyboard.press('Escape');
   await welcome.waitFor({ state: 'visible' });
   assert.deepEqual(await page.evaluate(() => ({ appInert: document.querySelector('#app').inert, bodyClass: document.body.classList.contains('ah-account-page-active'), pagePosition: getComputedStyle(document.querySelector('.ah-account-page')).position })), { appInert: true, bodyClass: true, pagePosition: 'relative' });
-  assert.equal(await page.locator('.ah-guide-orb').isVisible(), false, 'paused Assistant became visible');
+  assert.equal(await page.locator('.ah-guide,.ah-guide-orb,[data-role="guide-open"]').count(), 0, 'Signup Assistant component still exists');
   assert.equal(await page.locator('.ah-welcome-benefits article').count(), 4);
   await page.locator('[data-role="welcome-language"]').selectOption('en');
   assert.match(await page.locator('#ah-welcome-heading').textContent(), /Your dream university/);
@@ -323,10 +323,16 @@ try {
   assert.equal(new URL(guestPage.url()).hash, '#dashboard');
   await guestPage.locator('.dv2-root').waitFor({ state: 'visible' });
   assert.equal(await guestPage.locator('[data-dashboard-contract="reference-guest-v2"],[data-guest-nav],.dv2-guest-root').count(), 0);
-  assert.deepEqual(await guestPage.locator('[data-nav-tab]').evaluateAll(nodes => nodes.map(node => node.dataset.navTab)), ['dashboard', 'question-bank', 'exam', 'history']);
-  assert.equal(await guestPage.locator('[data-nav-tab="ai"]').count(), 0);
-  assert.equal(await guestPage.evaluate(() => [...document.scripts].some(script => script.src.includes('ai-agent-chat.js'))), false);
+  assert.deepEqual(await guestPage.locator('[data-nav-tab]').evaluateAll(nodes => nodes.map(node => node.dataset.navTab)), ['dashboard', 'question-bank', 'exam', 'ai', 'history']);
+  assert.equal(await guestPage.locator('[data-nav-tab="ai"]').count(), 1);
+  assert.equal(await guestPage.evaluate(() => [...document.scripts].some(script => script.src.includes('ai-agent-chat.js'))), true);
   assert.equal(await guestPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'ordinary Guest dashboard overflow');
+  await guestPage.locator('[data-nav-tab="ai"]').click();
+  await guestPage.locator('.ai-agent-root').waitFor({ state: 'visible' });
+  assert.equal(await guestPage.locator('.ah-guide,.ah-guide-orb,[data-role="guide-open"]').count(), 0);
+  assert.equal(await guestPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'main-app AI overflow');
+  await guestPage.locator('#aiHomeBtn').click();
+  await guestPage.locator('.dv2-root').waitFor({ state: 'visible' });
   await guestPage.locator('[data-nav-tab="history"]').click();
   await guestPage.waitForFunction(() => location.hash.startsWith('#history'));
   assert.equal(await guestPage.locator('body').evaluate(node => node.classList.contains('ah-guest-dashboard')), false);
@@ -384,6 +390,8 @@ try {
     firstEntryFullScreenNotPopup: true,
     desktopNarrowPhoneComposition: true,
     customGuestDashboardRemoved: true,
+    signupAssistantRemoved: true,
+    mainAppAiRestored: true,
     unsupportedMethodsFailClosed: true,
     offlineReturningGuest: true,
     accessibility: { documentPage: true, noDialogSemantics: true, appInertWhileActive: true, labeledFields: true, touchTargets: true, noDuplicateIds: true },

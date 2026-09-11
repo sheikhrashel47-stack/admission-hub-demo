@@ -10,9 +10,11 @@ Contracts and versions:
 
 - Welcome: `static-reference-welcome-v3`
 - Account page shell: `static-page-system-v3`
-- UI assets: `20260911-static-reference-welcome-v3`
-- Service worker: `v236-static-welcome-20260911`
-- Dashboard assets: `dash2f9` (custom Guest Dashboard removed)
+- UI assets: `20260911-static-reference-welcome-v3-ai-scope`
+- Service worker: `v237-main-ai-20260911`
+- Dashboard CSS: `dash2f9`; Dashboard JS: `dash2f10-main-ai`
+- Main-app AI client: `agent-f1-ui-chatv15-identity`
+- Custom Guest Dashboard remains removed
 
 ## Required composition
 
@@ -50,9 +52,11 @@ The hero WebP is a bounded crop derived from the supplied screenshot. It has no 
 - Guest remembers only the existing entry cookie, closes the account page, and opens the ordinary Dashboard. The rejected custom Guest Dashboard and custom Guest navigation do not exist.
 - Returning account/Guest entry does not repeatedly reopen Welcome.
 
-## Paused Assistant
+## AI scope boundary
 
-AI Assistant is not shipped in public HTML or the service-worker shell. It has no nav tab, Dashboard entry, visible onboarding control, or reachable `#ai` screen. Dormant source may remain for a separately reviewed future phase, but the onboarding feature flag is false and its controls are force-hidden and disabled.
+The Signup/Onboarding Assistant is removed from `account-access.js` and `account-access.css`: there is no guide panel, floating helper, AI form, AI request, or Assistant control on Welcome, Signup, Login, verification, or account screens.
+
+The ordinary application AI remains available. Its versioned `ai-agent-chat.js` client is loaded and cached, `#ai` is a real route, and AI appears in the shared app navigation and Dashboard tools. Guest conversations remain ephemeral; signed-in conversations stay Firebase-account scoped. Neither path reads Signup passwords, OTP fields, secrets, or verification authority.
 
 ## Auth truthfulness retained
 
@@ -64,7 +68,7 @@ AI Assistant is not shipped in public HTML or the service-worker shell. It has n
 
 ## Regression evidence
 
-- `static-welcome-page-v3.test.mjs` locks the page semantics, composition, actions, paused Assistant, removed custom Guest Dashboard, Auth truthfulness, and synchronized release markers.
+- `static-welcome-page-v3.test.mjs` locks the page semantics, composition, actions, removed Signup Assistant, restored main-app AI, removed custom Guest Dashboard, Auth truthfulness, and synchronized release markers.
 - `premium-onboarding-ui.test.mjs` covers first-entry runtime behavior, language switching, Guest persistence, progressive Signup, Email verification, and fail-closed states.
 - `auth-native/operations/premium-onboarding-browser-audit.mjs` covers Chromium on iPhone `390×844` and desktop `1440×900`, native virtual Passkey, offline returning Guest, touch targets, page semantics, ordinary Guest routing, and zero page errors.
 - `.github/workflows/telegram-auth-canary-activate.yml` remains the only protected publication path and validates the live asset markers after deployment.

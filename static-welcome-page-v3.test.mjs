@@ -94,15 +94,14 @@ test('unsupported verification methods remain truthful and fail closed', () => {
   assert.ok(JS.includes(`$('[data-role="email-intro-continue"]').addEventListener('click', beginEmailVerification)`));
 });
 
-test('AI Assistant is disabled and absent from all reachable public navigation', () => {
-  assert.match(JS, /const ASSISTANT_ENABLED = false/);
-  assert.match(JS, /data-assistant-enabled="false" hidden aria-hidden="true"/);
-  assert.match(JS, /data-role="guide-open"[^>]+hidden disabled/);
-  assert.match(CSS, /\.ah-guide,\n\.ah-account-shell[^\n]+ \.ah-guide-orb\{display:none!important\}/);
-  assert.doesNotMatch(HTML, /ai-agent-chat\.js/);
-  assert.doesNotMatch(SW, /ai-agent-chat\.js/);
-  assert.doesNotMatch(HTML, /\{key:'ai'/);
-  assert.doesNotMatch(DASH_JS, /navigate\((?:\\?'|\")ai/);
+test('Signup Assistant is removed while the ordinary app AI remains available', () => {
+  assert.doesNotMatch(JS, /ASSISTANT_ENABLED|data-role="guide|ah-guide|AI Assistant|context:\s*\{\s*onboarding/);
+  assert.doesNotMatch(CSS, /\.ah-guide|\.ah-assistant-hint/);
+  assert.match(HTML, /ai-agent-chat\.js\?v=agent-f1-ui-chatv15-identity/);
+  assert.match(SW, /ai-agent-chat\.js\?v=agent-f1-ui-chatv15-identity/);
+  assert.match(HTML, /\{key:'ai', icon:'🤖', label:'AI'\}/);
+  assert.match(HTML, /if\(p==='ai'\)\{ if\(window\.renderAiAgentPage\)/);
+  assert.match(DASH_JS, /navigate\((?:\\?'|\")ai/);
 });
 
 test('custom Guest Dashboard is removed and Guest returns to the ordinary app route', () => {
@@ -110,14 +109,14 @@ test('custom Guest Dashboard is removed and Guest returns to the ordinary app ro
     assert.doesNotMatch(source, /reference-guest-v2|data-guest-nav|dv2-guest|ah-guest-dashboard/);
   }
   assert.match(JS, /rememberEntry\('guest'\);[\s\S]{0,120}close\(\);\s*navigateDashboard\(\);\s*notify\(\)/);
-  assert.match(HTML, /const NAV_TABS=\[[\s\S]*key:'dashboard'[\s\S]*key:'question-bank'[\s\S]*key:'exam'[\s\S]*key:'history'/);
-  assert.doesNotMatch(HTML, /key:'ai'/);
+  assert.match(HTML, /const NAV_TABS=\[[\s\S]*key:'dashboard'[\s\S]*key:'question-bank'[\s\S]*key:'exam'[\s\S]*key:'ai'[\s\S]*key:'history'/);
+  assert.doesNotMatch(HTML, /key:'profile'/);
 });
 
 test('static Welcome assets and service-worker release markers are synchronized', () => {
-  const uiVersion = '20260911-static-reference-welcome-v3';
-  const shellVersion = 'v236-static-welcome-20260911';
-  for (const asset of [`account-access.css?v=${uiVersion}`, `account-access.js?v=${uiVersion}`, 'dashboard-v2.css?v=dash2f9', 'dashboard-v2.js?v=dash2f9']) {
+  const uiVersion = '20260911-static-reference-welcome-v3-ai-scope';
+  const shellVersion = 'v237-main-ai-20260911';
+  for (const asset of [`account-access.css?v=${uiVersion}`, `account-access.js?v=${uiVersion}`, 'dashboard-v2.css?v=dash2f9', 'dashboard-v2.js?v=dash2f10-main-ai']) {
     assert.match(HTML, new RegExp(asset.replace(/[.?]/g, value => `\\${value}`)));
     assert.match(SW, new RegExp(asset.replace(/[.?]/g, value => `\\${value}`)));
   }
@@ -126,7 +125,7 @@ test('static Welcome assets and service-worker release markers are synchronized'
   assert.match(HTML, new RegExp(`expectedSwVersion = '${shellVersion}'`));
   assert.match(HTML, new RegExp(`sw\\.js\\?v=${shellVersion}`));
   assert.ok(HTML.indexOf('institutions-bd.js?v=bd-institutions-v1') < HTML.indexOf(`account-access.js?v=${uiVersion}`));
-  assert.ok(HTML.indexOf(`account-access.js?v=${uiVersion}`) < HTML.indexOf('dashboard-v2.js?v=dash2f9'));
+  assert.ok(HTML.indexOf(`account-access.js?v=${uiVersion}`) < HTML.indexOf('dashboard-v2.js?v=dash2f10-main-ai'));
 });
 
 test('protected publication remains the only release path for static Welcome v3', () => {

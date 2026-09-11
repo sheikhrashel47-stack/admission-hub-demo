@@ -17,7 +17,7 @@ const bootBlock = (H.match(/async function boot\(\)\{[\s\S]*?\n\}/) || [''])[0];
 const coordinator = (H.match(/const startFinalRender = \(options\) => \{[\s\S]*?else modulesParsed\(\);/) || [''])[0];
 const appShellBlock = (SW.match(/const APP_SHELL = \[[\s\S]*?\n\];/) || [''])[0];
 const shellAssets = [...appShellBlock.matchAll(/^\s*['"]\.\/[^'"]+['"],?$/gm)].length;
-const dashboardTag = H.indexOf('./dashboard-v2.js?v=dash2f9');
+const dashboardTag = H.indexOf('./dashboard-v2.js?v=dash2f10-main-ai');
 const firstOptionalTag = H.indexOf('qbank-redesign.js?v=practice15');
 
 /* Startup deadline and race fix */
@@ -49,8 +49,8 @@ test('১১. protection snapshot runs as idle post-boot work',
   DP.includes("global.addEventListener('admission:boot-ready', scheduleBootSnapshot") && DP.includes('requestIdleCallback(run, { timeout: 12000 })'));
 
 /* PWA lifecycle */
-test('১২. build/cache/static-Welcome versions are synchronized and paused AI is not shipped',
-  SW.includes("const BUILD_ID = 'v236-static-welcome-20260911'") && H.includes("const expectedSwVersion = 'v236-static-welcome-20260911'") && H.includes('sw.js?v=v236-static-welcome-20260911') && H.includes('account-access.js?v=20260911-static-reference-welcome-v3') && SW.includes('account-access.js?v=20260911-static-reference-welcome-v3') && !H.includes('ai-agent-chat.js') && !SW.includes('ai-agent-chat.js'));
+test('১২. build/cache/static-Welcome and main-app AI versions are synchronized',
+  SW.includes("const BUILD_ID = 'v237-main-ai-20260911'") && H.includes("const expectedSwVersion = 'v237-main-ai-20260911'") && H.includes('sw.js?v=v237-main-ai-20260911') && H.includes('account-access.js?v=20260911-static-reference-welcome-v3-ai-scope') && SW.includes('account-access.js?v=20260911-static-reference-welcome-v3-ai-scope') && H.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity') && SW.includes('ai-agent-chat.js?v=agent-f1-ui-chatv15-identity'));
 test('১৩. service-worker activation never navigates or reloads open clients',
   !SW.includes('c.navigate(c.url)') && !SW.includes("self.clients.matchAll({ type: 'window', includeUncontrolled: true });\n      for"));
 test('১৪. installed PWA document is bounded network-first with fast offline fallback',

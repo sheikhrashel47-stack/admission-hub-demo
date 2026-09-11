@@ -2,7 +2,6 @@
   'use strict';
 
   const API = '/api/auth/v1';
-  const ASSISTANT_ENABLED = false;
   const ENTRY_COOKIE = 'ah_entry_v1';
   const ENTRY_MAX_AGE = 365 * 24 * 60 * 60;
   const entryMode = () => {
@@ -40,9 +39,6 @@
     successTimer: null,
     afterVerified: 'success',
     verificationLabel: 'Account',
-    guideBusy: false,
-    guideHistory: [],
-    guideGuestId: '',
     institutionIndex: null,
     institutionSelection: { school: null, college: null },
     capabilities: {
@@ -236,7 +232,7 @@
         <div class="ah-account-view ah-provider-info-view ah-telegram-intro-view" data-view="telegram-intro" hidden>
           <div class="ah-provider-phone telegram" aria-hidden="true"><span>➤</span><i>✓</i></div>
           <h3 class="ah-account-view-title">Telegram দিয়ে verify করো</h3>
-          <p class="ah-account-mask">Admission Hub-এর official bot খুলে START চাপলে real ৬ সংখ্যার code পাবে। Code শুধু secure OTP box-এ লিখবে—Assistant/chat-এ নয়।</p>
+          <p class="ah-account-mask">Admission Hub-এর official bot খুলে START চাপলে real ৬ সংখ্যার code পাবে। Code শুধু secure OTP box-এ লিখবে—অন্য কোনো chat-এ নয়।</p>
           <div class="ah-truth-card"><span>✓</span><div><strong>Real Telegram OTP</strong><small>Email ownership নয়; Telegram account control নিশ্চিত করে</small></div></div>
           <button class="ah-account-primary ah-view-bottom-cta" type="button" data-role="telegram-intro-continue">Continue with Telegram →</button>
           <button class="ah-account-link ah-calm-back" type="button" data-role="telegram-intro-back">অন্য method বেছে নাও</button>
@@ -247,7 +243,7 @@
           <ol class="ah-account-telegram-steps" aria-label="Telegram verification steps"><li><span>১</span> Official Telegram bot খোলো</li><li><span>২</span> START চাপো ও code নাও</li><li><span>৩</span> Admission Hub-এ code লিখো</li></ol>
           <a class="ah-account-primary ah-account-external ah-account-telegram-open" data-role="telegram-link" target="_blank" rel="noopener noreferrer">Continue with Telegram →</a><div class="ah-account-telegram-status" data-role="telegram-status" aria-live="polite">START চাপার অপেক্ষায়…</div>
           <div class="ah-account-field ah-otp-field"><label class="ah-account-label" for="ah-telegram-code">Telegram-এর ৬ সংখ্যার code</label><div class="ah-six-code" aria-hidden="true"><span data-otp-digit="0"></span><span data-otp-digit="1"></span><span data-otp-digit="2"></span><span data-otp-digit="3"></span><span data-otp-digit="4"></span><span data-otp-digit="5"></span></div><input class="ah-account-input ah-account-otp" id="ah-telegram-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="ah-telegram-code-help" required></div><p class="ah-field-feedback ah-otp-help" id="ah-telegram-code-help">Code পাওয়া যায়নি? Official bot-এ START চাপো।</p>
-          <button class="ah-account-primary" type="submit" data-role="telegram-verify">Verify →</button><button class="ah-account-secondary" type="button" data-role="telegram-resend">নতুন code নিন</button><p class="ah-account-note">Telegram verification শুধু Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করে—Email মালিকানা নয়। Code বা Password কখনো Assistant/chat-এ লিখবে না; শুধু secure form ব্যবহার করবে। START বা animation একা success নয়—নিশ্চিত ফল Admission Hub দেখাবে।</p><p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="telegram-email-back">অন্য method বেছে নিন</button></p>
+          <button class="ah-account-primary" type="submit" data-role="telegram-verify">Verify →</button><button class="ah-account-secondary" type="button" data-role="telegram-resend">নতুন code নিন</button><p class="ah-account-note">Telegram verification শুধু Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করে—Email মালিকানা নয়। Code বা Password কখনো অন্য কোনো chat-এ লিখবে না; শুধু secure form ব্যবহার করবে। START বা animation একা success নয়—নিশ্চিত ফল Admission Hub দেখাবে।</p><p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="telegram-email-back">অন্য method বেছে নিন</button></p>
         </form>
 
         <form class="ah-account-view" data-view="google-link" hidden novalidate><div class="ah-account-verify-badge" aria-hidden="true">G</div><h3 class="ah-account-view-title">আগের account-এ Google যুক্ত করো</h3><p class="ah-account-mask">একই Email-এ account আছে। একবার আগের Email ও Password দিলে Google নতুন account না বানিয়ে সেটিতেই যুক্ত হবে।</p><div class="ah-account-field"><label class="ah-account-label" for="ah-link-email">Email</label><input class="ah-account-input" id="ah-link-email" type="email" autocomplete="email" maxlength="254" required></div><div class="ah-account-field"><label class="ah-account-label" for="ah-link-password">Password</label><input class="ah-account-input" id="ah-link-password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></div><button class="ah-account-primary" type="submit">Google যুক্ত করে প্রবেশ করুন</button><p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="link-cancel">Login-এ ফিরুন</button></p></form>
@@ -270,14 +266,6 @@
         <div class="ah-account-view" data-view="signed" hidden><div class="ah-account-secure"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6V10Zm6 4v2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><div><h3>Account নিরাপদ ও সক্রিয়</h3><p data-role="account-verification-summary">তোমার account সত্যিকারের যাচাইয়ের মাধ্যমে সক্রিয় আছে।</p></div></div><div class="ah-account-identity"><p class="ah-account-identity-label" data-role="identity-label">Admission Hub account</p><p class="ah-account-identity-value" data-role="identity">—</p></div><section class="ah-account-security-tools" data-role="passkey-tools" hidden><div class="ah-account-tool-head"><div><h3>Passkey</h3><p data-role="passkey-status">এই device-এ দ্রুত প্রবেশ চালু করতে পারো।</p></div><span aria-hidden="true">◉</span></div><div data-role="passkey-list"></div><button class="ah-account-secondary" type="button" data-role="passkey-add">নতুন Passkey যোগ করুন</button></section><button class="ah-account-secondary" type="button" data-role="backup-start" hidden>বিকল্প যাচাই</button><button class="ah-account-secondary" type="button" data-role="logout">Log Out</button><p class="ah-account-fine">Password ও প্রবেশের গোপন তথ্য এই পেজে দেখানো বা জমা রাখা হয় না।</p></div>
       </div>
 
-      <div class="ah-guide" data-role="guide" data-assistant-enabled="false" hidden aria-hidden="true">
-        <div class="ah-guide-head"><div><span class="ah-guide-robot" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="8" y="12" width="32" height="27" rx="11"/><path d="M24 12V7m-2 0h4M16 27h.1M32 27h.1M18 33c4 2 8 2 12 0"/></svg></span><div><strong>AI Assistant</strong><small data-role="guide-context">তোমার সাথে সবসময়</small></div></div><button type="button" data-role="guide-close" aria-label="Assistant বন্ধ করুন">×</button></div>
-        <div class="ah-guide-welcome"><h3>আমি তোমাকে onboarding-এ সাহায্য করতে পারি</h3><p>সাধারণ প্রশ্ন করো। Password, OTP বা secret কখনো chat-এ লিখবে না।</p></div>
-        <div class="ah-guide-messages" data-role="guide-messages" aria-live="polite"><div class="ah-guide-bubble">হ্যালো! তুমি যে ধাপে আছো, সেই ধাপেই নিরাপদভাবে সাহায্য করব।</div></div>
-        <div class="ah-guide-chips" data-role="guide-chips"></div>
-        <form data-role="guide-form"><label class="sr-only" for="ah-guide-input">Assistant-কে প্রশ্ন করো</label><input id="ah-guide-input" maxlength="300" autocomplete="off" placeholder="কী জানতে চাও?"><button type="submit" aria-label="পাঠান">↑</button></form>
-      </div>
-      <button class="ah-guide-orb" type="button" data-role="guide-open" aria-label="Admission Assistant খুলুন" hidden disabled><span>✦</span><small>Help</small></button>
     </main>
   `;
 
@@ -821,7 +809,6 @@
       security: $('#ah-signup-password')
     }[step];
     focusWhenUnclaimed(focus);
-    updateGuideContext();
     return true;
   };
 
@@ -869,180 +856,6 @@
     rememberPendingSignup(false);
     showView('success');
     refreshProfileReadiness();
-  };
-
-  const guideGuestId = () => {
-    if (state.guideGuestId) return state.guideGuestId;
-    try {
-      if (typeof crypto.randomUUID === 'function') state.guideGuestId = crypto.randomUUID().replace(/-/g, '');
-      else {
-        const bytes = new Uint8Array(16);
-        crypto.getRandomValues(bytes);
-        state.guideGuestId = [...bytes].map(value => value.toString(16).padStart(2, '0')).join('');
-      }
-    } catch (_) { state.guideGuestId = `ephemeral${Date.now().toString(36)}admission`; }
-    return state.guideGuestId;
-  };
-
-  const sensitiveGuideInput = value => {
-    const text = String(value || '').trim();
-    const passwordWord = '(?:password|passcode|পাসওয়ার্ড|পাসওয়াৰ্ড|পাসওয়ার্ড)';
-    if (/\b\d{6}\b/.test(text) || /eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}/.test(text) || /-----BEGIN [A-Z ]+PRIVATE KEY-----/.test(text)) return true;
-    if (new RegExp(`(?:my|amar|আমার)\\s*${passwordWord}\\s*(?:is|হলো|:)?\\s*\\S{4,}`, 'i').test(text)) return true;
-    if (new RegExp(`${passwordWord}\\s*(?:is|হলো|:|=|-)\\s*\\S{4,}`, 'i').test(text)) return true;
-    if (new RegExp(`${passwordWord}\\s+(?=\\S{6,})(?=\\S*[0-9])\\S+`, 'i').test(text)) return true;
-    if (/(?:passcode|pin|otp|one[ -]?time code|ওটিপি)\D{0,8}\d{4,8}\b/i.test(text)) return true;
-    if (/(?:secret|api[ -]?key|token|গোপন)\s*(?:is|হলো|:|=)\s*\S{4,}/i.test(text)) return true;
-    return text.split(/\s+/).some(part => part.length >= 8 && /[a-z]/.test(part) && /[A-Z]/.test(part) && /\d/.test(part) && /[^A-Za-z0-9]/.test(part));
-  };
-  const unsafeGuideOutput = value => sensitiveGuideInput(value)
-    || /\b(?:firebase|backend|api|provider|smtp|webhook|quota|database|token)\b/i.test(String(value || ''));
-
-  const guideField = () => {
-    const id = String(document.activeElement?.id || '');
-    if (/password|confirm|telegram-code|backup-code/.test(id)) return 'sensitive-field';
-    if (id.includes('name')) return 'name';
-    if (id.includes('email')) return 'email';
-    if (id.includes('school')) return 'school';
-    if (id.includes('college')) return 'college';
-    if (id.includes('dob')) return 'date-of-birth';
-    return 'none';
-  };
-
-  const guideSuggestions = () => {
-    const query = ['school', 'college'].includes(state.signupStep)
-      ? ($('#ah-signup-school')?.value.trim() || $('#ah-signup-college')?.value.trim() || '') : '';
-    const kind = $('#ah-signup-college')?.value.trim() ? 'college' : 'school';
-    return query.length >= 2 ? institutionMatches(query, kind).map(item => item.name) : [];
-  };
-
-  const guideContext = () => Object.freeze({
-    surface: 'premium-onboarding',
-    view: state.currentView,
-    step: state.currentView === 'signup' ? state.signupStep : 'none',
-    field: guideField(),
-    validity: Object.freeze({
-      personal: Boolean(normalizedName() && selectedDob() && $('#ah-signup-email')?.checkValidity()),
-      education: Boolean(state.institutionSelection.school),
-      verificationAuthoritative: accountVerified(state.session)
-    }),
-    institutionQuery: ['school', 'college'].includes(state.signupStep) ? ($('#ah-signup-school')?.value.trim().slice(0, 80) || $('#ah-signup-college')?.value.trim().slice(0, 80) || '') : '',
-    institutionSuggestions: Object.freeze(guideSuggestions().slice(0, 3)),
-    allowedActions: Object.freeze(['focus-name','focus-email','focus-dob','focus-school','focus-college','open-signup','open-login','explain-email','explain-telegram'])
-  });
-
-  const guideChipConfig = () => {
-    if (state.currentView === 'welcome') return [['Sign Up শুরু করি','open-signup'],['Log In সাহায্য','open-login'],['Guest কী?','explain-guest']];
-    if (state.currentView === 'signup' && state.signupStep === 'personal') return [['নাম কোথায় লিখব?','focus-name'],['DOB বেছে নিই','focus-dob'],['Email field','focus-email']];
-    if (state.currentView === 'signup' && state.signupStep === 'dob') return [['তারিখ বেছে নিই','focus-dob'],['Personal-এ ফিরি','focus-name']];
-    if (state.currentView === 'signup' && ['school', 'college'].includes(state.signupStep)) return [['School খুঁজি','focus-school'],['College/University','focus-college'],['না পেলে কী করব?','explain-manual']];
-    if (state.currentView === 'signup') return [['ভালো Password কেমন?','explain-password'],['Password field','focus-password']];
-    if (state.currentView === 'verify') return [['Email কীভাবে?','explain-email'],['Telegram কীভাবে?','explain-telegram']];
-    if (state.currentView === 'telegram') return [['START কোথায়?','explain-telegram'],['Code নিরাপত্তা','explain-code']];
-    return [['এই page বুঝিয়ে দাও','explain-view']];
-  };
-
-  const appendGuideBubble = (text, user = false) => {
-    const host = $('[data-role="guide-messages"]');
-    if (!host) return;
-    const bubble = document.createElement('div');
-    bubble.className = `ah-guide-bubble${user ? ' user' : ''}`;
-    bubble.textContent = safeStudentText(text).slice(0, 1200);
-    host.append(bubble);
-    host.scrollTop = host.scrollHeight;
-  };
-
-  const guideAction = action => {
-    const focus = selector => { const target = $(selector); target?.focus(); target?.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' }); };
-    const messages = {
-      'explain-guest': 'Guest হলে এখনই Dashboard ব্যবহার করতে পারবে। Account-only কাজের সময় চাইলে পরে Sign Up করবে; Guest Assistant chat স্থায়ীভাবে save হয় না।',
-      'explain-manual': 'দুই অক্ষর বা বেশি লিখলে সর্বোচ্চ ৩টি match দেখাবে। না পেলে শেষের “নিজের লেখা ব্যবহার করুন” option বেছে নাও।',
-      'explain-password': 'কমপক্ষে ৮ অক্ষর দাও। বড় ও ছোট অক্ষর, সংখ্যা আর চিহ্ন মেশালে শক্তিশালী হবে। Password আমাকে বা chat-এ লিখবে না।',
-      'explain-email': 'Email card নিজে চাপলে তবেই real verification link পাঠানো হবে। Inbox, Spam ও Promotions দেখবে; link খুলে ফিরে এসে Check করবে।',
-      'explain-telegram': 'Telegram card নিজে চাপো, official bot-এ START দাও, তারপর পাওয়া ৬ সংখ্যার code শুধু secure code box-এ লিখবে—chat-এ নয়।',
-      'explain-code': 'Code কখনো Assistant-এ লিখবে না। শুধু ৬ সংখ্যার secure verification box-এ লিখবে; নিশ্চিত ফল Admission Hub দেখাবে।',
-      'explain-view': `তুমি এখন ${state.currentView === 'login' ? 'Log In' : state.currentView === 'forgot' ? 'Password reset' : state.currentView} page-এ আছো। যে field-এ সাহায্য লাগবে সেটি বলো।`
-    };
-    if (action === 'open-signup') { showView('signup'); setSignupStep('personal'); return appendGuideBubble('Personal ধাপ থেকে শুরু করলাম। আগে নাম, Email ও জন্মতারিখ দাও।'); }
-    if (action === 'open-login') { showView('login'); return appendGuideBubble('Log In page খুলেছি। Email ও Password শুধু form-এ লিখবে।'); }
-    if (action === 'focus-name') focus('#ah-signup-name');
-    else if (action === 'focus-email') focus(state.currentView === 'login' ? '#ah-login-email' : '#ah-signup-email');
-    else if (action === 'focus-dob') { setSignupStep('dob'); focus('#ah-dob-day'); }
-    else if (action === 'focus-school') { setSignupStep('school'); focus('#ah-signup-school'); }
-    else if (action === 'focus-college') { setSignupStep('college'); focus('#ah-signup-college'); }
-    else if (action === 'focus-password') focus('#ah-signup-password');
-    appendGuideBubble(messages[action] || 'Field-টি সামনে এনেছি। কোনো secure submit আমি নিজে করব না—শেষ সিদ্ধান্ত তোমার।');
-  };
-
-  function updateGuideContext() {
-    const context = $('[data-role="guide-context"]');
-    if (context) context.textContent = state.currentView === 'signup' ? `Signup · ${state.signupStep}` : state.currentView;
-    const chips = $('[data-role="guide-chips"]');
-    if (!chips) return;
-    chips.textContent = '';
-    guideChipConfig().forEach(([label, action]) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.textContent = label;
-      button.addEventListener('click', () => guideAction(action));
-      chips.append(button);
-    });
-  }
-
-  const readGuideStream = async response => {
-    if (!response.ok || !response.body) throw new Error('assistant-unavailable');
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let text = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const chunks = buffer.split('\n\n');
-      buffer = chunks.pop() || '';
-      for (const chunk of chunks) for (const line of chunk.split('\n')) {
-        if (!line.trim().startsWith('data:')) continue;
-        try { const data = JSON.parse(line.trim().slice(5)); if (data.text) text += data.text; } catch (_) {}
-      }
-    }
-    return text.trim();
-  };
-
-  const askGuide = async text => {
-    if (!ASSISTANT_ENABLED) return;
-    const clean = String(text || '').trim().slice(0, 300);
-    if (!clean || state.guideBusy) return;
-    if (sensitiveGuideInput(clean)) {
-      appendGuideBubble('নিরাপত্তার জন্য Password, verification code বা গোপন তথ্য Assistant নেয় না। এমন কিছু লিখে থাকলে সেটি বদলে শুধু সাধারণ প্রশ্ন করো।');
-      return;
-    }
-    appendGuideBubble(clean, true);
-    state.guideBusy = true;
-    state.guideHistory.push({ role: 'user', content: clean });
-    state.guideHistory = state.guideHistory.slice(-5);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-    try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        credentials: 'same-origin',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', 'X-AH-Guest': guideGuestId() },
-        body: JSON.stringify({ messages: state.guideHistory, context: { onboarding: guideContext() } })
-      });
-      const answer = await readGuideStream(response);
-      if (!answer) throw new Error('assistant-empty');
-      if (unsafeGuideOutput(answer)) {
-        appendGuideBubble('নিরাপত্তার কারণে এই উত্তরটি দেখানো হয়নি। Password বা code ছাড়াই সাধারণভাবে প্রশ্নটি আবার করো।');
-        return;
-      }
-      appendGuideBubble(answer);
-      state.guideHistory.push({ role: 'assistant', content: answer.slice(0, 1200) });
-      state.guideHistory = state.guideHistory.slice(-5);
-    } catch (_) {
-      appendGuideBubble('Assistant এখন উত্তর দিতে পারছে না। সমস্যা নেই—form-এর সব মূল কাজ চলবে। নিচের ছোট helper option ব্যবহার করতে পারো।');
-    } finally { clearTimeout(timer); state.guideBusy = false; }
   };
 
   const showView = (name, keepMessage = false) => {
@@ -1126,7 +939,6 @@
       signed: () => $('[data-role="close"]')
     }[name];
     if (focusTarget) focusWhenUnclaimed(focusTarget, name === 'telegram' || name === 'backup' ? 80 : 35);
-    updateGuideContext();
   };
 
   const configureBackupView = interaction => {
@@ -1539,8 +1351,6 @@
   };
   const close = () => {
     setAccountPageActive(false);
-    const guide = $('[data-role="guide"]');
-    if (guide) guide.hidden = true;
     message();
     try { launcher.focus(); } catch (_) {}
   };
@@ -1716,12 +1526,6 @@
     document.body.append(launcher, pageHost);
     launcher.addEventListener('click', open);
     $('.ah-account-close').addEventListener('click', dismiss);
-    document.addEventListener('keydown', event => {
-      if (pageHost.hidden || event.key !== 'Escape') return;
-      const guide = $('[data-role="guide"]');
-      if (guide && !guide.hidden) guide.hidden = true;
-    });
-
     const welcomeLanguage = $('[data-role="welcome-language"]');
     if (welcomeLanguage) {
       welcomeLanguage.addEventListener('change', () => setWelcomeLanguage(welcomeLanguage.value));
@@ -1814,20 +1618,6 @@
       finally { setBusy(false); }
     });
 
-    $('[data-role="guide-open"]').addEventListener('click', () => {
-      const guide = $('[data-role="guide"]');
-      guide.hidden = false;
-      updateGuideContext();
-      setTimeout(() => $('#ah-guide-input')?.focus(), 30);
-    });
-    $('[data-role="guide-close"]').addEventListener('click', () => { $('[data-role="guide"]').hidden = true; $('[data-role="guide-open"]').focus(); });
-    $('[data-role="guide-form"]').addEventListener('submit', event => {
-      event.preventDefault();
-      const input = $('#ah-guide-input');
-      const value = input.value;
-      input.value = '';
-      askGuide(value);
-    });
     $('[data-role="enter-app"]').addEventListener('click', () => { close(); navigateDashboard(); });
     $('[data-role="open-email"]').addEventListener('click', openEmailInbox);
     $('[data-role="verified-login"]').addEventListener('click', () => checkEmailVerification());
