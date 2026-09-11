@@ -88,18 +88,34 @@
 
           <div class="ah-welcome-stage">
             <section class="ah-welcome-copy" aria-labelledby="ah-welcome-heading">
-              <p class="ah-welcome-eyebrow"><span aria-hidden="true"></span><b data-bn="তোমার প্রস্তুতি, তোমার নিয়ন্ত্রণে" data-en="Your preparation, under your control">তোমার প্রস্তুতি, তোমার নিয়ন্ত্রণে</b></p>
-              <h1 id="ah-welcome-heading" data-bn="স্বপ্ন শুধু দেখো না—|পথটা আজ থেকেই তৈরি করো।" data-en="Don't just dream—|build the path from today.">স্বপ্ন শুধু দেখো না—<br><em>পথটা আজ থেকেই তৈরি করো।</em></h1>
-              <p data-bn="পড়াশোনা, practice, mock test আর progress—|একটি শান্ত ও বুদ্ধিমান workspace-এ।" data-en="Learning, practice, mock tests and progress—|inside one calm, intelligent workspace.">পড়াশোনা, practice, mock test আর progress—<br>একটি শান্ত ও বুদ্ধিমান workspace-এ।</p>
-              <div class="ah-welcome-pills" aria-label="প্রধান সুবিধা">
-                <span><i aria-hidden="true">✓</i><b data-bn="পরিকল্পিত শেখা" data-en="Guided learning">পরিকল্পিত শেখা</b></span>
-                <span><i aria-hidden="true">✓</i><b data-bn="স্মার্ট অনুশীলন" data-en="Smart practice">স্মার্ট অনুশীলন</b></span>
-                <span><i aria-hidden="true">✓</i><b data-bn="নিজস্ব অগ্রগতি" data-en="Personal progress">নিজস্ব অগ্রগতি</b></span>
-              </div>
+              <p class="ah-welcome-eyebrow"><span aria-hidden="true"></span><b data-bn="আপনার লক্ষ্য, আপনার অধিকার" data-en="Your goal, your control">আপনার লক্ষ্য, আপনার অধিকার</b></p>
+              <h1 id="ah-welcome-heading" data-bn="আপনার লক্ষ্যের পথে,|প্রথম ধাপটা আজ থেকেই।" data-en="On the path to your goal,|take the first step today.">আপনার লক্ষ্যের পথে,<br><em>প্রথম ধাপটা আজ থেকেই।</em></h1>
             </section>
 
             <section class="ah-journey-console" data-native-welcome-visual="journey-console-v1" aria-label="Admission প্রস্তুতির interactive journey map">
               <div class="ah-console-grid" aria-hidden="true"></div>
+              <div class="ah-3d-student-stage" data-3d-student-stage="student-hero-v1" aria-hidden="true">
+                <div class="ah-3d-orbit-ring" aria-hidden="true"></div>
+                <div class="ah-3d-energy-path ah-3d-energy-path-a" aria-hidden="true"></div>
+                <div class="ah-3d-energy-path ah-3d-energy-path-b" aria-hidden="true"></div>
+                <div class="ah-3d-cloud ah-3d-cloud-a" aria-hidden="true"></div>
+                <div class="ah-3d-cloud ah-3d-cloud-b" aria-hidden="true"></div>
+                <div class="ah-3d-campus" aria-hidden="true">
+                  <span class="ah-3d-campus-dome"></span><span class="ah-3d-campus-wing ah-3d-campus-wing-a"></span><span class="ah-3d-campus-wing ah-3d-campus-wing-b"></span><span class="ah-3d-campus-door"></span><span class="ah-3d-campus-win"></span>
+                </div>
+                <div class="ah-3d-student" data-3d-student="profile-v1" aria-hidden="true">
+                  <div class="ah-3d-student-body"><span class="ah-3d-s-hair"></span><span class="ah-3d-s-face"></span><span class="ah-3d-s-torso"></span><span class="ah-3d-s-pack"></span><span class="ah-3d-s-arm"></span><span class="ah-3d-s-device"></span></div>
+                  <div class="ah-3d-s-shadow"></div>
+                </div>
+                <div class="ah-3d-object ah-3d-openbook" aria-hidden="true"><i></i><i></i><b></b></div>
+                <div class="ah-3d-object ah-3d-checklist" aria-hidden="true"><i></i><i></i><i></i></div>
+                <div class="ah-3d-object ah-3d-chart" aria-hidden="true"><i></i><i></i><i></i></div>
+                <div class="ah-3d-object ah-3d-target" aria-hidden="true"><span></span><i></i></div>
+                <div class="ah-3d-object ah-3d-cap" aria-hidden="true"><span></span><i></i></div>
+                <div class="ah-3d-leaf ah-3d-leaf-a" aria-hidden="true"></div>
+                <div class="ah-3d-leaf ah-3d-leaf-b" aria-hidden="true"></div>
+                <div class="ah-3d-leaf ah-3d-leaf-c" aria-hidden="true"></div>
+              </div>
               <header class="ah-console-head">
                 <span><i aria-hidden="true"></i><b>STUDY PATH</b></span>
                 <small>EXPLORE</small>
@@ -120,10 +136,10 @@
           </div>
 
           <section class="ah-welcome-benefits" aria-label="Admission Hub সুবিধা">
-            <article><i class="learn" aria-hidden="true">01</i><span><strong data-bn="শিখবে" data-en="Learn">শিখবে</strong><small data-bn="সহজ ও গোছানো resource" data-en="Clear, organized resources">সহজ ও গোছানো resource</small></span></article>
-            <article><i class="practice" aria-hidden="true">02</i><span><strong data-bn="অনুশীলন করবে" data-en="Practice">অনুশীলন করবে</strong><small data-bn="প্রশ্ন ও mock test" data-en="Questions and mock tests">প্রশ্ন ও mock test</small></span></article>
-            <article><i class="improve" aria-hidden="true">03</i><span><strong data-bn="উন্নতি বুঝবে" data-en="Improve">উন্নতি বুঝবে</strong><small data-bn="নিজের progress পরিষ্কার দেখবে" data-en="See your progress clearly">নিজের progress পরিষ্কার দেখবে</small></span></article>
-            <article><i class="achieve" aria-hidden="true">04</i><span><strong data-bn="লক্ষ্যে পৌঁছাবে" data-en="Achieve">লক্ষ্যে পৌঁছাবে</strong><small data-bn="নিজস্ব admission roadmap" data-en="Your admission roadmap">নিজস্ব admission roadmap</small></span></article>
+            <article><i class="learn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5c3.5-1.3 6.2-.5 8 1.5v12c-2.3-2-5-2.6-8-1.6V5.5Zm16 0c-3.5-1.3-6.2-.5-8 1.5v12c2.3-2 5-2.6 8-1.6V5.5Z"/></svg></i><span><strong data-bn="Learn" data-en="Learn">Learn</strong><small data-bn="From expert resources" data-en="From expert resources">From expert resources</small></span></article>
+            <article><i class="practice" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="m8 12 2.5 2.5L16.5 8"/></svg></i><span><strong data-bn="Practice" data-en="Practice">Practice</strong><small data-bn="With smart question bank" data-en="With smart question bank">With smart question bank</small></span></article>
+            <article><i class="improve" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19h16M7 15l3-4 3 3 5-7M18 7l-5 6-3-3-4 4"/></svg></i><span><strong data-bn="Improve" data-en="Improve">Improve</strong><small data-bn="Track your progress" data-en="Track your progress">Track your progress</small></span></article>
+            <article><i class="achieve" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.4 5.2 5.7.6 4.8-4.6 2.1 10.5.6-1 6.9 6.7v-2.4m-.2-6-4.4 4.4 4.4-4.4Z"/></svg></i><span><strong data-bn="Achieve" data-en="Achieve">Achieve</strong><small data-bn="Your dream" data-en="Your dream">Your dream</small></span></article>
           </section>
 
           <div class="ah-entry-actions" aria-label="প্রবেশের পদ্ধতি">
@@ -133,7 +149,14 @@
             <button class="ah-account-link ah-entry-guest" type="button" data-role="continue-guest"><span class="ah-entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="3"/><path d="M5.5 20c.8-4.5 2.9-6.7 6.5-6.7s5.7 2.2 6.5 6.7"/></svg></span><span data-bn="Continue as Guest" data-en="Continue as Guest">Continue as Guest</span><b aria-hidden="true">→</b></button>
           </div>
 
-          <footer class="ah-welcome-trust"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.8 2.5 8 7 10 4.5-2 7-5.2 7-10V6l-7-3Z"/><path d="m9.5 12 1.7 1.7 3.6-4"/></svg></span><p><strong data-bn="নিরাপদ ও শান্ত শুরু" data-en="A safe, calm start">নিরাপদ ও শান্ত শুরু</strong><small data-bn="তোমার পছন্দের আগে কোনো verification পাঠানো হবে না।" data-en="No verification is sent before you choose a method.">তোমার পছন্দের আগে কোনো verification পাঠানো হবে না।</small></p></footer>
+          <div class="ah-welcome-ai-helper" data-ai-helper-contract="welcome-ai-v1" aria-label="Admission Hub AI সহায়ক">
+            <div class="ah-ai-bot" aria-hidden="true"><span class="ah-ai-eye"></span><span class="ah-ai-eye"></span><span class="ah-ai-mouth"></span><span class="ah-ai-spark"></span></div>
+            <p class="ah-ai-bubble"><b>Need help?</b><span>I'm here!</span></p>
+          </div>
+
+          <footer class="ah-welcome-landscape" aria-hidden="true">
+            <svg viewBox="0 0 430 92" preserveAspectRatio="none"><path class="hill-back" d="M0 52c44-26 82-24 124-4s76 16 122-6c42-20 94-18 140 8 16 9 32 13 44 15v27H0V52Z"/><path class="hill-front" d="M0 72c56-22 104-14 150 6 52 22 100 10 148-8 44-16 92-10 132 12v18H0V72Z"/><g class="campus"><path d="M24 76h44v8H24zM32 68h28v8H32zM44 60h6v8h-6zM38 61l6-7 6 7M70 84h8v-6h-8zM86 73h14v11H86zM94 64h4v9h-4z"/></g><g class="trees"><path d="M116 84V61m0 2-6 11h12l-6-11Zm16 23V68m0 1-4 9h8l-4-9Z"/><path d="M322 84V58m0 2-8 13h16l-8-13Zm14 26V66m0 1-5 10h10l-5-10Z"/><path class="leaf" d="M398 88c-4-26 8-52 26-68 8 32 2 50-26 68Z"/><path class="leaf-stroke" d="M399 85c3-24 10-40 20-52"/></g></svg>
+          </footer>
         </div>
 
         <form class="ah-account-view ah-login-view" data-view="login" novalidate>
@@ -181,15 +204,14 @@
             <div class="ah-personal-intro">
               <div class="ah-personal-copy">
                 <p class="ah-personal-kicker"><i aria-hidden="true"></i>STEP 01 · PERSONAL</p>
-                <h1 id="ah-personal-title">তোমার পরিচয় দিয়ে<br><em>নিজস্ব পথ শুরু করো</em></h1>
-                <p>নাম ও জন্মতারিখ লিখলেই পাশের profile preview-টি সঙ্গে সঙ্গে বদলে যাবে।</p>
+                <h1 id="ah-personal-title">চলো, আপনার<br><em>পরিচয়টা তৈরি করি</em></h1>
               </div>
 
-              <section class="ah-live-profile" data-profile-preview-contract="input-bound-profile-v1" data-completion="0" style="--ah-profile-progress:0deg" aria-label="তোমার live profile preview">
+              <section class="ah-live-profile" data-profile-preview-contract="input-bound-profile-v1" data-completion="0" style="--ah-profile-progress:0deg" aria-label="আপনার live profile preview">
                 <header><span><i aria-hidden="true"></i>LIVE PROFILE</span><small>LOCAL PREVIEW</small></header>
                 <div class="ah-live-profile-main">
-                  <div class="ah-live-avatar-ring" aria-hidden="true"><div class="ah-live-avatar"><b data-role="personal-live-initials">তু</b><i></i></div></div>
-                  <div class="ah-live-identity"><small>ADMISSION STUDENT</small><strong data-role="personal-live-name">তোমার নাম এখানে দেখা যাবে</strong><output data-role="dob-summary">তারিখ বেছে নাও</output></div>
+                  <div class="ah-live-avatar-ring" aria-hidden="true"><div class="ah-live-avatar"><b data-role="personal-live-initials">আ</b><i></i></div></div>
+                  <div class="ah-live-identity"><small>ADMISSION STUDENT</small><strong data-role="personal-live-name">আপনার নাম এখানে দেখা যাবে</strong><output data-role="dob-summary">তারিখ বেছে নাও</output></div>
                 </div>
                 <div class="ah-live-progress-copy"><span>PROFILE COMPLETION</span><b data-role="personal-completion">0%</b></div>
                 <div class="ah-live-progress-bar" aria-hidden="true"><i></i></div>
@@ -200,19 +222,17 @@
 
             <div class="ah-personal-card">
               <header>
-                <div><p>PROFILE DETAILS</p><h2>মূল তথ্য</h2></div>
-                <span>১ মিনিটেরও কম</span>
+                <div><p>PROFILE DETAILS</p><h2>আপনার সম্পর্কে কিছু তথ্য</h2></div>
               </header>
 
               <div class="ah-account-field ah-personal-name-field">
-                <label class="ah-account-label" for="ah-signup-name">তোমার পূর্ণ নাম</label>
-                <div class="ah-personal-input-wrap"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.7-4.6 2.9-6.8 6.5-6.8s5.8 2.2 6.5 6.8"/></svg></span><input class="ah-account-input" id="ah-signup-name" name="fullName" autocomplete="name" maxlength="80" placeholder="যেমন: আরিফ হাসান" aria-describedby="ah-name-feedback" required></div>
+                <label class="ah-account-label" for="ah-signup-name">আপনার নাম</label>
+                <div class="ah-personal-input-wrap"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.7-4.6 2.9-6.8 6.5-6.8s5.8 2.2 6.5 6.8"/></svg></span><input class="ah-account-input" id="ah-signup-name" name="fullName" autocomplete="name" maxlength="80" placeholder="পূর্ণ নাম লিখুন" aria-describedby="ah-name-feedback" required></div>
                 <p class="ah-field-feedback" id="ah-name-feedback" data-role="name-feedback" aria-live="polite"></p>
               </div>
 
               <fieldset class="ah-personal-dob-card">
                 <legend>জন্মতারিখ</legend>
-                <p>সঠিক বয়স অনুযায়ী অভিজ্ঞতা সাজাতে ব্যবহার হবে</p>
                 <div class="ah-dob-selectors">
                   <label><span>দিন</span><select id="ah-dob-day" aria-label="জন্মদিন" required></select></label>
                   <label><span>মাস</span><select id="ah-dob-month" aria-label="জন্মমাস" required></select></label>
@@ -221,12 +241,11 @@
                 <output class="sr-only" data-role="dob-preview" aria-live="polite">তারিখ বেছে নাও</output>
               </fieldset>
 
-              <p class="ah-personal-privacy"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.8 2.5 8 7 10 4.5-2 7-5.2 7-10V6l-7-3Z"/><path d="m9.4 12.1 1.7 1.7 3.7-4"/></svg></span><span><strong>তোমার তথ্য নিরাপদ</strong><small>এটি public profile হিসেবে দেখানো হবে না</small></span></p>
+              <p class="ah-personal-privacy"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.8 2.5 8 7 10 4.5-2 7-5.2 7-10V6l-7-3Z"/><path d="m9.4 12.1 1.7 1.7 3.7-4"/></svg></span><span><strong>আপনার তথ্য নিরাপদে থাকবে</strong></span></p>
             </div>
 
             <div class="ah-personal-actions">
-              <button class="ah-account-primary ah-personal-next" type="button" data-role="signup-next-education"><span>Education-এ এগিয়ে যাও</span><b aria-hidden="true">→</b></button>
-              <p>পরের ধাপে School ও College-এর তথ্য থাকবে</p>
+              <button class="ah-account-primary ah-personal-next" type="button" data-role="signup-next-education"><span>পরের ধাপ</span><b aria-hidden="true">→</b></button>
             </div>
           </section>
           <section class="ah-signup-panel ah-institution-panel" data-signup-panel="school" hidden>

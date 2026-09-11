@@ -9,8 +9,8 @@ const HTML = read('index.html');
 const SW = read('sw.js');
 const RELEASE = read('.github/workflows/telegram-auth-canary-activate.yml');
 const BUNDLE_GUARD = read('.github/workflows/cf-pages.yml');
-const UI_VERSION = '20260911-code-native-entry-v1-ai-scope';
-const SHELL_VERSION = 'v240-code-native-entry-20260911';
+const UI_VERSION = '20260911-zero-raster-3d-student-v1';
+const SHELL_VERSION = 'v241-zero-raster-3d-student-20260911';
 
 const signupStart = JS.indexOf('<form class="ah-account-view ah-signup-view"');
 const signupEnd = JS.indexOf('<div class="ah-account-view ah-created-view"', signupStart);
@@ -35,9 +35,9 @@ test('Signup 01 Personal is an input-bound native profile UI, not artwork or scr
   assert.match(personal, /data-role="personal-completion"/);
   assert.match(personal, /data-personal-check="name"/);
   assert.match(personal, /data-personal-check="dob"/);
-  assert.match(personal, /তোমার পরিচয় দিয়ে/);
-  assert.match(personal, /profile preview-টি সঙ্গে সঙ্গে বদলে যাবে/);
-  assert.match(personal, /Education-এ এগিয়ে যাও/);
+  assert.match(personal, /চলো, আপনার/);
+  assert.match(personal, /আপনার সম্পর্কে কিছু তথ্য/);
+  assert.match(personal, /পরের ধাপ/);
   assert.doesNotMatch(personal, mediaTag);
   assert.doesNotMatch(personal, /ah-native-profile|ah-native-pedestal|ah-native-book|ah-native-cap|ah-native-leaf|ah-personal-landscape/);
 });
