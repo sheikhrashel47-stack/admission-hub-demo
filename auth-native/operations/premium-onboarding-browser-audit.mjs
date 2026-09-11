@@ -242,7 +242,7 @@ try {
       card: box('.ah-personal-card'),
       cta: box('.ah-personal-next'),
       name: box('#ah-signup-name'),
-      selectLabels: [...document.querySelectorAll('.ah-personal-dob-card .ah-dob-selectors label')].map(label => ({ width: label.getBoundingClientRect().width, height: label.getBoundingClientRect().height })),
+      selectLabels: [...document.querySelectorAll('.ah-personal-dob-card .ah-dob-select-field')].map(label => ({ width: label.getBoundingClientRect().width, height: label.getBoundingClientRect().height })),
       selects: [...document.querySelectorAll('.ah-personal-dob-card select')].map(select => ({
         width: select.getBoundingClientRect().width,
         height: select.getBoundingClientRect().height,

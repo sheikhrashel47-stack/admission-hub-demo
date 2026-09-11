@@ -28,7 +28,7 @@ t('৮. reduced-motion গার্ড (মোশন-সংবেদনশীল
 t('৯. পুরনো ইনলাইন-3D-splash আর নেই (v178-nosplash; ahfs-scene = 0)', !doc.querySelector('.ahfs-scene') && !html.includes('ahfs-scene'));
 t('১০. app-id + #app রুট exist', !!doc.getElementById('app'));
 t('১১. externl-স্ক্রিপ্ট-না-থাকলেও শেল রেন্ডার (static-first প্রমাণ)', !!doc.getElementById('app').querySelector('#ahSplash'));
-t('১২. current account-retired service-worker marker', html.includes('sw.js?v=v241-zero-raster-3d-student-20260911'));
+t('১২. current account-retired service-worker marker', html.includes('sw.js?v=v242-hero-personal-dob-modern-20260912'));
 
 console.log(`\nINTRO-BOOTSHELL: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

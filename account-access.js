@@ -94,28 +94,6 @@
 
             <section class="ah-journey-console" data-native-welcome-visual="journey-console-v1" aria-label="Admission প্রস্তুতির interactive journey map">
               <div class="ah-console-grid" aria-hidden="true"></div>
-              <div class="ah-3d-student-stage" data-3d-student-stage="student-hero-v1" aria-hidden="true">
-                <div class="ah-3d-orbit-ring" aria-hidden="true"></div>
-                <div class="ah-3d-energy-path ah-3d-energy-path-a" aria-hidden="true"></div>
-                <div class="ah-3d-energy-path ah-3d-energy-path-b" aria-hidden="true"></div>
-                <div class="ah-3d-cloud ah-3d-cloud-a" aria-hidden="true"></div>
-                <div class="ah-3d-cloud ah-3d-cloud-b" aria-hidden="true"></div>
-                <div class="ah-3d-campus" aria-hidden="true">
-                  <span class="ah-3d-campus-dome"></span><span class="ah-3d-campus-wing ah-3d-campus-wing-a"></span><span class="ah-3d-campus-wing ah-3d-campus-wing-b"></span><span class="ah-3d-campus-door"></span><span class="ah-3d-campus-win"></span>
-                </div>
-                <div class="ah-3d-student" data-3d-student="profile-v1" aria-hidden="true">
-                  <div class="ah-3d-student-body"><span class="ah-3d-s-hair"></span><span class="ah-3d-s-face"></span><span class="ah-3d-s-torso"></span><span class="ah-3d-s-pack"></span><span class="ah-3d-s-arm"></span><span class="ah-3d-s-device"></span></div>
-                  <div class="ah-3d-s-shadow"></div>
-                </div>
-                <div class="ah-3d-object ah-3d-openbook" aria-hidden="true"><i></i><i></i><b></b></div>
-                <div class="ah-3d-object ah-3d-checklist" aria-hidden="true"><i></i><i></i><i></i></div>
-                <div class="ah-3d-object ah-3d-chart" aria-hidden="true"><i></i><i></i><i></i></div>
-                <div class="ah-3d-object ah-3d-target" aria-hidden="true"><span></span><i></i></div>
-                <div class="ah-3d-object ah-3d-cap" aria-hidden="true"><span></span><i></i></div>
-                <div class="ah-3d-leaf ah-3d-leaf-a" aria-hidden="true"></div>
-                <div class="ah-3d-leaf ah-3d-leaf-b" aria-hidden="true"></div>
-                <div class="ah-3d-leaf ah-3d-leaf-c" aria-hidden="true"></div>
-              </div>
               <header class="ah-console-head">
                 <span><i aria-hidden="true"></i><b>STUDY PATH</b></span>
                 <small>EXPLORE</small>
@@ -207,11 +185,34 @@
                 <h1 id="ah-personal-title">চলো, আপনার<br><em>পরিচয়টা তৈরি করি</em></h1>
               </div>
 
+              <div class="ah-3d-student-stage ah-personal-hero" data-3d-student-stage="student-hero-v1" aria-hidden="true">
+                <div class="ah-3d-orbit-ring" aria-hidden="true"></div>
+                <div class="ah-3d-energy-path ah-3d-energy-path-a" aria-hidden="true"></div>
+                <div class="ah-3d-energy-path ah-3d-energy-path-b" aria-hidden="true"></div>
+                <div class="ah-3d-cloud ah-3d-cloud-a" aria-hidden="true"></div>
+                <div class="ah-3d-cloud ah-3d-cloud-b" aria-hidden="true"></div>
+                <div class="ah-3d-campus" aria-hidden="true">
+                  <span class="ah-3d-campus-dome"></span><span class="ah-3d-campus-wing ah-3d-campus-wing-a"></span><span class="ah-3d-campus-wing ah-3d-campus-wing-b"></span><span class="ah-3d-campus-door"></span><span class="ah-3d-campus-win"></span>
+                </div>
+                <div class="ah-3d-student" data-3d-student="profile-v1" aria-hidden="true">
+                  <div class="ah-3d-student-body"><span class="ah-3d-s-hair"></span><span class="ah-3d-s-face"></span><span class="ah-3d-s-torso"></span><span class="ah-3d-s-pack"></span><span class="ah-3d-s-arm"></span><span class="ah-3d-s-device"></span></div>
+                  <div class="ah-3d-s-shadow"></div>
+                </div>
+                <div class="ah-3d-object ah-3d-openbook" aria-hidden="true"><i></i><i></i><b></b></div>
+                <div class="ah-3d-object ah-3d-checklist" aria-hidden="true"><i></i><i></i><i></i></div>
+                <div class="ah-3d-object ah-3d-chart" aria-hidden="true"><i></i><i></i><i></i></div>
+                <div class="ah-3d-object ah-3d-target" aria-hidden="true"><span></span><i></i></div>
+                <div class="ah-3d-object ah-3d-cap" aria-hidden="true"><span></span><i></i></div>
+                <div class="ah-3d-leaf ah-3d-leaf-a" aria-hidden="true"></div>
+                <div class="ah-3d-leaf ah-3d-leaf-b" aria-hidden="true"></div>
+                <div class="ah-3d-leaf ah-3d-leaf-c" aria-hidden="true"></div>
+              </div>
+
               <section class="ah-live-profile" data-profile-preview-contract="input-bound-profile-v1" data-completion="0" style="--ah-profile-progress:0deg" aria-label="আপনার live profile preview">
                 <header><span><i aria-hidden="true"></i>LIVE PROFILE</span><small>LOCAL PREVIEW</small></header>
                 <div class="ah-live-profile-main">
-                  <div class="ah-live-avatar-ring" aria-hidden="true"><div class="ah-live-avatar"><b data-role="personal-live-initials">আ</b><i></i></div></div>
-                  <div class="ah-live-identity"><small>ADMISSION STUDENT</small><strong data-role="personal-live-name">আপনার নাম এখানে দেখা যাবে</strong><output data-role="dob-summary">তারিখ বেছে নাও</output></div>
+                  <div class="ah-live-avatar-ring" aria-hidden="true"><div class="ah-live-avatar"><b data-role="personal-live-initials">তু</b><i></i></div></div>
+                  <div class="ah-live-identity"><small>ADMISSION STUDENT</small><strong data-role="personal-live-name">তোমার নাম এখানে দেখা যাবে</strong><output data-role="dob-summary">তারিখ বেছে নাও</output></div>
                 </div>
                 <div class="ah-live-progress-copy"><span>PROFILE COMPLETION</span><b data-role="personal-completion">0%</b></div>
                 <div class="ah-live-progress-bar" aria-hidden="true"><i></i></div>
@@ -233,10 +234,10 @@
 
               <fieldset class="ah-personal-dob-card">
                 <legend>জন্মতারিখ</legend>
-                <div class="ah-dob-selectors">
-                  <label><span>দিন</span><select id="ah-dob-day" aria-label="জন্মদিন" required></select></label>
-                  <label><span>মাস</span><select id="ah-dob-month" aria-label="জন্মমাস" required></select></label>
-                  <label><span>বছর</span><select id="ah-dob-year" aria-label="জন্মবছর" required></select></label>
+                <div class="ah-dob-select-row">
+                  <label class="ah-dob-select-field"><span class="ah-dob-label">দিন</span><span class="ah-dob-select-wrap"><select id="ah-dob-day" aria-label="জন্মদিন" required></select></span></label>
+                  <label class="ah-dob-select-field"><span class="ah-dob-label">মাস</span><span class="ah-dob-select-wrap"><select id="ah-dob-month" aria-label="জন্মমাস" required></select></span></label>
+                  <label class="ah-dob-select-field"><span class="ah-dob-label">বছর</span><span class="ah-dob-select-wrap"><select id="ah-dob-year" aria-label="জন্মবছর" required></select></span></label>
                 </div>
                 <output class="sr-only" data-role="dob-preview" aria-live="polite">তারিখ বেছে নাও</output>
               </fieldset>
