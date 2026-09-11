@@ -194,9 +194,19 @@ try {
   assert.equal(await page.locator('.ah-academic-hero img').evaluate(image => image.complete && image.naturalWidth > 0), true);
   await page.getByRole('button', { name: 'Sign Up', exact: true }).click();
   await page.locator('[data-signup-panel="personal"]').waitFor({ state: 'visible' });
-  assert.equal(await page.locator('[data-view="signup"]').getAttribute('data-personal-visual-contract'), 'static-reference-personal-v1');
+  assert.equal(await page.locator('[data-view="signup"]').getAttribute('data-personal-visual-contract'), 'native-reference-personal-v2');
   assert.equal(await page.locator('[data-signup-panel="dob"]').count(), 0, 'DOB must stay on visible Personal, not a separate screen');
-  assert.equal(await page.locator('.ah-personal-hero img').evaluate(image => image.complete && image.naturalWidth === 565 && image.naturalHeight === 370), true);
+  assert.equal(await page.locator('[data-illustration-contract="native-dom-profile-v1"]').count(), 1);
+  assert.equal(await page.locator('.ah-personal-hero img,.ah-personal-hero canvas,.ah-personal-hero video').count(), 0, 'Personal hero must be native DOM/CSS, not a pasted image');
+  const nativeHero = await page.locator('.ah-personal-hero').evaluate(hero => ({
+    profile: Boolean(hero.querySelector('.ah-native-profile')),
+    pedestal: Boolean(hero.querySelector('.ah-native-pedestal')),
+    book: Boolean(hero.querySelector('.ah-native-book')),
+    cap: Boolean(hero.querySelector('.ah-native-cap')),
+    profileBackground: getComputedStyle(hero.querySelector('.ah-native-profile')).backgroundImage
+  }));
+  assert.deepEqual({ ...nativeHero, profileBackground: undefined }, { profile: true, pedestal: true, book: true, cap: true, profileBackground: undefined });
+  assert.match(nativeHero.profileBackground, /gradient/i);
   assert.deepEqual(await page.locator('[data-signup-step-button]').allTextContents().then(values => values.map(value => value.replace(/\s+/g, ''))), ['01Personal', '02Education', '03Security']);
   await page.waitForTimeout(250);
   const personalGeometry = await page.evaluate(() => {
@@ -454,7 +464,8 @@ try {
     profileRequests: requests.filter(item => item.path === '/api/auth/v1/profile/pending').length,
     emailStatusChecks: completedEmailStatusChecks,
     nativePasskeyVirtualDevice: true,
-    referenceVisualContracts: ['static-reference-welcome-v3', 'static-reference-personal-v1'],
+    referenceVisualContracts: ['static-reference-welcome-v3', 'native-reference-personal-v2'],
+    nativePersonalIllustration: true,
     personalNameAndDobCombined: true,
     personalViewportFit: true,
     firstEntryFullScreenNotPopup: true,

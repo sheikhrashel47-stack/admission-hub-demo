@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const read = name => readFileSync(new URL(`./${name}`, import.meta.url), 'utf8');
 const JS = read('account-access.js');
@@ -9,8 +9,8 @@ const HTML = read('index.html');
 const SW = read('sw.js');
 const RELEASE = read('.github/workflows/telegram-auth-canary-activate.yml');
 const BUNDLE_GUARD = read('.github/workflows/cf-pages.yml');
-const UI_VERSION = '20260911-static-reference-personal-v1-ai-scope';
-const SHELL_VERSION = 'v238-personal-20260911';
+const UI_VERSION = '20260911-native-personal-v2-ai-scope';
+const SHELL_VERSION = 'v239-native-personal-20260911';
 
 const signupStart = JS.indexOf('<form class="ah-account-view ah-signup-view"');
 const signupEnd = JS.indexOf('<div class="ah-account-view ah-created-view"', signupStart);
@@ -21,13 +21,18 @@ const personal = signup.slice(personalStart, schoolStart);
 const securityStart = signup.indexOf('data-signup-panel="security"');
 const security = signup.slice(securityStart);
 
-test('Signup 01 Personal keeps the supplied static-reference structure and copy', () => {
+test('Signup 01 Personal keeps the supplied composition with native DOM/CSS artwork', () => {
   assert.ok(signupStart > 0 && signupEnd > signupStart);
-  assert.match(signup, /data-personal-visual-contract="static-reference-personal-v1"/);
+  assert.match(signup, /data-personal-visual-contract="native-reference-personal-v2"/);
   assert.match(signup, /<i>01<\/i><span>Personal<\/span>/);
   assert.match(signup, /<i>02<\/i><span>Education<\/span>/);
   assert.match(signup, /<i>03<\/i><span>Security<\/span>/);
-  assert.match(personal, /onboarding-personal-hero\.webp\?v=static-reference-personal-v1/);
+  assert.match(personal, /data-illustration-contract="native-dom-profile-v1"/);
+  for (const part of ['ah-native-profile', 'ah-native-pedestal', 'ah-native-book', 'ah-native-cap', 'ah-native-leaf']) {
+    assert.match(personal, new RegExp(`class="[^"]*${part}`));
+    assert.match(CSS, new RegExp(`\\.${part}(?:\\{|>)`));
+  }
+  assert.doesNotMatch(personal, /<img|<canvas|<video|onboarding-personal-hero\.webp/);
   assert.match(personal, /চলো, তোমার/);
   assert.match(personal, /পরিচয়টা তৈরি করি/);
   assert.match(personal, /তোমার সম্পর্কে একটু বলো/);
@@ -50,14 +55,13 @@ test('name and all DOB selectors are combined on Personal without collecting Ema
   assert.match(JS, /const validateSecurity = \(\) => \{[\s\S]{0,350}সঠিক Email address/);
 });
 
-test('Personal reference image is a compact local WebP and CSS remains mobile-first', () => {
-  const path = new URL('./onboarding-personal-hero.webp', import.meta.url);
-  const image = statSync(path);
-  const header = readFileSync(path).subarray(0, 12);
-  assert.ok(image.size >= 15000 && image.size <= 60000, `unexpected Personal hero size: ${image.size}`);
-  assert.equal(header.subarray(0, 4).toString('ascii'), 'RIFF');
-  assert.equal(header.subarray(8, 12).toString('ascii'), 'WEBP');
-  assert.match(CSS, /Page 2 — exact-reference Signup 01 \/ Personal/);
+test('Personal has no pasted screenshot asset and stays mobile-first', () => {
+  assert.equal(existsSync(new URL('./onboarding-personal-hero.webp', import.meta.url)), false);
+  assert.doesNotMatch(JS, /onboarding-personal-hero\.webp/);
+  assert.doesNotMatch(SW, /onboarding-personal-hero\.webp/);
+  assert.match(CSS, /Page 2 — native responsive Signup 01 \/ Personal; no screenshot or raster hero/);
+  assert.match(CSS, /\.ah-native-profile\{[\s\S]{0,420}linear-gradient/);
+  assert.match(CSS, /\.ah-native-pedestal\{[\s\S]{0,420}linear-gradient/);
   assert.match(CSS, /min-height:max\(100dvh,844px\)/);
   assert.match(CSS, /\.ah-personal-card\{[\s\S]{0,260}background:rgba\(255,255,255,\.86\)/);
   assert.match(CSS, /\.ah-personal-next\{[\s\S]{0,450}border-radius:999px/);
@@ -66,7 +70,7 @@ test('Personal reference image is a compact local WebP and CSS remains mobile-fi
   assert.doesNotMatch(CSS, /https?:\/\//);
 });
 
-test('Personal release markers, precache, protected publication and public asset checks are synchronized', () => {
+test('native Personal release markers and protected publication checks are synchronized', () => {
   for (const asset of [`account-access.css?v=${UI_VERSION}`, `account-access.js?v=${UI_VERSION}`]) {
     assert.ok(HTML.includes(asset), asset);
     assert.ok(SW.includes(asset), asset);
@@ -74,12 +78,12 @@ test('Personal release markers, precache, protected publication and public asset
   assert.ok(HTML.includes(`sw.js?v=${SHELL_VERSION}`));
   assert.ok(HTML.includes(`expectedSwVersion = '${SHELL_VERSION}'`));
   assert.ok(SW.includes(`const BUILD_ID = '${SHELL_VERSION}'`));
-  assert.ok(SW.includes('./onboarding-personal-hero.webp?v=static-reference-personal-v1'));
-  assert.ok(BUNDLE_GUARD.includes('test -s dist/onboarding-personal-hero.webp'));
-  assert.ok(RELEASE.includes('onboarding-personal-hero.webp?v=static-reference-personal-v1'));
-  assert.ok(RELEASE.includes('data-personal-visual-contract="static-reference-personal-v1"'));
-  assert.ok(RELEASE.includes('Page 2 — exact-reference Signup 01 / Personal'));
+  assert.ok(BUNDLE_GUARD.includes('test ! -e dist/onboarding-personal-hero.webp'));
+  assert.ok(RELEASE.includes('data-personal-visual-contract="native-reference-personal-v2"'));
+  assert.ok(RELEASE.includes('data-illustration-contract="native-dom-profile-v1"'));
+  assert.ok(RELEASE.includes('no screenshot or raster hero'));
   assert.ok(RELEASE.includes(`const BUILD_ID = '${SHELL_VERSION}'`));
+  assert.doesNotMatch(RELEASE, /fetch_public[^\n]+onboarding-personal-hero\.webp/);
 });
 
 test('Signup stays AI-free while the ordinary application AI remains shipped', () => {

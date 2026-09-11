@@ -31,7 +31,7 @@ test('production code contains no superseded command-center markers', (() => {
 test('HTML and service worker are no-cache controlled', HEADERS.includes('/sw.js') && HEADERS.includes('/index.html') && HEADERS.includes('Cache-Control: no-cache'));
 test('dashboard and app-shell build markers are current',
   H.includes('dashboard-v2.js?v=dash2f10-main-ai') && SW.includes('dashboard-v2.js?v=dash2f10-main-ai') &&
-  SW.includes("const BUILD_ID = 'v238-personal-20260911'") && H.includes('sw.js?v=v238-personal-20260911'));
+  SW.includes("const BUILD_ID = 'v239-native-personal-20260911'") && H.includes('sw.js?v=v239-native-personal-20260911'));
 
 test('dashboard-v2 renders without any account bootstrap', await (async () => {
   const dom = new JSDOM('<!doctype html><html><head></head><body><div id="app"></div><div id="navRoot"></div></body></html>', { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://admissionhub.pages.dev/' });
