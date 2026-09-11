@@ -165,12 +165,11 @@ test('first entry has exactly four paths; Guest goes directly to Dashboard and i
   await waitFor(() => first.document.querySelector('[data-view="welcome"]')?.hidden === false);
   const paths = [...first.document.querySelectorAll('.ah-entry-actions button')];
   assert.equal(paths.length, 4);
-  assert.deepEqual(paths.map(button => button.textContent.trim().replace(/^✨\s*/, '')), [
-    'Sign Up', 'Log In', 'Continue with Google', 'Continue as Guest'
-  ]);
-  assert.doesNotMatch(first.document.querySelector('.ah-account-overlay').textContent, /Firebase|SMTP|webhook|quota|backend|database|\bAPI\b|\bprovider\b|\btoken\b/i);
+  const welcomeText = first.document.querySelector('[data-view="welcome"]').textContent;
+  for (const label of ['Sign Up', 'Log In', 'Continue with Google', 'Continue as Guest']) assert.match(welcomeText, new RegExp(label));
+  assert.doesNotMatch(welcomeText, /Firebase|SMTP|webhook|quota|backend|database|\bAPI\b|\bprovider\b|\btoken\b/i);
   assert.equal(first.document.querySelector('[data-role="close"]').hidden, true);
-  first.document.querySelector('.ah-account-overlay').dispatchEvent(new first.window.Event('click', { bubbles: true }));
+  first.document.querySelector('.ah-account-page').dispatchEvent(new first.window.Event('click', { bubbles: true }));
   first.document.dispatchEvent(new first.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   assert.equal(first.document.querySelector('[data-view="welcome"]').hidden, false);
   first.document.querySelector('[data-role="welcome-login"]').click();
@@ -180,7 +179,7 @@ test('first entry has exactly four paths; Guest goes directly to Dashboard and i
   first.document.querySelector('[data-role="signup-back-entry"]').click();
   assert.equal(first.document.querySelector('[data-view="welcome"]').hidden, false);
   first.document.querySelector('[data-role="continue-guest"]').click();
-  await waitFor(() => first.document.querySelector('.ah-account-overlay').hidden === true);
+  await waitFor(() => first.document.querySelector('.ah-account-page').hidden === true);
   assert.equal(first.window.location.hash, '#dashboard');
   assert.match(first.document.cookie, /ah_entry_v1=guest/);
   assert.equal(first.window.localStorage.length, 0);
@@ -192,7 +191,7 @@ test('first entry has exactly four paths; Guest goes directly to Dashboard and i
   t.after(() => returning.dom.window.close());
   await waitFor(() => returning.calls.some(call => call.path.includes('/session')));
   await wait(30);
-  assert.equal(returning.document.querySelector('.ah-account-overlay').hidden, true);
+  assert.equal(returning.document.querySelector('.ah-account-page').hidden, true);
   returning.document.querySelector('.ah-account-launcher').click();
   assert.equal(returning.document.querySelector('[data-view="login"]').hidden, false);
   assert.equal(returning.document.querySelector('[data-view="welcome"]').hidden, true);
@@ -206,11 +205,11 @@ test('slow account startup never delays Welcome or blocks direct Guest entry', a
   await waitFor(() => app.document.querySelector('[data-view="welcome"]')?.hidden === false);
   assert.ok(Date.now() - startedAt < 800);
   app.document.querySelector('[data-role="continue-guest"]').click();
-  assert.equal(app.document.querySelector('.ah-account-overlay').hidden, true);
+  assert.equal(app.document.querySelector('.ah-account-page').hidden, true);
   assert.match(app.document.cookie, /ah_entry_v1=guest/);
   assert.equal(app.window.location.hash, '#dashboard');
   await new Promise(resolve => setTimeout(resolve, 1050));
-  assert.equal(app.document.querySelector('.ah-account-overlay').hidden, true);
+  assert.equal(app.document.querySelector('.ah-account-page').hidden, true);
   app.dom.window.close();
 });
 
@@ -361,7 +360,7 @@ test('Password-reset return opens Login with truthful guidance and removes the c
   app.dom.window.close();
 });
 
-test('Forgot Password stays enumeration-safe and onboarding Assistant rejects secrets before chat delivery', async t => {
+test('Forgot Password stays enumeration-safe while the paused Assistant makes no network request', async t => {
   const app = setup();
   t.after(() => app.dom.window.close());
   await waitFor(() => app.document.querySelector('[data-view="welcome"]')?.hidden === false);
@@ -373,65 +372,48 @@ test('Forgot Password stays enumeration-safe and onboarding Assistant rejects se
   assert.match(app.document.querySelector('[data-role="message"]').textContent, /অ্যাকাউন্ট থাকলে/);
   assert.doesNotMatch(app.document.querySelector('[data-role="message"]').textContent, /exists|পাওয়া গেছে|নেই/i);
 
-  app.document.querySelector('[data-role="guide-open"]').click();
+  const guide = app.document.querySelector('[data-role="guide"]');
+  const orb = app.document.querySelector('[data-role="guide-open"]');
+  assert.equal(guide.hidden, true);
+  assert.equal(guide.getAttribute('aria-hidden'), 'true');
+  assert.equal(orb.hidden, true);
+  assert.equal(orb.disabled, true);
   const input = app.document.querySelector('#ah-guide-input');
   input.value = 'My password is hunter2';
   app.document.querySelector('[data-role="guide-form"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await wait(20);
   assert.equal(app.calls.some(call => call.path.includes('/api/ai/chat')), false);
   assert.doesNotMatch(app.document.querySelector('[data-role="guide-messages"]').textContent, /hunter2/);
-  assert.match(app.document.querySelector('[data-role="guide-messages"]').textContent, /Password, verification code/);
-
-  input.value = 'Education ধাপে কী করব?';
-  app.document.querySelector('[data-role="guide-form"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
-  await waitFor(() => app.calls.some(call => call.path.includes('/api/ai/chat')));
-  await waitFor(() => app.document.querySelector('[data-role="guide-messages"]').textContent.includes('School suggestion'));
-  const aiCall = app.calls.find(call => call.path.includes('/api/ai/chat'));
-  assert.deepEqual(aiCall.body.context.onboarding.allowedActions, [
-    'focus-name', 'focus-email', 'focus-dob', 'focus-school', 'focus-college',
-    'open-signup', 'open-login', 'explain-email', 'explain-telegram'
-  ]);
-  assert.equal('password' in aiCall.body.context.onboarding, false);
-  assert.equal(JSON.stringify(aiCall.body.context.onboarding).includes('hunter2'), false);
   app.dom.window.close();
 });
 
-test('Assistant outage stays optional and never blocks the core Signup journey', async t => {
+test('Welcome language control updates the static page locally without changing its four actions', async t => {
+  const app = setup();
+  t.after(() => app.dom.window.close());
+  await waitFor(() => app.document.querySelector('[data-view="welcome"]')?.hidden === false);
+  const picker = app.document.querySelector('[data-role="welcome-language"]');
+  picker.value = 'en';
+  picker.dispatchEvent(new app.window.Event('change', { bubbles: true }));
+  assert.match(app.document.querySelector('#ah-welcome-heading').textContent, /Your dream university/);
+  assert.equal(app.document.documentElement.lang, 'en');
+  picker.value = 'bn';
+  picker.dispatchEvent(new app.window.Event('change', { bubbles: true }));
+  assert.match(app.document.querySelector('#ah-welcome-heading').textContent, /তোমার স্বপ্নের/);
+  assert.equal(app.document.documentElement.lang, 'bn');
+  assert.equal(app.document.querySelectorAll('.ah-entry-actions button').length, 4);
+  assert.equal(app.calls.some(call => call.path.includes('/api/ai/chat')), false);
+  app.dom.window.close();
+});
+
+test('paused Assistant remains unreachable and never blocks the core Signup journey', async t => {
   const app = setup({ aiFailure: true });
   t.after(() => app.dom.window.close());
   await waitFor(() => app.document.querySelector('[data-view="welcome"]')?.hidden === false);
-  app.document.querySelector('[data-role="guide-open"]').click();
-  const input = app.document.querySelector('#ah-guide-input');
-  input.value = 'Signup কীভাবে শুরু করব?';
-  app.document.querySelector('[data-role="guide-form"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
-  await waitFor(() => app.document.querySelector('[data-role="guide-messages"]').textContent.includes('form-এর সব মূল কাজ চলবে'));
-  app.document.querySelector('[data-role="guide-close"]').click();
+  assert.equal(app.document.querySelector('[data-role="guide-open"]').disabled, true);
+  assert.equal(app.document.querySelector('[data-role="guide-open"]').hidden, true);
   app.document.querySelector('[data-role="welcome-signup"]').click();
   assert.equal(app.document.querySelector('[data-view="signup"]').hidden, false);
   assert.equal(app.document.querySelector('[data-role="signup-next-education"]').disabled, false);
-  app.dom.window.close();
-});
-
-test('Assistant suppresses and forgets generated secret-like or technical output', async t => {
-  const unsafe = 'Use the backend API token SecretValue!9 to continue.';
-  const app = setup({ aiText: unsafe });
-  t.after(() => app.dom.window.close());
-  await waitFor(() => app.document.querySelector('[data-view="welcome"]')?.hidden === false);
-  app.document.querySelector('[data-role="guide-open"]').click();
-  const input = app.document.querySelector('#ah-guide-input');
-  const form = app.document.querySelector('[data-role="guide-form"]');
-  input.value = 'Signup ধাপ বুঝিয়ে দাও';
-  form.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
-  await waitFor(() => app.calls.filter(call => call.path.includes('/api/ai/chat')).length === 1);
-  await waitFor(() => app.document.querySelector('[data-role="guide-messages"]').textContent.includes('এই উত্তরটি দেখানো হয়নি'));
-  const rendered = app.document.querySelector('[data-role="guide-messages"]').textContent;
-  assert.doesNotMatch(rendered, /backend|API token|SecretValue!9/i);
-
-  input.value = 'Welcome page কী?';
-  form.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
-  await waitFor(() => app.calls.filter(call => call.path.includes('/api/ai/chat')).length === 2);
-  await waitFor(() => (app.document.querySelector('[data-role="guide-messages"]').textContent.match(/এই উত্তরটি দেখানো হয়নি/g) || []).length === 2);
-  const second = app.calls.filter(call => call.path.includes('/api/ai/chat'))[1];
-  assert.equal(JSON.stringify(second.body.messages).includes(unsafe), false);
+  assert.equal(app.calls.some(call => call.path.includes('/api/ai/chat')), false);
   app.dom.window.close();
 });

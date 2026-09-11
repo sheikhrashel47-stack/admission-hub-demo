@@ -41,7 +41,7 @@ jobs:
       - name: Install browser only for the protected release audit
         run: npx playwright-core install --with-deps chromium
 
-      - name: Audit premium onboarding on iPhone, desktop, keyboard, reduced-motion, and offline modes
+      - name: Audit static Welcome page and protected Auth flows on iPhone, desktop, reduced-motion, and offline modes
         run: npm run audit:premium-browser
 
       - name: Verify required Worker bindings by name only
@@ -152,8 +152,8 @@ jobs:
 
           public_ready=false
           for attempt in 1 2 3 4 5; do
-            fetch_public "$verify_dir/index.html" "https://admissionhub.pages.dev/?release=v235-reference-onboarding-20260911"
-            if grep -Fq 'account-access.js?v=20260911-reference-onboarding-v2' "$verify_dir/index.html"; then
+            fetch_public "$verify_dir/index.html" "https://admissionhub.pages.dev/?release=v236-static-welcome-20260911"
+            if grep -Fq 'account-access.js?v=20260911-static-reference-welcome-v3' "$verify_dir/index.html"; then
               public_ready=true
               break
             fi
@@ -161,32 +161,38 @@ jobs:
           done
           test "$public_ready" = 'true'
           grep -Fq 'institutions-bd.js?v=bd-institutions-v1' "$verify_dir/index.html"
-          grep -Fq 'account-access.css?v=20260911-reference-onboarding-v2' "$verify_dir/index.html"
-          grep -Fq 'dashboard-v2.css?v=dash2f8' "$verify_dir/index.html"
-          grep -Fq 'dashboard-v2.js?v=dash2f8' "$verify_dir/index.html"
-          grep -Fq 'phase12-ui.js?v=nav-resume-router-v9-guest' "$verify_dir/index.html"
-          grep -Fq 'sw.js?v=v235-reference-onboarding-20260911' "$verify_dir/index.html"
+          grep -Fq 'account-access.css?v=20260911-static-reference-welcome-v3' "$verify_dir/index.html"
+          grep -Fq 'dashboard-v2.css?v=dash2f9' "$verify_dir/index.html"
+          grep -Fq 'dashboard-v2.js?v=dash2f9' "$verify_dir/index.html"
+          grep -Fq 'phase12-ui.js?v=nav-resume-router-v10-no-assistant' "$verify_dir/index.html"
+          grep -Fq 'sw.js?v=v236-static-welcome-20260911' "$verify_dir/index.html"
 
-          fetch_public "$verify_dir/account-access.js" 'https://admissionhub.pages.dev/account-access.js?v=20260911-reference-onboarding-v2'
-          fetch_public "$verify_dir/account-access.css" 'https://admissionhub.pages.dev/account-access.css?v=20260911-reference-onboarding-v2'
-          fetch_public "$verify_dir/dashboard-v2.js" 'https://admissionhub.pages.dev/dashboard-v2.js?v=dash2f8'
-          fetch_public "$verify_dir/phase12-ui.js" 'https://admissionhub.pages.dev/phase12-ui.js?v=nav-resume-router-v9-guest'
-          fetch_public "$verify_dir/sw.js" 'https://admissionhub.pages.dev/sw.js?v=v235-reference-onboarding-20260911'
-          fetch_public "$verify_dir/onboarding-welcome-hero.webp" 'https://admissionhub.pages.dev/onboarding-welcome-hero.webp?v=reference-onboarding-v2'
+          fetch_public "$verify_dir/account-access.js" 'https://admissionhub.pages.dev/account-access.js?v=20260911-static-reference-welcome-v3'
+          fetch_public "$verify_dir/account-access.css" 'https://admissionhub.pages.dev/account-access.css?v=20260911-static-reference-welcome-v3'
+          fetch_public "$verify_dir/dashboard-v2.js" 'https://admissionhub.pages.dev/dashboard-v2.js?v=dash2f9'
+          fetch_public "$verify_dir/phase12-ui.js" 'https://admissionhub.pages.dev/phase12-ui.js?v=nav-resume-router-v10-no-assistant'
+          fetch_public "$verify_dir/sw.js" 'https://admissionhub.pages.dev/sw.js?v=v236-static-welcome-20260911'
+          fetch_public "$verify_dir/onboarding-welcome-hero.webp" 'https://admissionhub.pages.dev/onboarding-welcome-hero.webp?v=static-reference-welcome-v3'
 
           grep -Fq "'X-AH-Auth-UI': 'auth-premium-v6'" "$verify_dir/account-access.js"
-          grep -Fq 'data-visual-contract="reference-onboarding-v2"' "$verify_dir/account-access.js"
+          grep -Fq 'data-visual-contract="static-page-system-v3"' "$verify_dir/account-access.js"
+          grep -Fq 'data-page-contract="static-reference-welcome-v3"' "$verify_dir/account-access.js"
           grep -Fq 'data-view="email-intro"' "$verify_dir/account-access.js"
           grep -Fq 'data-view="telegram-intro"' "$verify_dir/account-access.js"
           grep -Fq 'data-otp-digit="5"' "$verify_dir/account-access.js"
           grep -Fq 'Email OTP নয়' "$verify_dir/account-access.js"
-          grep -Fq 'Admission Hub reference onboarding visual contract v2' "$verify_dir/account-access.css"
-          grep -Fq 'data-dashboard-contract="reference-guest-v2"' "$verify_dir/dashboard-v2.js"
-          grep -Fq 'data-guest-nav="reference-guest-v2"' "$verify_dir/phase12-ui.js"
-          grep -Fq "const BUILD_ID = 'v235-reference-onboarding-20260911'" "$verify_dir/sw.js"
+          grep -Fq 'Static page system v3' "$verify_dir/account-access.css"
+          grep -Fq 'const ASSISTANT_ENABLED = false' "$verify_dir/account-access.js"
+          ! grep -Fq 'ah-account-overlay' "$verify_dir/account-access.js"
+          ! grep -Fq 'ah-account-modal' "$verify_dir/account-access.js"
+          ! grep -Fq 'role="dialog"' "$verify_dir/account-access.js"
+          ! grep -Fq 'data-dashboard-contract="reference-guest-v2"' "$verify_dir/dashboard-v2.js"
+          ! grep -Fq 'data-guest-nav="reference-guest-v2"' "$verify_dir/phase12-ui.js"
+          ! grep -Fq 'ai-agent-chat.js' "$verify_dir/index.html"
+          grep -Fq "const BUILD_ID = 'v236-static-welcome-20260911'" "$verify_dir/sw.js"
           node -e "const b=require('node:fs').readFileSync(process.argv[1]); if(b.length<20000||b.subarray(0,4).toString()!=='RIFF'||b.subarray(8,12).toString()!=='WEBP') process.exit(1)" "$verify_dir/onboarding-welcome-hero.webp"
           rm -rf "$verify_dir"
-          echo 'Reference onboarding v2, truthful Email/Telegram verification, narrow Guest dashboard, and cache-safe assets are READY; generic backup and pre-verification Passkey remain protected.'
+          echo 'Static reference Welcome v3, truthful Email/Telegram verification, ordinary Guest route, paused Assistant, and cache-safe assets are READY; generic backup and pre-verification Passkey remain protected.'
 
       - name: Verify Google browser origin remains accepted
         run: node auth-native/operations/verify-google-browser-origin.mjs
