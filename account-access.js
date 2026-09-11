@@ -89,7 +89,7 @@
           <div class="ah-welcome-stage">
             <section class="ah-welcome-copy" aria-labelledby="ah-welcome-heading">
               <p class="ah-welcome-eyebrow"><span aria-hidden="true"></span><b data-bn="আপনার লক্ষ্য, আপনার অধিকার" data-en="Your goal, your control">আপনার লক্ষ্য, আপনার অধিকার</b></p>
-              <h1 id="ah-welcome-heading" data-bn="আপনার লক্ষ্যের পথে,|প্রথম ধাপটা আজ থেকেই।" data-en="On the path to your goal,|take the first step today.">আপনার লক্ষ্যের পথে,<br><em>প্রথম ধাপটা আজ থেকেই।।</em></h1>
+              <h1 id="ah-welcome-heading" data-bn="আপনার লক্ষ্যের পথে,|প্রথম ধাপটা আজ থেকেই।" data-en="On the path to your goal,|take the first step today.">আপনার লক্ষ্যের পথে,<br><em>প্রথম ধাপটা আজ থেকেই।</em></h1>
             </section>
 
             <section class="ah-journey-console" data-native-welcome-visual="journey-console-v1" aria-label="Admission প্রস্তুতির interactive journey map">
