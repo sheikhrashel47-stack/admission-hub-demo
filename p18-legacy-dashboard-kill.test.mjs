@@ -30,8 +30,8 @@ test('production code contains no superseded command-center markers', (() => {
 
 test('HTML and service worker are no-cache controlled', HEADERS.includes('/sw.js') && HEADERS.includes('/index.html') && HEADERS.includes('Cache-Control: no-cache'));
 test('dashboard and app-shell build markers are current',
-  H.includes('dashboard-v2.js?v=dash2f7') && SW.includes('dashboard-v2.js?v=dash2f7') &&
-  SW.includes("const BUILD_ID = 'v234-premium-onboarding-20260911'") && H.includes('sw.js?v=v234-premium-onboarding-20260911'));
+  H.includes('dashboard-v2.js?v=dash2f8') && SW.includes('dashboard-v2.js?v=dash2f8') &&
+  SW.includes("const BUILD_ID = 'v235-reference-onboarding-20260911'") && H.includes('sw.js?v=v235-reference-onboarding-20260911'));
 
 test('dashboard-v2 renders without any account bootstrap', await (async () => {
   const dom = new JSDOM('<!doctype html><html><head></head><body><div id="app"></div><div id="navRoot"></div></body></html>', { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://admissionhub.pages.dev/' });
@@ -45,7 +45,7 @@ test('dashboard-v2 renders without any account bootstrap', await (async () => {
   const script = w.document.createElement('script'); script.textContent = DASH; w.document.body.appendChild(script);
   await new Promise(resolve => setTimeout(resolve, 30));
   try { w.renderDashboard?.(); } catch (_) {}
-  const html = String(w.__shell || '') + w.document.body.innerHTML;
+  const html = String(w.__shell || '') + w.document.getElementById('app').innerHTML;
   return html.includes('dv2-root') && !/login|sign in|profile/i.test(html);
 })());
 

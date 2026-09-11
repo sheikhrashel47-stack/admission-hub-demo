@@ -53,8 +53,33 @@
     ['🧩', 'Memorizing', 'Smart memorization tools', 'memorizing']
   ];
 
-  // The primary five-tab navigation is intentionally the only shared navigation.
+  // Signed-in accounts keep the protected five tabs. Guest gets the four-tab
+  // continuation shown in the reference onboarding system—without fake data.
   window.bottomNavHtml = function phase12BottomNav(active) {
+    let guest = false;
+    try {
+      guest = String(document.cookie || '').split(';').map((part) => part.trim()).includes('ah_entry_v1=guest')
+        && window.AdmissionAccount?.snapshot?.().authenticated !== true;
+    } catch (_) {}
+    if (guest) {
+      const icons = {
+        dashboard: '<path d="m4 11 8-7 8 7v9h-6v-6h-4v6H4v-9Z"/>',
+        'smart-practice': '<path d="m5 17-1 3 3-1L18 8l-2-2L5 17Zm9-9 2 2"/>',
+        progress: '<path d="M5 19V9m7 10V5m7 14v-7M3 19h18"/>',
+        settings: '<circle cx="12" cy="12" r="2.5"/><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/>'
+      };
+      const tabs = [
+        { key: 'dashboard', label: 'Home' },
+        { key: 'smart-practice', label: 'Practice' },
+        { key: 'progress', label: 'Progress' },
+        { key: 'settings', label: 'More' }
+      ];
+      const path = String(Router.path || 'dashboard');
+      const current = path.startsWith('progress') ? 'progress' : path.startsWith('settings') ? 'settings' : path === 'smart-practice' ? 'smart-practice' : 'dashboard';
+      return `<nav class="bottomnav" data-guest-nav="reference-guest-v2" aria-label="Guest navigation">
+        ${tabs.map((tab) => `<button class="navbtn ${current === tab.key ? 'active' : ''}" data-nav-tab="${tab.key}" onclick="navigate('${tab.key}')" aria-label="${tab.label}"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none">${icons[tab.key]}</svg></span><span>${tab.label}</span></button>`).join('')}
+      </nav>`;
+    }
     return `<nav class="bottomnav" aria-label="প্রধান নেভিগেশন">
       ${NAV_TABS.map((tab) => `<button class="navbtn ${active === tab.key ? 'active' : ''}" data-nav-tab="${tab.key}" onclick="window.AdmissionNavigation ? window.AdmissionNavigation.openTab('${tab.key}') : navigate('${tab.key}')" aria-label="${tab.label}">
         <span class="ic" aria-hidden="true">${tab.icon}</span><span>${tab.label}</span>

@@ -267,8 +267,8 @@ test('successful verification offers optional Passkey setup and Skip never block
   app.document.querySelector('.ah-account-launcher').click();
   app.googleCredential(`google-id-${'p'.repeat(32)}`);
   await waitFor(() => app.document.querySelector('[data-view="security-setup"]').hidden === false);
-  assert.match(app.document.querySelector('[data-view="security-setup"]').textContent, /Passkey যোগ করুন/);
-  assert.match(app.document.querySelector('[data-role="setup-skip"]').textContent, /Skip/);
+  assert.match(app.document.querySelector('[data-view="security-setup"]').textContent, /Create Passkey/);
+  assert.match(app.document.querySelector('[data-role="setup-skip"]').textContent, /পরে করব/);
   app.document.querySelector('[data-role="setup-passkey"]').click();
   await waitFor(() => app.calls.some(call => call.path.endsWith('/passkey/registration/finish')));
   await waitFor(() => app.document.querySelector('[data-view="signed"]').hidden === false);

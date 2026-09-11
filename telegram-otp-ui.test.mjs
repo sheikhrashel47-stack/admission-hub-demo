@@ -159,6 +159,7 @@ async function fillGuidedProfile(app, email) {
   const { document, window } = app;
   document.querySelector('#ah-signup-name').value = 'Test Student';
   document.querySelector('#ah-signup-email').value = email;
+  document.querySelector('[data-role="signup-next-dob"]').click();
   document.querySelector('#ah-dob-day').value = '12';
   document.querySelector('#ah-dob-month').value = '5';
   document.querySelector('#ah-dob-year').value = '2007';
@@ -168,6 +169,7 @@ async function fillGuidedProfile(app, email) {
   school.dispatchEvent(new window.Event('input', { bubbles: true }));
   await waitFor(() => document.querySelectorAll('#ah-school-results [role="option"]').length > 0);
   [...document.querySelectorAll('#ah-school-results [role="option"]')].at(-1).click();
+  document.querySelector('[data-role="signup-next-college"]').click();
   document.querySelector('[data-role="signup-next-security"]').click();
 }
 
@@ -179,12 +181,17 @@ async function openSignupTelegram(app) {
   app.document.querySelector('#ah-signup-password').value = 'StrongPassword!9';
   app.document.querySelector('#ah-signup-confirm').value = 'StrongPassword!9';
   app.document.querySelector('[data-view="signup"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(() => app.document.querySelector('[data-view="created"]').hidden === false);
+  app.document.querySelector('[data-role="created-continue"]').click();
   await waitFor(() => app.document.querySelector('[data-view="verify"]').hidden === false);
   assert.equal(app.document.querySelector('[data-role="verification-selection"]').hidden, false);
   assert.equal(app.calls.some(call => call.path.includes('/account-verification/email/start')), false);
   assert.equal(app.calls.some(call => call.path.includes('/telegram/verification/start')), false);
   assert.match(app.document.querySelector('[data-role="email-verification-start"]').textContent, /Email/);
   app.document.querySelector('[data-role="telegram-verification-start"]').click();
+  assert.equal(app.document.querySelector('[data-view="telegram-intro"]').hidden, false);
+  assert.equal(app.calls.some(call => call.path.includes('/telegram/verification/start')), false);
+  app.document.querySelector('[data-role="telegram-intro-continue"]').click();
   await waitFor(() => app.calls.some(call => call.path.includes('/telegram/verification/start')));
   await waitFor(() => app.document.querySelector('[data-view="telegram"]').hidden === false);
 }
@@ -203,6 +210,7 @@ test('mobile-first signup presents Verify with Telegram, START link, OTP box, ch
   assert.equal(code.inputMode, 'numeric');
   assert.equal(code.autocomplete, 'one-time-code');
   assert.equal(code.maxLength, 6);
+  assert.equal(view.querySelectorAll('[data-otp-digit]').length, 6);
   assert.match(view.textContent, /START/);
   assert.match(view.textContent, /Email মালিকানা নয়/);
   assert.match(view.textContent, /Code বা Password কখনো Assistant\/chat-এ লিখবে না/);
@@ -214,6 +222,10 @@ test('mobile-first signup presents Verify with Telegram, START link, OTP box, ch
   assert.deepEqual(verifyCall.body, { attemptId: 'telegram-ui-attempt-1-123456789', code: '654321' });
   assert.equal(JSON.stringify(verifyCall.body).includes('start='), false);
   release();
+  await waitFor(() => app.document.querySelector('[data-view="verified"]').hidden === false);
+  assert.match(app.document.querySelector('[data-role="verified-title"]').textContent, /Telegram Verified/);
+  assert.doesNotMatch(app.document.querySelector('[data-role="verified-copy"]').textContent, /Email মালিকানা নিশ্চিত/);
+  app.document.querySelector('[data-role="verified-continue"]').click();
   await waitFor(() => app.document.querySelector('[data-view="success"]').hidden === false);
   assert.equal(app.window.AdmissionAccount.isVerified(), true);
   app.window.AdmissionAccount.open();
@@ -235,6 +247,8 @@ test('signup sends no verification message until the student chooses Email or Te
   app.document.querySelector('#ah-signup-password').value = 'StrongPassword!9';
   app.document.querySelector('#ah-signup-confirm').value = 'StrongPassword!9';
   app.document.querySelector('[data-view="signup"]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  await waitFor(() => app.document.querySelector('[data-view="created"]').hidden === false);
+  app.document.querySelector('[data-role="created-continue"]').click();
   await waitFor(() => app.document.querySelector('[data-role="verification-selection"]').hidden === false);
   const signupCall = app.calls.find(call => call.path.includes('/signup'));
   assert.equal(signupCall.headers['X-AH-Auth-UI'], 'auth-premium-v6');
@@ -242,9 +256,12 @@ test('signup sends no verification message until the student chooses Email or Te
   assert.equal(app.calls.some(call => call.path.includes('/telegram/verification/start')), false);
   await waitFor(() => app.document.querySelector('[data-role="email-verification-start"]').disabled === false);
   app.document.querySelector('[data-role="email-verification-start"]').click();
+  assert.equal(app.document.querySelector('[data-view="email-intro"]').hidden, false);
+  assert.equal(app.calls.some(call => call.path.includes('/account-verification/email/start')), false);
+  app.document.querySelector('[data-role="email-intro-continue"]').click();
   await waitFor(() => app.calls.some(call => call.path.includes('/account-verification/email/start')));
   await waitFor(() => app.document.querySelector('[data-role="verification-email-panel"]').hidden === false);
-  assert.match(app.document.querySelector('[data-role="verification-title"]').textContent, /Email/);
+  assert.match(app.document.querySelector('[data-role="verification-title"]').textContent, /pending/i);
   assert.equal(app.calls.filter(call => call.path.includes('/account-verification/email/start')).length, 1);
   assert.equal(app.calls.some(call => call.path.includes('/telegram/verification/start')), false);
   app.dom.window.close();

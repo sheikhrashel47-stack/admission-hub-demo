@@ -37,6 +37,8 @@
     currentView: 'login',
     emailStatusBusy: false,
     successTimer: null,
+    afterVerified: 'success',
+    verificationLabel: 'Account',
     guideBusy: false,
     guideHistory: [],
     guideGuestId: '',
@@ -65,7 +67,7 @@
   overlay.className = 'ah-account-overlay';
   overlay.hidden = true;
   overlay.innerHTML = `
-    <section class="ah-account-modal" role="dialog" aria-modal="true" aria-labelledby="ah-account-title" data-current-view="login">
+    <section class="ah-account-modal" role="dialog" aria-modal="true" aria-labelledby="ah-account-title" data-current-view="login" data-visual-contract="reference-onboarding-v2">
       <button class="ah-account-close" type="button" data-role="close" aria-label="বন্ধ করুন">×</button>
       <header class="ah-account-head">
         <p class="ah-account-kicker">Admission Hub</p>
@@ -78,21 +80,7 @@
         <div class="ah-account-view ah-welcome-view" data-view="welcome" hidden>
           <div class="ah-brand-lockup"><span class="ah-brand-shield" aria-hidden="true">A</span><strong>Admission Hub</strong></div>
           <div class="ah-academic-hero" data-role="academic-hero" aria-hidden="true">
-            <svg viewBox="0 0 360 250" role="img">
-              <defs>
-                <linearGradient id="ahHub" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#28c796"/><stop offset="1" stop-color="#08775a"/></linearGradient>
-                <radialGradient id="ahAura"><stop stop-color="#8bf2d0" stop-opacity=".55"/><stop offset="1" stop-color="#dff9f0" stop-opacity="0"/></radialGradient>
-                <filter id="ahGlow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-              </defs>
-              <circle cx="180" cy="126" r="104" fill="url(#ahAura)"/>
-              <g class="ah-orbit-lines" fill="none" stroke="#58bda0" stroke-width="1.5" stroke-dasharray="4 7" opacity=".6"><ellipse cx="180" cy="126" rx="128" ry="72"/><ellipse cx="180" cy="126" rx="78" ry="112" transform="rotate(38 180 126)"/></g>
-              <g class="ah-hub-core" filter="url(#ahGlow)"><circle cx="180" cy="126" r="49" fill="url(#ahHub)"/><path d="m148 113 32-14 32 14-32 14-32-14Zm10 8v18c14 10 30 10 44 0v-18" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M211 115v21" stroke="#fff" stroke-width="4" stroke-linecap="round"/></g>
-              <g class="ah-node ah-node-book" transform="translate(40 73)"><rect width="53" height="47" rx="15" fill="#fff"/><path d="M13 14c8-3 13-1 14 2v19c-4-4-9-5-14-3V14Zm28 0c-8-3-13-1-14 2v19c4-4 9-5 14-3V14Z" fill="none" stroke="#16936f" stroke-width="2.5"/></g>
-              <g class="ah-node ah-node-target" transform="translate(267 50)"><rect width="53" height="53" rx="17" fill="#fff"/><circle cx="26.5" cy="27" r="13" fill="none" stroke="#16936f" stroke-width="3"/><circle cx="26.5" cy="27" r="5" fill="#2bc99a"/></g>
-              <g class="ah-node ah-node-check" transform="translate(269 161)"><rect width="51" height="51" rx="17" fill="#fff"/><path d="m15 27 8 8 15-19" fill="none" stroke="#16936f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
-              <g class="ah-node ah-node-question" transform="translate(38 165)"><rect width="51" height="51" rx="17" fill="#fff"/><path d="M19 19c1-8 15-8 16 0 1 7-9 7-9 13m0 7h.1" fill="none" stroke="#16936f" stroke-width="3.5" stroke-linecap="round"/></g>
-              <g fill="#2bc99a" class="ah-sparkles"><path d="M95 34l3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Z"/><path d="M260 218l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5Z"/></g>
-            </svg>
+            <img src="./onboarding-welcome-hero.webp?v=reference-onboarding-v2" alt="" width="900" height="675" decoding="async">
           </div>
           <div class="ah-welcome-copy">
             <p class="ah-welcome-eyebrow">YOUR ADMISSION JOURNEY</p>
@@ -109,7 +97,7 @@
         </div>
 
         <form class="ah-account-view ah-login-view" data-view="login" novalidate>
-          <div class="ah-view-intro"><span class="ah-mini-orb" aria-hidden="true">↗</span><div><h3>আবার দেখা হলো 👋</h3><p>তোমার account-এ নিরাপদে প্রবেশ করো।</p></div></div>
+          <div class="ah-view-intro"><span class="ah-mini-orb" aria-hidden="true">↗</span><div><h3>আবার দেখা হলো! 👋</h3><p>তোমার account-এ নিরাপদে প্রবেশ করো।</p></div></div>
           <div class="ah-account-preferred" data-role="preferred-methods" hidden>
             <p class="ah-account-preferred-label">দ্রুত প্রবেশ</p>
             <div class="ah-account-google" data-role="google-button" hidden></div>
@@ -133,50 +121,73 @@
         </form>
 
         <form class="ah-account-view ah-signup-view" data-view="signup" hidden novalidate>
-          <div class="ah-signup-heading"><p>CREATE YOUR PROFILE</p><h3>তোমার Admission Hub profile তৈরি করো</h3><span>Preparation-কে personal করতে কয়েকটি ছোট ধাপ।</span></div>
+          <div class="ah-signup-heading"><p>CREATE YOUR PROFILE</p><h3>Create your<br>Admission Hub profile</h3><span>তোমার preparation-কে আরও personal করতে কয়েকটি ছোট ধাপ।</span></div>
           <div class="ah-signup-progress" role="list" aria-label="Signup progress">
             <button type="button" class="active" data-signup-step-button="personal"><i>1</i><span>Personal</span></button><b></b>
             <button type="button" data-signup-step-button="education"><i>2</i><span>Education</span></button><b></b>
             <button type="button" data-signup-step-button="security"><i>3</i><span>Security</span></button>
           </div>
-          <section class="ah-signup-panel" data-signup-panel="personal">
-            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-name">তোমাকে কী নামে ডাকব?</label><input class="ah-account-input" id="ah-signup-name" name="fullName" autocomplete="name" maxlength="80" placeholder="তোমার পূর্ণ নাম" required><p class="ah-field-feedback" data-role="name-feedback"></p></div>
-            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-email">তোমার Email</label><input class="ah-account-input" id="ah-signup-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="you@email.com" required></div>
-            <fieldset class="ah-dob-card"><legend>তোমার জন্মদিন কবে?</legend><div class="ah-dob-selectors"><label><span>Day</span><select id="ah-dob-day" aria-label="জন্মদিন" required></select></label><label><span>Month</span><select id="ah-dob-month" aria-label="জন্মমাস" required></select></label><label><span>Year</span><select id="ah-dob-year" aria-label="জন্মবছর" required></select></label></div><p data-role="dob-preview">12 January 2007</p></fieldset>
-            <div class="ah-panel-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-entry">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-education">Next →</button></div>
+          <section class="ah-signup-panel ah-personal-panel" data-signup-panel="personal">
+            <div class="ah-profile-spark" aria-hidden="true"><span>✦</span></div>
+            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-name">তোমাকে কী নামে ডাকব?</label><input class="ah-account-input" id="ah-signup-name" name="fullName" autocomplete="name" maxlength="80" placeholder="যেমন: রাইসা ইসলাম" required><p class="ah-field-feedback" data-role="name-feedback"></p></div>
+            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-email">তোমার Email</label><input class="ah-account-input" id="ah-signup-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="you@email.com" required><p class="ah-field-feedback">Verification method বাছার আগে কোনো message পাঠানো হবে না।</p></div>
+            <button class="ah-dob-summary" type="button" data-role="open-dob"><span><small>তোমার জন্মতারিখ?</small><strong data-role="dob-summary">12 January 2007</strong></span><b aria-hidden="true">▣</b></button>
+            <div class="ah-panel-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-entry">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-dob">Next →</button></div>
           </section>
-          <section class="ah-signup-panel" data-signup-panel="education" hidden>
-            <div class="ah-account-field ah-search-field"><label class="ah-account-label" for="ah-signup-school">তোমার School কোনটি?</label><input class="ah-account-input" id="ah-signup-school" autocomplete="off" maxlength="120" placeholder="School-এর নাম লিখো" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ah-school-results" required><div class="ah-search-results" id="ah-school-results" role="listbox" hidden></div><p class="ah-field-feedback">না পেলে পুরো নাম লিখে “নিজের লেখা ব্যবহার করুন” বেছে নাও।</p></div>
-            <div class="ah-account-field ah-search-field"><label class="ah-account-label" for="ah-signup-college">তোমার College / University?</label><input class="ah-account-input" id="ah-signup-college" autocomplete="off" maxlength="120" placeholder="College বা University-এর নাম" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ah-college-results"><div class="ah-search-results" id="ah-college-results" role="listbox" hidden></div></div>
-            <div class="ah-panel-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-personal">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-security">Next →</button></div>
+          <section class="ah-signup-panel ah-dob-panel" data-signup-panel="dob" hidden>
+            <div class="ah-calendar-illustration" aria-hidden="true"><i></i><span>12</span><b>✓</b></div>
+            <div class="ah-standalone-heading"><h3>তোমার জন্মদিন কবে?</h3><p>তোমার বয়সভিত্তিক content সাজাতে সাহায্য করবে</p></div>
+            <fieldset class="ah-dob-card"><legend class="sr-only">জন্মতারিখ বেছে নাও</legend><div class="ah-dob-selectors"><label><span>দিন</span><select id="ah-dob-day" aria-label="জন্মদিন" required></select></label><label><span>মাস</span><select id="ah-dob-month" aria-label="জন্মমাস" required></select></label><label><span>বছর</span><select id="ah-dob-year" aria-label="জন্মবছর" required></select></label></div><p data-role="dob-preview">12 January 2007</p></fieldset>
+            <div class="ah-panel-actions ah-bottom-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-personal">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-education">Next →</button></div>
           </section>
-          <section class="ah-signup-panel" data-signup-panel="security" hidden>
-            <div class="ah-security-illustration" aria-hidden="true"><span>●</span><i></i><b>✓</b></div>
-            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-password">তৈরি করো তোমার Password</label><div class="ah-password-wrap"><input class="ah-account-input" id="ah-signup-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="কমপক্ষে ৮ অক্ষর" required><button class="ah-password-toggle" type="button" data-password-target="ah-signup-password" aria-label="Password দেখুন">দেখুন</button></div><div class="ah-password-meter"><i data-role="password-meter"></i></div><p class="ah-field-feedback" data-role="password-strength">Password strength</p></div>
-            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-confirm">Confirm Password</label><div class="ah-password-wrap"><input class="ah-account-input" id="ah-signup-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="একই password আবার লিখো" required><button class="ah-password-toggle" type="button" data-password-target="ah-signup-confirm" aria-label="Password দেখুন">দেখুন</button></div><p class="ah-field-feedback" data-role="password-match"></p></div>
-            <div class="ah-panel-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-education">← Back</button><button class="ah-account-primary" type="submit">আমার Account তৈরি করুন →</button></div>
+          <section class="ah-signup-panel ah-institution-panel" data-signup-panel="school" hidden>
+            <div class="ah-standalone-heading"><h3>তোমার বিদ্যালয়ের নাম লিখো</h3><p>খুঁজে নাম খুঁজে পেলে সেটি বেছে নাও</p></div>
+            <div class="ah-account-field ah-search-field"><label class="sr-only" for="ah-signup-school">তোমার School কোনটি?</label><div class="ah-search-input-wrap"><span aria-hidden="true">⌕</span><input class="ah-account-input" id="ah-signup-school" autocomplete="off" maxlength="120" placeholder="বিদ্যালয়ের নাম লিখো" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ah-school-results" required></div><div class="ah-search-results" id="ah-school-results" role="listbox" hidden></div><p class="ah-field-feedback">সর্বোচ্চ ৪টি suggestion দেখাবে; না পেলে নিজের লেখা ব্যবহার করো।</p></div>
+            <div class="ah-campus-strip" aria-hidden="true"><span>♧</span><i>▥</i><b>⌂</b><i>▥</i><span>♧</span></div>
+            <div class="ah-panel-actions ah-bottom-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-dob">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-college">Next →</button></div>
+          </section>
+          <section class="ah-signup-panel ah-institution-panel" data-signup-panel="college" hidden>
+            <div class="ah-standalone-heading"><h3>তোমার কলেজ / বিশ্ববিদ্যালয়</h3><p>কলেজ বা বিশ্ববিদ্যালয়ের নাম লিখে বেছে নাও</p></div>
+            <div class="ah-account-field ah-search-field"><label class="sr-only" for="ah-signup-college">তোমার College / University?</label><div class="ah-search-input-wrap"><span aria-hidden="true">⌕</span><input class="ah-account-input" id="ah-signup-college" autocomplete="off" maxlength="120" placeholder="কলেজ বা বিশ্ববিদ্যালয়ের নাম" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ah-college-results"></div><div class="ah-search-results" id="ah-college-results" role="listbox" hidden></div><p class="ah-field-feedback">এখন পড়ছ না? খালি রেখেও এগোতে পারো।</p></div>
+            <div class="ah-panel-actions ah-bottom-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-school">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-security">Next →</button></div>
+          </section>
+          <section class="ah-signup-panel ah-security-panel" data-signup-panel="security" hidden>
+            <div class="ah-standalone-heading"><h3>একটি শক্তিশালী Password</h3><p>তোমার account নিরাপদ রাখতে সহজে মনে রাখা কঠিন Password দাও</p></div>
+            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-password">Password</label><div class="ah-password-wrap"><input class="ah-account-input" id="ah-signup-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="কমপক্ষে ৮ অক্ষর" required><button class="ah-password-toggle" type="button" data-password-target="ah-signup-password" aria-label="Password দেখুন">দেখুন</button></div><div class="ah-password-meter"><i data-role="password-meter"></i></div><p class="ah-field-feedback" data-role="password-strength">Password strength</p></div>
+            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-confirm">Confirm Password</label><div class="ah-password-wrap"><input class="ah-account-input" id="ah-signup-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="একই Password আবার লিখো" required><button class="ah-password-toggle" type="button" data-password-target="ah-signup-confirm" aria-label="Password দেখুন">দেখুন</button></div><p class="ah-field-feedback" data-role="password-match"></p></div>
+            <ul class="ah-password-rules" aria-label="Password requirements"><li data-password-rule="length">কমপক্ষে ৮ অক্ষর</li><li data-password-rule="uppercase">একটি বড় অক্ষর</li><li data-password-rule="number">একটি সংখ্যা</li></ul>
+            <div class="ah-panel-actions ah-bottom-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-education">← Back</button><button class="ah-account-primary" type="submit">Create Account →</button></div>
           </section>
           <p class="ah-account-switch">আগে থেকেই account আছে? <button class="ah-account-link" type="button" data-role="show-login">Log In</button></p>
           <p class="ah-account-note" data-role="signup-verification-note">Account তৈরির পরে Email অথবা Telegram—একটি বাস্তব verification method বেছে নেবে। তার আগে কিছু পাঠানো হবে না।</p>
         </form>
 
-        <div class="ah-account-view ah-verification-view" data-view="verify" hidden>
+        <div class="ah-account-view ah-created-view" data-view="created" hidden>
+          <div class="ah-celebration" aria-hidden="true"><i>✦</i><b>◆</b><span>✓</span><em>✦</em></div>
+          <h3 class="ah-account-view-title">Account Created!</h3>
+          <p class="ah-account-mask">তোমার account সফলভাবে তৈরি হয়েছে।</p>
+          <button class="ah-account-primary ah-view-bottom-cta" type="button" data-role="created-continue">Continue →</button>
+        </div>
+
+        <div class="ah-account-view ah-verification-view" data-view="verify" data-mode="select" hidden>
           <div class="ah-account-verify-badge" aria-hidden="true" data-role="verification-badge">✓</div>
           <p class="ah-view-kicker">ACCOUNT CREATED</p>
           <h3 class="ah-account-view-title" data-role="verification-title">একটি ছোট verification বাকি</h3>
           <div data-role="verification-selection">
             <p class="ah-account-mask">Account নিরাপদ রাখতে নিচের বাস্তব method-এর একটি বেছে নাও। পছন্দ করার আগে কোনো message পাঠানো হবে না।</p>
             <div class="ah-method-stack">
-              <button class="ah-method-card recommended" type="button" data-role="email-verification-start"><span class="ah-method-icon email" aria-hidden="true">✉</span><span><strong>Email Verification</strong><small>নিরাপদ link দিয়ে verify</small></span><em>Recommended</em><b>›</b></button>
-              <button class="ah-method-card telegram" type="button" data-role="telegram-verification-start"><span class="ah-method-icon" aria-hidden="true">➤</span><span><strong>Telegram</strong><small>Official bot-এর ৬ সংখ্যার code</small></span><b>›</b></button>
+              <button class="ah-method-card recommended" type="button" data-role="email-verification-start"><span class="ah-method-icon email" aria-hidden="true">✉</span><span><strong>Email Verification</strong><small>নিরাপদ link দিয়ে verify — Email OTP নয়</small></span><em>Recommended</em><b>›</b></button>
+              <button class="ah-method-card unavailable" type="button" disabled aria-disabled="true"><span class="ah-method-icon passkey" aria-hidden="true">⌘</span><span><strong>Passkey</strong><small>Verification শেষে optional security</small></span><b>🔒</b></button>
+              <button class="ah-method-card whatsapp unavailable" type="button" data-role="whatsapp-info" aria-describedby="ah-whatsapp-unavailable"><span class="ah-method-icon whatsapp" aria-hidden="true">◉</span><span><strong>WhatsApp</strong><small id="ah-whatsapp-unavailable">এখন verification পাওয়া যাচ্ছে না</small></span><b>i</b></button>
+              <button class="ah-method-card telegram" type="button" data-role="telegram-verification-start"><span class="ah-method-icon telegram" aria-hidden="true">➤</span><span><strong>Telegram</strong><small>Official bot-এর real ৬ সংখ্যার code</small></span><b>›</b></button>
             </div>
-            <p class="ah-account-note">Telegram শুধু Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করে; Email মালিকানা নয়। Passkey verification-এর পরে optional security হিসেবে আসবে।</p>
+            <p class="ah-account-note">শুধু available method-ই কাজ করবে। Telegram Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করে—Email মালিকানা নয়।</p>
           </div>
           <div data-role="verification-email-panel" hidden>
             <div class="ah-email-hero" aria-hidden="true"><span>✉</span><i>✓</i></div>
-            <h3 class="ah-account-view-title">তোমার Email-এ একটি ছোট্ট কাজ আছে ✉️</h3>
-            <p class="ah-account-mask" data-role="verification-email-copy">Verification link পাঠানো হয়েছে <strong data-role="mask">তোমার email-এ</strong>। Inbox-এর সঙ্গে Spam/Promotions-ও দেখো।</p>
-            <div class="ah-status-card"><span>✓</span><div><strong data-role="email-status-address">Email selected</strong><small>Verification message sent</small></div></div>
+            <h3 class="ah-account-view-title">আমরা তোমার verification-এর অপেক্ষায় আছি…</h3>
+            <p class="ah-account-mask" data-role="verification-email-copy">Verification link পাঠানো হয়েছে <strong data-role="mask">তোমার email-এ</strong>। Email app-এ link-এ tap করে এখানে ফিরে আসো।</p>
+            <div class="ah-status-card ah-waiting-status"><span></span><div><strong data-role="email-status-address">Verification pending…</strong><small>Email link খোলার অপেক্ষায়</small></div></div>
             <button class="ah-account-primary" type="button" data-role="open-email">Open Email</button>
             <button class="ah-account-secondary" type="button" data-role="verified-login">✓ আমি Verify করেছি — Check করুন</button>
             <button class="ah-account-telegram" type="button" data-role="telegram-alternative" hidden><span class="ah-account-telegram-icon" aria-hidden="true">➤</span><span><strong>Telegram দিয়ে যাচাই</strong><small>অন্য যাচাই পদ্ধতি</small></span></button>
@@ -185,11 +196,39 @@
           <p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="verify-back">Log In-এ ফিরুন</button></p>
         </div>
 
+        <div class="ah-account-view ah-email-intro-view" data-view="email-intro" hidden>
+          <div class="ah-dark-email-illustration" aria-hidden="true"><i></i><span>✉</span><b>✓</b></div>
+          <h3 class="ah-account-view-title">তোমার Email-এ একটি ছোট্ট কাজ আছে</h3>
+          <p class="ah-account-mask">তোমার <strong>নিজের সিদ্ধান্তে</strong> নিচের button চাপলে একটি verification link পাঠানো হবে। Email-এ গিয়ে link-এ tap করো।</p>
+          <div class="ah-email-address-card"><span aria-hidden="true">✉</span><div><strong data-role="email-intro-address">তোমার Email</strong><small>এখনো নতুন link পাঠানো হয়নি</small></div></div>
+          <div class="ah-mini-journey" aria-label="Verification progress"><span class="done">✓<small>Account<br>Created</small></span><i></i><span>2<small>Email<br>Send</small></span><i></i><span>3<small>Enter<br>Admission Hub</small></span></div>
+          <button class="ah-account-primary ah-view-bottom-cta" type="button" data-role="email-intro-continue">Verification link পাঠান →</button>
+          <button class="ah-account-link ah-calm-back" type="button" data-role="email-intro-back">অন্য method বেছে নাও</button>
+        </div>
+
+        <div class="ah-account-view ah-provider-info-view ah-whatsapp-info-view" data-view="whatsapp-info" hidden>
+          <div class="ah-provider-phone whatsapp" aria-hidden="true"><span>◉</span><i>✓</i></div>
+          <h3 class="ah-account-view-title">WhatsApp verification</h3>
+          <p class="ah-account-mask">এই no-cost public version-এ সত্যিকারের WhatsApp verification এখনো available নয়। তাই কোনো message পাঠানো বা success দেখানো হবে না।</p>
+          <div class="ah-unavailable-card" role="status"><span>i</span><div><strong>এখন পাওয়া যাচ্ছে না</strong><small>Email link বা Telegram ব্যবহার করো</small></div></div>
+          <button class="ah-account-primary ah-view-bottom-cta" type="button" disabled>Continue with WhatsApp</button>
+          <button class="ah-account-link ah-calm-back" type="button" data-role="whatsapp-info-back">অন্য method বেছে নাও</button>
+        </div>
+
+        <div class="ah-account-view ah-provider-info-view ah-telegram-intro-view" data-view="telegram-intro" hidden>
+          <div class="ah-provider-phone telegram" aria-hidden="true"><span>➤</span><i>✓</i></div>
+          <h3 class="ah-account-view-title">Telegram দিয়ে verify করো</h3>
+          <p class="ah-account-mask">Admission Hub-এর official bot খুলে START চাপলে real ৬ সংখ্যার code পাবে। Code শুধু secure OTP box-এ লিখবে—Assistant/chat-এ নয়।</p>
+          <div class="ah-truth-card"><span>✓</span><div><strong>Real Telegram OTP</strong><small>Email ownership নয়; Telegram account control নিশ্চিত করে</small></div></div>
+          <button class="ah-account-primary ah-view-bottom-cta" type="button" data-role="telegram-intro-continue">Continue with Telegram →</button>
+          <button class="ah-account-link ah-calm-back" type="button" data-role="telegram-intro-back">অন্য method বেছে নাও</button>
+        </div>
+
         <form class="ah-account-view ah-account-telegram-view" data-view="telegram" data-state="connecting" hidden novalidate>
           <div class="ah-telegram-hero" aria-hidden="true"><span>➤</span><i></i></div><p class="ah-view-kicker">SECURE VERIFICATION</p><h3 class="ah-account-view-title">Telegram দিয়ে verify করো</h3><p class="ah-account-mask">Official bot খুলে <strong>START</strong> চাপো। Bot যে ৬ সংখ্যার code পাঠাবে, সেটি শুধু নিচের secure box-এ লিখবে।</p>
           <ol class="ah-account-telegram-steps" aria-label="Telegram verification steps"><li><span>১</span> Official Telegram bot খোলো</li><li><span>২</span> START চাপো ও code নাও</li><li><span>৩</span> Admission Hub-এ code লিখো</li></ol>
           <a class="ah-account-primary ah-account-external ah-account-telegram-open" data-role="telegram-link" target="_blank" rel="noopener noreferrer">Continue with Telegram →</a><div class="ah-account-telegram-status" data-role="telegram-status" aria-live="polite">START চাপার অপেক্ষায়…</div>
-          <div class="ah-account-field"><label class="ah-account-label" for="ah-telegram-code">Telegram-এর ৬ সংখ্যার code</label><input class="ah-account-input ah-account-otp" id="ah-telegram-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required></div>
+          <div class="ah-account-field ah-otp-field"><label class="ah-account-label" for="ah-telegram-code">Telegram-এর ৬ সংখ্যার code</label><div class="ah-six-code" aria-hidden="true"><span data-otp-digit="0"></span><span data-otp-digit="1"></span><span data-otp-digit="2"></span><span data-otp-digit="3"></span><span data-otp-digit="4"></span><span data-otp-digit="5"></span></div><input class="ah-account-input ah-account-otp" id="ah-telegram-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="ah-telegram-code-help" required></div><p class="ah-field-feedback ah-otp-help" id="ah-telegram-code-help">Code পাওয়া যায়নি? Official bot-এ START চাপো।</p>
           <button class="ah-account-primary" type="submit" data-role="telegram-verify">Verify →</button><button class="ah-account-secondary" type="button" data-role="telegram-resend">নতুন code নিন</button><p class="ah-account-note">Telegram verification শুধু Telegram account-এর নিয়ন্ত্রণ নিশ্চিত করে—Email মালিকানা নয়। Code বা Password কখনো Assistant/chat-এ লিখবে না; শুধু secure form ব্যবহার করবে। START বা animation একা success নয়—নিশ্চিত ফল Admission Hub দেখাবে।</p><p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="telegram-email-back">অন্য method বেছে নিন</button></p>
         </form>
 
@@ -198,7 +237,15 @@
         <form class="ah-account-view" data-view="backup-prepare" hidden novalidate><div class="ah-account-verify-badge" aria-hidden="true">✓</div><h3 class="ah-account-view-title">বিকল্প verification</h3><p class="ah-account-mask">তোমার জন্য available নিরাপদ method ব্যবহার হবে।</p><div class="ah-account-field" data-role="backup-contact-field"><label class="ah-account-label" for="ah-backup-contact">Mobile number <span data-role="backup-contact-mode">(optional)</span></label><input class="ah-account-input" id="ah-backup-contact" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" placeholder="+8801XXXXXXXXX"></div><button class="ah-account-primary" type="submit">Verification শুরু করুন</button><p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="backup-prepare-cancel">ফিরে যান</button></p></form>
         <form class="ah-account-view" data-view="backup" hidden novalidate><div class="ah-account-verify-badge" aria-hidden="true">✓</div><h3 class="ah-account-view-title">বিকল্প verification</h3><p class="ah-account-mask" data-role="backup-instruction">নিরাপদ code লিখুন।</p><div class="ah-account-interaction" data-role="backup-interaction" hidden><a class="ah-account-primary ah-account-external" data-role="backup-link" target="_blank" rel="noopener noreferrer">Telegram খুলুন</a><p>START চাপুন এবং পাওয়া ৬ সংখ্যার code নিচে লিখুন। Telegram খোলা সফল যাচাই নয়; এটি Email মালিকানার প্রমাণও নয়।</p></div><div class="ah-account-field" data-role="backup-code-field"><label class="ah-account-label" for="ah-backup-code">৬ সংখ্যার code</label><input class="ah-account-input ah-account-otp" id="ah-backup-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></div><button class="ah-account-primary" type="submit" data-role="backup-verify">Verify</button><p class="ah-account-switch"><button class="ah-account-link" type="button" data-role="backup-cancel">ফিরে যান</button></p></form>
 
-        <div class="ah-account-view ah-passkey-onboarding" data-view="security-setup" hidden><div class="ah-passkey-hero" aria-hidden="true"><div><i></i><span>◉</span></div><b>✓</b></div><p class="ah-view-kicker">OPTIONAL SECURITY</p><h3 class="ah-account-view-title">এক ট্যাপেই নিরাপদে ঢুকবে 🔐</h3><p class="ah-account-mask">তোমার ফোনের Face ID, fingerprint বা device lock দিয়ে দ্রুত ও নিরাপদে account সুরক্ষিত করো। ফোনের নিজের অনুমতি screen-এ শেষ সিদ্ধান্ত তোমার।</p><button class="ah-account-primary" type="button" data-role="setup-passkey">Passkey যোগ করুন →</button><button class="ah-account-secondary" type="button" data-role="setup-skip">এখন নয় — Skip</button><p class="ah-account-note">Passkey সম্পূর্ণ optional। Skip করলে Email, Password, Google বা Telegram বন্ধ হবে না।</p></div>
+        <div class="ah-account-view ah-verified-view" data-view="verified" hidden>
+          <div class="ah-success-check ah-success-glow" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="46"/><path d="m38 61 14 14 31-34"/></svg></div>
+          <h3 class="ah-account-view-title" data-role="verified-title">Email Verified! 🎉</h3>
+          <p class="ah-account-mask" data-role="verified-copy">তোমার Email এবং account নিরাপদভাবে যাচাই হয়েছে।</p>
+          <div class="ah-ready-list"><span>✓ Account Created</span><span data-role="verified-method-row">✓ Email Verified</span><span>✓ Ready for Admission Hub</span></div>
+          <button class="ah-account-primary ah-view-bottom-cta" type="button" data-role="verified-continue">Continue →</button>
+        </div>
+
+        <div class="ah-account-view ah-passkey-onboarding" data-view="security-setup" hidden><div class="ah-passkey-hero" aria-hidden="true"><div><i></i><span>◉</span></div><b>✓</b></div><p class="ah-view-kicker">OPTIONAL SECURITY</p><h3 class="ah-account-view-title">এক ট্যাপেই নিরাপদে ঢুকবে 🔐</h3><p class="ah-account-mask">তোমার ফোনের Face ID, fingerprint বা device lock দিয়ে দ্রুত ও নিরাপদে account সুরক্ষিত করো। ফোনের নিজের অনুমতি screen-এ শেষ সিদ্ধান্ত তোমার।</p><button class="ah-account-primary ah-view-bottom-cta" type="button" data-role="setup-passkey">Create Passkey →</button><button class="ah-account-link ah-calm-back" type="button" data-role="setup-skip">আরও পরে করব</button><p class="ah-account-note">Passkey সম্পূর্ণ optional। Skip করলে Email, Password, Google বা Telegram বন্ধ হবে না।</p></div>
 
         <div class="ah-account-view ah-success-view" data-view="success" hidden><div class="ah-success-check" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="46"/><path d="m38 61 14 14 31-34"/></svg></div><p class="ah-view-kicker">ALL SET</p><h3 class="ah-account-view-title">সব ঠিক আছে! 🎉</h3><p class="ah-account-mask">তোমার account এখন প্রস্তুত।</p><div class="ah-ready-list"><span data-role="ready-profile">… Profile details দেখা হচ্ছে</span><span>✓ Verification Complete</span><span>✓ Admission Hub Ready</span></div><button class="ah-account-primary" type="button" data-role="enter-app">Admission Hub-এ প্রবেশ করো →</button></div>
 
@@ -206,8 +253,9 @@
       </div>
 
       <div class="ah-guide" data-role="guide" hidden>
-        <div class="ah-guide-head"><div><span>✦</span><div><strong>Admission Assistant</strong><small data-role="guide-context">Welcome</small></div></div><button type="button" data-role="guide-close" aria-label="Assistant বন্ধ করুন">×</button></div>
-        <div class="ah-guide-messages" data-role="guide-messages" aria-live="polite"><div class="ah-guide-bubble">চিন্তা করো না—তুমি যে ধাপে আছো, সেই ধাপেই সাহায্য করব। Password বা code কখনো chat-এ দিও না।</div></div>
+        <div class="ah-guide-head"><div><span class="ah-guide-robot" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="8" y="12" width="32" height="27" rx="11"/><path d="M24 12V7m-2 0h4M16 27h.1M32 27h.1M18 33c4 2 8 2 12 0"/></svg></span><div><strong>AI Assistant</strong><small data-role="guide-context">তোমার সাথে সবসময়</small></div></div><button type="button" data-role="guide-close" aria-label="Assistant বন্ধ করুন">×</button></div>
+        <div class="ah-guide-welcome"><h3>আমি তোমাকে onboarding-এ সাহায্য করতে পারি</h3><p>সাধারণ প্রশ্ন করো। Password, OTP বা secret কখনো chat-এ লিখবে না।</p></div>
+        <div class="ah-guide-messages" data-role="guide-messages" aria-live="polite"><div class="ah-guide-bubble">হ্যালো! তুমি যে ধাপে আছো, সেই ধাপেই নিরাপদভাবে সাহায্য করব।</div></div>
         <div class="ah-guide-chips" data-role="guide-chips"></div>
         <form data-role="guide-form"><label class="sr-only" for="ah-guide-input">Assistant-কে প্রশ্ন করো</label><input id="ah-guide-input" maxlength="300" autocomplete="off" placeholder="কী জানতে চাও?"><button type="submit" aria-label="পাঠান">↑</button></form>
       </div>
@@ -255,6 +303,16 @@
     state.telegramTimer = null;
   };
   const telegramResendRemaining = () => Math.max(0, Math.ceil((Number(state.telegram?.resendUntil || 0) - Date.now()) / 1000));
+  const renderTelegramDigits = () => {
+    const input = $('#ah-telegram-code');
+    const value = String(input?.value || '').replace(/\D/g, '').slice(0, 6);
+    if (input && input.value !== value) input.value = value;
+    overlay.querySelectorAll('[data-otp-digit]').forEach((box, index) => {
+      box.textContent = value[index] || '';
+      box.classList.toggle('filled', index < value.length);
+      box.classList.toggle('next', index === value.length);
+    });
+  };
   const renderTelegramState = (mode = state.telegram?.mode || 'waiting') => {
     const view = $('[data-view="telegram"]');
     const status = $('[data-role="telegram-status"]');
@@ -307,6 +365,7 @@
     link.dataset.label = 'Official Telegram Bot খুলুন';
     link.textContent = link.dataset.label;
     $('#ah-telegram-code').value = '';
+    renderTelegramDigits();
     renderTelegramState('waiting');
     state.telegramTimer = setInterval(() => {
       renderTelegramState();
@@ -437,6 +496,9 @@
     const month = $('#ah-dob-month');
     const year = $('#ah-dob-year');
     if (!day || day.options.length > 1) return;
+    day.add(new Option('দিন', ''));
+    month.add(new Option('মাস', ''));
+    year.add(new Option('বছর', ''));
     for (let value = 1; value <= 31; value += 1) day.add(new Option(String(value), String(value)));
     ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর']
       .forEach((label, index) => month.add(new Option(label, String(index + 1))));
@@ -470,12 +532,13 @@
   };
 
   const updateDobPreview = () => {
-    const output = $('[data-role="dob-preview"]');
-    if (!output) return;
     const dob = selectedDob();
-    output.textContent = dob
+    const label = dob
       ? new Intl.DateTimeFormat('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${dob}T00:00:00Z`))
-      : 'তারিখ বেছে নিলে এখানে দেখাবে';
+      : 'তারিখ বেছে নাও';
+    overlay.querySelectorAll('[data-role="dob-preview"],[data-role="dob-summary"]').forEach(output => { output.textContent = label; });
+    const calendarDay = $('.ah-calendar-illustration>span');
+    if (calendarDay) calendarDay.textContent = $('#ah-dob-day')?.value || '—';
   };
 
   const normalizeInstitutionText = value => String(value || '').normalize('NFKC').toLocaleLowerCase('bn-BD')
@@ -613,6 +676,12 @@
       meter.style.width = `${Math.min(100, score * 20)}%`;
       meter.style.background = score >= 4 ? '#14a879' : score >= 2 ? '#e4a620' : '#d45a49';
     }
+    const ruleState = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      number: /\d/.test(password)
+    };
+    overlay.querySelectorAll('[data-password-rule]').forEach(rule => rule.classList.toggle('met', Boolean(ruleState[rule.dataset.passwordRule])));
     showFieldFeedback('password-strength', password ? `Strength: ${labels[score]}` : 'কমপক্ষে ৮ অক্ষর ব্যবহার করো', score >= 4 ? 'valid' : '');
     showFieldFeedback('password-match', !confirm ? '' : password === confirm ? '✓ দুইটি Password মিলেছে' : 'Password দুইটি মিলছে না', password === confirm && confirm ? 'valid' : confirm ? 'error' : '');
   };
@@ -623,11 +692,15 @@
     showFieldFeedback('name-feedback', '✓ সুন্দর—নামটি ঠিক আছে', 'valid');
     const email = $('#ah-signup-email');
     if (!email?.value.trim() || !email.checkValidity()) { message('সঠিক Email address লিখো।', 'error'); email?.focus(); return false; }
+    return true;
+  };
+
+  const validateDob = () => {
     if (!selectedDob()) { message('সঠিক জন্মতারিখ বেছে নাও।', 'error'); $('#ah-dob-day')?.focus(); return false; }
     return true;
   };
 
-  const validateEducation = () => {
+  const validateSchool = () => {
     const school = $('#ah-signup-school');
     if (!school?.value.trim()) { message('তোমার School-এর নাম লিখো।', 'error'); school?.focus(); return false; }
     if (!state.institutionSelection.school || state.institutionSelection.school.name !== school.value.trim()) {
@@ -636,6 +709,10 @@
       school.focus();
       return false;
     }
+    return true;
+  };
+
+  const validateCollege = () => {
     const college = $('#ah-signup-college');
     if (college?.value.trim() && (!state.institutionSelection.college || state.institutionSelection.college.name !== college.value.trim())) {
       renderInstitutionResults('college', college.value);
@@ -646,10 +723,14 @@
     return true;
   };
 
+  const validateEducation = () => validateSchool() && validateCollege();
+
   const validateSecurity = () => {
     const password = $('#ah-signup-password')?.value || '';
     const confirm = $('#ah-signup-confirm')?.value || '';
     if (password.length < 8) { message('কমপক্ষে ৮ অক্ষরের Password দাও।', 'error'); $('#ah-signup-password')?.focus(); return false; }
+    if (!/[A-Z]/.test(password)) { message('Password-এ অন্তত একটি বড় English অক্ষর দাও।', 'error'); $('#ah-signup-password')?.focus(); return false; }
+    if (!/\d/.test(password)) { message('Password-এ অন্তত একটি সংখ্যা দাও।', 'error'); $('#ah-signup-password')?.focus(); return false; }
     if (password !== confirm) { message('Password দুইটি মিলছে না।', 'error'); $('#ah-signup-confirm')?.focus(); return false; }
     return true;
   };
@@ -661,25 +742,40 @@
     if (!active || active === document.body || !overlay.contains(active) || active.closest('[hidden]')) node.focus();
   }, delay);
 
-  const setSignupStep = (step, { validate = false } = {}) => {
-    const order = ['personal', 'education', 'security'];
+  const setSignupStep = (requestedStep, { validate = false } = {}) => {
+    const step = requestedStep === 'education' ? 'school' : requestedStep;
+    const order = ['personal', 'dob', 'school', 'college', 'security'];
     if (!order.includes(step)) return false;
-    const currentIndex = order.indexOf(state.signupStep);
+    const currentStep = order.includes(state.signupStep) ? state.signupStep : 'personal';
+    const currentIndex = order.indexOf(currentStep);
     const nextIndex = order.indexOf(step);
+    const validators = { personal: validatePersonal, dob: validateDob, school: validateSchool, college: validateCollege };
     if (validate && nextIndex > currentIndex) {
-      if (state.signupStep === 'personal' && !validatePersonal()) return false;
-      if (state.signupStep === 'education' && !validateEducation()) return false;
+      for (let index = currentIndex; index < nextIndex; index += 1) {
+        if (validators[order[index]] && !validators[order[index]]()) return false;
+      }
     }
     state.signupStep = step;
+    const signupModal = $('.ah-account-modal');
+    if (signupModal) signupModal.dataset.signupStep = step;
     overlay.querySelectorAll('[data-signup-panel]').forEach(panel => { panel.hidden = panel.dataset.signupPanel !== step; });
+    const stage = ['personal', 'dob'].includes(step) ? 'personal' : ['school', 'college'].includes(step) ? 'education' : 'security';
+    const stages = ['personal', 'education', 'security'];
+    const stageIndex = stages.indexOf(stage);
     overlay.querySelectorAll('[data-signup-step-button]').forEach(button => {
-      const index = order.indexOf(button.dataset.signupStepButton);
-      button.classList.toggle('active', button.dataset.signupStepButton === step);
-      button.classList.toggle('done', index < nextIndex);
-      button.setAttribute('aria-current', button.dataset.signupStepButton === step ? 'step' : 'false');
+      const index = stages.indexOf(button.dataset.signupStepButton);
+      button.classList.toggle('active', button.dataset.signupStepButton === stage);
+      button.classList.toggle('done', index < stageIndex);
+      button.setAttribute('aria-current', button.dataset.signupStepButton === stage ? 'step' : 'false');
     });
     message();
-    const focus = step === 'personal' ? $('#ah-signup-name') : step === 'education' ? $('#ah-signup-school') : $('#ah-signup-password');
+    const focus = {
+      personal: $('#ah-signup-name'),
+      dob: $('#ah-dob-day'),
+      school: $('#ah-signup-school'),
+      college: $('#ah-signup-college'),
+      security: $('#ah-signup-password')
+    }[step];
     focusWhenUnclaimed(focus);
     updateGuideContext();
     return true;
@@ -770,7 +866,7 @@
   };
 
   const guideSuggestions = () => {
-    const query = state.signupStep === 'education'
+    const query = ['school', 'college'].includes(state.signupStep)
       ? ($('#ah-signup-school')?.value.trim() || $('#ah-signup-college')?.value.trim() || '') : '';
     const kind = $('#ah-signup-college')?.value.trim() ? 'college' : 'school';
     return query.length >= 2 ? institutionMatches(query, kind).map(item => item.name) : [];
@@ -786,15 +882,16 @@
       education: Boolean(state.institutionSelection.school),
       verificationAuthoritative: accountVerified(state.session)
     }),
-    institutionQuery: state.signupStep === 'education' ? ($('#ah-signup-school')?.value.trim().slice(0, 80) || $('#ah-signup-college')?.value.trim().slice(0, 80) || '') : '',
+    institutionQuery: ['school', 'college'].includes(state.signupStep) ? ($('#ah-signup-school')?.value.trim().slice(0, 80) || $('#ah-signup-college')?.value.trim().slice(0, 80) || '') : '',
     institutionSuggestions: Object.freeze(guideSuggestions().slice(0, 3)),
     allowedActions: Object.freeze(['focus-name','focus-email','focus-dob','focus-school','focus-college','open-signup','open-login','explain-email','explain-telegram'])
   });
 
   const guideChipConfig = () => {
     if (state.currentView === 'welcome') return [['Sign Up শুরু করি','open-signup'],['Log In সাহায্য','open-login'],['Guest কী?','explain-guest']];
-    if (state.currentView === 'signup' && state.signupStep === 'personal') return [['নাম কোথায় লিখব?','focus-name'],['DOB সাহায্য','focus-dob'],['Email field','focus-email']];
-    if (state.currentView === 'signup' && state.signupStep === 'education') return [['School খুঁজি','focus-school'],['College/University','focus-college'],['না পেলে কী করব?','explain-manual']];
+    if (state.currentView === 'signup' && state.signupStep === 'personal') return [['নাম কোথায় লিখব?','focus-name'],['DOB বেছে নিই','focus-dob'],['Email field','focus-email']];
+    if (state.currentView === 'signup' && state.signupStep === 'dob') return [['তারিখ বেছে নিই','focus-dob'],['Personal-এ ফিরি','focus-name']];
+    if (state.currentView === 'signup' && ['school', 'college'].includes(state.signupStep)) return [['School খুঁজি','focus-school'],['College/University','focus-college'],['না পেলে কী করব?','explain-manual']];
     if (state.currentView === 'signup') return [['ভালো Password কেমন?','explain-password'],['Password field','focus-password']];
     if (state.currentView === 'verify') return [['Email কীভাবে?','explain-email'],['Telegram কীভাবে?','explain-telegram']];
     if (state.currentView === 'telegram') return [['START কোথায়?','explain-telegram'],['Code নিরাপত্তা','explain-code']];
@@ -826,9 +923,9 @@
     if (action === 'open-login') { showView('login'); return appendGuideBubble('Log In page খুলেছি। Email ও Password শুধু form-এ লিখবে।'); }
     if (action === 'focus-name') focus('#ah-signup-name');
     else if (action === 'focus-email') focus(state.currentView === 'login' ? '#ah-login-email' : '#ah-signup-email');
-    else if (action === 'focus-dob') focus('#ah-dob-day');
-    else if (action === 'focus-school') focus('#ah-signup-school');
-    else if (action === 'focus-college') focus('#ah-signup-college');
+    else if (action === 'focus-dob') { setSignupStep('dob'); focus('#ah-dob-day'); }
+    else if (action === 'focus-school') { setSignupStep('school'); focus('#ah-signup-school'); }
+    else if (action === 'focus-college') { setSignupStep('college'); focus('#ah-signup-college'); }
     else if (action === 'focus-password') focus('#ah-signup-password');
     appendGuideBubble(messages[action] || 'Field-টি সামনে এনেছি। কোনো secure submit আমি নিজে করব না—শেষ সিদ্ধান্ত তোমার।');
   };
@@ -922,16 +1019,18 @@
     if (name === 'verify') {
       const selecting = state.verification?.mode === 'select';
       const sent = state.verification?.emailSent === true;
+      const verificationView = $('[data-view="verify"]');
+      if (verificationView) verificationView.dataset.mode = selecting ? 'select' : 'email';
       const currentMask = $('[data-role="mask"]');
       if (currentMask) currentMask.textContent = state.verification?.emailMasked || 'তোমার Email-এ';
-      $('[data-role="verification-title"]').textContent = selecting ? 'Verification method বেছে নাও' : 'Email verification শেষ করো';
+      $('[data-role="verification-title"]').textContent = selecting ? 'কিভাবে verify করতে চাও?' : 'Verification pending…';
       $('[data-role="verification-badge"]').textContent = selecting ? '✓' : '✉';
       $('[data-role="verification-selection"]').hidden = !selecting;
       $('[data-role="verification-email-panel"]').hidden = selecting;
       $('[data-role="telegram-verification-start"]').hidden = !state.capabilities.telegram.available;
       const copy = $('[data-role="verification-email-copy"]');
       if (copy) copy.innerHTML = sent
-        ? 'Verification link পাঠানো হয়েছে <strong data-role="mask"></strong>। Inbox-এর সঙ্গে Spam/Promotions-ও দেখো।'
+        ? 'Verification link পাঠানো হয়েছে <strong data-role="mask"></strong>। Email app-এ link-এ tap করে এখানে ফিরে আসো।'
         : 'এই মুহূর্তে <strong data-role="mask"></strong> নতুন Email পাঠানো হয়নি। নিচের resend option দিয়ে সত্যিকারের link চাইতে পারো।';
       const mask = $('[data-role="mask"]');
       if (mask) mask.textContent = state.verification?.emailMasked || 'তোমার Email-এ';
@@ -939,7 +1038,21 @@
       $('[data-role="telegram-alternative"]').hidden = !state.capabilities.telegram.available;
       updateResendCooldown();
     }
-    if (name === 'telegram') renderTelegramState();
+    if (name === 'email-intro') {
+      const address = $('[data-role="email-intro-address"]');
+      if (address) address.textContent = state.verification?.emailMasked || state.verification?.email || 'তোমার Email';
+    }
+    if (name === 'telegram') { renderTelegramDigits(); renderTelegramState(); }
+    if (name === 'verified') {
+      const label = ['Email', 'Telegram'].includes(state.verificationLabel) ? state.verificationLabel : 'Account';
+      $('[data-role="verified-title"]').textContent = `${label} Verified! 🎉`;
+      $('[data-role="verified-copy"]').textContent = label === 'Telegram'
+        ? 'তোমার Telegram account-এর নিয়ন্ত্রণ নিশ্চিত হয়েছে। এটি Email মালিকানার দাবি নয়।'
+        : label === 'Email'
+          ? 'তোমার Email এবং Admission Hub account নিরাপদভাবে যাচাই হয়েছে।'
+          : 'তোমার Admission Hub account নিরাপদভাবে যাচাই হয়েছে।';
+      $('[data-role="verified-method-row"]').textContent = `✓ ${label} Verified`;
+    }
     if (name === 'signed') {
       $('[data-role="identity"]').textContent = state.session?.user?.emailMasked || 'যাচাইকৃত account';
       const byTelegram = state.session?.telegramVerified === true && state.session?.emailVerified !== true;
@@ -952,12 +1065,17 @@
     const focusTarget = {
       welcome: () => $('[data-role="welcome-signup"]'),
       forgot: () => $('#ah-forgot-email'),
+      created: () => $('[data-role="created-continue"]'),
       verify: () => state.verification?.mode === 'select'
         ? $('[data-role="email-verification-start"]') : $('[data-role="open-email"]'),
+      'email-intro': () => $('[data-role="email-intro-continue"]'),
+      'whatsapp-info': () => $('[data-role="whatsapp-info-back"]'),
+      'telegram-intro': () => $('[data-role="telegram-intro-continue"]'),
       telegram: () => $('#ah-telegram-code'),
       'google-link': () => $('#ah-link-email'),
       resend: () => $('#ah-resend-email'),
       backup: () => $('#ah-backup-code'),
+      verified: () => $('[data-role="verified-continue"]'),
       'security-setup': () => $('[data-role="setup-passkey"]'),
       success: () => $('[data-role="enter-app"]'),
       signed: () => $('[data-role="close"]')
@@ -1113,10 +1231,14 @@
     rememberEntry('account');
     updateLauncher();
     const showSetup = offerPasskey && state.capabilities.passkey.enrollmentAvailable && passkeyBrowserReady();
-    if (showSetup) showView('security-setup');
-    else if (onboarding) showReadyTransition();
+    if (onboarding) {
+      state.verificationLabel = result?.emailVerified === true ? 'Email' : result?.telegramVerified === true ? 'Telegram' : 'Account';
+      state.afterVerified = showSetup ? 'security-setup' : 'success';
+      showView('verified');
+    } else if (showSetup) showView('security-setup');
     else showView('signed');
-    message(text, 'success');
+    if (onboarding) message();
+    else message(text, 'success');
     refreshPasskeyStatus();
     if (!onboarding) syncPendingProfile();
   };
@@ -1171,7 +1293,7 @@
         if (state.signupJourney || pendingSignup()) showReadyTransition();
         else showView('signed');
       }
-      message(result.registered ? 'Passkey নিরাপদভাবে যুক্ত হয়েছে।' : 'Passkey যোগ করা যায়নি।', result.registered ? 'success' : 'error');
+      if (!onboarding || !result.registered) message(result.registered ? 'Passkey নিরাপদভাবে যুক্ত হয়েছে।' : 'Passkey যোগ করা যায়নি।', result.registered ? 'success' : 'error');
     } catch (error) { message(passkeyErrorMessage(error), 'error'); }
     finally { setBusy(false); }
   };
@@ -1482,7 +1604,6 @@
       state.verification.emailMasked = result.verification?.emailMasked || state.verification.emailMasked;
       startResendCooldown(result.verification?.resendAfter || state.resendCooldownSeconds);
       showView('verify');
-      message('Verification Email পাঠানো হয়েছে। Inbox-এর সঙ্গে Spam/Promotions-ও দেখো।', 'success');
     } catch (error) { message(friendlyError(error), 'error'); }
     finally { setBusy(false); }
   };
@@ -1507,7 +1628,6 @@
       if (!setTelegramChallenge(result)) throw new Error('Telegram যাচাই এখন পাওয়া যাচ্ছে না।');
       if (state.signupJourney || pendingSignup()) rememberPendingSignup(true, 'telegram');
       showView('telegram');
-      message('Official Telegram bot খুলে START চাপুন, তারপর পাওয়া ৬ সংখ্যার code লিখুন।', 'success');
     } catch (error) {
       if (error.retryAfter > 0 && state.telegram) state.telegram.resendUntil = Date.now() + error.retryAfter * 1000;
       message(friendlyError(error), 'error');
@@ -1563,6 +1683,7 @@
     });
 
     populateDob();
+    updateDobPreview();
     setupInstitutionSearch('school');
     setupInstitutionSearch('college');
     $('#ah-dob-day').addEventListener('change', updateDobPreview);
@@ -1570,6 +1691,7 @@
       syncDobDays();
       updateDobPreview();
     }));
+    $('#ah-telegram-code').addEventListener('input', renderTelegramDigits);
     $('#ah-signup-name').addEventListener('input', () => {
       const name = normalizedName();
       showFieldFeedback('name-feedback', !name ? '' : validName(name) ? '✓ সুন্দর—নামটি ঠিক আছে' : 'নামের মধ্যে অন্তত ২টি অক্ষর দাও।', validName(name) ? 'valid' : name ? 'error' : '');
@@ -1609,14 +1731,21 @@
       updatePasswordFeedback();
       showView(entryMode() ? 'login' : 'welcome');
     });
-    $('[data-role="signup-next-education"]').addEventListener('click', () => setSignupStep('education', { validate: true }));
+    $('[data-role="open-dob"]').addEventListener('click', () => setSignupStep('dob', { validate: true }));
+    $('[data-role="signup-next-dob"]').addEventListener('click', () => setSignupStep('dob', { validate: true }));
     $('[data-role="signup-back-personal"]').addEventListener('click', () => setSignupStep('personal'));
+    $('[data-role="signup-next-education"]').addEventListener('click', () => setSignupStep('school', { validate: true }));
+    $('[data-role="signup-back-dob"]').addEventListener('click', () => setSignupStep('dob'));
+    $('[data-role="signup-next-college"]').addEventListener('click', () => setSignupStep('college', { validate: true }));
+    $('[data-role="signup-back-school"]').addEventListener('click', () => setSignupStep('school'));
     $('[data-role="signup-next-security"]').addEventListener('click', () => setSignupStep('security', { validate: true }));
-    $('[data-role="signup-back-education"]').addEventListener('click', () => setSignupStep('education'));
+    $('[data-role="signup-back-education"]').addEventListener('click', () => setSignupStep('college'));
     overlay.querySelectorAll('[data-signup-step-button]').forEach(button => button.addEventListener('click', () => {
-      const target = button.dataset.signupStepButton;
-      const order = ['personal', 'education', 'security'];
-      if (order.indexOf(target) <= order.indexOf(state.signupStep)) setSignupStep(target);
+      const target = button.dataset.signupStepButton === 'education' ? 'school' : button.dataset.signupStepButton;
+      const order = ['personal', 'dob', 'school', 'college', 'security'];
+      const current = order.indexOf(state.signupStep);
+      const next = order.indexOf(target);
+      if (next <= current) setSignupStep(target);
       else setSignupStep(target, { validate: true });
     }));
 
@@ -1688,20 +1817,28 @@
       $('#ah-signup-confirm').value = '';
       showView('login');
     });
+    $('[data-role="verified-continue"]').addEventListener('click', () => {
+      if (state.afterVerified === 'security-setup') showView('security-setup');
+      else showReadyTransition();
+    });
     $('[data-role="passkey-login"]').addEventListener('click', loginWithPasskey);
     $('[data-role="passkey-add"]').addEventListener('click', addPasskey);
     $('[data-role="setup-passkey"]').addEventListener('click', () => addPasskey({ onboarding: true }));
     $('[data-role="setup-skip"]').addEventListener('click', () => {
       if (state.signupJourney || pendingSignup()) showReadyTransition();
-      else showView('signed');
-      message('Passkey এখন যোগ করা হয়নি—অন্য Log In পথগুলো চালু আছে।', 'info');
+      else {
+        showView('signed');
+        message('Passkey এখন যোগ করা হয়নি—অন্য Log In পথগুলো চালু আছে।', 'info');
+      }
     });
 
     $('[data-view="signup"]').addEventListener('submit', async event => {
       event.preventDefault();
       if (state.busy || !ensureAvailable()) return;
       if (!validatePersonal()) { setSignupStep('personal'); validatePersonal(); return; }
-      if (!validateEducation()) { setSignupStep('education'); validateEducation(); return; }
+      if (!validateDob()) { setSignupStep('dob'); validateDob(); return; }
+      if (!validateSchool()) { setSignupStep('school'); validateSchool(); return; }
+      if (!validateCollege()) { setSignupStep('college'); validateCollege(); return; }
       if (!validateSecurity()) { setSignupStep('security'); validateSecurity(); return; }
       const email = $('#ah-signup-email').value.trim();
       const password = $('#ah-signup-password').value;
@@ -1729,10 +1866,7 @@
         state.telegram = null;
         await syncPendingProfile({ pending: true });
         if (emailSent) startResendCooldown(result.verification?.resendAfter || state.resendCooldownSeconds);
-        showView('verify');
-        message(selectionRequired
-          ? 'Account তৈরি হয়েছে। এখন Email অথবা Telegram—একটি verification method বেছে নাও।'
-          : 'Account তৈরি হয়েছে এবং verification Email পাঠানো হয়েছে।', 'success');
+        showView('created');
       } catch (error) {
         if (error.code === 'EMAIL_ALREADY_IN_USE') {
           clearResendCooldown();
@@ -1815,9 +1949,16 @@
     });
     $('[data-role="link-cancel"]').addEventListener('click', () => { $('#ah-link-password').value = ''; prefillLogin($('#ah-link-email').value); showView('login'); });
 
-    $('[data-role="email-verification-start"]').addEventListener('click', beginEmailVerification);
-    $('[data-role="telegram-verification-start"]').addEventListener('click', beginTelegramVerification);
-    $('[data-role="telegram-alternative"]').addEventListener('click', beginTelegramVerification);
+    $('[data-role="created-continue"]').addEventListener('click', () => showView('verify'));
+    $('[data-role="email-verification-start"]').addEventListener('click', () => showView('email-intro'));
+    $('[data-role="email-intro-continue"]').addEventListener('click', beginEmailVerification);
+    $('[data-role="email-intro-back"]').addEventListener('click', () => showView('verify'));
+    $('[data-role="whatsapp-info"]').addEventListener('click', () => showView('whatsapp-info'));
+    $('[data-role="whatsapp-info-back"]').addEventListener('click', () => showView('verify'));
+    $('[data-role="telegram-verification-start"]').addEventListener('click', () => showView('telegram-intro'));
+    $('[data-role="telegram-intro-continue"]').addEventListener('click', beginTelegramVerification);
+    $('[data-role="telegram-intro-back"]').addEventListener('click', () => showView('verify'));
+    $('[data-role="telegram-alternative"]').addEventListener('click', () => showView('telegram-intro'));
     $('[data-role="telegram-email-back"]').addEventListener('click', () => {
       if (state.signupJourney || pendingSignup()) rememberPendingSignup(true, state.verification?.mode === 'email' ? 'email' : 'select');
       showView('verify');
@@ -1841,6 +1982,7 @@
         establishSession(result, 'Telegram account verification সফল। তোমার Admission Hub account সক্রিয় হয়েছে।');
       } catch (error) {
         $('#ah-telegram-code').value = '';
+        renderTelegramDigits();
         const mode = error.code === 'OTP_EXPIRED' ? 'expired'
           : error.code === 'OTP_LOCKED' ? 'locked'
             : error.code === 'TELEGRAM_VERIFICATION_PENDING' ? 'waiting'

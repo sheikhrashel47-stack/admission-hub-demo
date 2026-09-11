@@ -143,13 +143,29 @@ jobs:
           node -e "const x=JSON.parse(process.argv[1]); const a=x?.auth; const b=a?.methods?.backup; const t=a?.methods?.telegramVerification; if(a?.accountVerificationRequired!==true||a?.emailVerifiedRequired!==false||b?.available!==true||b?.availabilityCode!=='READY'||b?.genericFlow!==true||b?.providerNamesExposed!==false||b?.contactInput!=='none'||/telegram|bot|token|username|chat/i.test(JSON.stringify(b))||t?.available!==true||t?.availabilityCode!=='READY'||t?.optional!==true||t?.codeLength!==6||t?.expiresInSeconds!==300||t?.maxAttempts!==5||t?.verifiesEmailOwnership!==false||t?.canonicalIdentity!=='firebase-uid') process.exit(1)" "$canary_body"
           public_html="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/')"
           printf '%s' "$public_html" | grep -Fq 'institutions-bd.js?v=bd-institutions-v1'
-          printf '%s' "$public_html" | grep -Fq 'account-access.js?v=20260911-premium-onboarding-v2'
-          auth_ui="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/account-access.js?v=20260911-premium-onboarding-v2')"
+          printf '%s' "$public_html" | grep -Fq 'account-access.css?v=20260911-reference-onboarding-v2'
+          printf '%s' "$public_html" | grep -Fq 'account-access.js?v=20260911-reference-onboarding-v2'
+          printf '%s' "$public_html" | grep -Fq 'dashboard-v2.css?v=dash2f8'
+          printf '%s' "$public_html" | grep -Fq 'dashboard-v2.js?v=dash2f8'
+          printf '%s' "$public_html" | grep -Fq 'phase12-ui.js?v=nav-resume-router-v9-guest'
+          printf '%s' "$public_html" | grep -Fq 'sw.js?v=v235-reference-onboarding-20260911'
+          auth_ui="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/account-access.js?v=20260911-reference-onboarding-v2')"
+          auth_css="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/account-access.css?v=20260911-reference-onboarding-v2')"
+          dashboard_ui="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/dashboard-v2.js?v=dash2f8')"
+          guest_nav="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/phase12-ui.js?v=nav-resume-router-v9-guest')"
+          public_sw="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/sw.js?v=v235-reference-onboarding-20260911')"
+          curl --fail --silent --show-error --connect-timeout 10 --max-time 30 --output /dev/null 'https://admissionhub.pages.dev/onboarding-welcome-hero.webp?v=reference-onboarding-v2'
           printf '%s' "$auth_ui" | grep -Fq "'X-AH-Auth-UI': 'auth-premium-v6'"
-          printf '%s' "$auth_ui" | grep -Fq 'data-role="email-verification-start"'
-          printf '%s' "$auth_ui" | grep -Fq 'data-role="telegram-verification-start"'
-          printf '%s' "$auth_ui" | grep -Fq 'premium-onboarding'
-          echo 'Public Email-or-Telegram selection and current cache-safe UI are READY; generic backup and Passkey login remain protected.'
+          printf '%s' "$auth_ui" | grep -Fq 'data-visual-contract="reference-onboarding-v2"'
+          printf '%s' "$auth_ui" | grep -Fq 'data-view="email-intro"'
+          printf '%s' "$auth_ui" | grep -Fq 'data-view="telegram-intro"'
+          printf '%s' "$auth_ui" | grep -Fq 'data-otp-digit="5"'
+          printf '%s' "$auth_ui" | grep -Fq 'Email OTP নয়'
+          printf '%s' "$auth_css" | grep -Fq 'Reference onboarding visual contract v2'
+          printf '%s' "$dashboard_ui" | grep -Fq 'data-dashboard-contract="reference-guest-v2"'
+          printf '%s' "$guest_nav" | grep -Fq 'data-guest-nav="reference-guest-v2"'
+          printf '%s' "$public_sw" | grep -Fq "const BUILD_ID = 'v235-reference-onboarding-20260911'"
+          echo 'Reference onboarding v2, truthful Email/Telegram verification, narrow Guest dashboard, and cache-safe assets are READY; generic backup and pre-verification Passkey remain protected.'
 
       - name: Verify Google browser origin remains accepted
         run: node auth-native/operations/verify-google-browser-origin.mjs
