@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v239-native-personal-20260911';
+const BUILD_ID = 'v240-code-native-entry-20260911';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const DOCUMENT_NETWORK_TIMEOUT_MS = 2500;
@@ -15,12 +15,11 @@ const APP_SHELL = [
   './manifest.json',
   './manifest.webmanifest',
   './dashboard-v2.css?v=dash2f9',
-  './onboarding-welcome-hero.webp?v=static-reference-welcome-v3',
   './3d-loader.css?v=3d-v1',
   './session-persist.js?v=session-v1',
-  './account-access.css?v=20260911-native-personal-v2-ai-scope',
+  './account-access.css?v=20260911-code-native-entry-v1-ai-scope',
   './institutions-bd.js?v=bd-institutions-v1',
-  './account-access.js?v=20260911-native-personal-v2-ai-scope',
+  './account-access.js?v=20260911-code-native-entry-v1-ai-scope',
   './data-protection.js?v=dp-v3-fastboot',
   './dashboard-v2.js?v=dash2f10-main-ai',
   './ai-agent-chat.js?v=agent-f1-ui-chatv15-identity',

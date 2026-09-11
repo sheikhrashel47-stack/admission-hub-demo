@@ -65,7 +65,7 @@
   pageHost.className = 'ah-account-page';
   pageHost.hidden = true;
   pageHost.innerHTML = `
-    <main class="ah-account-shell" aria-labelledby="ah-account-title" data-current-view="login" data-visual-contract="static-page-system-v3">
+    <main class="ah-account-shell" aria-labelledby="ah-account-title" data-current-view="login" data-visual-contract="code-native-page-system-v1">
       <button class="ah-account-close" type="button" data-role="close" aria-label="বন্ধ করুন">×</button>
       <header class="ah-account-head">
         <p class="ah-account-kicker">Admission Hub</p>
@@ -75,29 +75,55 @@
       <div class="ah-account-body">
         <div class="ah-account-message" data-role="message" hidden aria-live="polite"></div>
 
-        <div class="ah-account-view ah-welcome-view" data-view="welcome" hidden data-page-contract="static-reference-welcome-v3">
+        <div class="ah-account-view ah-welcome-view" data-view="welcome" hidden data-page-contract="code-native-welcome-v1" data-media-contract="zero-raster-entry-v1">
+          <div class="ah-code-ambient" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
           <header class="ah-welcome-header">
             <div class="ah-brand-lockup" aria-label="Admission Hub">
               <span class="ah-brand-mark" aria-hidden="true"><svg viewBox="0 0 48 42" fill="none"><path d="M3 13 24 3l21 10-21 10L3 13Z"/><path d="M10 18v12c9 8 19 8 28 0V18"/><path d="M43 14v13"/><circle cx="43" cy="30" r="2.5"/></svg></span>
-              <span><strong>ADMISSION <em>HUB</em></strong><small>Your Smarter Admission Companion</small></span>
+              <span><strong>Admission <em>Hub</em></strong><small>Learn · Practice · Progress</small></span>
             </div>
             <label class="ah-language-picker"><span class="sr-only">ভাষা বেছে নাও</span><select data-role="welcome-language" aria-label="ভাষা বেছে নাও"><option value="bn">বাংলা</option><option value="en">English</option></select></label>
           </header>
 
-          <div class="ah-academic-hero" data-role="academic-hero">
-            <img src="./onboarding-welcome-hero.webp?v=static-reference-welcome-v3" alt="বিশ্ববিদ্যালয় ক্যাম্পাসের সামনে বই ও লক্ষ্যচিহ্নসহ একজন শিক্ষার্থী" width="853" height="625" decoding="async" fetchpriority="high">
+          <div class="ah-welcome-stage">
+            <section class="ah-welcome-copy" aria-labelledby="ah-welcome-heading">
+              <p class="ah-welcome-eyebrow"><span aria-hidden="true"></span><b data-bn="তোমার প্রস্তুতি, তোমার নিয়ন্ত্রণে" data-en="Your preparation, under your control">তোমার প্রস্তুতি, তোমার নিয়ন্ত্রণে</b></p>
+              <h1 id="ah-welcome-heading" data-bn="স্বপ্ন শুধু দেখো না—|পথটা আজ থেকেই তৈরি করো।" data-en="Don't just dream—|build the path from today.">স্বপ্ন শুধু দেখো না—<br><em>পথটা আজ থেকেই তৈরি করো।</em></h1>
+              <p data-bn="পড়াশোনা, practice, mock test আর progress—|একটি শান্ত ও বুদ্ধিমান workspace-এ।" data-en="Learning, practice, mock tests and progress—|inside one calm, intelligent workspace.">পড়াশোনা, practice, mock test আর progress—<br>একটি শান্ত ও বুদ্ধিমান workspace-এ।</p>
+              <div class="ah-welcome-pills" aria-label="প্রধান সুবিধা">
+                <span><i aria-hidden="true">✓</i><b data-bn="পরিকল্পিত শেখা" data-en="Guided learning">পরিকল্পিত শেখা</b></span>
+                <span><i aria-hidden="true">✓</i><b data-bn="স্মার্ট অনুশীলন" data-en="Smart practice">স্মার্ট অনুশীলন</b></span>
+                <span><i aria-hidden="true">✓</i><b data-bn="নিজস্ব অগ্রগতি" data-en="Personal progress">নিজস্ব অগ্রগতি</b></span>
+              </div>
+            </section>
+
+            <section class="ah-journey-console" data-native-welcome-visual="journey-console-v1" aria-label="Admission প্রস্তুতির interactive journey map">
+              <div class="ah-console-grid" aria-hidden="true"></div>
+              <header class="ah-console-head">
+                <span><i aria-hidden="true"></i><b>STUDY PATH</b></span>
+                <small>EXPLORE</small>
+              </header>
+              <div class="ah-console-core">
+                <div class="ah-core-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+                <span class="ah-core-mark" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M8 20 24 11l16 9-16 9-16-9Z"/><path d="M13 25v9c7 6 15 6 22 0v-9M39 22v10"/></svg></span>
+                <div><small>YOUR NEXT MOVE</small><strong data-bn="শেখা থেকে অর্জন" data-en="Learn to achieve">শেখা থেকে অর্জন</strong><span data-bn="এক ধাপ করে সামনে" data-en="One clear step at a time">এক ধাপ করে সামনে</span></div>
+              </div>
+              <div class="ah-route-track" aria-hidden="true"><span class="done"></span><i></i><span></span><i></i><span></span><b></b></div>
+              <div class="ah-console-modules">
+                <article><span class="mint" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5c3.5-1.3 6.2-.5 8 1.5v12c-2.3-2-5-2.6-8-1.6V5.5Zm16 0c-3.5-1.3-6.2-.5-8 1.5v12c2.3-2 5-2.6 8-1.6V5.5Z"/></svg></span><div><small>LEARN</small><strong data-bn="পরিষ্কার ধারণা" data-en="Clear concepts">পরিষ্কার ধারণা</strong></div></article>
+                <article><span class="blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="m8 12 2.5 2.5L16.5 8"/></svg></span><div><small>PRACTICE</small><strong data-bn="নিজেকে যাচাই" data-en="Test yourself">নিজেকে যাচাই</strong></div></article>
+                <article><span class="gold" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="m15 9 5-5m0 0v4m0-4h-4"/></svg></span><div><small>PROGRESS</small><strong data-bn="লক্ষ্যের দিকে" data-en="Toward your goal">লক্ষ্যের দিকে</strong></div></article>
+              </div>
+              <footer class="ah-console-foot"><span><i></i>ONE CLEAR PATH</span><b data-bn="আজ থেকেই শুরু" data-en="Start today">আজ থেকেই শুরু</b></footer>
+            </section>
           </div>
 
-          <section class="ah-welcome-copy" aria-labelledby="ah-welcome-heading">
-            <h1 id="ah-welcome-heading" data-bn="তোমার স্বপ্নের|বিশ্ববিদ্যালয়ের পথে,|প্রথম ধাপটা আজ থেকেই।" data-en="Your dream university|journey begins|with the first step today.">তোমার স্বপ্নের<br><em>বিশ্ববিদ্যালয়ের পথে,</em><br>প্রথম ধাপটা আজ থেকেই।</h1>
-            <p data-bn="পড়াশোনা, practice আর preparation—|সবকিছু এক জায়গায়।" data-en="Learning, practice and preparation—|everything in one place.">পড়াশোনা, practice আর preparation—<br>সবকিছু এক জায়গায়।</p>
-          </section>
-
           <section class="ah-welcome-benefits" aria-label="Admission Hub সুবিধা">
-            <article><i class="learn" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M5 7c5-2 9-1 11 2v17c-3-3-7-4-11-2V7Zm22 0c-5-2-9-1-11 2v17c3-3 7-4 11-2V7Z"/></svg></i><strong>Learn</strong><small>From expert<br>resources</small></article>
-            <article><i class="practice" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="5" y="5" width="22" height="22" rx="4"/><path d="m10 16 4 4 9-10"/></svg></i><strong>Practice</strong><small>With smart<br>question bank</small></article>
-            <article><i class="improve" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M6 25V17m7 8V12m7 13V8m6 17V4M5 11l7-5 6 3 8-6"/></svg></i><strong>Improve</strong><small>Track your<br>progress</small></article>
-            <article><i class="achieve" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M10 5h12v5c0 6-3 9-6 9s-6-3-6-9V5Z"/><path d="M10 8H5c0 5 2 8 7 8m10-8h5c0 5-2 8-7 8M16 19v5m-6 3h12"/></svg></i><strong>Achieve</strong><small>Your dream<br>university</small></article>
+            <article><i class="learn" aria-hidden="true">01</i><span><strong data-bn="শিখবে" data-en="Learn">শিখবে</strong><small data-bn="সহজ ও গোছানো resource" data-en="Clear, organized resources">সহজ ও গোছানো resource</small></span></article>
+            <article><i class="practice" aria-hidden="true">02</i><span><strong data-bn="অনুশীলন করবে" data-en="Practice">অনুশীলন করবে</strong><small data-bn="প্রশ্ন ও mock test" data-en="Questions and mock tests">প্রশ্ন ও mock test</small></span></article>
+            <article><i class="improve" aria-hidden="true">03</i><span><strong data-bn="উন্নতি বুঝবে" data-en="Improve">উন্নতি বুঝবে</strong><small data-bn="নিজের progress পরিষ্কার দেখবে" data-en="See your progress clearly">নিজের progress পরিষ্কার দেখবে</small></span></article>
+            <article><i class="achieve" aria-hidden="true">04</i><span><strong data-bn="লক্ষ্যে পৌঁছাবে" data-en="Achieve">লক্ষ্যে পৌঁছাবে</strong><small data-bn="নিজস্ব admission roadmap" data-en="Your admission roadmap">নিজস্ব admission roadmap</small></span></article>
           </section>
 
           <div class="ah-entry-actions" aria-label="প্রবেশের পদ্ধতি">
@@ -107,7 +133,7 @@
             <button class="ah-account-link ah-entry-guest" type="button" data-role="continue-guest"><span class="ah-entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="3"/><path d="M5.5 20c.8-4.5 2.9-6.7 6.5-6.7s5.7 2.2 6.5 6.7"/></svg></span><span data-bn="Continue as Guest" data-en="Continue as Guest">Continue as Guest</span><b aria-hidden="true">→</b></button>
           </div>
 
-          <div class="ah-welcome-landscape" aria-hidden="true"><svg viewBox="0 0 390 86" preserveAspectRatio="none"><path class="hill-back" d="M0 49c44-26 76-25 112-6 44 24 75 18 116-7 51-31 100-22 162 9v41H0V49Z"/><path class="hill-front" d="M0 64c51-18 86-13 126 4 48 20 91 12 139-10 43-20 82-16 125 2v26H0V64Z"/><g class="campus"><path d="M28 62h48v18H28zM36 54h32v8H36zM48 45h8v9h-8zM43 45l9-7 9 7M22 80h60"/><path d="M35 66v14m10-14v14m14-14v14m10-14v14"/></g><g class="trees"><path d="M8 70V49m0 3-5 10h10L8 52Zm84 22V53m0 2-6 12h12L92 55Zm16 20V58m0 2-5 10h10l-5-10Z"/></g></svg></div>
+          <footer class="ah-welcome-trust"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.8 2.5 8 7 10 4.5-2 7-5.2 7-10V6l-7-3Z"/><path d="m9.5 12 1.7 1.7 3.6-4"/></svg></span><p><strong data-bn="নিরাপদ ও শান্ত শুরু" data-en="A safe, calm start">নিরাপদ ও শান্ত শুরু</strong><small data-bn="তোমার পছন্দের আগে কোনো verification পাঠানো হবে না।" data-en="No verification is sent before you choose a method.">তোমার পছন্দের আগে কোনো verification পাঠানো হবে না।</small></p></footer>
         </div>
 
         <form class="ah-account-view ah-login-view" data-view="login" novalidate>
@@ -134,56 +160,59 @@
           <button class="ah-account-secondary" type="button" data-role="forgot-back">Login-এ ফিরুন</button>
         </form>
 
-        <form class="ah-account-view ah-signup-view" data-view="signup" data-personal-visual-contract="native-reference-personal-v2" data-signup-current-step="personal" hidden novalidate>
+        <form class="ah-account-view ah-signup-view" data-view="signup" data-personal-visual-contract="interactive-native-personal-v1" data-media-contract="zero-raster-entry-v1" data-signup-current-step="personal" hidden novalidate>
           <header class="ah-signup-topbar">
             <div class="ah-signup-brand" aria-label="Admission Hub">
               <span class="ah-signup-brand-mark" aria-hidden="true"><svg viewBox="0 0 44 34" fill="none"><path d="m3 12 19-9 19 9-19 9L3 12Z"/><path d="M10 16v8c7 5 17 5 24 0v-8l-12 6-12-6Z"/><path d="M38 14v9"/><circle cx="38" cy="25" r="2"/></svg></span>
-              <span><strong>Admission <em>Hub</em></strong><small>Your Path to Success</small></span>
+              <span><strong>Admission <em>Hub</em></strong><small>Build your admission profile</small></span>
             </div>
+            <span class="ah-signup-secure"><i aria-hidden="true"></i>Private</span>
           </header>
 
           <nav class="ah-signup-progress" aria-label="Signup progress">
             <ol>
-              <li><button type="button" class="active" data-signup-step-button="personal" aria-current="step"><i>01</i><span>Personal</span></button></li>
-              <li><button type="button" data-signup-step-button="education"><i>02</i><span>Education</span></button></li>
-              <li><button type="button" data-signup-step-button="security"><i>03</i><span>Security</span></button></li>
+              <li><button type="button" class="active" data-signup-step-button="personal" aria-current="step"><i>01</i><span>Personal</span><small>তোমার পরিচয়</small></button></li>
+              <li><button type="button" data-signup-step-button="education"><i>02</i><span>Education</span><small>শিক্ষার তথ্য</small></button></li>
+              <li><button type="button" data-signup-step-button="security"><i>03</i><span>Security</span><small>নিরাপদ account</small></button></li>
             </ol>
           </nav>
 
           <section class="ah-signup-panel ah-personal-panel" data-signup-panel="personal" aria-labelledby="ah-personal-title">
-            <div class="ah-personal-hero" aria-hidden="true" data-illustration-contract="native-dom-profile-v1">
-              <span class="ah-native-orbit ah-native-orbit-one"></span><span class="ah-native-orbit ah-native-orbit-two"></span>
-              <span class="ah-native-spark ah-native-spark-one"></span><span class="ah-native-spark ah-native-spark-two"></span><span class="ah-native-dot"></span>
-              <div class="ah-native-book"><span></span><span></span><i></i></div>
-              <div class="ah-native-cap"><span></span><i></i><b></b></div>
-              <div class="ah-native-plane"></div>
-              <div class="ah-native-leaf"><span></span></div>
-              <div class="ah-native-pedestal"><span></span><i></i><b></b></div>
-              <div class="ah-native-profile"><span class="ah-native-profile-head"></span><span class="ah-native-profile-body"></span><i></i></div>
-            </div>
-            <div class="ah-personal-copy">
-              <h1 id="ah-personal-title"><span>চলো, তোমার</span><em>পরিচয়টা তৈরি করি</em></h1>
-              <p>কয়েকটি তথ্য দিলেই তোমার জন্য Admission Hub আরও ব্যক্তিগত হয়ে উঠবে।</p>
+            <div class="ah-personal-intro">
+              <div class="ah-personal-copy">
+                <p class="ah-personal-kicker"><i aria-hidden="true"></i>STEP 01 · PERSONAL</p>
+                <h1 id="ah-personal-title">তোমার পরিচয় দিয়ে<br><em>নিজস্ব পথ শুরু করো</em></h1>
+                <p>নাম ও জন্মতারিখ লিখলেই পাশের profile preview-টি সঙ্গে সঙ্গে বদলে যাবে।</p>
+              </div>
+
+              <section class="ah-live-profile" data-profile-preview-contract="input-bound-profile-v1" data-completion="0" style="--ah-profile-progress:0deg" aria-label="তোমার live profile preview">
+                <header><span><i aria-hidden="true"></i>LIVE PROFILE</span><small>LOCAL PREVIEW</small></header>
+                <div class="ah-live-profile-main">
+                  <div class="ah-live-avatar-ring" aria-hidden="true"><div class="ah-live-avatar"><b data-role="personal-live-initials">তু</b><i></i></div></div>
+                  <div class="ah-live-identity"><small>ADMISSION STUDENT</small><strong data-role="personal-live-name">তোমার নাম এখানে দেখা যাবে</strong><output data-role="dob-summary">তারিখ বেছে নাও</output></div>
+                </div>
+                <div class="ah-live-progress-copy"><span>PROFILE COMPLETION</span><b data-role="personal-completion">0%</b></div>
+                <div class="ah-live-progress-bar" aria-hidden="true"><i></i></div>
+                <div class="ah-live-checks" aria-hidden="true"><span data-personal-check="name"><i>✓</i>নাম</span><span data-personal-check="dob"><i>✓</i>জন্মতারিখ</span><span><i>→</i>শিক্ষা</span></div>
+                <div class="ah-live-scan" aria-hidden="true"></div>
+              </section>
             </div>
 
             <div class="ah-personal-card">
               <header>
-                <span aria-hidden="true"><svg viewBox="0 0 34 34" fill="none"><rect x="2" y="2" width="30" height="30" rx="15"/><circle cx="17" cy="13" r="4"/><path d="M10 25c.8-4.2 3.1-6.2 7-6.2s6.2 2 7 6.2"/></svg></span>
-                <div><h2>তোমার সম্পর্কে একটু বলো</h2><p>এই তথ্যগুলো তোমার ব্যক্তিগত learning experience তৈরি করতে সাহায্য করবে।</p></div>
+                <div><p>PROFILE DETAILS</p><h2>মূল তথ্য</h2></div>
+                <span>১ মিনিটেরও কম</span>
               </header>
 
               <div class="ah-account-field ah-personal-name-field">
-                <label class="ah-account-label" for="ah-signup-name">তোমার নাম</label>
-                <div class="ah-personal-input-wrap"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.7-4.6 2.9-6.8 6.5-6.8s5.8 2.2 6.5 6.8"/></svg></span><input class="ah-account-input" id="ah-signup-name" name="fullName" autocomplete="name" maxlength="80" placeholder="তোমার পূর্ণ নাম লিখো" aria-describedby="ah-name-feedback" required></div>
+                <label class="ah-account-label" for="ah-signup-name">তোমার পূর্ণ নাম</label>
+                <div class="ah-personal-input-wrap"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.7-4.6 2.9-6.8 6.5-6.8s5.8 2.2 6.5 6.8"/></svg></span><input class="ah-account-input" id="ah-signup-name" name="fullName" autocomplete="name" maxlength="80" placeholder="যেমন: আরিফ হাসান" aria-describedby="ah-name-feedback" required></div>
                 <p class="ah-field-feedback" id="ah-name-feedback" data-role="name-feedback" aria-live="polite"></p>
               </div>
 
               <fieldset class="ah-personal-dob-card">
-                <legend class="sr-only">জন্মতারিখ বেছে নাও</legend>
-                <div class="ah-personal-dob-heading">
-                  <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5.5" width="16" height="15" rx="3"/><path d="M8 3v5m8-5v5M4 10h16"/><path d="M8 14h2m4 0h2m-8 3h2m4 0h2"/></svg></span>
-                  <div><strong>জন্মতারিখ</strong><small>তোমার বয়স অনুযায়ী অভিজ্ঞতা সাজাতে</small></div>
-                </div>
+                <legend>জন্মতারিখ</legend>
+                <p>সঠিক বয়স অনুযায়ী অভিজ্ঞতা সাজাতে ব্যবহার হবে</p>
                 <div class="ah-dob-selectors">
                   <label><span>দিন</span><select id="ah-dob-day" aria-label="জন্মদিন" required></select></label>
                   <label><span>মাস</span><select id="ah-dob-month" aria-label="জন্মমাস" required></select></label>
@@ -192,13 +221,14 @@
                 <output class="sr-only" data-role="dob-preview" aria-live="polite">তারিখ বেছে নাও</output>
               </fieldset>
 
-              <p class="ah-personal-privacy"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.8 2.5 8 7 10 4.5-2 7-5.2 7-10V6l-7-3Z"/><path d="m9.4 12.1 1.7 1.7 3.7-4"/></svg></span>তোমার তথ্য নিরাপদ রাখা হবে</p>
+              <p class="ah-personal-privacy"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.8 2.5 8 7 10 4.5-2 7-5.2 7-10V6l-7-3Z"/><path d="m9.4 12.1 1.7 1.7 3.7-4"/></svg></span><span><strong>তোমার তথ্য নিরাপদ</strong><small>এটি public profile হিসেবে দেখানো হবে না</small></span></p>
             </div>
 
-            <button class="ah-account-primary ah-personal-next" type="button" data-role="signup-next-education"><span>পরের ধাপ</span><b aria-hidden="true">→</b></button>
-            <div class="ah-personal-landscape" aria-hidden="true"><svg viewBox="0 0 430 88" preserveAspectRatio="none"><path class="sun" d="M301 8a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path class="hill-back" d="M0 47c39-22 72-20 111 0 39 20 78 19 119-5 53-30 108-23 200 16v30H0V47Z"/><path class="hill-front" d="M0 64c53-17 94-11 139 8 51 22 95 11 141-9 47-21 96-16 150 4v21H0V64Z"/><g class="campus"><path d="M24 62h51v22H24zM33 53h33v9H33zM46 43h8v10h-8zM40 43l10-8 10 8M17 84h66"/><path d="M31 67v17m12-17v17m14-17v17m12-17v17"/></g><g class="leaf"><path d="M396 85c-2-20 5-42 24-65 5 29-1 51-24 65Z"/><path d="M397 82c5-18 10-31 19-49"/></g><g class="trees"><path d="M100 84V57m0 2-7 13h14l-7-13Zm18 25V65m0 1-5 10h10l-5-10Z"/></g></svg></div>
+            <div class="ah-personal-actions">
+              <button class="ah-account-primary ah-personal-next" type="button" data-role="signup-next-education"><span>Education-এ এগিয়ে যাও</span><b aria-hidden="true">→</b></button>
+              <p>পরের ধাপে School ও College-এর তথ্য থাকবে</p>
+            </div>
           </section>
-
           <section class="ah-signup-panel ah-institution-panel" data-signup-panel="school" hidden>
             <div class="ah-standalone-heading"><h3>তোমার বিদ্যালয়ের নাম লিখো</h3><p>খুঁজে নাম খুঁজে পেলে সেটি বেছে নাও</p></div>
             <div class="ah-account-field ah-search-field"><label class="sr-only" for="ah-signup-school">তোমার School কোনটি?</label><div class="ah-search-input-wrap"><span aria-hidden="true">⌕</span><input class="ah-account-input" id="ah-signup-school" autocomplete="off" maxlength="120" placeholder="বিদ্যালয়ের নাম লিখো" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ah-school-results" required></div><div class="ah-search-results" id="ah-school-results" role="listbox" hidden></div><p class="ah-field-feedback">সর্বোচ্চ ৪টি suggestion দেখাবে; না পেলে নিজের লেখা ব্যবহার করো।</p></div>
@@ -615,8 +645,7 @@
       ? new Intl.DateTimeFormat('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${dob}T00:00:00Z`))
       : 'তারিখ বেছে নাও';
     pageHost.querySelectorAll('[data-role="dob-preview"],[data-role="dob-summary"]').forEach(output => { output.textContent = label; });
-    const calendarDay = $('.ah-calendar-illustration>span');
-    if (calendarDay) calendarDay.textContent = $('#ah-dob-day')?.value || '—';
+    updatePersonalPreview();
   };
 
   const normalizeInstitutionText = value => String(value || '').normalize('NFKC').toLocaleLowerCase('bn-BD')
@@ -731,6 +760,35 @@
 
   const normalizedName = () => $('#ah-signup-name')?.value.trim().replace(/\s+/g, ' ') || '';
   const validName = value => value.length >= 2 && value.length <= 80 && /^[\p{L}\p{M} .'-]+$/u.test(value) && (value.match(/\p{L}/gu) || []).length >= 2;
+  const firstGrapheme = value => {
+    const input = String(value || '').trim();
+    if (!input) return '';
+    try { return [...new Intl.Segmenter('bn-BD', { granularity: 'grapheme' }).segment(input)][0]?.segment || ''; }
+    catch (_) { return Array.from(input)[0] || ''; }
+  };
+  const updatePersonalPreview = () => {
+    const card = $('[data-profile-preview-contract="input-bound-profile-v1"]');
+    if (!card) return;
+    const name = normalizedName();
+    const nameReady = validName(name);
+    const dobReady = Boolean(selectedDob());
+    const completion = (nameReady ? 50 : name ? 20 : 0) + (dobReady ? 50 : 0);
+    const words = name.split(/\s+/).filter(Boolean);
+    const initials = name ? `${firstGrapheme(words[0])}${words.length > 1 ? firstGrapheme(words[words.length - 1]) : ''}` : 'তু';
+    const initialNode = $('[data-role="personal-live-initials"]');
+    const nameNode = $('[data-role="personal-live-name"]');
+    const completionNode = $('[data-role="personal-completion"]');
+    if (initialNode) initialNode.textContent = initials;
+    if (nameNode) nameNode.textContent = name || 'তোমার নাম এখানে দেখা যাবে';
+    if (completionNode) completionNode.textContent = `${completion}%`;
+    card.dataset.completion = String(completion);
+    card.style.setProperty('--ah-profile-progress', `${completion * 3.6}deg`);
+    card.style.setProperty('--ah-profile-percent', `${completion}%`);
+    const nameCheck = card.querySelector('[data-personal-check="name"]');
+    const dobCheck = card.querySelector('[data-personal-check="dob"]');
+    if (nameCheck) nameCheck.classList.toggle('ready', nameReady);
+    if (dobCheck) dobCheck.classList.toggle('ready', dobReady);
+  };
   const showFieldFeedback = (role, text, kind = '') => {
     const node = $(`[data-role="${role}"]`);
     if (!node) return;
@@ -924,6 +982,7 @@
     if (name === 'signup') {
       populateDob();
       setSignupStep(state.signupStep || 'personal');
+      updateDobPreview();
     }
     if (name === 'verify') {
       const selecting = state.verification?.mode === 'select';
@@ -1599,6 +1658,7 @@
     $('#ah-signup-name').addEventListener('input', () => {
       const name = normalizedName();
       showFieldFeedback('name-feedback', !name ? '' : validName(name) ? '✓ সুন্দর—নামটি ঠিক আছে' : 'নামের মধ্যে অন্তত ২টি অক্ষর দাও।', validName(name) ? 'valid' : name ? 'error' : '');
+      updatePersonalPreview();
     });
     $('#ah-signup-password').addEventListener('input', updatePasswordFeedback);
     $('#ah-signup-confirm').addEventListener('input', updatePasswordFeedback);
@@ -1670,17 +1730,20 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && !pageHost.hidden && state.currentView === 'verify' && state.verification?.mode === 'email') checkEmailVerification({ silent: true });
     });
-    const hero = $('[data-role="academic-hero"]');
-    if (hero && !reducedMotion()) {
-      hero.addEventListener('pointermove', event => {
+    const journeyConsole = $('[data-native-welcome-visual="journey-console-v1"]');
+    if (journeyConsole && !reducedMotion()) {
+      journeyConsole.addEventListener('pointermove', event => {
         if (event.pointerType === 'touch') return;
-        const rect = hero.getBoundingClientRect();
-        const x = ((event.clientX - rect.left) / Math.max(1, rect.width) - .5) * 7;
-        const y = ((event.clientY - rect.top) / Math.max(1, rect.height) - .5) * -5;
-        const svg = hero.querySelector('svg');
-        if (svg) svg.style.transform = `rotateY(${x}deg) rotateX(${y}deg)`;
+        const rect = journeyConsole.getBoundingClientRect();
+        const rotateY = ((event.clientX - rect.left) / Math.max(1, rect.width) - .5) * 3.5;
+        const rotateX = ((event.clientY - rect.top) / Math.max(1, rect.height) - .5) * -2.5;
+        journeyConsole.style.setProperty('--ah-console-rx', `${rotateX}deg`);
+        journeyConsole.style.setProperty('--ah-console-ry', `${rotateY}deg`);
       });
-      hero.addEventListener('pointerleave', () => { const svg = hero.querySelector('svg'); if (svg) svg.style.transform = ''; });
+      journeyConsole.addEventListener('pointerleave', () => {
+        journeyConsole.style.removeProperty('--ah-console-rx');
+        journeyConsole.style.removeProperty('--ah-console-ry');
+      });
     }
 
     $('[data-role="show-signup"]').addEventListener('click', () => {
