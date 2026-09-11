@@ -130,7 +130,10 @@ test('Google and the explicit Email-or-Telegram selector are public while Passke
   assert.match(activationWorkflow, /verify-google-browser-origin\.mjs/);
   assert.match(activationWorkflow, /methods\?\.passkey\?\.available!==false/);
   assert.match(activationWorkflow, /methods\?\.backup\?\.available!==false/);
+  assert.match(googleBrowserOriginOperation, /waitForSelector\('\.ah-account-page', \{ state: 'attached'/);
+  assert.doesNotMatch(googleBrowserOriginOperation, /waitForSelector\('\.ah-account-launcher'/);
   assert.match(googleBrowserOriginOperation, /firstEntryWelcome/);
+  assert.match(googleBrowserOriginOperation, /\.ah-account-launcher'\)\.waitFor\(\{ state: 'visible'/);
   assert.match(googleBrowserOriginOperation, /welcome-google-button/);
   assert.match(googleBrowserOriginOperation, /iframe:visible/);
   assert.match(googleBrowserOriginOperation, /origin_mismatch/);
