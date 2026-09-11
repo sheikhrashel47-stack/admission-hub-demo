@@ -9,8 +9,8 @@ const HTML = read('index.html');
 const SW = read('sw.js');
 const RELEASE = read('.github/workflows/telegram-auth-canary-activate.yml');
 const BUNDLE_GUARD = read('.github/workflows/cf-pages.yml');
-const UI_VERSION = '20260911-zero-raster-3d-student-v1';
-const SHELL_VERSION = 'v241-zero-raster-3d-student-20260911';
+const UI_VERSION = '20260912-hero-personal-dob-modern-v2';
+const SHELL_VERSION = 'v242-hero-personal-dob-modern-20260912';
 
 const signupStart = JS.indexOf('<form class="ah-account-view ah-signup-view"');
 const signupEnd = JS.indexOf('<div class="ah-account-view ah-created-view"', signupStart);
@@ -81,7 +81,7 @@ test('both rejected image-based entry designs are absent and mobile spacing is f
   assert.match(CSS, /@media\(max-width:390px\)[\s\S]+\.ah-signup-progress,.ah-personal-panel\{width:calc\(100% - 24px\)\}/);
   assert.match(CSS, /\.ah-personal-card\{[^}]+border-radius:25px[^}]+background:rgba\(255,255,255,\.94\)/);
   assert.match(CSS, /\.ah-personal-next\{[^}]+min-height:56px[^}]+border-radius:17px/);
-  assert.match(CSS, /\.ah-personal-dob-card \.ah-dob-selectors select\{[^}]+font:850 16px/);
+  assert.match(CSS, /\.ah-personal-dob-card select\{[^}]+font:850 16px/);
   assert.match(CSS, /@media\(prefers-reduced-motion:reduce\)/);
   assert.doesNotMatch(CSS, /https?:\/\//);
 });
