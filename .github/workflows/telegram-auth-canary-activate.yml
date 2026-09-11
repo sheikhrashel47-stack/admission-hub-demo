@@ -137,34 +137,55 @@ jobs:
       - name: Verify public selector and protected generic-backup isolation
         run: |
           set -eu
-          public_body="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/api/auth/v1/config')"
-          canary_body="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/api/auth/v1/config?telegramCanary=1')"
-          node -e "const x=JSON.parse(process.argv[1]); const a=x?.auth; const m=a?.methods; const t=m?.telegramVerification; if(a?.available!==true||a?.uiContract!=='auth-premium-v6'||a?.onboarding?.version!=='premium-onboarding-v1'||a?.emailVerifiedRequired!==false||m?.emailPassword?.available!==true||m?.passwordReset?.available!==true||m?.profile?.available!==true||m?.google?.available!==true||m?.google?.availabilityCode!=='READY'||m?.passkey?.available!==false||m?.passkey?.enrollmentAvailable!==true||m?.backup?.available!==false||m?.backup?.availabilityCode!=='LIVE_E2E_PENDING'||m?.backup?.providerNamesExposed!==false||t?.available!==true||t?.availabilityCode!=='READY'||t?.optional!==true||t?.codeLength!==6||t?.expiresInSeconds!==300||t?.maxAttempts!==5||t?.verifiesEmailOwnership!==false||t?.canonicalIdentity!=='firebase-uid') process.exit(1)" "$public_body"
-          node -e "const x=JSON.parse(process.argv[1]); const a=x?.auth; const b=a?.methods?.backup; const t=a?.methods?.telegramVerification; if(a?.accountVerificationRequired!==true||a?.emailVerifiedRequired!==false||b?.available!==true||b?.availabilityCode!=='READY'||b?.genericFlow!==true||b?.providerNamesExposed!==false||b?.contactInput!=='none'||/telegram|bot|token|username|chat/i.test(JSON.stringify(b))||t?.available!==true||t?.availabilityCode!=='READY'||t?.optional!==true||t?.codeLength!==6||t?.expiresInSeconds!==300||t?.maxAttempts!==5||t?.verifiesEmailOwnership!==false||t?.canonicalIdentity!=='firebase-uid') process.exit(1)" "$canary_body"
-          public_html="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/')"
-          printf '%s' "$public_html" | grep -Fq 'institutions-bd.js?v=bd-institutions-v1'
-          printf '%s' "$public_html" | grep -Fq 'account-access.css?v=20260911-reference-onboarding-v2'
-          printf '%s' "$public_html" | grep -Fq 'account-access.js?v=20260911-reference-onboarding-v2'
-          printf '%s' "$public_html" | grep -Fq 'dashboard-v2.css?v=dash2f8'
-          printf '%s' "$public_html" | grep -Fq 'dashboard-v2.js?v=dash2f8'
-          printf '%s' "$public_html" | grep -Fq 'phase12-ui.js?v=nav-resume-router-v9-guest'
-          printf '%s' "$public_html" | grep -Fq 'sw.js?v=v235-reference-onboarding-20260911'
-          auth_ui="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/account-access.js?v=20260911-reference-onboarding-v2')"
-          auth_css="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/account-access.css?v=20260911-reference-onboarding-v2')"
-          dashboard_ui="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/dashboard-v2.js?v=dash2f8')"
-          guest_nav="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/phase12-ui.js?v=nav-resume-router-v9-guest')"
-          public_sw="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 'https://admissionhub.pages.dev/sw.js?v=v235-reference-onboarding-20260911')"
-          curl --fail --silent --show-error --connect-timeout 10 --max-time 30 --output /dev/null 'https://admissionhub.pages.dev/onboarding-welcome-hero.webp?v=reference-onboarding-v2'
-          printf '%s' "$auth_ui" | grep -Fq "'X-AH-Auth-UI': 'auth-premium-v6'"
-          printf '%s' "$auth_ui" | grep -Fq 'data-visual-contract="reference-onboarding-v2"'
-          printf '%s' "$auth_ui" | grep -Fq 'data-view="email-intro"'
-          printf '%s' "$auth_ui" | grep -Fq 'data-view="telegram-intro"'
-          printf '%s' "$auth_ui" | grep -Fq 'data-otp-digit="5"'
-          printf '%s' "$auth_ui" | grep -Fq 'Email OTP নয়'
-          printf '%s' "$auth_css" | grep -Fq 'Reference onboarding visual contract v2'
-          printf '%s' "$dashboard_ui" | grep -Fq 'data-dashboard-contract="reference-guest-v2"'
-          printf '%s' "$guest_nav" | grep -Fq 'data-guest-nav="reference-guest-v2"'
-          printf '%s' "$public_sw" | grep -Fq "const BUILD_ID = 'v235-reference-onboarding-20260911'"
+          verify_dir="${RUNNER_TEMP}/public-release-verification"
+          rm -rf "$verify_dir"
+          mkdir -p "$verify_dir"
+          fetch_public() {
+            curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+              -H 'Cache-Control: no-cache' --output "$1" "$2"
+          }
+
+          fetch_public "$verify_dir/public-config.json" 'https://admissionhub.pages.dev/api/auth/v1/config'
+          fetch_public "$verify_dir/canary-config.json" 'https://admissionhub.pages.dev/api/auth/v1/config?telegramCanary=1'
+          node -e "const x=require(process.argv[1]); const a=x?.auth; const m=a?.methods; const t=m?.telegramVerification; if(a?.available!==true||a?.uiContract!=='auth-premium-v6'||a?.onboarding?.version!=='premium-onboarding-v1'||a?.emailVerifiedRequired!==false||m?.emailPassword?.available!==true||m?.passwordReset?.available!==true||m?.profile?.available!==true||m?.google?.available!==true||m?.google?.availabilityCode!=='READY'||m?.passkey?.available!==false||m?.passkey?.enrollmentAvailable!==true||m?.backup?.available!==false||m?.backup?.availabilityCode!=='LIVE_E2E_PENDING'||m?.backup?.providerNamesExposed!==false||t?.available!==true||t?.availabilityCode!=='READY'||t?.optional!==true||t?.codeLength!==6||t?.expiresInSeconds!==300||t?.maxAttempts!==5||t?.verifiesEmailOwnership!==false||t?.canonicalIdentity!=='firebase-uid') process.exit(1)" "$verify_dir/public-config.json"
+          node -e "const x=require(process.argv[1]); const a=x?.auth; const b=a?.methods?.backup; const t=a?.methods?.telegramVerification; if(a?.accountVerificationRequired!==true||a?.emailVerifiedRequired!==false||b?.available!==true||b?.availabilityCode!=='READY'||b?.genericFlow!==true||b?.providerNamesExposed!==false||b?.contactInput!=='none'||/telegram|bot|token|username|chat/i.test(JSON.stringify(b))||t?.available!==true||t?.availabilityCode!=='READY'||t?.optional!==true||t?.codeLength!==6||t?.expiresInSeconds!==300||t?.maxAttempts!==5||t?.verifiesEmailOwnership!==false||t?.canonicalIdentity!=='firebase-uid') process.exit(1)" "$verify_dir/canary-config.json"
+
+          public_ready=false
+          for attempt in 1 2 3 4 5; do
+            fetch_public "$verify_dir/index.html" "https://admissionhub.pages.dev/?release=v235-reference-onboarding-20260911"
+            if grep -Fq 'account-access.js?v=20260911-reference-onboarding-v2' "$verify_dir/index.html"; then
+              public_ready=true
+              break
+            fi
+            [ "$attempt" = '5' ] || sleep 5
+          done
+          test "$public_ready" = 'true'
+          grep -Fq 'institutions-bd.js?v=bd-institutions-v1' "$verify_dir/index.html"
+          grep -Fq 'account-access.css?v=20260911-reference-onboarding-v2' "$verify_dir/index.html"
+          grep -Fq 'dashboard-v2.css?v=dash2f8' "$verify_dir/index.html"
+          grep -Fq 'dashboard-v2.js?v=dash2f8' "$verify_dir/index.html"
+          grep -Fq 'phase12-ui.js?v=nav-resume-router-v9-guest' "$verify_dir/index.html"
+          grep -Fq 'sw.js?v=v235-reference-onboarding-20260911' "$verify_dir/index.html"
+
+          fetch_public "$verify_dir/account-access.js" 'https://admissionhub.pages.dev/account-access.js?v=20260911-reference-onboarding-v2'
+          fetch_public "$verify_dir/account-access.css" 'https://admissionhub.pages.dev/account-access.css?v=20260911-reference-onboarding-v2'
+          fetch_public "$verify_dir/dashboard-v2.js" 'https://admissionhub.pages.dev/dashboard-v2.js?v=dash2f8'
+          fetch_public "$verify_dir/phase12-ui.js" 'https://admissionhub.pages.dev/phase12-ui.js?v=nav-resume-router-v9-guest'
+          fetch_public "$verify_dir/sw.js" 'https://admissionhub.pages.dev/sw.js?v=v235-reference-onboarding-20260911'
+          fetch_public "$verify_dir/onboarding-welcome-hero.webp" 'https://admissionhub.pages.dev/onboarding-welcome-hero.webp?v=reference-onboarding-v2'
+
+          grep -Fq "'X-AH-Auth-UI': 'auth-premium-v6'" "$verify_dir/account-access.js"
+          grep -Fq 'data-visual-contract="reference-onboarding-v2"' "$verify_dir/account-access.js"
+          grep -Fq 'data-view="email-intro"' "$verify_dir/account-access.js"
+          grep -Fq 'data-view="telegram-intro"' "$verify_dir/account-access.js"
+          grep -Fq 'data-otp-digit="5"' "$verify_dir/account-access.js"
+          grep -Fq 'Email OTP নয়' "$verify_dir/account-access.js"
+          grep -Fq 'Admission Hub reference onboarding visual contract v2' "$verify_dir/account-access.css"
+          grep -Fq 'data-dashboard-contract="reference-guest-v2"' "$verify_dir/dashboard-v2.js"
+          grep -Fq 'data-guest-nav="reference-guest-v2"' "$verify_dir/phase12-ui.js"
+          grep -Fq "const BUILD_ID = 'v235-reference-onboarding-20260911'" "$verify_dir/sw.js"
+          node -e "const b=require('node:fs').readFileSync(process.argv[1]); if(b.length<20000||b.subarray(0,4).toString()!=='RIFF'||b.subarray(8,12).toString()!=='WEBP') process.exit(1)" "$verify_dir/onboarding-welcome-hero.webp"
+          rm -rf "$verify_dir"
           echo 'Reference onboarding v2, truthful Email/Telegram verification, narrow Guest dashboard, and cache-safe assets are READY; generic backup and pre-verification Passkey remain protected.'
 
       - name: Verify Google browser origin remains accepted
