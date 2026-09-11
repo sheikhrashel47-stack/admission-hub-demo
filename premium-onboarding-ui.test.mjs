@@ -212,26 +212,28 @@ test('slow account startup never delays Welcome or blocks direct Guest entry', a
   app.dom.window.close();
 });
 
-test('Signup 01 Personal uses a native DOM illustration and combines name with DOB', async t => {
+test('Signup 01 Personal uses a real input-bound profile preview and combines name with DOB', async t => {
   const app = setup();
   t.after(() => app.dom.window.close());
   await openSignup(app);
   const personal = app.document.querySelector('[data-signup-panel="personal"]');
   const signup = app.document.querySelector('[data-view="signup"]');
-  const illustration = personal.querySelector('[data-illustration-contract="native-dom-profile-v1"]');
-  assert.equal(signup.dataset.personalVisualContract, 'native-reference-personal-v2');
+  const preview = personal.querySelector('[data-profile-preview-contract="input-bound-profile-v1"]');
+  assert.equal(signup.dataset.personalVisualContract, 'interactive-native-personal-v1');
+  assert.equal(signup.dataset.mediaContract, 'zero-raster-entry-v1');
   assert.equal(personal.hidden, false);
   assert.equal(app.document.querySelector('[data-signup-panel="dob"]'), null);
-  assert.match(personal.textContent, /চলো, তোমার\s*পরিচয়টা তৈরি করি/);
-  assert.match(personal.textContent, /তোমার সম্পর্কে একটু বলো/);
-  assert.match(personal.textContent, /পরের ধাপ/);
-  assert.ok(illustration);
-  assert.equal(illustration.querySelectorAll('img,canvas,video').length, 0);
-  assert.ok(illustration.querySelector('.ah-native-profile'));
-  assert.ok(illustration.querySelector('.ah-native-pedestal'));
-  assert.doesNotMatch(accountSource, /onboarding-personal-hero\.webp/);
-  assert.match(accountCss, /Page 2 — native responsive Signup 01 \/ Personal; no screenshot or raster hero/);
-  assert.deepEqual([...app.document.querySelectorAll('[data-signup-step-button]')].map(button => button.textContent.trim()), ['01Personal', '02Education', '03Security']);
+  assert.match(personal.textContent, /তোমার পরিচয় দিয়ে\s*নিজস্ব পথ শুরু করো/);
+  assert.match(personal.textContent, /profile preview-টি সঙ্গে সঙ্গে বদলে যাবে/);
+  assert.match(personal.textContent, /Education-এ এগিয়ে যাও/);
+  assert.ok(preview);
+  assert.equal(preview.querySelectorAll('img,picture,source,canvas,video,object,embed').length, 0);
+  assert.ok(preview.querySelector('[data-role="personal-live-initials"]'));
+  assert.ok(preview.querySelector('[data-role="personal-live-name"]'));
+  assert.ok(preview.querySelector('[data-role="personal-completion"]'));
+  assert.doesNotMatch(accountSource, /onboarding-(?:welcome|personal)-hero\.webp/);
+  assert.match(accountCss, /Personal — real input-bound profile preview, not an illustration or image/);
+  assert.deepEqual([...app.document.querySelectorAll('[data-signup-step-button]')].map(button => button.querySelector('i').textContent + button.querySelector('span').textContent), ['01Personal', '02Education', '03Security']);
   for (const id of ['ah-signup-name', 'ah-dob-day', 'ah-dob-month', 'ah-dob-year']) {
     assert.equal(personal.contains(app.document.getElementById(id)), true, id);
   }
@@ -239,6 +241,15 @@ test('Signup 01 Personal uses a native DOM illustration and combines name with D
   assert.equal(app.document.querySelector('#ah-signup-email').closest('[data-signup-panel]')?.dataset.signupPanel, 'security');
   assert.equal(personal.querySelectorAll('select').length, 3);
   assert.equal(personal.querySelectorAll('[data-role="guide-open"],.ah-guide,.ah-guide-orb').length, 0);
+
+  const name = app.document.querySelector('#ah-signup-name');
+  name.value = 'আরিফ হাসান';
+  name.dispatchEvent(new app.window.Event('input', { bubbles: true }));
+  assert.equal(preview.querySelector('[data-role="personal-live-name"]').textContent, 'আরিফ হাসান');
+  assert.equal(preview.querySelector('[data-role="personal-live-initials"]').textContent, 'আহা');
+  assert.equal(preview.querySelector('[data-role="personal-completion"]').textContent, '50%');
+  assert.equal(preview.dataset.completion, '50');
+  assert.ok(preview.querySelector('[data-personal-check="name"]').classList.contains('ready'));
 });
 
 test('guided Signup validates steps, caps institution matches, preserves canonical credentials, and blocks duplicate delivery', async t => {
@@ -406,18 +417,18 @@ test('Forgot Password stays enumeration-safe while Signup has no Assistant compo
   app.dom.window.close();
 });
 
-test('Welcome language control updates the static page locally without changing its four actions', async t => {
+test('Welcome language control updates the code-native page locally without changing its four actions', async t => {
   const app = setup();
   t.after(() => app.dom.window.close());
   await waitFor(() => app.document.querySelector('[data-view="welcome"]')?.hidden === false);
   const picker = app.document.querySelector('[data-role="welcome-language"]');
   picker.value = 'en';
   picker.dispatchEvent(new app.window.Event('change', { bubbles: true }));
-  assert.match(app.document.querySelector('#ah-welcome-heading').textContent, /Your dream university/);
+  assert.match(app.document.querySelector('#ah-welcome-heading').textContent, /Don't just dream/);
   assert.equal(app.document.documentElement.lang, 'en');
   picker.value = 'bn';
   picker.dispatchEvent(new app.window.Event('change', { bubbles: true }));
-  assert.match(app.document.querySelector('#ah-welcome-heading').textContent, /তোমার স্বপ্নের/);
+  assert.match(app.document.querySelector('#ah-welcome-heading').textContent, /স্বপ্ন শুধু দেখো না/);
   assert.equal(app.document.documentElement.lang, 'bn');
   assert.equal(app.document.querySelectorAll('.ah-entry-actions button').length, 4);
   assert.equal(app.calls.some(call => call.path.includes('/api/ai/chat')), false);

@@ -23,8 +23,10 @@ jobs:
           test -s dist/index.html
           test -s dist/sw.js
           test -s dist/account-access.js
-          test -s dist/onboarding-welcome-hero.webp
+          test ! -e dist/onboarding-welcome-hero.webp
           test ! -e dist/onboarding-personal-hero.webp
+          ! grep -Eiq '<(img|picture|source|canvas|video|object|embed)([[:space:]>])' dist/account-access.js
+          ! grep -Eiq 'background(-image)?[[:space:]]*:[^;]*url\(' dist/account-access.css
           du -sh dist
 
       - name: Require protected Telegram publication workflow

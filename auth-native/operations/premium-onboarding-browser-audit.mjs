@@ -186,28 +186,49 @@ try {
   assert.deepEqual(await page.evaluate(() => ({ appInert: document.querySelector('#app').inert, bodyClass: document.body.classList.contains('ah-account-page-active'), pagePosition: getComputedStyle(document.querySelector('.ah-account-page')).position })), { appInert: true, bodyClass: true, pagePosition: 'relative' });
   assert.equal(await page.locator('.ah-guide,.ah-guide-orb,[data-role="guide-open"]').count(), 0, 'Signup Assistant component still exists');
   assert.equal(await page.locator('.ah-welcome-benefits article').count(), 4);
+  assert.equal(await page.locator('[data-native-welcome-visual="journey-console-v1"]').count(), 1);
+  assert.equal(await welcome.getAttribute('data-media-contract'), 'zero-raster-entry-v1');
+  assert.equal(await welcome.locator('img,picture,source,canvas,video,object,embed').count(), 0, 'Welcome must contain zero media elements');
+  const welcomeCodeVisual = await page.locator('[data-native-welcome-visual="journey-console-v1"]').evaluate(consoleNode => ({
+    core: Boolean(consoleNode.querySelector('.ah-console-core')),
+    route: Boolean(consoleNode.querySelector('.ah-route-track')),
+    modules: consoleNode.querySelectorAll('.ah-console-modules article').length,
+    rasterBackgrounds: [consoleNode, ...consoleNode.querySelectorAll('*')].filter(node => /url\s*\(/i.test(getComputedStyle(node).backgroundImage)).length
+  }));
+  assert.deepEqual(welcomeCodeVisual, { core: true, route: true, modules: 3, rasterBackgrounds: 0 });
+  const consoleInteraction = await page.locator('[data-native-welcome-visual="journey-console-v1"]').evaluate(node => {
+    const rect = node.getBoundingClientRect();
+    node.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'mouse', clientX: rect.right - 5, clientY: rect.top + 5 }));
+    const moved = { x: node.style.getPropertyValue('--ah-console-rx'), y: node.style.getPropertyValue('--ah-console-ry') };
+    node.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+    return { moved, reset: { x: node.style.getPropertyValue('--ah-console-rx'), y: node.style.getPropertyValue('--ah-console-ry') } };
+  });
+  assert.ok(consoleInteraction.moved.x && consoleInteraction.moved.y, JSON.stringify(consoleInteraction));
+  assert.deepEqual(consoleInteraction.reset, { x: '', y: '' });
   await page.locator('[data-role="welcome-language"]').selectOption('en');
-  assert.match(await page.locator('#ah-welcome-heading').textContent(), /Your dream university/);
+  assert.match(await page.locator('#ah-welcome-heading').textContent(), /Don't just dream/);
   await page.locator('[data-role="welcome-language"]').selectOption('bn');
 
-  assert.equal(await page.locator('.ah-account-shell').getAttribute('data-visual-contract'), 'static-page-system-v3');
-  assert.equal(await page.locator('.ah-academic-hero img').evaluate(image => image.complete && image.naturalWidth > 0), true);
+  assert.equal(await page.locator('.ah-account-shell').getAttribute('data-visual-contract'), 'code-native-page-system-v1');
   await page.getByRole('button', { name: 'Sign Up', exact: true }).click();
   await page.locator('[data-signup-panel="personal"]').waitFor({ state: 'visible' });
-  assert.equal(await page.locator('[data-view="signup"]').getAttribute('data-personal-visual-contract'), 'native-reference-personal-v2');
+  const signup = page.locator('[data-view="signup"]');
+  const liveProfile = page.locator('[data-profile-preview-contract="input-bound-profile-v1"]');
+  assert.equal(await signup.getAttribute('data-personal-visual-contract'), 'interactive-native-personal-v1');
+  assert.equal(await signup.getAttribute('data-media-contract'), 'zero-raster-entry-v1');
   assert.equal(await page.locator('[data-signup-panel="dob"]').count(), 0, 'DOB must stay on visible Personal, not a separate screen');
-  assert.equal(await page.locator('[data-illustration-contract="native-dom-profile-v1"]').count(), 1);
-  assert.equal(await page.locator('.ah-personal-hero img,.ah-personal-hero canvas,.ah-personal-hero video').count(), 0, 'Personal hero must be native DOM/CSS, not a pasted image');
-  const nativeHero = await page.locator('.ah-personal-hero').evaluate(hero => ({
-    profile: Boolean(hero.querySelector('.ah-native-profile')),
-    pedestal: Boolean(hero.querySelector('.ah-native-pedestal')),
-    book: Boolean(hero.querySelector('.ah-native-book')),
-    cap: Boolean(hero.querySelector('.ah-native-cap')),
-    profileBackground: getComputedStyle(hero.querySelector('.ah-native-profile')).backgroundImage
+  assert.equal(await liveProfile.count(), 1);
+  assert.equal(await page.locator('[data-signup-panel="personal"] img,[data-signup-panel="personal"] picture,[data-signup-panel="personal"] source,[data-signup-panel="personal"] canvas,[data-signup-panel="personal"] video,[data-signup-panel="personal"] object,[data-signup-panel="personal"] embed').count(), 0, 'Personal must contain zero media elements');
+  const liveProfileState = await liveProfile.evaluate(card => ({
+    initials: card.querySelector('[data-role="personal-live-initials"]')?.textContent,
+    name: card.querySelector('[data-role="personal-live-name"]')?.textContent,
+    completion: card.querySelector('[data-role="personal-completion"]')?.textContent,
+    nameCheck: Boolean(card.querySelector('[data-personal-check="name"]')),
+    dobCheck: Boolean(card.querySelector('[data-personal-check="dob"]')),
+    rasterBackgrounds: [card, ...card.querySelectorAll('*')].filter(node => /url\s*\(/i.test(getComputedStyle(node).backgroundImage)).length
   }));
-  assert.deepEqual({ ...nativeHero, profileBackground: undefined }, { profile: true, pedestal: true, book: true, cap: true, profileBackground: undefined });
-  assert.match(nativeHero.profileBackground, /gradient/i);
-  assert.deepEqual(await page.locator('[data-signup-step-button]').allTextContents().then(values => values.map(value => value.replace(/\s+/g, ''))), ['01Personal', '02Education', '03Security']);
+  assert.deepEqual(liveProfileState, { initials: 'তু', name: 'তোমার নাম এখানে দেখা যাবে', completion: '0%', nameCheck: true, dobCheck: true, rasterBackgrounds: 0 });
+  assert.deepEqual(await page.locator('[data-signup-step-button]').evaluateAll(buttons => buttons.map(button => `${button.querySelector('i').textContent}${button.querySelector('span').textContent}`)), ['01Personal', '02Education', '03Security']);
   await page.waitForTimeout(250);
   const personalGeometry = await page.evaluate(() => {
     const box = selector => {
@@ -217,9 +238,11 @@ try {
     return {
       viewport: { width: innerWidth, height: innerHeight },
       page: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
+      preview: box('.ah-live-profile'),
       card: box('.ah-personal-card'),
       cta: box('.ah-personal-next'),
       name: box('#ah-signup-name'),
+      selectLabels: [...document.querySelectorAll('.ah-personal-dob-card .ah-dob-selectors label')].map(label => ({ width: label.getBoundingClientRect().width, height: label.getBoundingClientRect().height })),
       selects: [...document.querySelectorAll('.ah-personal-dob-card select')].map(select => ({
         width: select.getBoundingClientRect().width,
         height: select.getBoundingClientRect().height,
@@ -228,12 +251,14 @@ try {
     };
   });
   assert.deepEqual(personalGeometry.viewport, { width: 390, height: 844 });
-  assert.equal(personalGeometry.page.width <= 390, true, JSON.stringify(personalGeometry));
-  assert.equal(personalGeometry.page.height <= 845, true, JSON.stringify(personalGeometry));
-  assert.equal(personalGeometry.card.x >= 24 && personalGeometry.card.x <= 28 && personalGeometry.card.width >= 336, true, JSON.stringify(personalGeometry.card));
-  assert.equal(personalGeometry.cta.x >= 31 && personalGeometry.cta.width >= 322 && personalGeometry.cta.height >= 48, true, JSON.stringify(personalGeometry.cta));
-  assert.equal(personalGeometry.name.height >= 48, true);
-  assert.equal(personalGeometry.selects.every(select => select.height >= 38 && select.fontSize >= 16), true, JSON.stringify(personalGeometry.selects));
+  assert.equal(personalGeometry.page.width <= 391, true, JSON.stringify(personalGeometry));
+  assert.equal(personalGeometry.page.height >= 844, true, JSON.stringify(personalGeometry));
+  assert.equal(personalGeometry.preview.x >= 10 && personalGeometry.preview.x <= 18 && personalGeometry.preview.width >= 354, true, JSON.stringify(personalGeometry.preview));
+  assert.equal(personalGeometry.card.x >= 10 && personalGeometry.card.x <= 18 && personalGeometry.card.width >= 354, true, JSON.stringify(personalGeometry.card));
+  assert.equal(personalGeometry.cta.x >= 10 && personalGeometry.cta.x <= 18 && personalGeometry.cta.width >= 354 && personalGeometry.cta.height >= 52, true, JSON.stringify(personalGeometry.cta));
+  assert.equal(personalGeometry.name.height >= 52, true);
+  assert.equal(personalGeometry.selectLabels.every(label => label.height >= 54), true, JSON.stringify(personalGeometry.selectLabels));
+  assert.equal(personalGeometry.selects.every(select => select.height >= 40 && select.fontSize >= 16), true, JSON.stringify(personalGeometry.selects));
   assert.equal(await page.locator('#ah-signup-name').evaluate(input => input.labels.length), 1);
   assert.equal(await page.locator('#ah-signup-name').evaluate(input => parseFloat(getComputedStyle(input).fontSize) >= 16), true);
   assert.equal(await page.locator('#ah-signup-email').isHidden(), true, 'Email belongs to Security, not Personal');
@@ -242,12 +267,23 @@ try {
   assert.equal(await page.locator('[data-signup-panel="personal"]').isVisible(), true);
   assert.match(await page.locator('[data-role="name-feedback"]').textContent(), /অন্তত ২টি অক্ষর/);
   await page.locator('#ah-signup-name').fill('Browser Student');
+  assert.deepEqual(await liveProfile.evaluate(card => ({
+    initials: card.querySelector('[data-role="personal-live-initials"]').textContent,
+    name: card.querySelector('[data-role="personal-live-name"]').textContent,
+    completion: card.querySelector('[data-role="personal-completion"]').textContent,
+    nameReady: card.querySelector('[data-personal-check="name"]').classList.contains('ready')
+  })), { initials: 'BS', name: 'Browser Student', completion: '50%', nameReady: true });
   await page.locator('[data-role="signup-next-education"]').click();
   assert.equal(await page.locator('[data-signup-panel="personal"]').isVisible(), true);
   assert.match(await page.locator('[data-role="message"]').textContent(), /জন্মতারিখ/);
   await page.locator('#ah-dob-day').selectOption('12');
   await page.locator('#ah-dob-month').selectOption('5');
   await page.locator('#ah-dob-year').selectOption('2007');
+  assert.deepEqual(await liveProfile.evaluate(card => ({
+    completion: card.querySelector('[data-role="personal-completion"]').textContent,
+    dobReady: card.querySelector('[data-personal-check="dob"]').classList.contains('ready'),
+    dob: card.querySelector('[data-role="dob-summary"]').textContent
+  })), { completion: '100%', dobReady: true, dob: '১২ মে, ২০০৭' });
   await page.locator('[data-role="signup-next-education"]').click();
   const educationState = await page.evaluate(() => ({
     visible: !document.querySelector('[data-signup-panel="school"]').hidden,
@@ -438,15 +474,21 @@ try {
     borderRadius: getComputedStyle(node).borderRadius,
     boxShadow: getComputedStyle(node).boxShadow
   }));
-  assert.ok(desktopBox.width >= 429 && desktopBox.width <= 431 && desktopBox.height >= 900, JSON.stringify(desktopBox));
+  assert.ok(desktopBox.width >= 1439 && desktopBox.width <= 1441 && desktopBox.height >= 900, JSON.stringify(desktopBox));
   assert.equal(desktopWelcomeStyle.borderRadius, '0px');
   assert.equal(desktopWelcomeStyle.boxShadow, 'none');
   assert.equal(await desktopPage.locator('.ah-account-page').evaluate(node => getComputedStyle(node).position), 'relative');
   assert.equal(await desktopPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
+  assert.equal(await desktopPage.locator('[data-view="welcome"] img,[data-view="welcome"] picture,[data-view="welcome"] canvas,[data-view="welcome"] video').count(), 0);
+  const desktopConsole = await desktopPage.locator('.ah-journey-console').boundingBox();
+  assert.ok(desktopConsole.width >= 500 && desktopConsole.width <= 580, JSON.stringify(desktopConsole));
   await desktopPage.getByRole('button', { name: 'Sign Up', exact: true }).click();
   await desktopPage.locator('[data-signup-panel="personal"]').waitFor({ state: 'visible' });
   const desktopPersonalBox = await desktopPage.locator('.ah-account-shell').boundingBox();
-  assert.ok(desktopPersonalBox.width >= 429 && desktopPersonalBox.width <= 431 && desktopPersonalBox.height >= 900, JSON.stringify(desktopPersonalBox));
+  const desktopPersonalPanel = await desktopPage.locator('.ah-personal-panel').boundingBox();
+  assert.ok(desktopPersonalBox.width >= 1439 && desktopPersonalBox.width <= 1441 && desktopPersonalBox.height >= 900, JSON.stringify(desktopPersonalBox));
+  assert.ok(desktopPersonalPanel.width >= 979 && desktopPersonalPanel.width <= 981 && desktopPersonalPanel.x >= 229 && desktopPersonalPanel.x <= 231, JSON.stringify(desktopPersonalPanel));
+  assert.equal(await desktopPage.locator('[data-signup-panel="personal"] img,[data-signup-panel="personal"] picture,[data-signup-panel="personal"] canvas,[data-signup-panel="personal"] video').count(), 0);
   assert.equal(await desktopPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
   const motion = await desktopPage.locator('.ah-account-shell').evaluate(element => ({
     animationDuration: getComputedStyle(element).animationDuration,
@@ -464,12 +506,14 @@ try {
     profileRequests: requests.filter(item => item.path === '/api/auth/v1/profile/pending').length,
     emailStatusChecks: completedEmailStatusChecks,
     nativePasskeyVirtualDevice: true,
-    referenceVisualContracts: ['static-reference-welcome-v3', 'native-reference-personal-v2'],
-    nativePersonalIllustration: true,
+    referenceVisualContracts: ['code-native-welcome-v1', 'interactive-native-personal-v1'],
+    zeroRasterEntryPages: true,
+    modularWelcomeConsole: true,
+    interactivePersonalPreview: true,
     personalNameAndDobCombined: true,
-    personalViewportFit: true,
+    personalFluidWidth: true,
     firstEntryFullScreenNotPopup: true,
-    desktopNarrowPhoneComposition: true,
+    desktopResponsiveComposition: true,
     customGuestDashboardRemoved: true,
     signupAssistantRemoved: true,
     mainAppAiRestored: true,
