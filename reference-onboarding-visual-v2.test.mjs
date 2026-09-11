@@ -118,5 +118,8 @@ test('a merge cannot bypass the protected Telegram publication path for visual v
   assert.match(RELEASE_WORKFLOW, /npm run test:production-auth/);
   assert.match(RELEASE_WORKFLOW, /npm run audit:premium-browser/);
   assert.match(RELEASE_WORKFLOW, /pages deploy dist --project-name admissionhub --branch main/);
+  assert.match(RELEASE_WORKFLOW, /public-release-verification/);
+  assert.match(RELEASE_WORKFLOW, /Admission Hub reference onboarding visual contract v2/);
+  assert.doesNotMatch(RELEASE_WORKFLOW, /printf '%s' \"\$[a-z_]+\" \| grep -Fq/);
   assert.match(RELEASE_WORKFLOW, /v235-reference-onboarding-20260911/);
 });
