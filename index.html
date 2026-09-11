@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>My Admission Hub</title>
-<link rel="stylesheet" href="./dashboard-v2.css?v=dash2">
+<link rel="stylesheet" href="./dashboard-v2.css?v=dash2f8">
 
 <link rel="manifest" href="manifest.json">
 <link rel="alternate" type="application/manifest+json" href="manifest.webmanifest">
@@ -572,7 +572,7 @@ textarea{min-height:96px}
 })();
 </script>
 <script src="./session-persist.js?v=session-v1"></script>
-<link rel="stylesheet" href="./account-access.css?v=20260911-premium-onboarding-v2">
+<link rel="stylesheet" href="./account-access.css?v=20260911-reference-onboarding-v2">
 <!-- মালিক-নির্দেশ ২০২৬-০৯-০৮: সব AI সিস্টেম বাদ — AI gateway সরানো হয়েছে -->
 <style id="ah-boot-min">.ah-boot{width:100%;min-height:100dvh;display:grid;place-content:center;justify-items:center;gap:9px;color:#17221d;background:#f1faf6}.ah-boot-mark{display:grid;place-items:center;width:56px;height:56px;border-radius:17px;background:#0f6b4f;color:#fff;font-size:26px;box-shadow:0 12px 28px rgba(15,107,79,.30)}.ah-boot b{font-size:19px;font-weight:800;letter-spacing:.01em}.ah-boot i{font-style:normal;font-size:12px;color:#5e7168;animation:ahBootPulse 1.15s ease-in-out infinite}@keyframes ahBootPulse{0%,100%{opacity:.55}50%{opacity:1}}@media(prefers-reduced-motion:reduce){.ah-boot i{animation:none}}</style>
 </head>
@@ -1077,6 +1077,15 @@ function topbarHtml(opts){
   </div>`;
 }
 function bottomNavHtml(active){
+  let guest=false;
+  try{guest=String(document.cookie||'').split(';').map(p=>p.trim()).includes('ah_entry_v1=guest')&&window.AdmissionAccount?.snapshot?.().authenticated!==true;}catch(_){}
+  if(guest){
+    const icons={dashboard:'<path d="m4 11 8-7 8 7v9h-6v-6h-4v6H4v-9Z"/>','smart-practice':'<path d="m5 17-1 3 3-1L18 8l-2-2L5 17Zm9-9 2 2"/>',progress:'<path d="M5 19V9m7 10V5m7 14v-7M3 19h18"/>',settings:'<circle cx="12" cy="12" r="2.5"/><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/>'};
+    const tabs=[{key:'dashboard',label:'Home'},{key:'smart-practice',label:'Practice'},{key:'progress',label:'Progress'},{key:'settings',label:'More'}];
+    const path=String(Router.path||'dashboard');
+    const current=path.startsWith('progress')?'progress':path.startsWith('settings')?'settings':path==='smart-practice'?'smart-practice':'dashboard';
+    return `<div class="bottomnav" data-guest-nav="reference-guest-v2">${tabs.map(t=>`<button class="navbtn ${current===t.key?'active':''}" onclick="navigate('${t.key}')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true">${icons[t.key]}</svg></span><span>${t.label}</span></button>`).join('')}</div>`;
+  }
   return `<div class="bottomnav">
     ${NAV_TABS.map(t=>`<button class="navbtn ${active===t.key?'active':''}" onclick="window.AdmissionNavigation ? window.AdmissionNavigation.openTab('${t.key}') : navigate('${t.key}')">
       <span class="ic">${t.icon}</span><span>${t.label}</span></button>`).join('')}
@@ -4680,15 +4689,15 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
     // Do not reload on controllerchange: iOS standalone clients can enter a blank-screen reload loop.
     // The updated worker takes control now; the current document remains usable and the next launch uses the new shell.
     try{
-      const expectedSwVersion = 'v234-premium-onboarding-20260911';
+      const expectedSwVersion = 'v235-reference-onboarding-20260911';
       // register() on the same scope performs an in-place update. Never unregister
       // the active iOS worker first: that discards the instant offline shell.
-      const registration=await navigator.serviceWorker.register('./sw.js?v=v234-premium-onboarding-20260911',{scope:'./',updateViaCache:'none'});
+      const registration=await navigator.serviceWorker.register('./sw.js?v=v235-reference-onboarding-20260911',{scope:'./',updateViaCache:'none'});
       await registration.update().catch(()=>{});
       // Purge every old app-shell cache (any build id ≠ current). This guarantees
       // stale pre-retirement application shells can never be served from cache again.
       try {
-        const cur = 'admission-hub-shell-v234-premium-onboarding-20260911';
+        const cur = 'admission-hub-shell-v235-reference-onboarding-20260911';
         const names = await caches.keys();
         for (const name of names) {
           if (name.startsWith('admission-hub-shell-') && name !== cur) await caches.delete(name).catch(()=>{});
@@ -4822,11 +4831,11 @@ window.__admissionBootPromise.catch(error => console.error('[Admission Hub] boot
 })();
 </script>
 <!-- First-interaction modules execute before optional/heavy tools. -->
-<script defer src="./dashboard-v2.js?v=dash2f7"></script>
+<script defer src="./dashboard-v2.js?v=dash2f8"></script>
 <script defer src="./ai-agent-chat.js?v=agent-f1-ui-chatv15-identity"></script>
 <script defer src="qbank-redesign.js?v=practice15"></script>
 <script defer src="urgent-fix.js?v=practice13"></script>
-<script defer src="phase12-ui.js?v=nav-resume-router-v8"></script>
+<script defer src="phase12-ui.js?v=nav-resume-router-v9-guest"></script>
 <script defer src="phase23-ui.js?v=swipe-fix-0f10a28-safe-capture"></script>
 <script defer src="upgrade-features.js?v=4"></script>
 <script defer src="phase1-upgrade.js?v=4-nosplash"></script>
@@ -5132,7 +5141,7 @@ setTimeout(() => { if (location.hash.replace(/^#/, '').split('?')[0] === 'dictio
 <script>window.AH_CLOUD_ROLE='public';</script>
 <script defer src="./cloud-content-sync.js?v=account-retired-v221"></script>
 <script defer src="./institutions-bd.js?v=bd-institutions-v1"></script>
-<script defer src="./account-access.js?v=20260911-premium-onboarding-v2"></script>
+<script defer src="./account-access.js?v=20260911-reference-onboarding-v2"></script>
 <script src="./app-seed.js?v=v189-empty" defer></script>
 <script>
 /* Seed + cloud hydrate: cloud-content-sync.js (batched IDB, Android-safe). */

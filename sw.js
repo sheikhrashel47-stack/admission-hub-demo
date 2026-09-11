@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'admission-hub-shell-';
-const BUILD_ID = 'v234-premium-onboarding-20260911';
+const BUILD_ID = 'v235-reference-onboarding-20260911';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const VERSION_HEADER = 'X-Admission-Hub-Build';
 const DOCUMENT_NETWORK_TIMEOUT_MS = 2500;
@@ -14,14 +14,15 @@ const APP_SHELL = [
   './index.html',
   './manifest.json',
   './manifest.webmanifest',
-  './dashboard-v2.css?v=dash2',
+  './dashboard-v2.css?v=dash2f8',
+  './onboarding-welcome-hero.webp?v=reference-onboarding-v2',
   './3d-loader.css?v=3d-v1',
   './session-persist.js?v=session-v1',
-  './account-access.css?v=20260911-premium-onboarding-v2',
+  './account-access.css?v=20260911-reference-onboarding-v2',
   './institutions-bd.js?v=bd-institutions-v1',
-  './account-access.js?v=20260911-premium-onboarding-v2',
+  './account-access.js?v=20260911-reference-onboarding-v2',
   './data-protection.js?v=dp-v3-fastboot',
-  './dashboard-v2.js?v=dash2f7',
+  './dashboard-v2.js?v=dash2f8',
   './ai-agent-chat.js?v=agent-f1-ui-chatv15-identity',
   './icons/icon-192.png',
   './icons/icon-512.png'

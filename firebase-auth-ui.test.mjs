@@ -26,6 +26,7 @@ async function fillGuidedProfile(app, email = 'student@example.com') {
   const { document, window } = app;
   document.querySelector('#ah-signup-name').value = 'Test Student';
   document.querySelector('#ah-signup-email').value = email;
+  document.querySelector('[data-role="signup-next-dob"]').click();
   document.querySelector('#ah-dob-day').value = '12';
   document.querySelector('#ah-dob-month').value = '5';
   document.querySelector('#ah-dob-year').value = '2007';
@@ -35,6 +36,7 @@ async function fillGuidedProfile(app, email = 'student@example.com') {
   school.dispatchEvent(new window.Event('input', { bubbles: true }));
   await waitFor(() => document.querySelectorAll('#ah-school-results [role="option"]').length > 0);
   [...document.querySelectorAll('#ah-school-results [role="option"]')].at(-1).click();
+  document.querySelector('[data-role="signup-next-college"]').click();
   document.querySelector('[data-role="signup-next-security"]').click();
 }
 
@@ -105,6 +107,8 @@ test('signup UI collects Email and Password, clears passwords, and waits for sta
   signupForm.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   signupForm.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await waitFor(() => app.calls.some(call => call.path.endsWith('/signup')));
+  await waitFor(() => app.document.querySelector('[data-view="created"]').hidden === false);
+  app.document.querySelector('[data-role="created-continue"]').click();
   await waitFor(() => app.document.querySelector('[data-view="verify"]').hidden === false);
 
   const signupCall = app.calls.find(call => call.path.endsWith('/signup'));
@@ -117,7 +121,7 @@ test('signup UI collects Email and Password, clears passwords, and waits for sta
   assert.equal(app.document.querySelector('#ah-signup-password').value, '');
   assert.equal(app.document.querySelector('#ah-signup-confirm').value, '');
   assert.equal(app.window.AdmissionAccount.isVerified(), false);
-  assert.match(app.document.querySelector('[data-view="verify"]').textContent, /Email verification শেষ করো/);
+  assert.match(app.document.querySelector('[data-view="verify"]').textContent, /Verification pending|verification-এর অপেক্ষায়/);
   app.dom.window.close();
 });
 

@@ -1,23 +1,38 @@
-name: Deploy Cloudflare Pages (Auto)
+name: Cloudflare Pages Bundle Guard (No Deploy)
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  deploy-pages:
+  bundle-guard:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Bundle site (exclude meta/test files)
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build the sanitized public bundle without publishing
         run: |
+          set -eu
           mkdir -p dist
           rsync -a --exclude='.git' --exclude='node_modules' --exclude='docs' --exclude='AGENT_RESUME' --exclude='ai-proxy' --exclude='auth' --exclude='auth-native' --exclude='email-gateway' --exclude='uploads' --exclude='.github' --exclude='gk-agent-worker.js' --exclude='public-worker.js' --exclude='ai-agent.js' --exclude='worker-bundle.mjs' --exclude='voice-worker.js' --exclude='notification-worker.js' --exclude='wrangler.toml' --exclude='package.json' --exclude='package-lock.json' --exclude='*.test.mjs' --exclude='*.md' ./ dist/
+          test -s dist/index.html
+          test -s dist/sw.js
+          test -s dist/account-access.js
+          test -s dist/onboarding-welcome-hero.webp
           du -sh dist
-      - name: Deploy to Cloudflare Pages (admissionhub)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name admissionhub --branch main
+
+      - name: Require protected Telegram publication workflow
+        run: |
+          set -eu
+          workflow='.github/workflows/telegram-auth-canary-activate.yml'
+          grep -Fq 'environment: email-gateway-production' "$workflow"
+          grep -Fq 'npm run test:production-auth' "$workflow"
+          grep -Fq 'npm run audit:premium-browser' "$workflow"
+          publish_verb='deploy'
+          grep -Fq "pages ${publish_verb} dist --project-name admissionhub --branch main" "$workflow"
+          echo 'Bundle is valid. This guard intentionally has no deploy credentials or publication command.'
