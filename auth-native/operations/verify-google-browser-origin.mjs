@@ -67,13 +67,16 @@ export async function verifyGoogleBrowserOrigin({ chromiumImpl, env = process.en
       await page.locator('.ah-account-launcher').waitFor({ state: 'visible', timeout: 30_000 });
       await page.click('.ah-account-launcher');
     }
-    const googleFrame = page.locator(
-      '[data-role="welcome-google-button"] iframe:visible, [data-role="google-button"] iframe:visible'
-    ).first();
+    const googleFrameSelector =
+      '[data-role="welcome-google-button"] iframe:visible, [data-role="google-button"] iframe:visible';
+    const googleFrame = page.locator(googleFrameSelector).first();
     await googleFrame.waitFor({ state: 'visible', timeout: 30_000 });
-    const popupPromise = page.waitForEvent('popup', { timeout: 20_000 }).catch(() => null);
-    await googleFrame.click({ timeout: 20_000 });
-    const popup = await popupPromise;
+    const googleButton = page.frameLocator(googleFrameSelector).first().locator('[role="button"]').first();
+    await googleButton.waitFor({ state: 'visible', timeout: 20_000 });
+    const pagesBeforeClick = new Set(context.pages());
+    const popupPromise = context.waitForEvent('page', { timeout: 20_000 }).catch(() => null);
+    await googleButton.click({ timeout: 20_000 });
+    const popup = await popupPromise || context.pages().find(candidate => !pagesBeforeClick.has(candidate));
     if (!popup) throw new GoogleBrowserOriginError('GOOGLE_CHALLENGE_NOT_OPENED');
     await popup.waitForLoadState('domcontentloaded', { timeout: 30_000 }).catch(() => {});
     await popup.waitForTimeout(2_500);
