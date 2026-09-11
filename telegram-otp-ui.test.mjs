@@ -158,8 +158,6 @@ function setup({ pending = { pending: false }, verifyPlan = [], verifyGate = nul
 async function fillGuidedProfile(app, email) {
   const { document, window } = app;
   document.querySelector('#ah-signup-name').value = 'Test Student';
-  document.querySelector('#ah-signup-email').value = email;
-  document.querySelector('[data-role="signup-next-dob"]').click();
   document.querySelector('#ah-dob-day').value = '12';
   document.querySelector('#ah-dob-month').value = '5';
   document.querySelector('#ah-dob-year').value = '2007';
@@ -171,6 +169,7 @@ async function fillGuidedProfile(app, email) {
   [...document.querySelectorAll('#ah-school-results [role="option"]')].at(-1).click();
   document.querySelector('[data-role="signup-next-college"]').click();
   document.querySelector('[data-role="signup-next-security"]').click();
+  document.querySelector('#ah-signup-email').value = email;
 }
 
 async function openSignupTelegram(app) {

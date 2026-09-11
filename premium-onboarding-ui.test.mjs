@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 
 const accountSource = readFileSync(new URL('./account-access.js', import.meta.url), 'utf8');
+const accountCss = readFileSync(new URL('./account-access.css', import.meta.url), 'utf8');
+const personalHero = readFileSync(new URL('./onboarding-personal-hero.webp', import.meta.url));
 const institutionSource = readFileSync(new URL('./institutions-bd.js', import.meta.url), 'utf8');
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -127,9 +129,6 @@ async function openSignup(app) {
 async function completeGuidedFields(app, email = 'student@example.com') {
   const { document, window } = app;
   document.querySelector('#ah-signup-name').value = 'Test Student';
-  document.querySelector('#ah-signup-email').value = email;
-  document.querySelector('[data-role="signup-next-dob"]').click();
-  await waitFor(() => document.querySelector('[data-signup-panel="dob"]').hidden === false);
   document.querySelector('#ah-dob-day').value = '12';
   document.querySelector('#ah-dob-month').value = '5';
   document.querySelector('#ah-dob-year').value = '2007';
@@ -144,6 +143,7 @@ async function completeGuidedFields(app, email = 'student@example.com') {
   await waitFor(() => document.querySelector('[data-signup-panel="college"]').hidden === false);
   document.querySelector('[data-role="signup-next-security"]').click();
   await waitFor(() => document.querySelector('[data-signup-panel="security"]').hidden === false);
+  document.querySelector('#ah-signup-email').value = email;
   const password = document.querySelector('#ah-signup-password');
   const confirm = document.querySelector('#ah-signup-confirm');
   password.value = 'StrongPassword!9';
@@ -176,7 +176,7 @@ test('first entry has exactly four paths; Guest goes directly to Dashboard and i
   first.document.querySelector('[data-role="close"]').click();
   assert.equal(first.document.querySelector('[data-view="welcome"]').hidden, false);
   first.document.querySelector('[data-role="welcome-signup"]').click();
-  first.document.querySelector('[data-role="signup-back-entry"]').click();
+  first.document.querySelector('[data-role="close"]').click();
   assert.equal(first.document.querySelector('[data-view="welcome"]').hidden, false);
   first.document.querySelector('[data-role="continue-guest"]').click();
   await waitFor(() => first.document.querySelector('.ah-account-page').hidden === true);
@@ -213,6 +213,31 @@ test('slow account startup never delays Welcome or blocks direct Guest entry', a
   app.dom.window.close();
 });
 
+test('Signup 01 Personal uses the supplied static-reference composition and combines name with DOB', async t => {
+  const app = setup();
+  t.after(() => app.dom.window.close());
+  await openSignup(app);
+  const personal = app.document.querySelector('[data-signup-panel="personal"]');
+  const signup = app.document.querySelector('[data-view="signup"]');
+  assert.equal(signup.dataset.personalVisualContract, 'static-reference-personal-v1');
+  assert.equal(personal.hidden, false);
+  assert.equal(app.document.querySelector('[data-signup-panel="dob"]'), null);
+  assert.match(personal.textContent, /চলো, তোমার\s*পরিচয়টা তৈরি করি/);
+  assert.match(personal.textContent, /তোমার সম্পর্কে একটু বলো/);
+  assert.match(personal.textContent, /পরের ধাপ/);
+  assert.equal(personal.querySelector('.ah-personal-hero img')?.getAttribute('src'), './onboarding-personal-hero.webp?v=static-reference-personal-v1');
+  assert.equal(personalHero.subarray(0, 4).toString('ascii'), 'RIFF');
+  assert.match(accountCss, /Page 2 — exact-reference Signup 01 \/ Personal/);
+  assert.deepEqual([...app.document.querySelectorAll('[data-signup-step-button]')].map(button => button.textContent.trim()), ['01Personal', '02Education', '03Security']);
+  for (const id of ['ah-signup-name', 'ah-dob-day', 'ah-dob-month', 'ah-dob-year']) {
+    assert.equal(personal.contains(app.document.getElementById(id)), true, id);
+  }
+  assert.equal(personal.contains(app.document.querySelector('#ah-signup-email')), false);
+  assert.equal(app.document.querySelector('#ah-signup-email').closest('[data-signup-panel]')?.dataset.signupPanel, 'security');
+  assert.equal(personal.querySelectorAll('select').length, 3);
+  assert.equal(personal.querySelectorAll('[data-role="guide-open"],.ah-guide,.ah-guide-orb').length, 0);
+});
+
 test('guided Signup validates steps, caps institution matches, preserves canonical credentials, and blocks duplicate delivery', async t => {
   const app = setup();
   t.after(() => app.dom.window.close());
@@ -224,7 +249,7 @@ test('guided Signup validates steps, caps institution matches, preserves canonic
   month.value = '2';
   month.dispatchEvent(new app.window.Event('change', { bubbles: true }));
   assert.equal(app.document.querySelector('#ah-dob-day').options.length, 30);
-  app.document.querySelector('[data-role="signup-next-dob"]').click();
+  app.document.querySelector('[data-role="signup-next-education"]').click();
   assert.equal(app.document.querySelector('[data-signup-panel="personal"]').hidden, false);
   await completeGuidedFields(app);
   assert.equal(app.document.querySelectorAll('#ah-school-results [role="option"]').length <= 4, true);

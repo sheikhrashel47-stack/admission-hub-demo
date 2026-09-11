@@ -134,31 +134,67 @@
           <button class="ah-account-secondary" type="button" data-role="forgot-back">Login-এ ফিরুন</button>
         </form>
 
-        <form class="ah-account-view ah-signup-view" data-view="signup" hidden novalidate>
-          <div class="ah-signup-heading"><p>CREATE YOUR PROFILE</p><h3>Create your<br>Admission Hub profile</h3><span>তোমার preparation-কে আরও personal করতে কয়েকটি ছোট ধাপ।</span></div>
-          <div class="ah-signup-progress" role="list" aria-label="Signup progress">
-            <button type="button" class="active" data-signup-step-button="personal"><i>1</i><span>Personal</span></button><b></b>
-            <button type="button" data-signup-step-button="education"><i>2</i><span>Education</span></button><b></b>
-            <button type="button" data-signup-step-button="security"><i>3</i><span>Security</span></button>
-          </div>
-          <section class="ah-signup-panel ah-personal-panel" data-signup-panel="personal">
-            <div class="ah-profile-spark" aria-hidden="true"><span>✦</span></div>
-            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-name">তোমাকে কী নামে ডাকব?</label><input class="ah-account-input" id="ah-signup-name" name="fullName" autocomplete="name" maxlength="80" placeholder="যেমন: রাইসা ইসলাম" required><p class="ah-field-feedback" data-role="name-feedback"></p></div>
-            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-email">তোমার Email</label><input class="ah-account-input" id="ah-signup-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="you@email.com" required><p class="ah-field-feedback">Verification method বাছার আগে কোনো message পাঠানো হবে না।</p></div>
-            <button class="ah-dob-summary" type="button" data-role="open-dob"><span><small>তোমার জন্মতারিখ?</small><strong data-role="dob-summary">12 January 2007</strong></span><b aria-hidden="true">▣</b></button>
-            <div class="ah-panel-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-entry">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-dob">Next →</button></div>
+        <form class="ah-account-view ah-signup-view" data-view="signup" data-personal-visual-contract="static-reference-personal-v1" data-signup-current-step="personal" hidden novalidate>
+          <header class="ah-signup-topbar">
+            <div class="ah-signup-brand" aria-label="Admission Hub">
+              <span class="ah-signup-brand-mark" aria-hidden="true"><svg viewBox="0 0 44 34" fill="none"><path d="m3 12 19-9 19 9-19 9L3 12Z"/><path d="M10 16v8c7 5 17 5 24 0v-8l-12 6-12-6Z"/><path d="M38 14v9"/><circle cx="38" cy="25" r="2"/></svg></span>
+              <span><strong>Admission <em>Hub</em></strong><small>Your Path to Success</small></span>
+            </div>
+          </header>
+
+          <nav class="ah-signup-progress" aria-label="Signup progress">
+            <ol>
+              <li><button type="button" class="active" data-signup-step-button="personal" aria-current="step"><i>01</i><span>Personal</span></button></li>
+              <li><button type="button" data-signup-step-button="education"><i>02</i><span>Education</span></button></li>
+              <li><button type="button" data-signup-step-button="security"><i>03</i><span>Security</span></button></li>
+            </ol>
+          </nav>
+
+          <section class="ah-signup-panel ah-personal-panel" data-signup-panel="personal" aria-labelledby="ah-personal-title">
+            <figure class="ah-personal-hero" aria-hidden="true"><img src="./onboarding-personal-hero.webp?v=static-reference-personal-v1" alt="" width="565" height="370" decoding="async"></figure>
+            <div class="ah-personal-copy">
+              <h1 id="ah-personal-title"><span>চলো, তোমার</span><em>পরিচয়টা তৈরি করি</em></h1>
+              <p>কয়েকটি তথ্য দিলেই তোমার জন্য Admission Hub আরও ব্যক্তিগত হয়ে উঠবে।</p>
+            </div>
+
+            <div class="ah-personal-card">
+              <header>
+                <span aria-hidden="true"><svg viewBox="0 0 34 34" fill="none"><rect x="2" y="2" width="30" height="30" rx="15"/><circle cx="17" cy="13" r="4"/><path d="M10 25c.8-4.2 3.1-6.2 7-6.2s6.2 2 7 6.2"/></svg></span>
+                <div><h2>তোমার সম্পর্কে একটু বলো</h2><p>এই তথ্যগুলো তোমার ব্যক্তিগত learning experience তৈরি করতে সাহায্য করবে।</p></div>
+              </header>
+
+              <div class="ah-account-field ah-personal-name-field">
+                <label class="ah-account-label" for="ah-signup-name">তোমার নাম</label>
+                <div class="ah-personal-input-wrap"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.7-4.6 2.9-6.8 6.5-6.8s5.8 2.2 6.5 6.8"/></svg></span><input class="ah-account-input" id="ah-signup-name" name="fullName" autocomplete="name" maxlength="80" placeholder="তোমার পূর্ণ নাম লিখো" aria-describedby="ah-name-feedback" required></div>
+                <p class="ah-field-feedback" id="ah-name-feedback" data-role="name-feedback" aria-live="polite"></p>
+              </div>
+
+              <fieldset class="ah-personal-dob-card">
+                <legend class="sr-only">জন্মতারিখ বেছে নাও</legend>
+                <div class="ah-personal-dob-heading">
+                  <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5.5" width="16" height="15" rx="3"/><path d="M8 3v5m8-5v5M4 10h16"/><path d="M8 14h2m4 0h2m-8 3h2m4 0h2"/></svg></span>
+                  <div><strong>জন্মতারিখ</strong><small>তোমার বয়স অনুযায়ী অভিজ্ঞতা সাজাতে</small></div>
+                </div>
+                <div class="ah-dob-selectors">
+                  <label><span>দিন</span><select id="ah-dob-day" aria-label="জন্মদিন" required></select></label>
+                  <label><span>মাস</span><select id="ah-dob-month" aria-label="জন্মমাস" required></select></label>
+                  <label><span>বছর</span><select id="ah-dob-year" aria-label="জন্মবছর" required></select></label>
+                </div>
+                <output class="sr-only" data-role="dob-preview" aria-live="polite">তারিখ বেছে নাও</output>
+              </fieldset>
+
+              <p class="ah-personal-privacy"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.8 2.5 8 7 10 4.5-2 7-5.2 7-10V6l-7-3Z"/><path d="m9.4 12.1 1.7 1.7 3.7-4"/></svg></span>তোমার তথ্য নিরাপদ রাখা হবে</p>
+            </div>
+
+            <button class="ah-account-primary ah-personal-next" type="button" data-role="signup-next-education"><span>পরের ধাপ</span><b aria-hidden="true">→</b></button>
+            <div class="ah-personal-landscape" aria-hidden="true"><svg viewBox="0 0 430 88" preserveAspectRatio="none"><path class="sun" d="M301 8a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path class="hill-back" d="M0 47c39-22 72-20 111 0 39 20 78 19 119-5 53-30 108-23 200 16v30H0V47Z"/><path class="hill-front" d="M0 64c53-17 94-11 139 8 51 22 95 11 141-9 47-21 96-16 150 4v21H0V64Z"/><g class="campus"><path d="M24 62h51v22H24zM33 53h33v9H33zM46 43h8v10h-8zM40 43l10-8 10 8M17 84h66"/><path d="M31 67v17m12-17v17m14-17v17m12-17v17"/></g><g class="leaf"><path d="M396 85c-2-20 5-42 24-65 5 29-1 51-24 65Z"/><path d="M397 82c5-18 10-31 19-49"/></g><g class="trees"><path d="M100 84V57m0 2-7 13h14l-7-13Zm18 25V65m0 1-5 10h10l-5-10Z"/></g></svg></div>
           </section>
-          <section class="ah-signup-panel ah-dob-panel" data-signup-panel="dob" hidden>
-            <div class="ah-calendar-illustration" aria-hidden="true"><i></i><span>12</span><b>✓</b></div>
-            <div class="ah-standalone-heading"><h3>তোমার জন্মদিন কবে?</h3><p>তোমার বয়সভিত্তিক content সাজাতে সাহায্য করবে</p></div>
-            <fieldset class="ah-dob-card"><legend class="sr-only">জন্মতারিখ বেছে নাও</legend><div class="ah-dob-selectors"><label><span>দিন</span><select id="ah-dob-day" aria-label="জন্মদিন" required></select></label><label><span>মাস</span><select id="ah-dob-month" aria-label="জন্মমাস" required></select></label><label><span>বছর</span><select id="ah-dob-year" aria-label="জন্মবছর" required></select></label></div><p data-role="dob-preview">12 January 2007</p></fieldset>
-            <div class="ah-panel-actions ah-bottom-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-personal">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-education">Next →</button></div>
-          </section>
+
           <section class="ah-signup-panel ah-institution-panel" data-signup-panel="school" hidden>
             <div class="ah-standalone-heading"><h3>তোমার বিদ্যালয়ের নাম লিখো</h3><p>খুঁজে নাম খুঁজে পেলে সেটি বেছে নাও</p></div>
             <div class="ah-account-field ah-search-field"><label class="sr-only" for="ah-signup-school">তোমার School কোনটি?</label><div class="ah-search-input-wrap"><span aria-hidden="true">⌕</span><input class="ah-account-input" id="ah-signup-school" autocomplete="off" maxlength="120" placeholder="বিদ্যালয়ের নাম লিখো" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ah-school-results" required></div><div class="ah-search-results" id="ah-school-results" role="listbox" hidden></div><p class="ah-field-feedback">সর্বোচ্চ ৪টি suggestion দেখাবে; না পেলে নিজের লেখা ব্যবহার করো।</p></div>
             <div class="ah-campus-strip" aria-hidden="true"><span>♧</span><i>▥</i><b>⌂</b><i>▥</i><span>♧</span></div>
-            <div class="ah-panel-actions ah-bottom-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-dob">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-college">Next →</button></div>
+            <div class="ah-panel-actions ah-bottom-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-personal">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-college">Next →</button></div>
           </section>
           <section class="ah-signup-panel ah-institution-panel" data-signup-panel="college" hidden>
             <div class="ah-standalone-heading"><h3>তোমার কলেজ / বিশ্ববিদ্যালয়</h3><p>কলেজ বা বিশ্ববিদ্যালয়ের নাম লিখে বেছে নাও</p></div>
@@ -166,7 +202,8 @@
             <div class="ah-panel-actions ah-bottom-actions"><button class="ah-account-secondary" type="button" data-role="signup-back-school">← Back</button><button class="ah-account-primary" type="button" data-role="signup-next-security">Next →</button></div>
           </section>
           <section class="ah-signup-panel ah-security-panel" data-signup-panel="security" hidden>
-            <div class="ah-standalone-heading"><h3>একটি শক্তিশালী Password</h3><p>তোমার account নিরাপদ রাখতে সহজে মনে রাখা কঠিন Password দাও</p></div>
+            <div class="ah-standalone-heading"><h3>Account নিরাপদ করো</h3><p>Email ও শক্তিশালী Password দিয়ে account তৈরি করো</p></div>
+            <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-email">তোমার Email</label><input class="ah-account-input" id="ah-signup-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="you@email.com" required><p class="ah-field-feedback">Verification method বাছার আগে কোনো message পাঠানো হবে না।</p></div>
             <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-password">Password</label><div class="ah-password-wrap"><input class="ah-account-input" id="ah-signup-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="কমপক্ষে ৮ অক্ষর" required><button class="ah-password-toggle" type="button" data-password-target="ah-signup-password" aria-label="Password দেখুন">দেখুন</button></div><div class="ah-password-meter"><i data-role="password-meter"></i></div><p class="ah-field-feedback" data-role="password-strength">Password strength</p></div>
             <div class="ah-account-field"><label class="ah-account-label" for="ah-signup-confirm">Confirm Password</label><div class="ah-password-wrap"><input class="ah-account-input" id="ah-signup-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="একই Password আবার লিখো" required><button class="ah-password-toggle" type="button" data-password-target="ah-signup-confirm" aria-label="Password দেখুন">দেখুন</button></div><p class="ah-field-feedback" data-role="password-match"></p></div>
             <ul class="ah-password-rules" aria-label="Password requirements"><li data-password-rule="length">কমপক্ষে ৮ অক্ষর</li><li data-password-rule="uppercase">একটি বড় অক্ষর</li><li data-password-rule="number">একটি সংখ্যা</li></ul>
@@ -528,9 +565,9 @@
     const month = $('#ah-dob-month');
     const year = $('#ah-dob-year');
     if (!day || day.options.length > 1) return;
-    day.add(new Option('দিন', ''));
-    month.add(new Option('মাস', ''));
-    year.add(new Option('বছর', ''));
+    day.add(new Option('—', ''));
+    month.add(new Option('—', ''));
+    year.add(new Option('—', ''));
     for (let value = 1; value <= 31; value += 1) day.add(new Option(String(value), String(value)));
     ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর']
       .forEach((label, index) => month.add(new Option(label, String(index + 1))));
@@ -547,7 +584,7 @@
     const maximum = month && year ? new Date(Date.UTC(year, month, 0)).getUTCDate() : 31;
     if (day.options.length !== maximum + 1) {
       day.textContent = '';
-      day.add(new Option('দিন', ''));
+      day.add(new Option('—', ''));
       for (let value = 1; value <= maximum; value += 1) day.add(new Option(String(value), String(value)));
       day.value = previous > 0 && previous <= maximum ? String(previous) : '';
     }
@@ -718,18 +755,16 @@
     showFieldFeedback('password-match', !confirm ? '' : password === confirm ? '✓ দুইটি Password মিলেছে' : 'Password দুইটি মিলছে না', password === confirm && confirm ? 'valid' : confirm ? 'error' : '');
   };
 
+  const validateDob = () => {
+    if (!selectedDob()) { message('সঠিক জন্মতারিখ বেছে নাও।', 'error'); $('#ah-dob-day')?.focus(); return false; }
+    return true;
+  };
+
   const validatePersonal = () => {
     const name = normalizedName();
     if (!validName(name)) { showFieldFeedback('name-feedback', 'নামের মধ্যে অন্তত ২টি অক্ষর দাও।', 'error'); $('#ah-signup-name')?.focus(); return false; }
     showFieldFeedback('name-feedback', '✓ সুন্দর—নামটি ঠিক আছে', 'valid');
-    const email = $('#ah-signup-email');
-    if (!email?.value.trim() || !email.checkValidity()) { message('সঠিক Email address লিখো।', 'error'); email?.focus(); return false; }
-    return true;
-  };
-
-  const validateDob = () => {
-    if (!selectedDob()) { message('সঠিক জন্মতারিখ বেছে নাও।', 'error'); $('#ah-dob-day')?.focus(); return false; }
-    return true;
+    return validateDob();
   };
 
   const validateSchool = () => {
@@ -758,8 +793,10 @@
   const validateEducation = () => validateSchool() && validateCollege();
 
   const validateSecurity = () => {
+    const email = $('#ah-signup-email');
     const password = $('#ah-signup-password')?.value || '';
     const confirm = $('#ah-signup-confirm')?.value || '';
+    if (!email?.value.trim() || !email.checkValidity()) { message('সঠিক Email address লিখো।', 'error'); email?.focus(); return false; }
     if (password.length < 8) { message('কমপক্ষে ৮ অক্ষরের Password দাও।', 'error'); $('#ah-signup-password')?.focus(); return false; }
     if (!/[A-Z]/.test(password)) { message('Password-এ অন্তত একটি বড় English অক্ষর দাও।', 'error'); $('#ah-signup-password')?.focus(); return false; }
     if (!/\d/.test(password)) { message('Password-এ অন্তত একটি সংখ্যা দাও।', 'error'); $('#ah-signup-password')?.focus(); return false; }
@@ -776,22 +813,24 @@
 
   const setSignupStep = (requestedStep, { validate = false } = {}) => {
     const step = requestedStep === 'education' ? 'school' : requestedStep;
-    const order = ['personal', 'dob', 'school', 'college', 'security'];
+    const order = ['personal', 'school', 'college', 'security'];
     if (!order.includes(step)) return false;
     const currentStep = order.includes(state.signupStep) ? state.signupStep : 'personal';
     const currentIndex = order.indexOf(currentStep);
     const nextIndex = order.indexOf(step);
-    const validators = { personal: validatePersonal, dob: validateDob, school: validateSchool, college: validateCollege };
+    const validators = { personal: validatePersonal, school: validateSchool, college: validateCollege };
     if (validate && nextIndex > currentIndex) {
       for (let index = currentIndex; index < nextIndex; index += 1) {
         if (validators[order[index]] && !validators[order[index]]()) return false;
       }
     }
     state.signupStep = step;
-    const signupModal = $('.ah-account-shell');
-    if (signupModal) signupModal.dataset.signupStep = step;
+    const signupShell = $('.ah-account-shell');
+    const signupView = $('[data-view="signup"]');
+    if (signupShell) signupShell.dataset.signupStep = step;
+    if (signupView) signupView.dataset.signupCurrentStep = step;
     pageHost.querySelectorAll('[data-signup-panel]').forEach(panel => { panel.hidden = panel.dataset.signupPanel !== step; });
-    const stage = ['personal', 'dob'].includes(step) ? 'personal' : ['school', 'college'].includes(step) ? 'education' : 'security';
+    const stage = step === 'personal' ? 'personal' : ['school', 'college'].includes(step) ? 'education' : 'security';
     const stages = ['personal', 'education', 'security'];
     const stageIndex = stages.indexOf(stage);
     pageHost.querySelectorAll('[data-signup-step-button]').forEach(button => {
@@ -802,13 +841,13 @@
     });
     message();
     const focus = {
-      personal: $('#ah-signup-name'),
-      dob: $('#ah-dob-day'),
+      personal: null,
       school: $('#ah-signup-school'),
       college: $('#ah-signup-college'),
-      security: $('#ah-signup-password')
+      security: $('#ah-signup-email')
     }[step];
     focusWhenUnclaimed(focus);
+    if (state.currentView === 'signup' && !/jsdom/i.test(navigator.userAgent || '')) requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
     return true;
   };
 
@@ -865,7 +904,10 @@
     if (shell) shell.dataset.currentView = name;
     pageHost.querySelectorAll('[data-view]').forEach(view => { view.hidden = view.dataset.view !== name; });
     const closeButton = $('[data-role="close"]');
-    if (closeButton) closeButton.hidden = name === 'welcome';
+    if (closeButton) {
+      closeButton.hidden = name === 'welcome';
+      closeButton.setAttribute('aria-label', name === 'signup' ? 'পেছনে যান' : 'বন্ধ করুন');
+    }
     if (!keepMessage) message();
     const body = $('.ah-account-body');
     if (body) body.scrollTop = 0;
@@ -1356,6 +1398,10 @@
   };
   const dismiss = () => {
     if (state.busy) return message('কাজটি শেষ হতে একটু সময় দাও।', 'info');
+    if (state.currentView === 'signup' && state.signupStep !== 'personal') {
+      const previous = { school: 'personal', college: 'school', security: 'college' }[state.signupStep];
+      if (previous) { setSignupStep(previous); return; }
+    }
     $('#ah-login-password').value = '';
     $('#ah-signup-password').value = '';
     $('#ah-signup-confirm').value = '';
@@ -1574,24 +1620,15 @@
       navigateDashboard();
       notify();
     });
-    $('[data-role="signup-back-entry"]').addEventListener('click', () => {
-      $('#ah-signup-password').value = '';
-      $('#ah-signup-confirm').value = '';
-      updatePasswordFeedback();
-      showView(entryMode() ? 'login' : 'welcome');
-    });
-    $('[data-role="open-dob"]').addEventListener('click', () => setSignupStep('dob', { validate: true }));
-    $('[data-role="signup-next-dob"]').addEventListener('click', () => setSignupStep('dob', { validate: true }));
-    $('[data-role="signup-back-personal"]').addEventListener('click', () => setSignupStep('personal'));
     $('[data-role="signup-next-education"]').addEventListener('click', () => setSignupStep('school', { validate: true }));
-    $('[data-role="signup-back-dob"]').addEventListener('click', () => setSignupStep('dob'));
+    $('[data-role="signup-back-personal"]').addEventListener('click', () => setSignupStep('personal'));
     $('[data-role="signup-next-college"]').addEventListener('click', () => setSignupStep('college', { validate: true }));
     $('[data-role="signup-back-school"]').addEventListener('click', () => setSignupStep('school'));
     $('[data-role="signup-next-security"]').addEventListener('click', () => setSignupStep('security', { validate: true }));
     $('[data-role="signup-back-education"]').addEventListener('click', () => setSignupStep('college'));
     pageHost.querySelectorAll('[data-signup-step-button]').forEach(button => button.addEventListener('click', () => {
       const target = button.dataset.signupStepButton === 'education' ? 'school' : button.dataset.signupStepButton;
-      const order = ['personal', 'dob', 'school', 'college', 'security'];
+      const order = ['personal', 'school', 'college', 'security'];
       const current = order.indexOf(state.signupStep);
       const next = order.indexOf(target);
       if (next <= current) setSignupStep(target);
@@ -1644,14 +1681,14 @@
       $('#ah-login-password').value = '';
       showView('signup');
     });
-    $('[data-role="show-login"]').addEventListener('click', () => {
+    pageHost.querySelectorAll('[data-role="show-login"]').forEach(button => button.addEventListener('click', () => {
       state.signupJourney = false;
       if (!state.profileBound) state.pendingProfile = null;
       prefillLogin($('#ah-signup-email').value);
       $('#ah-signup-password').value = '';
       $('#ah-signup-confirm').value = '';
       showView('login');
-    });
+    }));
     $('[data-role="verified-continue"]').addEventListener('click', () => {
       if (state.afterVerified === 'security-setup') showView('security-setup');
       else showReadyTransition();
@@ -1671,7 +1708,6 @@
       event.preventDefault();
       if (state.busy || !ensureAvailable()) return;
       if (!validatePersonal()) { setSignupStep('personal'); validatePersonal(); return; }
-      if (!validateDob()) { setSignupStep('dob'); validateDob(); return; }
       if (!validateSchool()) { setSignupStep('school'); validateSchool(); return; }
       if (!validateCollege()) { setSignupStep('college'); validateCollege(); return; }
       if (!validateSecurity()) { setSignupStep('security'); validateSecurity(); return; }
