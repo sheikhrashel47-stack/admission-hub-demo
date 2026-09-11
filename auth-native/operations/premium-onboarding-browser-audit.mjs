@@ -120,6 +120,8 @@ try {
 
   const context = await browser.newContext({
     ...devices['iPhone 13'],
+    viewport: { width: 390, height: 844 },
+    screen: { width: 390, height: 844 },
     locale: 'bn-BD',
     reducedMotion: 'no-preference'
   });
@@ -191,13 +193,48 @@ try {
   assert.equal(await page.locator('.ah-account-shell').getAttribute('data-visual-contract'), 'static-page-system-v3');
   assert.equal(await page.locator('.ah-academic-hero img').evaluate(image => image.complete && image.naturalWidth > 0), true);
   await page.getByRole('button', { name: 'Sign Up', exact: true }).click();
-  await page.locator('#ah-signup-name').fill('Browser Student');
-  await page.locator('#ah-signup-email').fill('student@example.com');
+  await page.locator('[data-signup-panel="personal"]').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('[data-view="signup"]').getAttribute('data-personal-visual-contract'), 'static-reference-personal-v1');
+  assert.equal(await page.locator('[data-signup-panel="dob"]').count(), 0, 'DOB must stay on visible Personal, not a separate screen');
+  assert.equal(await page.locator('.ah-personal-hero img').evaluate(image => image.complete && image.naturalWidth === 565 && image.naturalHeight === 370), true);
+  assert.deepEqual(await page.locator('[data-signup-step-button]').allTextContents().then(values => values.map(value => value.replace(/\s+/g, ''))), ['01Personal', '02Education', '03Security']);
+  await page.waitForTimeout(250);
+  const personalGeometry = await page.evaluate(() => {
+    const box = selector => {
+      const rect = document.querySelector(selector).getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, bottom: rect.bottom };
+    };
+    return {
+      viewport: { width: innerWidth, height: innerHeight },
+      page: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
+      card: box('.ah-personal-card'),
+      cta: box('.ah-personal-next'),
+      name: box('#ah-signup-name'),
+      selects: [...document.querySelectorAll('.ah-personal-dob-card select')].map(select => ({
+        width: select.getBoundingClientRect().width,
+        height: select.getBoundingClientRect().height,
+        fontSize: parseFloat(getComputedStyle(select).fontSize)
+      }))
+    };
+  });
+  assert.deepEqual(personalGeometry.viewport, { width: 390, height: 844 });
+  assert.equal(personalGeometry.page.width <= 390, true, JSON.stringify(personalGeometry));
+  assert.equal(personalGeometry.page.height <= 845, true, JSON.stringify(personalGeometry));
+  assert.equal(personalGeometry.card.x >= 24 && personalGeometry.card.x <= 28 && personalGeometry.card.width >= 336, true, JSON.stringify(personalGeometry.card));
+  assert.equal(personalGeometry.cta.x >= 31 && personalGeometry.cta.width >= 322 && personalGeometry.cta.height >= 48, true, JSON.stringify(personalGeometry.cta));
+  assert.equal(personalGeometry.name.height >= 48, true);
+  assert.equal(personalGeometry.selects.every(select => select.height >= 38 && select.fontSize >= 16), true, JSON.stringify(personalGeometry.selects));
   assert.equal(await page.locator('#ah-signup-name').evaluate(input => input.labels.length), 1);
-  assert.equal(await page.locator('#ah-signup-email').evaluate(input => input.labels.length), 1);
-  assert.equal(await page.locator('#ah-signup-email').evaluate(input => parseFloat(getComputedStyle(input).fontSize) >= 16), true);
-  await page.locator('[data-role="signup-next-dob"]').click();
-  await page.locator('[data-signup-panel="dob"]').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('#ah-signup-name').evaluate(input => parseFloat(getComputedStyle(input).fontSize) >= 16), true);
+  assert.equal(await page.locator('#ah-signup-email').isHidden(), true, 'Email belongs to Security, not Personal');
+  assert.deepEqual(await page.evaluate(() => ['app', 'navRoot', 'toast', 'modalRoot'].map(id => getComputedStyle(document.getElementById(id)).display)), ['none', 'none', 'none', 'none']);
+  await page.locator('[data-role="signup-next-education"]').click();
+  assert.equal(await page.locator('[data-signup-panel="personal"]').isVisible(), true);
+  assert.match(await page.locator('[data-role="name-feedback"]').textContent(), /অন্তত ২টি অক্ষর/);
+  await page.locator('#ah-signup-name').fill('Browser Student');
+  await page.locator('[data-role="signup-next-education"]').click();
+  assert.equal(await page.locator('[data-signup-panel="personal"]').isVisible(), true);
+  assert.match(await page.locator('[data-role="message"]').textContent(), /জন্মতারিখ/);
   await page.locator('#ah-dob-day').selectOption('12');
   await page.locator('#ah-dob-month').selectOption('5');
   await page.locator('#ah-dob-year').selectOption('2007');
@@ -214,6 +251,16 @@ try {
     }
   }));
   assert.equal(educationState.visible, true, JSON.stringify(educationState));
+  await page.locator('[data-role="close"]').click();
+  await page.locator('[data-signup-panel="personal"]').waitFor({ state: 'visible' });
+  assert.deepEqual(await page.evaluate(() => [
+    document.querySelector('#ah-signup-name').value,
+    document.querySelector('#ah-dob-day').value,
+    document.querySelector('#ah-dob-month').value,
+    document.querySelector('#ah-dob-year').value
+  ]), ['Browser Student', '12', '5', '2007']);
+  await page.locator('[data-role="signup-next-education"]').click();
+  await page.locator('[data-signup-panel="school"]').waitFor({ state: 'visible' });
   const school = page.locator('#ah-signup-school');
   await school.fill('Cox');
   await page.locator('#ah-school-results [role="option"]').first().waitFor({ state: 'visible' });
@@ -227,6 +274,9 @@ try {
   await page.locator('[data-signup-panel="college"]').waitFor({ state: 'visible' });
   await page.locator('[data-role="signup-next-security"]').click();
   await page.locator('[data-signup-panel="security"]').waitFor({ state: 'visible' });
+  await page.locator('#ah-signup-email').fill('student@example.com');
+  assert.equal(await page.locator('#ah-signup-email').evaluate(input => input.labels.length), 1);
+  assert.equal(await page.locator('#ah-signup-email').evaluate(input => parseFloat(getComputedStyle(input).fontSize) >= 16), true);
   await page.locator('#ah-signup-password').fill('StrongPassword!9');
   await page.locator('#ah-signup-confirm').fill('StrongPassword!9');
   await page.locator('[data-role="password-strength"]').filter({ hasText: 'খুব শক্তিশালী' }).waitFor();
@@ -354,6 +404,19 @@ try {
   await guestContext.setOffline(false);
   await guestContext.close();
 
+  const compactContext = await browser.newContext({ viewport: { width: 320, height: 568 }, screen: { width: 320, height: 568 }, isMobile: true, hasTouch: true, locale: 'bn-BD', reducedMotion: 'reduce' });
+  const compactPage = await compactContext.newPage();
+  await compactPage.goto(origin, { waitUntil: 'domcontentloaded' });
+  await compactPage.getByRole('button', { name: 'Sign Up', exact: true }).click();
+  await compactPage.locator('[data-signup-panel="personal"]').waitFor({ state: 'visible' });
+  assert.equal(await compactPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'compact Personal overflow');
+  assert.equal(await compactPage.locator('.ah-personal-next').evaluate(node => {
+    node.scrollIntoView({ block: 'center' });
+    const rect = node.getBoundingClientRect();
+    return rect.width >= 260 && rect.height >= 48;
+  }), true, 'compact Personal CTA is not reachable');
+  await compactContext.close();
+
   const desktopContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'bn-BD', reducedMotion: 'reduce' });
   const desktopPage = await desktopContext.newPage();
   await desktopPage.goto(origin, { waitUntil: 'domcontentloaded' });
@@ -369,6 +432,11 @@ try {
   assert.equal(desktopWelcomeStyle.borderRadius, '0px');
   assert.equal(desktopWelcomeStyle.boxShadow, 'none');
   assert.equal(await desktopPage.locator('.ah-account-page').evaluate(node => getComputedStyle(node).position), 'relative');
+  assert.equal(await desktopPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
+  await desktopPage.getByRole('button', { name: 'Sign Up', exact: true }).click();
+  await desktopPage.locator('[data-signup-panel="personal"]').waitFor({ state: 'visible' });
+  const desktopPersonalBox = await desktopPage.locator('.ah-account-shell').boundingBox();
+  assert.ok(desktopPersonalBox.width >= 429 && desktopPersonalBox.width <= 431 && desktopPersonalBox.height >= 900, JSON.stringify(desktopPersonalBox));
   assert.equal(await desktopPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
   const motion = await desktopPage.locator('.ah-account-shell').evaluate(element => ({
     animationDuration: getComputedStyle(element).animationDuration,
@@ -386,7 +454,9 @@ try {
     profileRequests: requests.filter(item => item.path === '/api/auth/v1/profile/pending').length,
     emailStatusChecks: completedEmailStatusChecks,
     nativePasskeyVirtualDevice: true,
-    referenceVisualContract: 'static-reference-welcome-v3',
+    referenceVisualContracts: ['static-reference-welcome-v3', 'static-reference-personal-v1'],
+    personalNameAndDobCombined: true,
+    personalViewportFit: true,
     firstEntryFullScreenNotPopup: true,
     desktopNarrowPhoneComposition: true,
     customGuestDashboardRemoved: true,
