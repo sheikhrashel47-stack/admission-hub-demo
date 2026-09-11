@@ -136,6 +136,9 @@ test('Google and the explicit Email-or-Telegram selector are public while Passke
   assert.match(googleBrowserOriginOperation, /\.ah-account-launcher'\)\.waitFor\(\{ state: 'visible'/);
   assert.match(googleBrowserOriginOperation, /welcome-google-button/);
   assert.match(googleBrowserOriginOperation, /iframe:visible/);
+  assert.match(googleBrowserOriginOperation, /frameLocator\(googleFrameSelector\).*locator\('\[role="button"\]'\)/s);
+  assert.match(googleBrowserOriginOperation, /context\.waitForEvent\('page'/);
+  assert.doesNotMatch(googleBrowserOriginOperation, /googleFrame\.click\(/);
   assert.match(googleBrowserOriginOperation, /origin_mismatch/);
   assert.match(googleBrowserOriginOperation, /credentialUsed:\s*false/);
   assert.doesNotMatch(googleBrowserOriginOperation, /console\.(?:log|error)|popup\.url\(\)\s*\)/);
