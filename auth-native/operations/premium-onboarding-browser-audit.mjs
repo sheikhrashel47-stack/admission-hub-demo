@@ -215,7 +215,7 @@ try {
   const signup = page.locator('[data-view="signup"]');
   assert.equal(await signup.getAttribute('data-personal-visual-contract'), 'interactive-native-personal-v1');
   assert.equal(await signup.getAttribute('data-media-contract'), 'zero-raster-entry-v1');
-  assert.equal(await signup.getAttribute('data-dob-contract'), '3d-wheel-dob-v1');
+  assert.equal(await page.locator('.ah-personal-dob-card').getAttribute('data-dob-contract'), '3d-wheel-dob-v1');
   assert.equal(await page.locator('[data-signup-panel="dob"]').count(), 0, 'DOB must stay on visible Personal, not a separate screen');
   assert.equal(await page.locator('[data-profile-preview-contract="input-bound-profile-v1"]').count(), 0, 'Live profile card must be gone');
   assert.equal(await page.locator('.ah-live-profile').count(), 0, 'Live profile card must be gone');
