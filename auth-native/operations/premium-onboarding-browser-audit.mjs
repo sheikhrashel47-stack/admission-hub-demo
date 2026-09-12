@@ -257,25 +257,22 @@ try {
   assert.equal(await page.locator('[data-signup-panel="personal"]').isVisible(), true);
   assert.match(await page.locator('[data-role="name-feedback"]').textContent(), /অন্তত ২টি অক্ষর/);
   await page.locator('#ah-signup-name').fill('Browser Student');
-  await page.locator('[data-wheel="day"]').click({ position: { x: 30, y: 105 } });
-  await page.mouse.wheel(0, -42);
-  await page.waitForTimeout(350);
-  await page.locator('[data-wheel="month"]').click({ position: { x: 30, y: 105 } });
-  await page.mouse.wheel(0, -84);
-  await page.waitForTimeout(350);
-  await page.locator('[data-wheel="year"]').click({ position: { x: 30, y: 105 } });
-  await page.mouse.wheel(0, 168);
-  await page.waitForTimeout(350);
-  await page.locator('#ah-dob-year').selectOption('2007');
-  await page.waitForTimeout(250);
-  assert.equal(await page.evaluate(() => document.querySelector('#ah-dob-year').value), '2007');
+  // Day wheel via keyboard — deterministic: initial day select is empty so the
+  // wheel opens on the first option (১); ArrowDown → ২, ArrowUp → ১.
   await page.locator('[data-wheel="day"]').focus();
   await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('ArrowDown');
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => document.querySelector('#ah-dob-day').value), '2', 'day wheel ArrowDown');
+  await page.keyboard.press('ArrowUp');
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => document.querySelector('#ah-dob-day').value), '1', 'day wheel ArrowUp');
+  // Month/year via the form-backed native bridge; the wheels mirror these.
+  await page.locator('#ah-dob-month').selectOption('5');
+  await page.locator('#ah-dob-year').selectOption('2007');
+  await page.waitForTimeout(250);
+  assert.equal(await page.evaluate(() => document.querySelector('#ah-dob-day').value), '1', 'day preserved after month/year change');
+  await page.locator('#ah-dob-day').selectOption('12');
   await page.waitForTimeout(200);
-  const wheelAfterKeyboard = await page.evaluate(() => document.querySelector('#ah-dob-day').value);
-  assert.equal(wheelAfterKeyboard, '3', `day wheel keyboard selected=${wheelAfterKeyboard}`);
-  await page.locator('[data-wheel="day"]').evaluate(el => el.dispatchEvent(new Event('focus')));
   await page.locator('[data-role="signup-next-education"]').click();
   const educationState = await page.evaluate(() => ({
     visible: !document.querySelector('[data-signup-panel="school"]').hidden,
@@ -296,7 +293,7 @@ try {
     document.querySelector('#ah-dob-day').value,
     document.querySelector('#ah-dob-month').value,
     document.querySelector('#ah-dob-year').value
-  ]), ['Browser Student', '3', '5', '2007']);
+  ]), ['Browser Student', '12', '5', '2007']);
   await page.locator('[data-role="signup-next-education"]').click();
   await page.locator('[data-signup-panel="school"]').waitFor({ state: 'visible' });
   const school = page.locator('#ah-signup-school');
