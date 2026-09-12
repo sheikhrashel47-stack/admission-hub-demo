@@ -215,7 +215,7 @@ test('slow account startup never delays Welcome or blocks direct Guest entry', a
   app.dom.window.close();
 });
 
-test('Signup 01 Personal uses a 3D wheel DOB picker and keeps name together on one screen', async t => {
+test('Signup 01 Personal uses a premium dropdown DOB picker and keeps name together on one screen', async t => {
   const app = setup();
   t.after(() => app.dom.window.close());
   await openSignup(app);
@@ -225,12 +225,12 @@ test('Signup 01 Personal uses a 3D wheel DOB picker and keeps name together on o
   assert.equal(signup.dataset.mediaContract, 'zero-raster-entry-v1');
   assert.equal(personal.hidden, false);
   assert.equal(app.document.querySelector('[data-signup-panel="dob"]'), null);
-  assert.match(personal.textContent, /চলো, তৈরি করি/);
-  assert.match(personal.textContent, /আপনার সম্পর্কে কিছু তথ্য/);
-  assert.match(personal.textContent, /পরের ধাপ/);
-  assert.equal(personal.querySelector('.ah-dob-wheel').dataset.wheel, 'day');
-  assert.equal(personal.querySelectorAll('.ah-dob-wheel').length, 3);
-  assert.equal(personal.querySelectorAll('.ah-dob-wheel-seat').length, 3);
+  assert.match(personal.textContent, /Set up your profile/);
+  assert.match(personal.textContent, /Personal information/);
+  assert.match(personal.textContent, /Continue/);
+  assert.equal(personal.querySelector('.ah-dob-select').id, 'ah-dob-day');
+  assert.equal(personal.querySelectorAll('.ah-dob-select').length, 3);
+  assert.equal(personal.querySelectorAll('.ah-dob-wheel').length, 0);
   assert.doesNotMatch(personal.textContent, /LIVE PROFILE/);
   assert.doesNotMatch(accountSource, /onboarding-(?:welcome|personal)-hero\.webp/);
   assert.match(accountCss, /Personal — real input-bound profile preview, not an illustration or image/);

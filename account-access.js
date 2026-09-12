@@ -194,9 +194,9 @@
 
           <nav class="ah-signup-progress" aria-label="Signup progress">
             <ol>
-              <li><button type="button" class="active" data-signup-step-button="personal" aria-current="step"><i>01</i><span>Personal</span><small>তোমার পরিচয়</small></button></li>
-              <li><button type="button" data-signup-step-button="education"><i>02</i><span>Education</span><small>শিক্ষার তথ্য</small></button></li>
-              <li><button type="button" data-signup-step-button="security"><i>03</i><span>Security</span><small>নিরাপদ account</small></button></li>
+              <li><button type="button" class="active" data-signup-step-button="personal" aria-current="step"><i>01</i><span>Personal</span><small>Your identity</small></button></li>
+              <li><button type="button" data-signup-step-button="education"><i>02</i><span>Education</span><small>Study details</small></button></li>
+              <li><button type="button" data-signup-step-button="security"><i>03</i><span>Security</span><small>Secure account</small></button></li>
             </ol>
           </nav>
 
@@ -204,66 +204,46 @@
             <div class="ah-personal-intro">
               <div class="ah-personal-copy">
                 <p class="ah-personal-kicker"><i aria-hidden="true"></i>STEP 01 · PERSONAL</p>
-                <h1 id="ah-personal-title">চলো, তৈরি করি<br><em>তোমার যাত্রা</em></h1>
+                <h1 id="ah-personal-title">Set up your profile</h1>
               </div>
-              <p class="ah-personal-subcopy">শুধু নাম আর জন্মতারিখ — বাকি সব আমরা ঠিক করবো।</p>
+              <p class="ah-personal-subcopy">Just your name and date of birth — we'll handle the rest.</p>
             </div>
 
             <div class="ah-personal-card">
               <header>
-                <div><p>PROFILE DETAILS</p><h2>আপনার সম্পর্কে কিছু তথ্য</h2></div>
+                <div><h2>Personal information</h2></div>
               </header>
 
               <div class="ah-account-field ah-personal-name-field">
-                <label class="ah-account-label" for="ah-signup-name">আপনার নাম</label>
-                <div class="ah-personal-input-wrap"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.7-4.6 2.9-6.8 6.5-6.8s5.8 2.2 6.5 6.8"/></svg></span><input class="ah-account-input" id="ah-signup-name" name="fullName" autocomplete="name" maxlength="80" placeholder="পূর্ণ নাম লিখুন" aria-describedby="ah-name-feedback" required></div>
+                <label class="ah-account-label" for="ah-signup-name">Full name</label>
+                <div class="ah-personal-input-wrap"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.7-4.6 2.9-6.8 6.5-6.8s5.8 2.2 6.5 6.8"/></svg></span><input class="ah-account-input" id="ah-signup-name" name="fullName" autocomplete="name" maxlength="80" placeholder="Enter your full name" aria-describedby="ah-name-feedback" required></div>
                 <p class="ah-field-feedback" id="ah-name-feedback" data-role="name-feedback" aria-live="polite"></p>
               </div>
 
-              <fieldset class="ah-personal-dob-card" data-dob-contract="3d-wheel-dob-v1">
-                <legend>জন্মতারিখ</legend>
-                <div class="ah-dob-wheelbox">
-                  <div class="ah-dob-wheel-col">
-                    <span class="ah-dob-wheel-label">দিন</span>
-                    <div class="ah-dob-wheel" data-wheel="day" role="listbox" aria-label="জন্মদিন" tabindex="0">
-                      <ul class="ah-dob-wheel-inner" data-wheel-inner="day"></ul>
-                      <i class="ah-dob-wheel-shade" aria-hidden="true"></i>
-                      <b class="ah-dob-wheel-shade" aria-hidden="true"></b>
-                      <span class="ah-dob-wheel-seat" aria-hidden="true"></span>
-                    </div>
+              <fieldset class="ah-personal-dob-card" data-dob-contract="premium-dropdown-dob-v2">
+                <legend>Date of birth</legend>
+                <div class="ah-dob-selects">
+                  <div class="ah-dob-select-col">
+                    <span class="ah-dob-select-label">Day</span>
+                    <span class="ah-dob-select-wrap"><select class="ah-dob-select" id="ah-dob-day" aria-label="Day" required></select><svg aria-hidden="true" viewBox="0 0 12 8"><path d="M1 1.8 6 6.6 11 1.8"/></svg></span>
                   </div>
-                  <div class="ah-dob-wheel-col">
-                    <span class="ah-dob-wheel-label">মাস</span>
-                    <div class="ah-dob-wheel" data-wheel="month" role="listbox" aria-label="জন্মমাস" tabindex="0">
-                      <ul class="ah-dob-wheel-inner" data-wheel-inner="month"></ul>
-                      <i class="ah-dob-wheel-shade" aria-hidden="true"></i>
-                      <b class="ah-dob-wheel-shade" aria-hidden="true"></b>
-                      <span class="ah-dob-wheel-seat" aria-hidden="true"></span>
-                    </div>
+                  <div class="ah-dob-select-col">
+                    <span class="ah-dob-select-label">Month</span>
+                    <span class="ah-dob-select-wrap"><select class="ah-dob-select" id="ah-dob-month" aria-label="Month" required></select><svg aria-hidden="true" viewBox="0 0 12 8"><path d="M1 1.8 6 6.6 11 1.8"/></svg></span>
                   </div>
-                  <div class="ah-dob-wheel-col">
-                    <span class="ah-dob-wheel-label">বছর</span>
-                    <div class="ah-dob-wheel" data-wheel="year" role="listbox" aria-label="জন্মবছর" tabindex="0">
-                      <ul class="ah-dob-wheel-inner" data-wheel-inner="year"></ul>
-                      <i class="ah-dob-wheel-shade" aria-hidden="true"></i>
-                      <b class="ah-dob-wheel-shade" aria-hidden="true"></b>
-                      <span class="ah-dob-wheel-seat" aria-hidden="true"></span>
-                    </div>
+                  <div class="ah-dob-select-col">
+                    <span class="ah-dob-select-label">Year</span>
+                    <span class="ah-dob-select-wrap"><select class="ah-dob-select" id="ah-dob-year" aria-label="Year" required></select><svg aria-hidden="true" viewBox="0 0 12 8"><path d="M1 1.8 6 6.6 11 1.8"/></svg></span>
                   </div>
                 </div>
-                <div class="ah-dob-native" aria-hidden="true">
-                  <select id="ah-dob-day" aria-label="জন্মদিন" tabindex="-1" required></select>
-                  <select id="ah-dob-month" aria-label="জন্মমাস" tabindex="-1" required></select>
-                  <select id="ah-dob-year" aria-label="জন্মবছর" tabindex="-1" required></select>
-                </div>
-                <output class="sr-only" data-role="dob-preview" aria-live="polite">তারিখ বেছে নাও</output>
+                <output class="sr-only" data-role="dob-preview" aria-live="polite">Select your date of birth</output>
               </fieldset>
 
-              <p class="ah-personal-privacy"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.8 2.5 8 7 10 4.5-2 7-5.2 7-10V6l-7-3Z"/><path d="m9.4 12.1 1.7 1.7 3.7-4"/></svg></span><span><strong>আপনার তথ্য নিরাপদে থাকবে</strong></span></p>
+              <p class="ah-personal-privacy"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.8 2.5 8 7 10 4.5-2 7-5.2 7-10V6l-7-3Z"/><path d="m9.4 12.1 1.7 1.7 3.7-4"/></svg></span><span><strong>Your information is encrypted and stays private</strong></span></p>
             </div>
 
             <div class="ah-personal-actions">
-              <button class="ah-account-primary ah-personal-next" type="button" data-role="signup-next-education"><span>পরের ধাপ</span><b aria-hidden="true">→</b></button>
+              <button class="ah-account-primary ah-personal-next" type="button" data-role="signup-next-education"><span>Continue</span><b aria-hidden="true">→</b></button>
             </div>
           </section>
           <section class="ah-signup-panel ah-institution-panel" data-signup-panel="school" hidden>
@@ -636,11 +616,7 @@
     document.cookie = `${PENDING_SIGNUP_COOKIE}=${value}; Path=/; Max-Age=${active ? 3600 : 0}; SameSite=Lax${secure}`;
   };
 
-  const BANGLA_MONTHS = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
-  const BANGLA_NUM = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
-  const toBanglaDigits = value => String(value).replace(/\d/g, digit => BANGLA_NUM[Number(digit)]);
-  const PHANTOM_COUNT = 4;
-  const WHEEL_ITEM_HEIGHT = 42;
+  const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
   const populateDob = () => {
     const day = $('#ah-dob-day');
@@ -651,7 +627,7 @@
     month.add(new Option('—', ''));
     year.add(new Option('—', ''));
     for (let value = 1; value <= 31; value += 1) day.add(new Option(String(value), String(value)));
-    BANGLA_MONTHS.forEach((label, index) => month.add(new Option(label, String(index + 1))));
+    EN_MONTHS.forEach((label, index) => month.add(new Option(label, String(index + 1))));
     const current = new Date().getFullYear();
     for (let value = current - 8; value >= current - 60; value -= 1) year.add(new Option(String(value), String(value)));
   };
@@ -669,7 +645,6 @@
       for (let value = 1; value <= maximum; value += 1) day.add(new Option(String(value), String(value)));
       day.value = previous > 0 && previous <= maximum ? String(previous) : '';
     }
-    renderDobWheel('day');
   };
 
   const selectedDob = () => {
@@ -682,153 +657,17 @@
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
 
-  const wheelOptions = kind => {
-    if (kind === 'day') {
-      const month = Number($('#ah-dob-month')?.value || 0);
-      const year = Number($('#ah-dob-year')?.value || 0);
-      const maximum = month && year ? new Date(Date.UTC(year, month, 0)).getUTCDate() : 31;
-      return Array.from({ length: maximum }, (_, i) => String(i + 1));
-    }
-    if (kind === 'month') return BANGLA_MONTHS;
-    const current = new Date().getFullYear();
-    return Array.from({ length: 53 }, (_, i) => String(current - 8 - i));
-  };
-
-  const wheelCenterOffset = inner => inner.clientHeight / 2 - WHEEL_ITEM_HEIGHT / 2;
-
-  const renderDobWheel = kind => {
-    const inner = $(`[data-wheel-inner="${kind}"]`);
-    if (!inner) return;
-    const options = wheelOptions(kind);
-    const previous = nativeDobValue(kind);
-    const fragments = [];
-    for (let i = 0; i < PHANTOM_COUNT; i += 1) fragments.push(`<li data-phantom="top">${options[0]}</li>`);
-    options.forEach((option, index) => {
-      const label = kind === 'month' ? option : toBanglaDigits(option);
-      fragments.push(`<li data-value="${option}">${label}</li>`);
-    });
-    for (let i = 0; i < PHANTOM_COUNT; i += 1) fragments.push(`<li data-phantom="bottom">${options[options.length - 1]}</li>`);
-    inner.innerHTML = fragments.join('');
-    inner.style.setProperty('--item-height', `${WHEEL_ITEM_HEIGHT}px`);
-    inner.style.setProperty('--phantom-count', String(PHANTOM_COUNT));
-    const anchor = previous ? inner.querySelector(`li[data-value="${previous}"]`) : inner.querySelector('li[data-value]');
-    inner.scrollTop = anchor ? anchor.offsetTop - wheelCenterOffset(inner) : PHANTOM_COUNT * WHEEL_ITEM_HEIGHT;
-    wheelScrollApply(inner.closest('.ah-dob-wheel'));
-  };
-
-  const wheelScrollApply = (wheel, index) => {
-    const inner = wheel.querySelector('[data-wheel-inner]');
-    if (!inner) return;
-    const scroll = inner.scrollTop;
-    const center = inner.clientHeight / 2;
-    const items = [...inner.querySelectorAll('li')];
-    let transform = '';
-    for (const item of items) {
-      const mid = item.offsetTop + WHEEL_ITEM_HEIGHT / 2 - scroll;
-      const distance = Math.abs(mid - center);
-      const tilt = Math.max(-80, Math.min(80, (mid - center) * 0.55));
-      const scale = Math.max(0.62, 1 - distance / (inner.clientHeight * 0.95));
-      const opacity = Math.max(0.08, 1 - distance / (inner.clientHeight * 0.62));
-      item.style.transform = `translateY(${Math.round((center - mid) / 9)}px) perspective(320px) rotateX(${tilt.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
-      item.style.opacity = opacity.toFixed(3);
-    }
-    wheel.dataset.scrolling = '1';
-  };
-
-  const nearestDobValue = (wheel, inner) => {
-    const options = [...inner.querySelectorAll('li[data-value]')];
-    if (!options.length) return '';
-    const scroll = inner.scrollTop;
-    const center = inner.clientHeight / 2;
-    let best = options[0];
-    let bestDistance = Infinity;
-    for (const item of options) {
-      const mid = item.offsetTop + WHEEL_ITEM_HEIGHT / 2 - scroll;
-      const distance = Math.abs(mid - center);
-      if (distance < bestDistance) { bestDistance = distance; best = item; }
-    }
-    return best.dataset.value || '';
-  };
-
-  const settleDobScroll = (wheel, inner) => {
-    const options = [...inner.querySelectorAll('li[data-value]')];
-    if (!options.length) return;
-    const scroll = inner.scrollTop;
-    const center = inner.clientHeight / 2;
-    let best = options[0];
-    let bestDistance = Infinity;
-    for (const item of options) {
-      const mid = item.offsetTop + WHEEL_ITEM_HEIGHT / 2 - scroll;
-      const distance = Math.abs(mid - center);
-      if (distance < bestDistance) { bestDistance = distance; best = item; }
-    }
-    const target = best.offsetTop - (inner.clientHeight / 2 - WHEEL_ITEM_HEIGHT / 2);
-    inner.scrollTo({ top: target, behavior: 'smooth' });
-  };
-
-  const wheelApplySelection = (wheel, optionValue) => {
-    const inner = wheel.querySelector('[data-wheel-inner]');
-    if (!inner || optionValue == null) return;
-    const target = inner.querySelector(`li[data-value="${optionValue}"]`);
-    if (target) inner.scrollTo({ top: target.offsetTop - (inner.clientHeight / 2 - WHEEL_ITEM_HEIGHT / 2), behavior: 'smooth' });
-  };
-
   const updateDobPreview = () => {
     const dob = selectedDob();
     const label = dob
-      ? new Intl.DateTimeFormat('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${dob}T00:00:00Z`))
-      : 'তারিখ বেছে নাও';
+      ? new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${dob}T00:00:00Z`))
+      : 'Select your date of birth';
     pageHost.querySelectorAll('[data-role="dob-preview"]').forEach(output => { output.textContent = label; });
   };
 
-  const setupDobWheels = () => {
+  const setupDobDropdowns = () => {
     populateDob();
     updateDobPreview();
-    pageHost.querySelectorAll('.ah-dob-wheel').forEach(wheel => {
-      const kind = wheel.dataset.wheel;
-      const inner = wheel.querySelector('[data-wheel-inner]');
-      renderDobWheel(kind);
-      let raf = 0;
-      inner.addEventListener('scroll', () => {
-        cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(() => wheelScrollApply(wheel));
-      }, { passive: true });
-      let settleTimer = 0;
-      inner.addEventListener('scroll', () => {
-        clearTimeout(settleTimer);
-        settleTimer = setTimeout(() => {
-          const value = nearestDobValue(wheel, inner);
-          const native = kind === 'day' ? $('#ah-dob-day') : kind === 'month' ? $('#ah-dob-month') : $('#ah-dob-year');
-          if (native && value && native.value !== value) {
-            native.value = value;
-            native.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-          settleDobScroll(wheel, inner);
-          wheel.dataset.scrolling = '';
-          requestAnimationFrame(() => wheelScrollApply(wheel));
-        }, 130);
-      }, { passive: true });
-      wheel.setAttribute('tabindex', '0');
-      wheel.addEventListener('keydown', event => {
-        const key = event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'PageDown' || event.key === 'PageUp';
-        if (!key) return;
-        event.preventDefault();
-        const fromNative = nativeDobValue(kind);
-        const current = fromNative || nearestDobValue(wheel, inner) || String(wheelOptions(kind)[0]);
-        const options = wheelOptions(kind);
-        const index = options.indexOf(current);
-        const delta = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : event.key === 'PageDown' ? 6 : -6;
-        const option = options[Math.max(0, Math.min(options.length - 1, index < 0 ? (delta > 0 ? 0 : options.length - 1) : index + delta))];
-        const target = inner.querySelector(`li[data-value="${option}"]`);
-        if (target) inner.scrollTop = target.offsetTop - (inner.clientHeight / 2 - WHEEL_ITEM_HEIGHT / 2);
-        wheelScrollApply(wheel);
-        const native = kind === 'day' ? $('#ah-dob-day') : kind === 'month' ? $('#ah-dob-month') : $('#ah-dob-year');
-        if (native && native.value !== option) {
-          native.value = option;
-          native.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      });
-    });
     pageHost.querySelectorAll('#ah-dob-day').forEach(select => select.addEventListener('change', () => {
       syncDobDays();
       updateDobPreview();
@@ -837,11 +676,6 @@
       syncDobDays();
       updateDobPreview();
     }));
-  };
-
-  const nativeDobValue = kind => {
-    const native = kind === 'day' ? $('#ah-dob-day') : kind === 'month' ? $('#ah-dob-month') : $('#ah-dob-year');
-    return native ? native.value : '';
   };
 
   const normalizeInstitutionText = value => String(value || '').normalize('NFKC').toLocaleLowerCase('bn-BD')
@@ -990,14 +824,14 @@
   };
 
   const validateDob = () => {
-    if (!selectedDob()) { message('সঠিক জন্মতারিখ বেছে নাও।', 'error'); $('#ah-dob-day')?.focus(); return false; }
+    if (!selectedDob()) { message('Please select your full date of birth.', 'error'); $('#ah-dob-day')?.focus(); return false; }
     return true;
   };
 
   const validatePersonal = () => {
     const name = normalizedName();
-    if (!validName(name)) { showFieldFeedback('name-feedback', 'নামের মধ্যে অন্তত ২টি অক্ষর দাও।', 'error'); $('#ah-signup-name')?.focus(); return false; }
-    showFieldFeedback('name-feedback', '✓ সুন্দর—নামটি ঠিক আছে', 'valid');
+    if (!validName(name)) { showFieldFeedback('name-feedback', 'Please enter at least 2 characters.', 'error'); $('#ah-signup-name')?.focus(); return false; }
+    showFieldFeedback('name-feedback', '✓ Looks good — your name is set', 'valid');
     return validateDob();
   };
 
@@ -1812,13 +1646,13 @@
       welcomeLanguage.addEventListener('change', () => setWelcomeLanguage(welcomeLanguage.value));
       setWelcomeLanguage(welcomeLanguage.value);
     }
-    setupDobWheels();
+    setupDobDropdowns();
     setupInstitutionSearch('school');
     setupInstitutionSearch('college');
     $('#ah-telegram-code').addEventListener('input', renderTelegramDigits);
     $('#ah-signup-name').addEventListener('input', () => {
       const name = normalizedName();
-      showFieldFeedback('name-feedback', !name ? '' : validName(name) ? '✓ সুন্দর—নামটি ঠিক আছে' : 'নামের মধ্যে অন্তত ২টি অক্ষর দাও।', validName(name) ? 'valid' : name ? 'error' : '');
+      showFieldFeedback('name-feedback', !name ? '' : validName(name) ? '✓ Looks good — your name is set' : 'Please enter at least 2 characters.', validName(name) ? 'valid' : name ? 'error' : '');
     });
     $('#ah-signup-password').addEventListener('input', updatePasswordFeedback);
     $('#ah-signup-confirm').addEventListener('input', updatePasswordFeedback);

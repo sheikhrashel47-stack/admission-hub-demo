@@ -215,14 +215,13 @@ try {
   const signup = page.locator('[data-view="signup"]');
   assert.equal(await signup.getAttribute('data-personal-visual-contract'), 'interactive-native-personal-v1');
   assert.equal(await signup.getAttribute('data-media-contract'), 'zero-raster-entry-v1');
-  assert.equal(await page.locator('.ah-personal-dob-card').getAttribute('data-dob-contract'), '3d-wheel-dob-v1');
+  assert.equal(await page.locator('.ah-personal-dob-card').getAttribute('data-dob-contract'), 'premium-dropdown-dob-v2');
   assert.equal(await page.locator('[data-signup-panel="dob"]').count(), 0, 'DOB must stay on visible Personal, not a separate screen');
   assert.equal(await page.locator('[data-profile-preview-contract="input-bound-profile-v1"]').count(), 0, 'Live profile card must be gone');
   assert.equal(await page.locator('.ah-live-profile').count(), 0, 'Live profile card must be gone');
-  assert.equal(await page.locator('.ah-dob-wheel').count(), 3, 'Three 3D wheel columns for day/month/year');
-  assert.equal(await page.locator('.ah-dob-wheel-seat').count(), 3, 'Each wheel column has a seat highlight');
-  assert.equal(await page.locator('.ah-dob-wheel-inner li').count() > 3, true, 'Wheels are populated');
-  assert.match((await page.locator('#ah-personal-title').textContent()), /চলো, তৈরি করি/);
+  assert.equal(await page.locator('.ah-dob-select').count(), 3, 'Three premium dropdowns for day/month/year');
+  assert.equal(await page.locator('.ah-dob-wheel').count(), 0, '3D wheels removed in favour of dropdowns');
+  assert.match((await page.locator('#ah-personal-title').textContent()), /Set up your profile/);
   assert.equal(await page.locator('[data-signup-panel="personal"] img,[data-signup-panel="personal"] picture,[data-signup-panel="personal"] source,[data-signup-panel="personal"] canvas,[data-signup-panel="personal"] video,[data-signup-panel="personal"] object,[data-signup-panel="personal"] embed').count(), 0, 'Personal must contain zero media elements');
   assert.deepEqual(await page.locator('[data-signup-step-button]').evaluateAll(buttons => buttons.map(button => `${button.querySelector('i').textContent}${button.querySelector('span').textContent}`)), ['01Personal', '02Education', '03Security']);
   await page.waitForTimeout(250);
@@ -237,8 +236,7 @@ try {
       card: box('.ah-personal-card'),
       cta: box('.ah-personal-next'),
       name: box('#ah-signup-name'),
-      wheels: [...document.querySelectorAll('.ah-dob-wheel')].map(wheel => box('.ah-dob-wheel')),
-      wheelItems: [...document.querySelectorAll('.ah-dob-wheel-inner li')].map(li => parseFloat(getComputedStyle(li).height))
+      selects: [...document.querySelectorAll('.ah-dob-select')].map(el => { const rect = el.getBoundingClientRect(); return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, bottom: rect.bottom }; })
     };
   });
   assert.deepEqual(personalGeometry.viewport, { width: 390, height: 844 });
@@ -247,26 +245,22 @@ try {
   assert.equal(personalGeometry.card.x >= 10 && personalGeometry.card.x <= 18 && personalGeometry.card.width >= 354, true, JSON.stringify(personalGeometry.card));
   assert.equal(personalGeometry.cta.x >= 10 && personalGeometry.cta.x <= 18 && personalGeometry.cta.width >= 354 && personalGeometry.cta.height >= 52, true, JSON.stringify(personalGeometry.cta));
   assert.equal(personalGeometry.name.height >= 52, true);
-  assert.equal(personalGeometry.wheels.every(w => w.width >= 80 && w.height >= 150), true, JSON.stringify(personalGeometry.wheels));
-  assert.equal(personalGeometry.wheelItems.every(height => height > 0), true, JSON.stringify(personalGeometry.wheelItems));
+  assert.equal(personalGeometry.selects.every(sel => sel.width >= 90 && sel.height >= 44), true, JSON.stringify(personalGeometry.selects));
   assert.equal(await page.locator('#ah-signup-name').evaluate(input => input.labels.length), 1);
   assert.equal(await page.locator('#ah-signup-name').evaluate(input => parseFloat(getComputedStyle(input).fontSize) >= 16), true);
   assert.equal(await page.locator('#ah-signup-email').isHidden(), true, 'Email belongs to Security, not Personal');
   assert.deepEqual(await page.evaluate(() => ['app', 'navRoot', 'toast', 'modalRoot'].map(id => getComputedStyle(document.getElementById(id)).display)), ['none', 'none', 'none', 'none']);
   await page.locator('[data-role="signup-next-education"]').click();
   assert.equal(await page.locator('[data-signup-panel="personal"]').isVisible(), true);
-  assert.match(await page.locator('[data-role="name-feedback"]').textContent(), /অন্তত ২টি অক্ষর/);
+  assert.match(await page.locator('[data-role="name-feedback"]').textContent(), /at least 2 characters/);
   await page.locator('#ah-signup-name').fill('Browser Student');
-  // Day wheel via keyboard — deterministic: initial day select is empty so the
-  // wheel opens on the first option (১); ArrowDown → ২, ArrowUp → ১.
-  await page.locator('[data-wheel="day"]').focus();
-  await page.keyboard.press('ArrowDown');
-  await page.waitForTimeout(300);
-  assert.equal(await page.evaluate(() => document.querySelector('#ah-dob-day').value), '2', 'day wheel ArrowDown');
-  await page.keyboard.press('ArrowUp');
-  await page.waitForTimeout(300);
-  assert.equal(await page.evaluate(() => document.querySelector('#ah-dob-day').value), '1', 'day wheel ArrowUp');
-  // Month/year via the form-backed native bridge; the wheels mirror these.
+  // Premium dropdown DOB — deterministic native selects, no scroll guessing.
+  await page.locator('#ah-dob-day').selectOption('2');
+  await page.waitForTimeout(150);
+  assert.equal(await page.evaluate(() => document.querySelector('#ah-dob-day').value), '2', 'day dropdown selects 2');
+  await page.locator('#ah-dob-day').selectOption('1');
+  await page.waitForTimeout(150);
+  assert.equal(await page.evaluate(() => document.querySelector('#ah-dob-day').value), '1', 'day dropdown selects 1');
   await page.locator('#ah-dob-month').selectOption('5');
   await page.locator('#ah-dob-year').selectOption('2007');
   await page.waitForTimeout(250);

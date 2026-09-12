@@ -9,8 +9,8 @@ const HTML = read('index.html');
 const SW = read('sw.js');
 const RELEASE = read('.github/workflows/telegram-auth-canary-activate.yml');
 const BUNDLE_GUARD = read('.github/workflows/cf-pages.yml');
-const UI_VERSION = '20260912-3d-dob-wheel-v1';
-const SHELL_VERSION = 'v242-3d-dob-wheel-20260912';
+const UI_VERSION = '20260912-premium-dropdown-v1';
+const SHELL_VERSION = 'v243-premium-dropdown-20260912';
 
 const signupStart = JS.indexOf('<form class="ah-account-view ah-signup-view"');
 const signupEnd = JS.indexOf('<div class="ah-account-view ah-created-view"', signupStart);
@@ -26,34 +26,34 @@ test('Signup 01 Personal is an input-bound native profile UI, not artwork or scr
   assert.ok(signupStart > 0 && signupEnd > signupStart);
   assert.match(signup, /data-personal-visual-contract="interactive-native-personal-v1"/);
   assert.match(signup, /data-media-contract="zero-raster-entry-v1"/);
-  assert.match(signup, /<i>01<\/i><span>Personal<\/span><small>তোমার পরিচয়<\/small>/);
-  assert.match(signup, /<i>02<\/i><span>Education<\/span><small>শিক্ষার তথ্য<\/small>/);
-  assert.match(signup, /<i>03<\/i><span>Security<\/span><small>নিরাপদ account<\/small>/);
-  assert.match(personal, /data-dob-contract="3d-wheel-dob-v1"/);
-  assert.match(personal, /data-wheel="day"/);
-  assert.match(personal, /data-wheel="month"/);
-  assert.match(personal, /data-wheel="year"/);
-  assert.match(personal, /আপনার সম্পর্কে কিছু তথ্য/);
-  assert.match(personal, /পরের ধাপ/);
+  assert.match(signup, /<i>01<\/i><span>Personal<\/span><small>Your identity<\/small>/);
+  assert.match(signup, /<i>02<\/i><span>Education<\/span><small>Study details<\/small>/);
+  assert.match(signup, /<i>03<\/i><span>Security<\/span><small>Secure account<\/small>/);
+  assert.match(personal, /data-dob-contract="premium-dropdown-dob-v2"/);
+  assert.match(personal, /class="ah-dob-select" id="ah-dob-day"/);
+  assert.match(personal, /class="ah-dob-select" id="ah-dob-month"/);
+  assert.match(personal, /class="ah-dob-select" id="ah-dob-year"/);
+  assert.doesNotMatch(personal, /data-wheel=/);
+  assert.match(personal, /Personal information/);
+  assert.match(personal, /Continue/);
   assert.doesNotMatch(personal, /data-profile-preview-contract="input-bound-profile-v1"/);
   assert.doesNotMatch(personal, /data-role="personal-live-initials"/);
   assert.doesNotMatch(personal, /LIVE PROFILE/);
-  assert.doesNotMatch(personal, /পরিচয়টা তৈরি করি/);
+  assert.doesNotMatch(personal, /পরিচয়টা তৈরি করি/);
   assert.doesNotMatch(personal, mediaTag);
   assert.doesNotMatch(personal, /ah-native-profile|ah-native-pedestal|ah-native-book|ah-native-cap|ah-native-leaf|ah-personal-landscape/);
 });
 
-test('DOB wheel is a high-dynamic 3D animated native control with keyboard + snap', () => {
-  assert.match(JS, /const setupDobWheels = \(\) => \{/);
-  assert.match(JS, /perspective\(320px\) rotateX\(/);
-  assert.match(JS, /inner\.scrollTo\(\{ top: target, behavior: 'smooth' \}\)/);
-  assert.match(JS, /renderDobWheel\(kind\)/);
-  assert.match(JS, /native\.dispatchEvent\(new Event\('change', \{ bubbles: true \}\)/);
-  assert.match(JS, /wheel\.addEventListener\('keydown'/);
-  assert.match(CSS, /\.ah-dob-wheel\{[^}]+perspective:320px/);
-  assert.match(CSS, /\.ah-dob-wheel-inner\{[^}]+scroll-snap-type:y proximity/);
-  assert.match(CSS, /\.ah-dob-wheel-seat\{/);
-  assert.match(CSS, /\.ah-dob-wheel-inner li\{[^}]+will-change:transform,opacity/);
+test('DOB is a premium native dropdown trio — no 3D wheel machinery left', () => {
+  assert.match(JS, /const setupDobDropdowns = \(\) => \{/);
+  assert.match(JS, /const EN_MONTHS = \[/);
+  assert.match(JS, /const syncDobDays = \(\) => \{/);
+  assert.match(JS, /updateDobPreview\(\);/);
+  assert.doesNotMatch(JS, /setupDobWheels|renderDobWheel|ah-dob-wheel|BANGLA_MONTHS/);
+  assert.match(CSS, /\.ah-dob-select\{[^}]+appearance:none/);
+  assert.match(CSS, /\.ah-dob-select-wrap>svg\{/);
+  assert.match(CSS, /\.ah-dob-select:focus-visible\{/);
+  assert.doesNotMatch(CSS, /\.ah-dob-wheel/);
   assert.doesNotMatch(CSS, /\.ah-live-profile/);
 });
 
@@ -80,7 +80,7 @@ test('both rejected image-based entry designs are absent and mobile spacing is f
   assert.match(CSS, /@media\(max-width:390px\)[\s\S]+\.ah-signup-progress,.ah-personal-panel\{width:calc\(100% - 24px\)\}/);
   assert.match(CSS, /\.ah-personal-card\{[^}]+border-radius:25px[^}]+background:rgba\(255,255,255,\.94\)/);
   assert.match(CSS, /\.ah-personal-next\{[^}]+min-height:56px[^}]+border-radius:17px/);
-  assert.match(CSS, /\.ah-dob-wheelbox\{[^}]+grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(CSS, /\.ah-dob-selects\{[^}]+grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(CSS, /@media\(prefers-reduced-motion:reduce\)/);
   assert.doesNotMatch(CSS, /https?:\/\//);
 });
@@ -96,9 +96,9 @@ test('code-native release markers and fail-closed publication checks are synchro
   assert.ok(BUNDLE_GUARD.includes('test ! -e dist/onboarding-welcome-hero.webp'));
   assert.ok(BUNDLE_GUARD.includes('test ! -e dist/onboarding-personal-hero.webp'));
   assert.ok(RELEASE.includes('data-personal-visual-contract="interactive-native-personal-v1"'));
-  assert.ok(RELEASE.includes('data-dob-contract="3d-wheel-dob-v1"'));
+  assert.ok(RELEASE.includes('data-dob-contract="premium-dropdown-dob-v2"'));
   assert.ok(RELEASE.includes('data-media-contract="zero-raster-entry-v1"'));
-  assert.ok(RELEASE.includes('setupDobWheels'));
+  assert.ok(RELEASE.includes('setupDobDropdowns'));
   assert.ok(RELEASE.includes('Personal — real input-bound profile preview'));
   assert.ok(RELEASE.includes(`const BUILD_ID = '${SHELL_VERSION}'`));
   assert.doesNotMatch(RELEASE, /fetch_public[^\n]+onboarding-(?:welcome|personal)-hero\.webp/);
