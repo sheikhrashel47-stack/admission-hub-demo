@@ -213,21 +213,17 @@ try {
   await page.getByRole('button', { name: 'Sign Up', exact: true }).click();
   await page.locator('[data-signup-panel="personal"]').waitFor({ state: 'visible' });
   const signup = page.locator('[data-view="signup"]');
-  const liveProfile = page.locator('[data-profile-preview-contract="input-bound-profile-v1"]');
   assert.equal(await signup.getAttribute('data-personal-visual-contract'), 'interactive-native-personal-v1');
   assert.equal(await signup.getAttribute('data-media-contract'), 'zero-raster-entry-v1');
+  assert.equal(await signup.getAttribute('data-dob-contract'), '3d-wheel-dob-v1');
   assert.equal(await page.locator('[data-signup-panel="dob"]').count(), 0, 'DOB must stay on visible Personal, not a separate screen');
-  assert.equal(await liveProfile.count(), 1);
+  assert.equal(await page.locator('[data-profile-preview-contract="input-bound-profile-v1"]').count(), 0, 'Live profile card must be gone');
+  assert.equal(await page.locator('.ah-live-profile').count(), 0, 'Live profile card must be gone');
+  assert.equal(await page.locator('.ah-dob-wheel').count(), 3, 'Three 3D wheel columns for day/month/year');
+  assert.equal(await page.locator('.ah-dob-wheel-seat').count(), 3, 'Each wheel column has a seat highlight');
+  assert.equal(await page.locator('.ah-dob-wheel-inner li').count() > 3, true, 'Wheels are populated');
+  assert.match((await page.locator('#ah-personal-title').textContent()), /চলো, তৈরি করি/);
   assert.equal(await page.locator('[data-signup-panel="personal"] img,[data-signup-panel="personal"] picture,[data-signup-panel="personal"] source,[data-signup-panel="personal"] canvas,[data-signup-panel="personal"] video,[data-signup-panel="personal"] object,[data-signup-panel="personal"] embed').count(), 0, 'Personal must contain zero media elements');
-  const liveProfileState = await liveProfile.evaluate(card => ({
-    initials: card.querySelector('[data-role="personal-live-initials"]')?.textContent,
-    name: card.querySelector('[data-role="personal-live-name"]')?.textContent,
-    completion: card.querySelector('[data-role="personal-completion"]')?.textContent,
-    nameCheck: Boolean(card.querySelector('[data-personal-check="name"]')),
-    dobCheck: Boolean(card.querySelector('[data-personal-check="dob"]')),
-    rasterBackgrounds: [card, ...card.querySelectorAll('*')].filter(node => /url\s*\(/i.test(getComputedStyle(node).backgroundImage)).length
-  }));
-  assert.deepEqual(liveProfileState, { initials: 'তু', name: 'তোমার নাম এখানে দেখা যাবে', completion: '0%', nameCheck: true, dobCheck: true, rasterBackgrounds: 0 });
   assert.deepEqual(await page.locator('[data-signup-step-button]').evaluateAll(buttons => buttons.map(button => `${button.querySelector('i').textContent}${button.querySelector('span').textContent}`)), ['01Personal', '02Education', '03Security']);
   await page.waitForTimeout(250);
   const personalGeometry = await page.evaluate(() => {
@@ -238,27 +234,21 @@ try {
     return {
       viewport: { width: innerWidth, height: innerHeight },
       page: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
-      preview: box('.ah-live-profile'),
       card: box('.ah-personal-card'),
       cta: box('.ah-personal-next'),
       name: box('#ah-signup-name'),
-      selectLabels: [...document.querySelectorAll('.ah-personal-dob-card .ah-dob-selectors label')].map(label => ({ width: label.getBoundingClientRect().width, height: label.getBoundingClientRect().height })),
-      selects: [...document.querySelectorAll('.ah-personal-dob-card select')].map(select => ({
-        width: select.getBoundingClientRect().width,
-        height: select.getBoundingClientRect().height,
-        fontSize: parseFloat(getComputedStyle(select).fontSize)
-      }))
+      wheels: [...document.querySelectorAll('.ah-dob-wheel')].map(wheel => box('.ah-dob-wheel')),
+      wheelItems: [...document.querySelectorAll('.ah-dob-wheel-inner li')].map(li => parseFloat(getComputedStyle(li).height))
     };
   });
   assert.deepEqual(personalGeometry.viewport, { width: 390, height: 844 });
   assert.equal(personalGeometry.page.width <= 391, true, JSON.stringify(personalGeometry));
   assert.equal(personalGeometry.page.height >= 844, true, JSON.stringify(personalGeometry));
-  assert.equal(personalGeometry.preview.x >= 10 && personalGeometry.preview.x <= 18 && personalGeometry.preview.width >= 354, true, JSON.stringify(personalGeometry.preview));
   assert.equal(personalGeometry.card.x >= 10 && personalGeometry.card.x <= 18 && personalGeometry.card.width >= 354, true, JSON.stringify(personalGeometry.card));
   assert.equal(personalGeometry.cta.x >= 10 && personalGeometry.cta.x <= 18 && personalGeometry.cta.width >= 354 && personalGeometry.cta.height >= 52, true, JSON.stringify(personalGeometry.cta));
   assert.equal(personalGeometry.name.height >= 52, true);
-  assert.equal(personalGeometry.selectLabels.every(label => label.height >= 54), true, JSON.stringify(personalGeometry.selectLabels));
-  assert.equal(personalGeometry.selects.every(select => select.height >= 40 && select.fontSize >= 16), true, JSON.stringify(personalGeometry.selects));
+  assert.equal(personalGeometry.wheels.every(w => w.width >= 80 && w.height >= 150), true, JSON.stringify(personalGeometry.wheels));
+  assert.equal(personalGeometry.wheelItems.every(height => height > 0), true, JSON.stringify(personalGeometry.wheelItems));
   assert.equal(await page.locator('#ah-signup-name').evaluate(input => input.labels.length), 1);
   assert.equal(await page.locator('#ah-signup-name').evaluate(input => parseFloat(getComputedStyle(input).fontSize) >= 16), true);
   assert.equal(await page.locator('#ah-signup-email').isHidden(), true, 'Email belongs to Security, not Personal');
@@ -267,23 +257,25 @@ try {
   assert.equal(await page.locator('[data-signup-panel="personal"]').isVisible(), true);
   assert.match(await page.locator('[data-role="name-feedback"]').textContent(), /অন্তত ২টি অক্ষর/);
   await page.locator('#ah-signup-name').fill('Browser Student');
-  assert.deepEqual(await liveProfile.evaluate(card => ({
-    initials: card.querySelector('[data-role="personal-live-initials"]').textContent,
-    name: card.querySelector('[data-role="personal-live-name"]').textContent,
-    completion: card.querySelector('[data-role="personal-completion"]').textContent,
-    nameReady: card.querySelector('[data-personal-check="name"]').classList.contains('ready')
-  })), { initials: 'BS', name: 'Browser Student', completion: '50%', nameReady: true });
-  await page.locator('[data-role="signup-next-education"]').click();
-  assert.equal(await page.locator('[data-signup-panel="personal"]').isVisible(), true);
-  assert.match(await page.locator('[data-role="message"]').textContent(), /জন্মতারিখ/);
-  await page.locator('#ah-dob-day').selectOption('12');
-  await page.locator('#ah-dob-month').selectOption('5');
+  await page.locator('[data-wheel="day"]').click({ position: { x: 30, y: 105 } });
+  await page.mouse.wheel(0, -42);
+  await page.waitForTimeout(350);
+  await page.locator('[data-wheel="month"]').click({ position: { x: 30, y: 105 } });
+  await page.mouse.wheel(0, -84);
+  await page.waitForTimeout(350);
+  await page.locator('[data-wheel="year"]').click({ position: { x: 30, y: 105 } });
+  await page.mouse.wheel(0, 168);
+  await page.waitForTimeout(350);
   await page.locator('#ah-dob-year').selectOption('2007');
-  assert.deepEqual(await liveProfile.evaluate(card => ({
-    completion: card.querySelector('[data-role="personal-completion"]').textContent,
-    dobReady: card.querySelector('[data-personal-check="dob"]').classList.contains('ready'),
-    dob: card.querySelector('[data-role="dob-summary"]').textContent
-  })), { completion: '100%', dobReady: true, dob: '১২ মে, ২০০৭' });
+  await page.waitForTimeout(250);
+  assert.equal(await page.evaluate(() => document.querySelector('#ah-dob-year').value), '2007');
+  await page.locator('[data-wheel="day"]').focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  await page.waitForTimeout(200);
+  const wheelAfterKeyboard = await page.evaluate(() => document.querySelector('#ah-dob-day').value);
+  assert.equal(wheelAfterKeyboard, '3', `day wheel keyboard selected=${wheelAfterKeyboard}`);
+  await page.locator('[data-wheel="day"]').evaluate(el => el.dispatchEvent(new Event('focus')));
   await page.locator('[data-role="signup-next-education"]').click();
   const educationState = await page.evaluate(() => ({
     visible: !document.querySelector('[data-signup-panel="school"]').hidden,
@@ -304,7 +296,7 @@ try {
     document.querySelector('#ah-dob-day').value,
     document.querySelector('#ah-dob-month').value,
     document.querySelector('#ah-dob-year').value
-  ]), ['Browser Student', '12', '5', '2007']);
+  ]), ['Browser Student', '3', '5', '2007']);
   await page.locator('[data-role="signup-next-education"]').click();
   await page.locator('[data-signup-panel="school"]').waitFor({ state: 'visible' });
   const school = page.locator('#ah-signup-school');

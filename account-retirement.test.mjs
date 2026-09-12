@@ -107,15 +107,15 @@ await test('content hydration is public and account-independent',
   !/AHAuth|ahPubToken|authHeaders|Authorization/.test(CLOUD));
 
 await test('service-worker build and HTML registration are synchronized',
-  SW.includes("const BUILD_ID = 'v241-zero-raster-3d-student-20260911'") &&
-  H.includes("const expectedSwVersion = 'v241-zero-raster-3d-student-20260911'") &&
-  H.includes('sw.js?v=v241-zero-raster-3d-student-20260911') &&
-  H.includes('admission-hub-shell-v241-zero-raster-3d-student-20260911'));
+  SW.includes("const BUILD_ID = 'v242-3d-dob-wheel-20260912'") &&
+  H.includes("const expectedSwVersion = 'v242-3d-dob-wheel-20260912'") &&
+  H.includes('sw.js?v=v242-3d-dob-wheel-20260912') &&
+  H.includes('admission-hub-shell-v242-3d-dob-wheel-20260912'));
 await test('service-worker shell cannot cache retired assets', retiredMarkers.every(marker => !SW.includes(marker)));
 await test('premium account and institution assets use synchronized cache-busting versions',
-  ['account-access.css?v=20260911-zero-raster-3d-student-v1', 'account-access.js?v=20260911-zero-raster-3d-student-v1', 'institutions-bd.js?v=bd-institutions-v1']
+  ['account-access.css?v=20260912-3d-dob-wheel-v1', 'account-access.js?v=20260912-3d-dob-wheel-v1', 'institutions-bd.js?v=bd-institutions-v1']
     .every(asset => H.includes(asset) && SW.includes(asset)) &&
-  H.indexOf('institutions-bd.js?v=bd-institutions-v1') < H.indexOf('account-access.js?v=20260911-zero-raster-3d-student-v1'));
+  H.indexOf('institutions-bd.js?v=bd-institutions-v1') < H.indexOf('account-access.js?v=20260912-3d-dob-wheel-v1'));
 await test('premium Auth UI/server contract and curated-manual institution policy are locked',
   ACCOUNT_UI.includes("'X-AH-Auth-UI': 'auth-premium-v6'") &&
   AUTH_HANDLER.includes("const AUTH_UI_VERSION = 'auth-premium-v6'") &&

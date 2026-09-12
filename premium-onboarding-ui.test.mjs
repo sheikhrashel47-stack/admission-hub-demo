@@ -131,6 +131,9 @@ async function completeGuidedFields(app, email = 'student@example.com') {
   document.querySelector('#ah-dob-day').value = '12';
   document.querySelector('#ah-dob-month').value = '5';
   document.querySelector('#ah-dob-year').value = '2007';
+  for (const id of ['ah-dob-day', 'ah-dob-month', 'ah-dob-year']) {
+    document.getElementById(id).dispatchEvent(new window.Event('change', { bubbles: true }));
+  }
   document.querySelector('[data-role="signup-next-education"]').click();
   await waitFor(() => document.querySelector('[data-signup-panel="school"]').hidden === false);
   const school = document.querySelector('#ah-signup-school');
@@ -212,25 +215,23 @@ test('slow account startup never delays Welcome or blocks direct Guest entry', a
   app.dom.window.close();
 });
 
-test('Signup 01 Personal uses a real input-bound profile preview and combines name with DOB', async t => {
+test('Signup 01 Personal uses a 3D wheel DOB picker and keeps name together on one screen', async t => {
   const app = setup();
   t.after(() => app.dom.window.close());
   await openSignup(app);
   const personal = app.document.querySelector('[data-signup-panel="personal"]');
   const signup = app.document.querySelector('[data-view="signup"]');
-  const preview = personal.querySelector('[data-profile-preview-contract="input-bound-profile-v1"]');
   assert.equal(signup.dataset.personalVisualContract, 'interactive-native-personal-v1');
   assert.equal(signup.dataset.mediaContract, 'zero-raster-entry-v1');
   assert.equal(personal.hidden, false);
   assert.equal(app.document.querySelector('[data-signup-panel="dob"]'), null);
-  assert.match(personal.textContent, /চলো, আপনার\s*পরিচয়টা তৈরি করি/);
+  assert.match(personal.textContent, /চলো, তৈরি করি/);
   assert.match(personal.textContent, /আপনার সম্পর্কে কিছু তথ্য/);
   assert.match(personal.textContent, /পরের ধাপ/);
-  assert.ok(preview);
-  assert.equal(preview.querySelectorAll('img,picture,source,canvas,video,object,embed').length, 0);
-  assert.ok(preview.querySelector('[data-role="personal-live-initials"]'));
-  assert.ok(preview.querySelector('[data-role="personal-live-name"]'));
-  assert.ok(preview.querySelector('[data-role="personal-completion"]'));
+  assert.equal(personal.querySelector('.ah-dob-wheel').dataset.wheel, 'day');
+  assert.equal(personal.querySelectorAll('.ah-dob-wheel').length, 3);
+  assert.equal(personal.querySelectorAll('.ah-dob-wheel-seat').length, 3);
+  assert.doesNotMatch(personal.textContent, /LIVE PROFILE/);
   assert.doesNotMatch(accountSource, /onboarding-(?:welcome|personal)-hero\.webp/);
   assert.match(accountCss, /Personal — real input-bound profile preview, not an illustration or image/);
   assert.deepEqual([...app.document.querySelectorAll('[data-signup-step-button]')].map(button => button.querySelector('i').textContent + button.querySelector('span').textContent), ['01Personal', '02Education', '03Security']);
@@ -241,15 +242,6 @@ test('Signup 01 Personal uses a real input-bound profile preview and combines na
   assert.equal(app.document.querySelector('#ah-signup-email').closest('[data-signup-panel]')?.dataset.signupPanel, 'security');
   assert.equal(personal.querySelectorAll('select').length, 3);
   assert.equal(personal.querySelectorAll('[data-role="guide-open"],.ah-guide,.ah-guide-orb').length, 0);
-
-  const name = app.document.querySelector('#ah-signup-name');
-  name.value = 'আরিফ হাসান';
-  name.dispatchEvent(new app.window.Event('input', { bubbles: true }));
-  assert.equal(preview.querySelector('[data-role="personal-live-name"]').textContent, 'আরিফ হাসান');
-  assert.equal(preview.querySelector('[data-role="personal-live-initials"]').textContent, 'আহা');
-  assert.equal(preview.querySelector('[data-role="personal-completion"]').textContent, '50%');
-  assert.equal(preview.dataset.completion, '50');
-  assert.ok(preview.querySelector('[data-personal-check="name"]').classList.contains('ready'));
 });
 
 test('guided Signup validates steps, caps institution matches, preserves canonical credentials, and blocks duplicate delivery', async t => {

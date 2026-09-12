@@ -204,20 +204,9 @@
             <div class="ah-personal-intro">
               <div class="ah-personal-copy">
                 <p class="ah-personal-kicker"><i aria-hidden="true"></i>STEP 01 · PERSONAL</p>
-                <h1 id="ah-personal-title">চলো, আপনার<br><em>পরিচয়টা তৈরি করি</em></h1>
+                <h1 id="ah-personal-title">চলো, তৈরি করি<br><em>তোমার যাত্রা</em></h1>
               </div>
-
-              <section class="ah-live-profile" data-profile-preview-contract="input-bound-profile-v1" data-completion="0" style="--ah-profile-progress:0deg" aria-label="আপনার live profile preview">
-                <header><span><i aria-hidden="true"></i>LIVE PROFILE</span><small>LOCAL PREVIEW</small></header>
-                <div class="ah-live-profile-main">
-                  <div class="ah-live-avatar-ring" aria-hidden="true"><div class="ah-live-avatar"><b data-role="personal-live-initials">আ</b><i></i></div></div>
-                  <div class="ah-live-identity"><small>ADMISSION STUDENT</small><strong data-role="personal-live-name">আপনার নাম এখানে দেখা যাবে</strong><output data-role="dob-summary">তারিখ বেছে নাও</output></div>
-                </div>
-                <div class="ah-live-progress-copy"><span>PROFILE COMPLETION</span><b data-role="personal-completion">0%</b></div>
-                <div class="ah-live-progress-bar" aria-hidden="true"><i></i></div>
-                <div class="ah-live-checks" aria-hidden="true"><span data-personal-check="name"><i>✓</i>নাম</span><span data-personal-check="dob"><i>✓</i>জন্মতারিখ</span><span><i>→</i>শিক্ষা</span></div>
-                <div class="ah-live-scan" aria-hidden="true"></div>
-              </section>
+              <p class="ah-personal-subcopy">শুধু নাম আর জন্মতারিখ — বাকি সব আমরা ঠিক করবো।</p>
             </div>
 
             <div class="ah-personal-card">
@@ -231,12 +220,41 @@
                 <p class="ah-field-feedback" id="ah-name-feedback" data-role="name-feedback" aria-live="polite"></p>
               </div>
 
-              <fieldset class="ah-personal-dob-card">
+              <fieldset class="ah-personal-dob-card" data-dob-contract="3d-wheel-dob-v1">
                 <legend>জন্মতারিখ</legend>
-                <div class="ah-dob-selectors">
-                  <label><span>দিন</span><select id="ah-dob-day" aria-label="জন্মদিন" required></select></label>
-                  <label><span>মাস</span><select id="ah-dob-month" aria-label="জন্মমাস" required></select></label>
-                  <label><span>বছর</span><select id="ah-dob-year" aria-label="জন্মবছর" required></select></label>
+                <div class="ah-dob-wheelbox">
+                  <div class="ah-dob-wheel-col">
+                    <span class="ah-dob-wheel-label">দিন</span>
+                    <div class="ah-dob-wheel" data-wheel="day" role="listbox" aria-label="জন্মদিন" tabindex="0">
+                      <ul class="ah-dob-wheel-inner" data-wheel-inner="day"></ul>
+                      <i class="ah-dob-wheel-shade" aria-hidden="true"></i>
+                      <b class="ah-dob-wheel-shade" aria-hidden="true"></b>
+                      <span class="ah-dob-wheel-seat" aria-hidden="true"></span>
+                    </div>
+                  </div>
+                  <div class="ah-dob-wheel-col">
+                    <span class="ah-dob-wheel-label">মাস</span>
+                    <div class="ah-dob-wheel" data-wheel="month" role="listbox" aria-label="জন্মমাস" tabindex="0">
+                      <ul class="ah-dob-wheel-inner" data-wheel-inner="month"></ul>
+                      <i class="ah-dob-wheel-shade" aria-hidden="true"></i>
+                      <b class="ah-dob-wheel-shade" aria-hidden="true"></b>
+                      <span class="ah-dob-wheel-seat" aria-hidden="true"></span>
+                    </div>
+                  </div>
+                  <div class="ah-dob-wheel-col">
+                    <span class="ah-dob-wheel-label">বছর</span>
+                    <div class="ah-dob-wheel" data-wheel="year" role="listbox" aria-label="জন্মবছর" tabindex="0">
+                      <ul class="ah-dob-wheel-inner" data-wheel-inner="year"></ul>
+                      <i class="ah-dob-wheel-shade" aria-hidden="true"></i>
+                      <b class="ah-dob-wheel-shade" aria-hidden="true"></b>
+                      <span class="ah-dob-wheel-seat" aria-hidden="true"></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="ah-dob-native" aria-hidden="true">
+                  <select id="ah-dob-day" aria-label="জন্মদিন" tabindex="-1" required></select>
+                  <select id="ah-dob-month" aria-label="জন্মমাস" tabindex="-1" required></select>
+                  <select id="ah-dob-year" aria-label="জন্মবছর" tabindex="-1" required></select>
                 </div>
                 <output class="sr-only" data-role="dob-preview" aria-live="polite">তারিখ বেছে নাও</output>
               </fieldset>
@@ -618,6 +636,12 @@
     document.cookie = `${PENDING_SIGNUP_COOKIE}=${value}; Path=/; Max-Age=${active ? 3600 : 0}; SameSite=Lax${secure}`;
   };
 
+  const BANGLA_MONTHS = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+  const BANGLA_NUM = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+  const toBanglaDigits = value => String(value).replace(/\d/g, digit => BANGLA_NUM[Number(digit)]);
+  const PHANTOM_COUNT = 4;
+  const WHEEL_ITEM_HEIGHT = 42;
+
   const populateDob = () => {
     const day = $('#ah-dob-day');
     const month = $('#ah-dob-month');
@@ -627,8 +651,7 @@
     month.add(new Option('—', ''));
     year.add(new Option('—', ''));
     for (let value = 1; value <= 31; value += 1) day.add(new Option(String(value), String(value)));
-    ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর']
-      .forEach((label, index) => month.add(new Option(label, String(index + 1))));
+    BANGLA_MONTHS.forEach((label, index) => month.add(new Option(label, String(index + 1))));
     const current = new Date().getFullYear();
     for (let value = current - 8; value >= current - 60; value -= 1) year.add(new Option(String(value), String(value)));
   };
@@ -646,6 +669,7 @@
       for (let value = 1; value <= maximum; value += 1) day.add(new Option(String(value), String(value)));
       day.value = previous > 0 && previous <= maximum ? String(previous) : '';
     }
+    renderDobWheel('day');
   };
 
   const selectedDob = () => {
@@ -658,13 +682,166 @@
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
 
+  const wheelOptions = kind => {
+    if (kind === 'day') {
+      const month = Number($('#ah-dob-month')?.value || 0);
+      const year = Number($('#ah-dob-year')?.value || 0);
+      const maximum = month && year ? new Date(Date.UTC(year, month, 0)).getUTCDate() : 31;
+      return Array.from({ length: maximum }, (_, i) => String(i + 1));
+    }
+    if (kind === 'month') return BANGLA_MONTHS;
+    const current = new Date().getFullYear();
+    return Array.from({ length: 53 }, (_, i) => String(current - 8 - i));
+  };
+
+  const wheelCenterOffset = inner => inner.clientHeight / 2 - WHEEL_ITEM_HEIGHT / 2;
+
+  const renderDobWheel = kind => {
+    const inner = $(`[data-wheel-inner="${kind}"]`);
+    if (!inner) return;
+    const options = wheelOptions(kind);
+    const previous = nativeDobValue(kind);
+    const fragments = [];
+    for (let i = 0; i < PHANTOM_COUNT; i += 1) fragments.push(`<li data-phantom="top">${options[0]}</li>`);
+    options.forEach((option, index) => {
+      const label = kind === 'month' ? option : toBanglaDigits(option);
+      fragments.push(`<li data-value="${option}">${label}</li>`);
+    });
+    for (let i = 0; i < PHANTOM_COUNT; i += 1) fragments.push(`<li data-phantom="bottom">${options[options.length - 1]}</li>`);
+    inner.innerHTML = fragments.join('');
+    inner.style.setProperty('--item-height', `${WHEEL_ITEM_HEIGHT}px`);
+    inner.style.setProperty('--phantom-count', String(PHANTOM_COUNT));
+    const anchor = previous ? inner.querySelector(`li[data-value="${previous}"]`) : inner.querySelector('li[data-value]');
+    inner.scrollTop = anchor ? anchor.offsetTop - wheelCenterOffset(inner) : PHANTOM_COUNT * WHEEL_ITEM_HEIGHT;
+    wheelScrollApply(inner.closest('.ah-dob-wheel'));
+  };
+
+  const wheelScrollApply = (wheel, index) => {
+    const inner = wheel.querySelector('[data-wheel-inner]');
+    if (!inner) return;
+    const scroll = inner.scrollTop;
+    const center = inner.clientHeight / 2;
+    const items = [...inner.querySelectorAll('li')];
+    let transform = '';
+    for (const item of items) {
+      const mid = item.offsetTop + WHEEL_ITEM_HEIGHT / 2 - scroll;
+      const distance = Math.abs(mid - center);
+      const tilt = Math.max(-80, Math.min(80, (mid - center) * 0.55));
+      const scale = Math.max(0.62, 1 - distance / (inner.clientHeight * 0.95));
+      const opacity = Math.max(0.08, 1 - distance / (inner.clientHeight * 0.62));
+      item.style.transform = `translateY(${Math.round((center - mid) / 9)}px) perspective(320px) rotateX(${tilt.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
+      item.style.opacity = opacity.toFixed(3);
+    }
+    wheel.dataset.scrolling = '1';
+  };
+
+  const nearestDobValue = (wheel, inner) => {
+    const options = [...inner.querySelectorAll('li[data-value]')];
+    if (!options.length) return '';
+    const scroll = inner.scrollTop;
+    const center = inner.clientHeight / 2;
+    let best = options[0];
+    let bestDistance = Infinity;
+    for (const item of options) {
+      const mid = item.offsetTop + WHEEL_ITEM_HEIGHT / 2 - scroll;
+      const distance = Math.abs(mid - center);
+      if (distance < bestDistance) { bestDistance = distance; best = item; }
+    }
+    return best.dataset.value || '';
+  };
+
+  const settleDobScroll = (wheel, inner) => {
+    const options = [...inner.querySelectorAll('li[data-value]')];
+    if (!options.length) return;
+    const scroll = inner.scrollTop;
+    const center = inner.clientHeight / 2;
+    let best = options[0];
+    let bestDistance = Infinity;
+    for (const item of options) {
+      const mid = item.offsetTop + WHEEL_ITEM_HEIGHT / 2 - scroll;
+      const distance = Math.abs(mid - center);
+      if (distance < bestDistance) { bestDistance = distance; best = item; }
+    }
+    const target = best.offsetTop - (inner.clientHeight / 2 - WHEEL_ITEM_HEIGHT / 2);
+    inner.scrollTo({ top: target, behavior: 'smooth' });
+  };
+
+  const wheelApplySelection = (wheel, optionValue) => {
+    const inner = wheel.querySelector('[data-wheel-inner]');
+    if (!inner || optionValue == null) return;
+    const target = inner.querySelector(`li[data-value="${optionValue}"]`);
+    if (target) inner.scrollTo({ top: target.offsetTop - (inner.clientHeight / 2 - WHEEL_ITEM_HEIGHT / 2), behavior: 'smooth' });
+  };
+
   const updateDobPreview = () => {
     const dob = selectedDob();
     const label = dob
       ? new Intl.DateTimeFormat('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${dob}T00:00:00Z`))
       : 'তারিখ বেছে নাও';
-    pageHost.querySelectorAll('[data-role="dob-preview"],[data-role="dob-summary"]').forEach(output => { output.textContent = label; });
-    updatePersonalPreview();
+    pageHost.querySelectorAll('[data-role="dob-preview"]').forEach(output => { output.textContent = label; });
+  };
+
+  const setupDobWheels = () => {
+    populateDob();
+    updateDobPreview();
+    pageHost.querySelectorAll('.ah-dob-wheel').forEach(wheel => {
+      const kind = wheel.dataset.wheel;
+      const inner = wheel.querySelector('[data-wheel-inner]');
+      renderDobWheel(kind);
+      let raf = 0;
+      inner.addEventListener('scroll', () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => wheelScrollApply(wheel));
+      }, { passive: true });
+      let settleTimer = 0;
+      inner.addEventListener('scroll', () => {
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+          const value = nearestDobValue(wheel, inner);
+          const native = kind === 'day' ? $('#ah-dob-day') : kind === 'month' ? $('#ah-dob-month') : $('#ah-dob-year');
+          if (native && value && native.value !== value) {
+            native.value = value;
+            native.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          settleDobScroll(wheel, inner);
+          wheel.dataset.scrolling = '';
+          requestAnimationFrame(() => wheelScrollApply(wheel));
+        }, 130);
+      }, { passive: true });
+      wheel.setAttribute('tabindex', '0');
+      wheel.addEventListener('keydown', event => {
+        const key = event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'PageDown' || event.key === 'PageUp';
+        if (!key) return;
+        event.preventDefault();
+        const fromNative = nativeDobValue(kind);
+        const current = fromNative || nearestDobValue(wheel, inner) || String(wheelOptions(kind)[0]);
+        const options = wheelOptions(kind);
+        const index = options.indexOf(current);
+        const delta = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : event.key === 'PageDown' ? 6 : -6;
+        const option = options[Math.max(0, Math.min(options.length - 1, index < 0 ? (delta > 0 ? 0 : options.length - 1) : index + delta))];
+        const target = inner.querySelector(`li[data-value="${option}"]`);
+        if (target) inner.scrollTop = target.offsetTop - (inner.clientHeight / 2 - WHEEL_ITEM_HEIGHT / 2);
+        wheelScrollApply(wheel);
+        const native = kind === 'day' ? $('#ah-dob-day') : kind === 'month' ? $('#ah-dob-month') : $('#ah-dob-year');
+        if (native && native.value !== option) {
+          native.value = option;
+          native.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    });
+    pageHost.querySelectorAll('#ah-dob-day').forEach(select => select.addEventListener('change', () => {
+      syncDobDays();
+      updateDobPreview();
+    }));
+    pageHost.querySelectorAll('#ah-dob-month,#ah-dob-year').forEach(select => select.addEventListener('change', () => {
+      syncDobDays();
+      updateDobPreview();
+    }));
+  };
+
+  const nativeDobValue = kind => {
+    const native = kind === 'day' ? $('#ah-dob-day') : kind === 'month' ? $('#ah-dob-month') : $('#ah-dob-year');
+    return native ? native.value : '';
   };
 
   const normalizeInstitutionText = value => String(value || '').normalize('NFKC').toLocaleLowerCase('bn-BD')
@@ -779,35 +956,6 @@
 
   const normalizedName = () => $('#ah-signup-name')?.value.trim().replace(/\s+/g, ' ') || '';
   const validName = value => value.length >= 2 && value.length <= 80 && /^[\p{L}\p{M} .'-]+$/u.test(value) && (value.match(/\p{L}/gu) || []).length >= 2;
-  const firstGrapheme = value => {
-    const input = String(value || '').trim();
-    if (!input) return '';
-    try { return [...new Intl.Segmenter('bn-BD', { granularity: 'grapheme' }).segment(input)][0]?.segment || ''; }
-    catch (_) { return Array.from(input)[0] || ''; }
-  };
-  const updatePersonalPreview = () => {
-    const card = $('[data-profile-preview-contract="input-bound-profile-v1"]');
-    if (!card) return;
-    const name = normalizedName();
-    const nameReady = validName(name);
-    const dobReady = Boolean(selectedDob());
-    const completion = (nameReady ? 50 : name ? 20 : 0) + (dobReady ? 50 : 0);
-    const words = name.split(/\s+/).filter(Boolean);
-    const initials = name ? `${firstGrapheme(words[0])}${words.length > 1 ? firstGrapheme(words[words.length - 1]) : ''}` : 'তু';
-    const initialNode = $('[data-role="personal-live-initials"]');
-    const nameNode = $('[data-role="personal-live-name"]');
-    const completionNode = $('[data-role="personal-completion"]');
-    if (initialNode) initialNode.textContent = initials;
-    if (nameNode) nameNode.textContent = name || 'তোমার নাম এখানে দেখা যাবে';
-    if (completionNode) completionNode.textContent = `${completion}%`;
-    card.dataset.completion = String(completion);
-    card.style.setProperty('--ah-profile-progress', `${completion * 3.6}deg`);
-    card.style.setProperty('--ah-profile-percent', `${completion}%`);
-    const nameCheck = card.querySelector('[data-personal-check="name"]');
-    const dobCheck = card.querySelector('[data-personal-check="dob"]');
-    if (nameCheck) nameCheck.classList.toggle('ready', nameReady);
-    if (dobCheck) dobCheck.classList.toggle('ready', dobReady);
-  };
   const showFieldFeedback = (role, text, kind = '') => {
     const node = $(`[data-role="${role}"]`);
     if (!node) return;
@@ -1664,20 +1812,13 @@
       welcomeLanguage.addEventListener('change', () => setWelcomeLanguage(welcomeLanguage.value));
       setWelcomeLanguage(welcomeLanguage.value);
     }
-    populateDob();
-    updateDobPreview();
+    setupDobWheels();
     setupInstitutionSearch('school');
     setupInstitutionSearch('college');
-    $('#ah-dob-day').addEventListener('change', updateDobPreview);
-    pageHost.querySelectorAll('#ah-dob-month,#ah-dob-year').forEach(select => select.addEventListener('change', () => {
-      syncDobDays();
-      updateDobPreview();
-    }));
     $('#ah-telegram-code').addEventListener('input', renderTelegramDigits);
     $('#ah-signup-name').addEventListener('input', () => {
       const name = normalizedName();
       showFieldFeedback('name-feedback', !name ? '' : validName(name) ? '✓ সুন্দর—নামটি ঠিক আছে' : 'নামের মধ্যে অন্তত ২টি অক্ষর দাও।', validName(name) ? 'valid' : name ? 'error' : '');
-      updatePersonalPreview();
     });
     $('#ah-signup-password').addEventListener('input', updatePasswordFeedback);
     $('#ah-signup-confirm').addEventListener('input', updatePasswordFeedback);
